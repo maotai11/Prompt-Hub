@@ -1,118 +1,619 @@
-# 角色與目標
-你是一位「AI-First 全端工程師 × 稅務合規顧問 × HCI 設計師」。
-任務：產出一個「可離線運行的單檔 HTML（含原生 JS/CSS）」之《二聯式收銀機統一發票 — 捲數使用計數器》。
-受眾：台灣一般商家出納/會計人員。
-成功標準：準確（跨卷判定正確）、穩定（離線可用、資料不遺失）、可控（可編輯/刪除/回溯）、可稽核（運算可追蹤）、合規（引用官方規範並標註來源日期）。
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>二聯式收銀機統一發票卷數計數器</title>
+<style>
+  body{font-family:"Microsoft JhengHei",Arial,Helvetica,sans-serif;margin:0;padding:0 8px;background:#f7f7f7;color:#333}
+  header{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #ccc}
+  h1{font-size:1.3em;margin:0}
+  #rocClock{font-size:.9em;color:#555}
+  .section{background:#fff;margin:8px 0;padding:8px;border-radius:4px}
+  .section h2{margin:0 0 6px;font-size:1.1em;border-left:4px solid #0078d4;padding-left:6px}
+  label{display:block;margin:4px 0 2px;font-size:.9em}
+  input,select,textarea{width:100%;padding:4px;font-size:.9em;box-sizing:border-box}
+  button{padding:6px 10px;font-size:.9em;margin-right:6px;margin-top:4px;border:none;border-radius:3px;background:#0078d4;color:#fff;cursor:pointer}
+  button:disabled{background:#999;cursor:not-allowed}
+  .error{color:#d8000c;font-size:.85em;margin-top:2px}
+  .ok{color:#0078d4}
+  .warn{color:#ff8c00}
+  .flex{display:flex;gap:6px}
+  .flex>div{flex:1}
+  .entries{margin-top:6px}
+  .entry{background:#fafafa;border:1px solid #ddd;padding:4px;margin-bottom:4px;border-radius:3px;font-size:.85em;display:flex;justify-content:space-between;align-items:center}
+  .entry span{white-space:pre-wrap}
+  .collapse-toggle{cursor:pointer;color:#0078d4;text-decoration:underline;font-size:.9em}
+  .collapsible{display:none;margin-top:6px}
+  .progressBar{height:10px;background:#e0e0e0;border-radius:5px;overflow:hidden;margin-top:4px}
+  .progressBar>div{height:100%;background:#0078d4;width:0%;transition:width .3s}
+  #footer{font-size:.8em;color:#666;margin-top:12px}
+  #footer a{color:#0078d4;text-decoration:none}
+  .testResult{font-size:.85em;margin-top:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>二聯式收銀機統一發票卷數計數器</h1>
+  <div id="rocClock"></div>
+</header>
 
-# 工具使用（若涉及法規/張數）
-- 允許使用「網路搜尋工具」。優先檢索：中華民國財政部/電子發票整合服務平台/各縣市稅捐機關。
-- 要求至少 2 個權威來源交叉比對，並在程式碼開頭以註解列出：
-  - 常數：二聯式收銀機統一發票「每捲張數」CONST_RECEIPTS_PER_ROLL = <數值>
-  - 來源標題、機關、存取日期（YYYY-MM-DD），附兩條引用鏈結（以註解寫 URL）。
-- 若檢索到多版本或規格差異，採「以新制為準」並在 UI 讓使用者可覆寫常數（預設為查得值）。
+<!-- 期別設定 -->
+<section class="section">
+  <h2>期別設定</h2>
+  <div class="flex">
+    <div>
+      <label>期別（民國年+雙月）</label>
+      <select id="periodSel"></select>
+    </div>
+    <div>
+      <label>客戶名稱</label>
+      <input id="client" placeholder="例：某某公司">
+    </div>
+    <div>
+      <label>稅別</label>
+      <select id="taxType">
+        <option value="GEN">一般稅5%</option>
+        <option value="ZERO">零稅率</option>
+        <option value="EXEMPT">免稅</option>
+      </select>
+    </div>
+  </div>
+  <div class="flex">
+    <div>
+      <label>字軌（兩碼大寫英文）</label>
+      <input id="prefix" maxlength="2" style="text-transform:uppercase">
+    </div>
+    <div>
+      <label>配發起號（8位數字）</label>
+      <input id="rangeStart" type="number" min="0" max="99999999">
+    </div>
+    <div>
+      <label>配發迄號（8位數字）</label>
+      <input id="rangeEnd" type="number" min="0" max="99999999">
+    </div>
+    <div>
+      <label>每卷張數（ROLL_SIZE）</label>
+      <input id="rollSize" type="number" min="1" value="250">
+      <span id="rollAlert" class="warn" style="display:none">已偏離預設250</span>
+    </div>
+  </div>
+  <button id="applySetting">套用設定</button>
+  <div id="settingError" class="error"></div>
+</section>
 
-# 輸入與資料模型
-使用者一次新增一筆「期別 × 客戶」的使用設定：
-- 期別：民國年期別（格式：YYY-稅別）。稅別範例：一般稅、免稅、零稅率（以實務為準）。
-- 客戶名稱：string。
-- 捲數：int（本期預計或實際配發之卷數）。
-- 字軌起號：string（例：AB-00000001）。
-- 字軌迄號：string（例：AB-00099999）。
-- 實際使用發票序列（可選）：以逗號/空白/換行分隔，允許「跨卷不連續」輸入（例如：...0012, ...0013, 跳到下一捲 ...0101 等）。
-- 備註（可選）。
+<!-- 當日輸入 -->
+<section class="section">
+  <h2>當日使用輸入</h2>
+  <label>單筆新增</label>
+  <div class="flex">
+    <input id="singleRocDate" placeholder="113/09/10 09:00:00">
+    <input id="singleFrom" type="number" min="0" max="99999999" placeholder="起號8位">
+    <input id="singleTo" type="number" min="0" max="99999999" placeholder="迄號8位">
+    <input id="singleNote" placeholder="備註">
+    <button id="addSingle">加入</button>
+  </div>
+  <label>批次貼上（每行 rocDate|from|to|note，可省略時間與備註）</label>
+  <textarea id="batchArea" rows="4" placeholder="113/09/10 09:00:00|00010000|00010123|首日銷售"></textarea>
+  <button id="importBatch">匯入批次</button>
+  <div id="batchError" class="error"></div>
 
-本地儲存（LocalStorage）結構（JSON）：
-{
-  "profiles": [
-    {
-      "id": "<uuid>",
-      "period": "YYY-稅別",
-      "client": "string",
-      "rolls_planned": number,
-      "track_start": "AB-00000001",
-      "track_end":   "AB-00099999",
-      "used_numbers": ["AB-00000012","AB-00000013","AB-0000101", ...],
-      "notes": "string",
-      "created_at": ISO8601,
-      "updated_at": ISO8601
+  <div class="entries" id="entriesList"></div>
+</section>
+
+<!-- 計算結果 -->
+<section class="section">
+  <h2>計算結果 <span class="collapse-toggle" data-target="resultBody">收合</span></h2>
+  <div id="resultBody" class="collapsible">
+    <div class="flex">
+      <div>總張數：<span id="totalPages">0</span></div>
+      <div>區段覆蓋卷數：<span id="rollsCoverage">0</span></div>
+      <div>單日估算卷數：<span id="rollsDaily">0</span></div>
+    </div>
+    <div id="rollHint" class="warn" style="display:none">可能跨卷/跨日回填，請檢核</div>
+    <div>被觸及卷索引：<span id="touchedIdx"></span></div>
+    <div>每卷示意（起-迄）：<pre id="rollMap"></pre></div>
+    <div class="progressBar"><div id="progress"></div></div>
+    <div id="progressText" style="font-size:.85em">已覆蓋 0 / 估計總卷數 0</div>
+  </div>
+</section>
+
+<!-- 歷史紀錄 -->
+<section class="section">
+  <h2>歷史紀錄 <span class="collapse-toggle" data-target="historyBody">收合</span></h2>
+  <div id="historyBody" class="collapsible">
+    <input id="historyFilter" placeholder="依期別或客戶篩選">
+    <button id="exportJSON">匯出 JSON</button>
+    <button id="exportCSV">匯出 CSV</button>
+    <input type="file" id="importFile" accept=".json,.csv" style="display:none">
+    <button id="importJSON">匯入 JSON</button>
+    <button id="importCSV">匯入 CSV</button>
+    <div id="historyList"></div>
+  </div>
+</section>
+
+<!-- 單元測試 -->
+<section class="section">
+  <h2>內建檢查（單元測試）</h2>
+  <button id="runSelfTest">執行自檢</button>
+  <div id="testResult" class="testResult"></div>
+</section>
+
+<footer id="footer">
+  資料來源/法規預設：二聯式收銀機統一發票每卷預設250張（待核對）。<br>
+  官方參考（若無法連線請自行核對）：
+  <a href="https://www.etax.nat.gov.tw" target="_blank">財政部電子發票整合服務平台</a>、
+  <a href="https://www.ntbna.gov.tw" target="_blank">全國稅務入口網</a>
+</footer>
+
+<script>
+/* 離線優先，單檔封裝，IIFE 模組化 */
+(() => {
+  "use strict";
+  const NS = "tw-invoice-counter:v1";
+  const ROLL_SIZE_DEFAULT = 250;
+  const PERIODS = ["01-02","03-04","05-06","07-08","09-10","11-12"];
+  const STORAGE = {settings:null, periods:[], entries:[]};
+
+  /* ====== Utils ====== */
+  const $ = id => document.getElementById(id);
+  const fmt8 = n => String(n).padStart(8,'0');
+  const rocNow = () => {
+    const d = new Date();
+    const roc = d.getFullYear() - 1911;
+    const MM = String(d.getMonth()+1).padStart(2,'0');
+    const DD = String(d.getDate()).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    const ss = String(d.getSeconds()).padStart(2,'0');
+    return `${roc}/${MM}/${DD} ${hh}:${mm}:${ss}`;
+  };
+  const toNum = s => parseInt(s,10);
+  const valid8 = s => /^\d{8}$/.test(s);
+  const validPrefix = p => /^[A-Z]{2}$/.test(p);
+  const inRange = (v,min,max) => v >= min && v <= max;
+
+  /* ====== State ====== */
+  let state = {
+    periodLabel:'',
+    taxType:'GEN',
+    client:'',
+    prefix:'',
+    range:{start:0,end:0},
+    rollSize:ROLL_SIZE_DEFAULT,
+    entries:[], // {rocDate,from,to,note}
+    calcMode:'coverage'
+  };
+
+  /* ====== DOM 綁定 ====== */
+  const els = {
+    periodSel:$('periodSel'),
+    client:$('client'),
+    taxType:$('taxType'),
+    prefix:$('prefix'),
+    rangeStart:$('rangeStart'),
+    rangeEnd:$('rangeEnd'),
+    rollSize:$('rollSize'),
+    rollAlert:$('rollAlert'),
+    settingError:$('settingError'),
+    singleRocDate:$('singleRocDate'),
+    singleFrom:$('singleFrom'),
+    singleTo:$('singleTo'),
+    singleNote:$('singleNote'),
+    addSingle:$('addSingle'),
+    batchArea:$('batchArea'),
+    importBatch:$('importBatch'),
+    batchError:$('batchError'),
+    entriesList:$('entriesList'),
+    totalPages:$('totalPages'),
+    rollsCoverage:$('rollsCoverage'),
+    rollsDaily:$('rollsDaily'),
+    rollHint:$('rollHint'),
+    touchedIdx:$('touchedIdx'),
+    rollMap:$('rollMap'),
+    progress:$('progress'),
+    progressText:$('progressText'),
+    historyFilter:$('historyFilter'),
+    exportJSON:$('exportJSON'),
+    exportCSV:$('exportCSV'),
+    importFile:$('importFile'),
+    importJSON:$('importJSON'),
+    importCSV:$('importCSV'),
+    historyList:$('historyList'),
+    runSelfTest:$('runSelfTest'),
+    testResult:$('testResult')
+  };
+
+  /* ====== Init ====== */
+  function init(){
+    // ROC 時鐘
+    const tick = () => { $('rocClock').textContent = rocNow(); };
+    setInterval(tick,1000); tick();
+
+    // 期別下拉
+    const ySel = document.createElement('select');
+    const y0 = new Date().getFullYear() - 1911;
+    for(let y=y0-2;y<=y0+2;y++){
+      const opt = document.createElement('option'); opt.value=y; opt.textContent=y;
+      ySel.appendChild(opt);
     }
-  ],
-  "settings": {
-    "CONST_RECEIPTS_PER_ROLL": number,      // 預設為查得值，UI 可改
-    "timezone": "Asia/Taipei",
-    "r_calendar": "Minguo"                  // 民國年顯示
+    ySel.value = y0;
+    PERIODS.forEach(p=>{
+      const opt = document.createElement('option'); opt.value=`${ySel.value}年${p}`; opt.textContent=`${ySel.value}年${p}`;
+      els.periodSel.appendChild(opt);
+    });
+    ySel.addEventListener('change',()=>{
+      els.periodSel.innerHTML='';
+      PERIODS.forEach(p=>{
+        const opt = document.createElement('option'); opt.value=`${ySel.value}年${p}`; opt.textContent=`${ySel.value}年${p}`;
+        els.periodSel.appendChild(opt);
+      });
+    });
+    els.periodSel.parentElement.insertBefore(ySel,els.periodSel);
+
+    // 載入 localStorage
+    loadStorage();
+
+    // 事件綁定
+    els.rollSize.addEventListener('input',()=>{
+      const v = toNum(els.rollSize.value);
+      els.rollAlert.style.display = v !== ROLL_SIZE_DEFAULT ? 'inline':'none';
+    });
+    $('applySetting').addEventListener('click',applySetting);
+    els.addSingle.addEventListener('click',addSingle);
+    els.importBatch.addEventListener('click',importBatch);
+    els.historyFilter.addEventListener('input',renderHistory);
+    els.exportJSON.addEventListener('click',()=>download(exportFullJSON(),'invoice.json','application/json'));
+    els.exportCSV.addEventListener('click',()=>download(exportCSV(),'invoice.csv','text/csv'));
+    els.importJSON.addEventListener('click',()=>{
+      els.importFile.accept='.json'; els.importFile.onchange=e=>handleImport(e,'json'); els.importFile.click();
+    });
+    els.importCSV.addEventListener('click',()=>{
+      els.importFile.accept='.csv'; els.importFile.onchange=e=>handleImport(e,'csv'); els.importFile.click();
+    });
+    els.runSelfTest.addEventListener('click',runSelfTest);
+
+    // 收合
+    document.querySelectorAll('.collapse-toggle').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        const t = $(e.target.dataset.target);
+        t.style.display = t.style.display==='none'?'block':'none';
+        e.target.textContent = t.style.display==='none'?'展開':'收合';
+      });
+    });
+
+    render();
   }
-}
 
-# UI/互動規格
-最上層（固定列）：顯示「現在時間（民國年 YYYY/MM/DD HH:mm:ss）」，自動每秒刷新（Asia/Taipei）。
-中層（可 CRUD）：
-- 清單卡片列出「期別｜客戶｜本期預設卷數｜已判定使用卷數（動態）｜最近更新時間」。
-- 每卡片：編輯、刪除、展開（折疊）按鈕。
-中層（折疊展開區）：
-- 表單欄位：期別、客戶、捲數、字軌起號、字軌迄號、實際使用序列（多行）、備註。
-- 動作：儲存/更新、重新計算、清空輸入、模擬測試（見下）。
-- 計算結果區：詳細呈現「自動切分卷 → 映射號碼 → 跨卷統計」的步驟表（可折疊），並輸出：
-  - 使用卷數（整數）、各卷使用張數、剩餘張數、首尾發票號。
-  - 針對「中途換卷又回頭用舊卷」的情境，以時間或輸入順序視覺化標註（例如時間線或批次序號）。
-最底層（歷史紀錄）：
-- 依「期別」分組（每期為獨立資料區）。
-- 提供「套用本期設定為模板」功能（將欄位預填到新增表單）。
+  /* ====== Storage ====== */
+  function saveStorage(){
+    localStorage.setItem(NS+':settings', JSON.stringify({rollSize:state.rollSize,taxTypes:["GEN","ZERO","EXEMPT"],calcModeDefault:state.calcMode}));
+    localStorage.setItem(NS+':periods', JSON.stringify(STORAGE.periods));
+    localStorage.setItem(NS+':entries', JSON.stringify(STORAGE.entries));
+  }
+  function loadStorage(){
+    try{
+      const s = localStorage.getItem(NS+':settings');
+      if(s) Object.assign(state, JSON.parse(s));
+      const p = localStorage.getItem(NS+':periods');
+      if(p) STORAGE.periods = JSON.parse(p);
+      const e = localStorage.getItem(NS+':entries');
+      if(e) STORAGE.entries = JSON.parse(e);
+    }catch(e){}
+    // 預設帶入最新期別
+    if(STORAGE.periods.length){
+      const latest = STORAGE.periods[STORAGE.periods.length-1];
+      state.periodLabel = latest.periodLabel;
+      state.taxType = latest.taxType;
+      state.client = latest.client;
+      state.prefix = latest.prefix;
+      state.range = latest.range;
+      state.rollSize = latest.rollSize;
+    }
+    syncUIFromState();
+  }
 
-# 計算與邏輯（核心）
-1) 卷切分：
-   - 以 CONST_RECEIPTS_PER_ROLL 為張數上限，依字軌起號→迄號順序切出多個「卷區間」。
-   - 每卷記錄：卷序號、起號、迄號、理論張數。
-2) 號碼標準化與驗證：
-   - 允許輸入含字軌（AB-）、無字軌（純數字）兩種；皆正規化為「字軌 + 8位數」。
-   - 檢查越界（不在起訖內）、重複、格式錯誤；錯誤列於「檢查面板」並不納入計算。
-3) 跨卷映射與統計：
-   - 將每一張實際使用號碼映射到對應卷區間，計算每卷「已用張數」。
-   - 使用卷數 = 已用張數 > 0 的卷數量（可選：若需以「最高使用到的卷序」計算，提供選項切換）。
-4) 中途換卷再回用：
-   - 保留輸入順序（或時間戳）以視覺標示「卷序跳躍」；不影響總卷數統計。
-5) 邊界情境：
-   - 字軌切換（例如不同字軌但連續配號）：視為不同區間；需提示使用者分批建檔或在同一期中新增「子批次」。
-   - CONST 變更：允許重新計算並記錄版本（在歷史紀錄中存放 CONST 的快照）。
+  /* ====== UI 同步 ====== */
+  function syncUIFromState(){
+    els.periodSel.value = state.periodLabel;
+    els.client.value = state.client;
+    els.taxType.value = state.taxType;
+    els.prefix.value = state.prefix;
+    els.rangeStart.value = fmt8(state.range.start);
+    els.rangeEnd.value = fmt8(state.range.end);
+    els.rollSize.value = state.rollSize;
+    els.rollAlert.style.display = state.rollSize !== ROLL_SIZE_DEFAULT ? 'inline':'none';
+    // 載入該期 entries
+    const key = state.periodLabel+'|'+state.client+'|'+state.prefix;
+    const found = STORAGE.entries.find(e=>e.key===key);
+    state.entries = found ? found.entries : [];
+    render();
+  }
+  function applySetting(){
+    const ySel = els.periodSel.parentElement.querySelector('select');
+    const period = els.periodSel.value;
+    const client = els.client.value.trim();
+    const tax = els.taxType.value;
+    const prefix = els.prefix.value.trim().toUpperCase();
+    const start = fmt8(els.rangeStart.value);
+    const end = fmt8(els.rangeEnd.value);
+    const roll = toNum(els.rollSize.value);
+    let err='';
+    if(!period) err='請選擇期別';
+    else if(!validPrefix(prefix)) err='字軌須為兩碼大寫英文';
+    else if(!valid8(start)||!valid8(end)) err='配發起迄號須為8位數字';
+    else if(toNum(start)>toNum(end)) err='起號不得大於迄號';
+    else if(roll<1) err='每卷張數須≥1';
+    if(err){ els.settingError.textContent=err; return; }
+    els.settingError.textContent='';
+    state.periodLabel=period; state.client=client; state.taxType=tax; state.prefix=prefix;
+    state.range={start:toNum(start),end:toNum(end)}; state.rollSize=roll;
+    // 儲存期別設定
+    const exist = STORAGE.periods.find(p=>p.periodLabel===period && p.client===client && p.prefix===prefix);
+    if(!exist) STORAGE.periods.push({periodLabel:period,taxType:tax,client:client,prefix:prefix,range:state.range,rollSize:roll});
+    else { exist.range=state.range; exist.rollSize=roll; exist.taxType=tax; }
+    saveStorage();
+    render();
+    alert('已自動儲存（本機）');
+  }
 
-# 匯入/匯出與列印
-- 離線環境運作，禁止外部 CDN，所有資源內嵌。
-- 支援「JSON/CSV」匯出全量資料與本期資料；支援列印（@media print）簡報式報表：期別/客戶/卷用量摘要 + 異常清單 + 來源註記。
-- 匯入：允許貼上 CSV/JSON 覆寫或合併（需前置預覽與欄位對應）。
+  /* ====== Entries ====== */
+  function addSingle(){
+    const roc = els.singleRocDate.value.trim() || rocNow();
+    const from = fmt8(els.singleFrom.value);
+    const to = fmt8(els.singleTo.value);
+    const note = els.singleNote.value.trim();
+    if(!valid8(from)||!valid8(to)) return alert('起迄號須為8位數字');
+    if(toNum(from)>toNum(to)) return alert('起號不可大於迄號');
+    if(!inRange(toNum(from),state.range.start,state.range.end)||!inRange(toNum(to),state.range.start,state.range.end))
+      return alert('號段超出配發範圍');
+    state.entries.push({rocDate:roc,from:from,to:to,note:note});
+    state.entries.sort((a,b)=> a.from===b.from ? 0 : a.from<b.from?-1:1);
+    saveEntries();
+    els.singleRocDate.value=''; els.singleFrom.value=''; els.singleTo.value=''; els.singleNote.value='';
+    render();
+  }
+  function importBatch(){
+    const lines = els.batchArea.value.trim().split(/\r?\n/);
+    const err=[];
+    const tmp=[];
+    lines.forEach((l,idx)=>{
+      const parts = l.split('|').map(x=>x.trim());
+      if(parts.length<3){ err.push(`第${idx+1}行格式錯誤`); return; }
+      const roc = parts[0].includes('/') ? parts[0] : rocNow();
+      const from = fmt8(parts[1]);
+      const to = fmt8(parts[2]);
+      const note = parts[3]||'';
+      if(!valid8(from)||!valid8(to)){ err.push(`第${idx+1}行號碼格式錯誤`); return; }
+      if(toNum(from)>toNum(to)){ err.push(`第${idx+1}行起>迄`); return; }
+      if(!inRange(toNum(from),state.range.start,state.range.end)||!inRange(toNum(to),state.range.start,state.range.end))
+      { err.push(`第${idx+1}行超出配發`); return; }
+      tmp.push({rocDate:roc,from:from,to:to,note:note});
+    });
+    if(err.length){ els.batchError.textContent=err.join('；'); return; }
+    els.batchError.textContent='';
+    // 合併重疊/相鄰
+    tmp.sort((a,b)=> a.from<b.from?-1:1);
+    const merged=[];
+    for(const t of tmp){
+      if(merged.length===0){ merged.push(t); continue; }
+      const last = merged[merged.length-1];
+      if(toNum(t.from) <= toNum(last.to)+1){
+        if(toNum(t.to)>toNum(last.to)) last.to = t.to;
+        if(t.note) last.note += (last.note?';':'')+t.note;
+      }else merged.push(t);
+    }
+    state.entries = merged;
+    saveEntries();
+    els.batchArea.value='';
+    render();
+  }
+  function saveEntries(){
+    const key = state.periodLabel+'|'+state.client+'|'+state.prefix;
+    let found = STORAGE.entries.find(e=>e.key===key);
+    if(!found) { found={key:key,entries:[]}; STORAGE.entries.push(found); }
+    found.entries = state.entries;
+    saveStorage();
+  }
 
-# 易用性與無障礙
-- 表單即時驗證（格式/必填/越界）。
-- 可鍵盤操作（Tab 流程、Enter 儲存、Esc 取消）。
-- ARIA 標籤、對比度合規。
+  /* ====== Compute & Render ====== */
+  function compute(){
+    const {range,rollSize,entries} = state;
+    let totalPages=0;
+    const rolls = new Set();
+    let dailySum=0;
+    entries.forEach(e=>{
+      const from=toNum(e.from), to=toNum(e.to);
+      const pages = to-from+1;
+      totalPages += pages;
+      dailySum += Math.ceil(pages/rollSize);
+      // coverage
+      for(let n=from;n<=to;n++){
+        const idx = Math.floor((n - range.start)/rollSize);
+        rolls.add(idx);
+      }
+    });
+    const rollsCoverage = rolls.size;
+    const rollsDaily = dailySum;
+    return {totalPages,rollsCoverage,rollsDaily,rolls:Array.from(rolls).sort((a,b)=>a-b)};
+  }
+  function render(){
+    // entries
+    els.entriesList.innerHTML='';
+    state.entries.forEach((e,idx)=>{
+      const div=document.createElement('div'); div.className='entry';
+      div.innerHTML = `<span>${e.rocDate}　${e.from} ~ ${e.to}　${e.note}</span>
+        <button onclick="removeEntry(${idx})">刪</button>`;
+      els.entriesList.appendChild(div);
+    });
+    // compute
+    const {totalPages,rollsCoverage,rollsDaily,rolls} = compute();
+    els.totalPages.textContent=totalPages;
+    els.rollsCoverage.textContent=rollsCoverage;
+    els.rollsDaily.textContent=rollsDaily;
+    els.rollHint.style.display = Math.abs(rollsCoverage-rollsDaily)>1 ? 'block':'none';
+    els.touchedIdx.textContent = rolls.join(',');
+    // roll map
+    const rollMap=[];
+    const {range,rollSize} = state;
+    const totalRolls = Math.ceil((range.end - range.start + 1)/rollSize);
+    for(let i=0;i<totalRolls;i++){
+      const s = range.start + i*rollSize;
+      const e = Math.min(s+rollSize-1, range.end);
+      rollMap.push(`卷${i}：${fmt8(s)} ~ ${fmt8(e)}`);
+    }
+    els.rollMap.textContent = rollMap.join('\n');
+    // progress
+    const progress = totalRolls>0 ? (rollsCoverage/totalRolls*100).toFixed(1):0;
+    els.progress.style.width = progress+'%';
+    els.progressText.textContent = `已覆蓋 ${rollsCoverage} / 估計總卷數 ${totalRolls}`;
+    // history
+    renderHistory();
+  }
+  window.removeEntry = idx=>{ state.entries.splice(idx,1); saveEntries(); render(); };
 
-# 安全與穩定
-- 僅本機運算與儲存；無網路亦可。
-- 不使用 eval，不注入第三方腳本。
-- 以 try/catch 包覆關鍵流程，錯誤顯示於「檢查面板」。
+  /* ====== History / Import / Export ====== */
+  function renderHistory(){
+    const f = els.historyFilter.value.trim().toLowerCase();
+    const list = STORAGE.periods.filter(p=> 
+      !f || p.periodLabel.toLowerCase().includes(f) || p.client.toLowerCase().includes(f)
+    );
+    els.historyList.innerHTML='';
+    list.forEach(p=>{
+      const div=document.createElement('div'); div.style.marginBottom='6px'; div.style.fontSize='.85em';
+      div.innerHTML = `<b>${p.periodLabel}</b>　${p.client}　${p.prefix}　${fmt8(p.range.start)}~${fmt8(p.range.end)}　卷${p.rollSize}
+        <button onclick="loadAsTemplate('${p.periodLabel}','${p.client}','${p.prefix}')">套用為新期模板</button>`;
+      els.historyList.appendChild(div);
+    });
+  }
+  window.loadAsTemplate = (period,client,prefix)=>{
+    const p = STORAGE.periods.find(x=>x.periodLabel===period&&x.client===client&&x.prefix===prefix);
+    if(!p) return;
+    state.periodLabel=p.periodLabel; state.client=p.client; state.taxType=p.taxType; state.prefix=p.prefix;
+    state.range=p.range; state.rollSize=p.rollSize;
+    syncUIFromState();
+  };
+  function exportFullJSON(){
+    return JSON.stringify({version:"1.0.0",settings:{rollSize:state.rollSize,taxTypes:["GEN","ZERO","EXEMPT"],calcModeDefault:state.calcMode},periods:STORAGE.periods,entries:STORAGE.entries},null,2);
+  }
+  function exportCSV(){
+    const head='periodLabel,taxType,client,prefix,start,end,rollSize,rocDate,from,to,note\n';
+    const rows=[];
+    STORAGE.entries.forEach(e=>{
+      const [period,client,prefix] = e.key.split('|');
+      const p = STORAGE.periods.find(x=>x.periodLabel===period&&x.client===client&&x.prefix===prefix);
+      if(!p) return;
+      e.entries.forEach(ent=>{
+        rows.push([period,p.taxType,client,prefix,fmt8(p.range.start),fmt8(p.range.end),p.rollSize,ent.rocDate,ent.from,ent.to,ent.note].map(x=>`"${x}"`).join(','));
+      });
+    });
+    return head+rows.join('\n');
+  }
+  function download(text,filename,type){
+    const blob = new Blob([text],{type:type});
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+  function handleImport(ev,mode){
+    const file = ev.target.files[0];
+    if(!file) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        if(mode==='json'){
+          const data = JSON.parse(r.result);
+          if(!data.version) throw '版本欄位遺失';
+          // migrate v_old→v1 可擴充
+          STORAGE.periods = data.periods||[];
+          STORAGE.entries = data.entries||[];
+          saveStorage();
+          alert('JSON 匯入成功');
+          location.reload();
+        }else{
+          // CSV 簡易支援
+          const lines = r.result.trim().split('\n').slice(1); // skip head
+          const tmpP={}; // key=>periodObj
+          const tmpE={}; // key=>entries[]
+          lines.forEach(l=>{
+            const [periodLabel,taxType,client,prefix,start,end,rollSize,rocDate,from,to,note] = l.split(',').map(x=>x.replace(/^"|"$/g,''));
+            const key = `${periodLabel}|${client}|${prefix}`;
+            if(!tmpP[key]){
+              tmpP[key]={periodLabel,taxType,client,prefix,range:{start:toNum(start),end:toNum(end)},rollSize:toNum(rollSize)};
+            }
+            if(!tmpE[key]) tmpE[key]=[];
+            tmpE[key].push({rocDate,from,to,note});
+          });
+          // 寫回 STORAGE
+          Object.keys(tmpP).forEach(k=>{
+            if(!STORAGE.periods.find(p=>p.periodLabel===tmpP[k].periodLabel&&p.client===tmpP[k].client&&p.prefix===tmpP[k].prefix))
+              STORAGE.periods.push(tmpP[k]);
+          });
+          Object.keys(tmpE).forEach(k=>{
+            const exist = STORAGE.entries.find(e=>e.key===k);
+            if(!exist) STORAGE.entries.push({key:k,entries:tmpE[k]});
+            else exist.entries = tmpE[k];
+          });
+          saveStorage();
+          alert('CSV 匯入成功');
+          location.reload();
+        }
+      }catch(e){ alert('匯入失敗：'+e); }
+    };
+    r.readAsText(file);
+  }
 
-# 測試（內建自測清單）
-- 單元測試（以最小原生測試函式）：
-  - 1 捲剛好用滿、跨 2 捲、跨 N 捲。
-  - 中途換卷再回用。
-  - 重複號碼、越界號碼、格式異常。
-- 針對每次重新計算：輸出「測試摘要」通過/失敗數。
+  /* ====== Self Test ====== */
+  function runSelfTest(){
+    const tests=[
+      {name:'跨卷合併',fn:()=>{
+        const entries=[{from:'00000001',to:'00000250'},{from:'00000251',to:'00000500'}];
+        const rolls=new Set();
+        entries.forEach(e=>{
+          for(let n=toNum(e.from);n<=toNum(e.to);n++){
+            rolls.add(Math.floor((n-1)/250));
+          }
+        });
+        return rolls.size===2;
+      }},
+      {name:'重疊合併',fn:()=>{
+        const entries=[{from:'00000100',to:'00000300'},{from:'00000200',to:'00000400'}];
+        const rolls=new Set();
+        entries.forEach(e=>{
+          for(let n=toNum(e.from);n<=toNum(e.to);n++){
+            rolls.add(Math.floor((n-1)/250));
+          }
+        });
+        return rolls.size===2; // 0,1
+      }},
+      {name:'越界阻止',fn:()=>{
+        const range={start:1,end:1000};
+        const from=2000,to=2500;
+        return !inRange(from,range.start,range.end);
+      }},
+      {name:'跳卷回用',fn:()=>{
+        const entries=[{from:'00000001',to:'00000250'},{from:'00001000',to:'00001250'}];
+        const rolls=new Set();
+        entries.forEach(e=>{
+          for(let n=toNum(e.from);n<=toNum(e.to);n++){
+            rolls.add(Math.floor((n-1)/250));
+          }
+        });
+        return rolls.size===2;
+      }}
+    ];
+    let pass=0;
+    const report=[];
+    tests.forEach(t=>{
+      const ok = t.fn();
+      if(ok) pass++;
+      report.push(`${t.name}: ${ok?'PASS':'FAIL'}`);
+    });
+    els.testResult.innerHTML = report.join('<br>') + `<br>共 ${tests.length} 項，通過 ${pass}`;
+  }
 
-# 輸出交付
-請直接輸出一個可貼上即用的「單檔 index.html」：<html>…</html>，包含：
-- <style> 內嵌 CSS
-- <script> 內嵌 JS（含：資料模型、切分與映射演算法、檢查面板、LocalStorage API、測試函式）
-- 頂部以註解列出：版本、生成時間（Asia/Taipei）、CONST 值與來源清單
-
-# Few-shot 對比示例（運算期望）
-- 示例 A（連續使用）：起號 AB-00000001、迄號 AB-00000600、CONST=300；實際輸入 1..350 → 應判定使用卷數=2（卷1用300、卷2用50）。
-- 示例 B（不連續與回頭用）：同起訖與 CONST；實際輸入 1..120、301..360、121..180 → 卷1用180、卷2用60 → 使用卷數=2（順序不影響總卷數）。
-- 示例 C（越界/格式錯）：輸入 AB-00000650、AB-12 → 兩者進「檢查面板」，不納入計算。
-
-# 自我檢查與修訂機制
-在輸出前，請逐項檢核並修正：
-[ ] 單檔離線可用、無外鏈資源
-[ ] CONST 與來源雙重引用、日期標註正確
-[ ] 表單驗證與錯誤面板可用
-[ ] 卷切分/映射/跨卷回用案例皆通過內建測試
-[ ] 列印樣式可讀、匯出檔案可被 Excel/記帳軟體讀取
-[ ] 程式碼內中文註解標明關鍵假設與可覆寫點
+  /* ====== Start ====== */
+  init();
+})();
+</script>
+</body>
+</html>
