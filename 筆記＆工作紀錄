@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>筆記工作管理系統</title>
+    <title>筆記管理系統</title>
     <style>
         * {
             margin: 0;
@@ -17,7 +17,7 @@
             --text-primary: #1a1a1a;
             --text-secondary: #666666;
             --accent: #c9a96e;
-            --accent-hover: #b8975a;
+            --accent-hover: #b8935f;
             --border: #e0e0e0;
             --shadow: rgba(0, 0, 0, 0.1);
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -95,8 +95,8 @@
             border-bottom: 3px solid transparent;
             cursor: pointer;
             transition: var(--transition);
-            font-weight: 500;
             color: var(--text-secondary);
+            font-size: 1rem;
         }
 
         .tab.active {
@@ -105,7 +105,7 @@
         }
 
         .tab:hover {
-            color: var(--accent);
+            color: var(--text-primary);
         }
 
         .content-section {
@@ -141,7 +141,7 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             transition: var(--transition);
-            font-family: inherit;
+            font-size: 1rem;
         }
 
         input:focus, textarea:focus {
@@ -236,17 +236,17 @@
             box-shadow: 0 8px 32px var(--shadow);
             max-width: 300px;
             z-index: 1000;
-            animation: slideIn 0.3s ease;
+            animation: slideInRight 0.3s ease;
             transition: var(--transition);
         }
 
-        @keyframes slideIn {
+        @keyframes slideInRight {
             from { transform: translateX(100%); }
             to { transform: translateX(0); }
         }
 
         .desktop-card .card-date {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: var(--text-secondary);
             margin-bottom: 5px;
             font-weight: 500;
@@ -275,6 +275,19 @@
 
         .desktop-card .close-btn:hover {
             color: var(--text-primary);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow);
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
         }
 
         .modal {
@@ -325,24 +338,6 @@
             display: none;
         }
 
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--accent);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px var(--shadow);
-            z-index: 3000;
-            animation: slideInRight 0.3s ease;
-        }
-
-        @keyframes slideInRight {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -356,15 +351,10 @@
                 flex-wrap: wrap;
             }
             
-            .tab {
-                padding: 10px 15px;
-                font-size: 0.9rem;
-            }
-            
             .desktop-card {
-                max-width: 250px;
                 bottom: 10px;
                 right: 10px;
+                max-width: 250px;
             }
         }
     </style>
@@ -559,13 +549,17 @@
             }
 
             importData(type, data) {
-                if (type === 'notes') {
-                    this.notes = [...this.notes, ...data];
-                    this.saveData('notes', this.notes);
-                } else if (type === 'work') {
-                    this.workRecords = [...this.workRecords, ...data];
-                    this.saveData('workRecords', this.workRecords);
+                if (Array.isArray(data)) {
+                    if (type === 'notes') {
+                        this.notes = [...this.notes, ...data];
+                        this.saveData('notes', this.notes);
+                    } else if (type === 'work') {
+                        this.workRecords = [...this.workRecords, ...data];
+                        this.saveData('workRecords', this.workRecords);
+                    }
+                    return true;
                 }
+                return false;
             }
         }
 
@@ -573,10 +567,10 @@
         class UIManager {
             constructor(dataManager) {
                 this.dataManager = dataManager;
-                this.currentEditId = null;
-                this.currentEditType = null;
                 this.editingNoteId = null;
                 this.editingWorkId = null;
+                this.currentEditType = null;
+                this.currentEditId = null;
                 this.desktopCards = this.loadDesktopCards();
             }
 
@@ -589,13 +583,13 @@
             }
 
             setupEventListeners() {
+                // 主題切換
+                document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
+
                 // Tab 切換
                 document.querySelectorAll('.tab').forEach(tab => {
                     tab.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
                 });
-
-                // 主題切換
-                document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
 
                 // 筆記功能
                 document.getElementById('addNote').addEventListener('click', () => this.handleNoteSave());
@@ -603,6 +597,7 @@
                 document.getElementById('exportNotes').addEventListener('click', () => this.dataManager.exportData('notes'));
                 document.getElementById('importNotes').addEventListener('click', () => document.getElementById('importNotesFile').click());
                 document.getElementById('importNotesFile').addEventListener('change', (e) => this.handleImport('notes', e));
+                document.getElementById('noteSearch').addEventListener('input', (e) => this.renderNotes(e.target.value));
 
                 // 工作紀錄功能
                 document.getElementById('addWork').addEventListener('click', () => this.handleWorkSave());
@@ -610,9 +605,6 @@
                 document.getElementById('exportWork').addEventListener('click', () => this.dataManager.exportData('work'));
                 document.getElementById('importWork').addEventListener('click', () => document.getElementById('importWorkFile').click());
                 document.getElementById('importWorkFile').addEventListener('change', (e) => this.handleImport('work', e));
-
-                // 搜尋功能
-                document.getElementById('noteSearch').addEventListener('input', (e) => this.renderNotes(e.target.value));
                 document.getElementById('workSearch').addEventListener('input', (e) => this.renderWorkRecords(e.target.value));
 
                 // 模態框
@@ -712,10 +704,10 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
-                        const data = JSON.parse(e.target.result);
+                        const data = JSON.parse(e.target.value);
                         if (Array.isArray(data)) {
                             this.dataManager.importData(type, data);
-                            this.showNotification(`成功匯入 ${data.length} 筆${type === 'notes' ? '筆記' : '工作紀錄'}！`, 'success');
+                            this.showNotification(`成功匯入 ${data.length} 項${type === 'notes' ? '筆記' : '工作紀錄'}！`, 'success');
                             if (type === 'notes') {
                                 this.renderNotes();
                             } else {
@@ -851,14 +843,14 @@
                 const cardElement = document.createElement('div');
                 cardElement.className = 'desktop-card';
                 cardElement.id = `desktop-card-${card.type}-${card.id}`;
-                
+
                 cardElement.innerHTML = `
                     <button class="close-btn" onclick="uiManager.removeDesktopCard(${card.id}, '${card.type}')">&times;</button>
                     <div class="card-date">${card.date}</div>
                     ${card.category ? `<div class="note-category">${card.category}</div>` : ''}
                     <div class="card-content">${this.truncateText(card.content, 100)}</div>
                 `;
-                
+
                 container.appendChild(cardElement);
             }
 
@@ -867,7 +859,7 @@
                 if (card) {
                     card.remove();
                 }
-                
+
                 this.desktopCards = this.desktopCards.filter(card => 
                     !(card.id === id && card.type === type)
                 );
@@ -902,13 +894,18 @@
             showNotification(message, type) {
                 const notification = document.createElement('div');
                 notification.className = 'notification';
-                notification.style.background = type === 'success' ? 'var(--accent)' : '#e74c3c';
                 notification.textContent = message;
                 document.body.appendChild(notification);
 
                 setTimeout(() => {
                     notification.remove();
                 }, 3000);
+            }
+
+            closeModal() {
+                document.getElementById('editModal').style.display = 'none';
+                this.currentEditId = null;
+                this.currentEditType = null;
             }
         }
 
@@ -918,6 +915,13 @@
 
         // 頁面載入時初始化
         document.addEventListener('DOMContentLoaded', () => {
+            // 載入主題設定
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.getElementById('themeToggle').textContent = 
+                savedTheme === 'dark' ? '☀️ 淺色模式' : '🌙 深色模式';
+
+            // 初始化 UI
             uiManager.init();
         });
     </script>
