@@ -1,0 +1,183 @@
+/***** 設定區 *****/
+const CONFIG = {
+  SHEET_NAME: 'Recipients',      // 名單工作表名稱
+  TEMPLATE_SHEET: 'Template',    // 模板工作表名稱
+  TEMPLATE_CELL: 'A2',           // 模板所在儲存格
+  SUBJECT_FALLBACK: '營業稅申報回覆', // 預設主旨（若列上沒填主旨就用這個）
+  DRIVE_FOLDER_ID: '在這裡換成你的Drive資料夾ID',
+  ATTACHMENT_COL: '附件檔名',     // 名單中放附件檔名（多個用 ; 分隔）
+  EMAIL_COL: 'Email',
+  STATUS_COL: '狀態',
+  SENT_AT_COL: '寄出時間',       // 這裡仍沿用欄位名稱；建立草稿時一樣回寫時間
+  NOTE_COL: '備註',
+  DRY_RUN: false,                // 先 true 測試、確認後改 false
+  USE_HTML: true,                // 模板若是 HTML 設 true
+  CREATE_DRAFT: true             // ★ 改為建立草稿模式
+};
+
+/***** 入口函式：執行合併（建立草稿） *****/
+function mailMerge() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
+  const template = getTemplate_(ss);
+
+  const data = getDataAsObjects_(sheet);
+  const keys = Object.keys(data[0] || {});
+
+  // 檢查必要欄位
+  requireCols_([CONFIG.EMAIL_COL], keys);
+
+  // 檢查或建立結果欄
+  ensureColumn_(sheet, CONFIG.STATUS_COL, keys.length + 1);
+  ensureColumn_(sheet, CONFIG.SENT_AT_COL, keys.length + 2);
+  ensureColumn_(sheet, CONFIG.NOTE_COL, keys.length + 3);
+
+  const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+
+  const statusColIndex = findColIndex_(sheet, CONFIG.STATUS_COL) + 1;
+  const sentAtColIndex = findColIndex_(sheet, CONFIG.SENT_AT_COL) + 1;
+  const noteColIndex   = findColIndex_(sheet, CONFIG.NOTE_COL) + 1;
+
+  const startRow = 2; // 跳過標題列
+  const lastRow = sheet.getLastRow();
+
+  for (let r = startRow; r <= lastRow; r++) {
+    try {
+      const rowObj = rowToObject_(sheet, r);
+      if (!rowObj || !rowObj[CONFIG.EMAIL_COL]) continue;
+
+      // 已完成（Sent 或 Draft）則跳過，避免重複
+      const curStatus = String(sheet.getRange(r, statusColIndex).getValue() || '').toLowerCase();
+      if (curStatus === 'sent' || curStatus === 'draft') continue;
+
+      const email = String(rowObj[CONFIG.EMAIL_COL]).trim();
+      const subject = (rowObj['主旨'] && String(rowObj['主旨']).trim()) || CONFIG.SUBJECT_FALLBACK;
+
+      // 依欄位替換模板 {{欄位名}}
+      const body = replaceTemplate_(template, rowObj);
+
+      // 附件
+      const attachmentFiles = [];
+      if (rowObj[CONFIG.ATTACHMENT_COL]) {
+        const names = String(rowObj[CONFIG.ATTACHMENT_COL])
+          .split(';')
+          .map(s => s.trim())
+          .filter(Boolean);
+        names.forEach(name => {
+          const file = findFileInFolder_(folder, name);
+          if (file) attachmentFiles.push(file.getBlob());
+          else throw new Error(`找不到附件檔：「${name}」`);
+        });
+      }
+
+      if (CONFIG.DRY_RUN) {
+        // 不建立草稿，僅寫回測試資訊
+        sheet.getRange(r, statusColIndex).setValue('DRY-RUN');
+        sheet.getRange(r, sentAtColIndex).setValue(new Date());
+        sheet.getRange(r, noteColIndex).setValue(`TO=${email}; SUBJECT=${subject}; ATTACH=${attachmentFiles.length}`);
+      } else {
+        // ★ 建立草稿而非直接寄出
+        const options = {};
+        if (attachmentFiles.length) options.attachments = attachmentFiles;
+
+        if (CONFIG.USE_HTML) {
+          options.htmlBody = body;
+          const plainBody = stripHtml_(body); // 增加相容性
+          GmailApp.createDraft(email, subject, plainBody, options);
+        } else {
+          GmailApp.createDraft(email, subject, body, options);
+        }
+
+        sheet.getRange(r, statusColIndex).setValue('Draft'); // ★ 標記為 Draft
+        sheet.getRange(r, sentAtColIndex).setValue(new Date());
+        sheet.getRange(r, noteColIndex).setValue(`OK_DRAFT; ATTACH=${attachmentFiles.length}`);
+      }
+
+    } catch (err) {
+      sheet.getRange(r, noteColIndex).setValue('ERR: ' + err.message);
+      sheet.getRange(r, statusColIndex).setValue('Error');
+    }
+
+    Utilities.sleep(150); // 避免觸發限速
+  }
+}
+
+/***** 讀模板 *****/
+function getTemplate_(ss) {
+  const tSheet = ss.getSheetByName(CONFIG.TEMPLATE_SHEET);
+  if (!tSheet) throw new Error(`缺少模板工作表：${CONFIG.TEMPLATE_SHEET}`);
+  const tpl = tSheet.getRange(CONFIG.TEMPLATE_CELL).getValue();
+  if (!tpl) throw new Error(`模板 ${CONFIG.TEMPLATE_SHEET}!${CONFIG.TEMPLATE_CELL} 為空`);
+  return String(tpl);
+}
+
+/***** 以物件陣列讀表 *****/
+function getDataAsObjects_(sheet) {
+  const range = sheet.getDataRange();
+  const values = range.getValues();
+  if (values.length < 2) return [];
+  const headers = values[0].map(h => String(h).trim());
+  return values.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  });
+}
+
+/***** 單列成物件 *****/
+function rowToObject_(sheet, row) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const rowVals = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const obj = {};
+  headers.forEach((h, i) => obj[h] = rowVals[i]);
+  return obj;
+}
+
+/***** 確保欄位存在（沒有就新增到最右） *****/
+function ensureColumn_(sheet, colName, colIndexIfAppend) {
+  const firstRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (!firstRow.includes(colName)) {
+    sheet.getRange(1, colIndexIfAppend, 1, 1).setValue(colName);
+  }
+}
+
+/***** 找欄位index（0-based） *****/
+function findColIndex_(sheet, colName) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const idx = headers.indexOf(colName);
+  if (idx === -1) throw new Error(`找不到欄位：${colName}`);
+  return idx;
+}
+
+/***** 必要欄位檢查 *****/
+function requireCols_(required, keys) {
+  required.forEach(k => {
+    if (!keys.includes(k)) throw new Error(`名單缺少必要欄位：${k}`);
+  });
+}
+
+/***** 在指定資料夾找檔案（用檔名精準比對） *****/
+function findFileInFolder_(folder, filename) {
+  const files = folder.getFilesByName(filename);
+  return files.hasNext() ? files.next() : null;
+}
+
+/***** 範本替換：{{欄位名}} *****/
+function replaceTemplate_(tpl, rowObj) {
+  return tpl.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => {
+    const v = rowObj[String(key).trim()];
+    return (v === null || v === undefined) ? '' : String(v);
+  });
+}
+
+/***** HTML → 純文字 *****/
+function stripHtml_(html) {
+  return String(html)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
