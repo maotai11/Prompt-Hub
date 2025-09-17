@@ -30,16 +30,17 @@
             --text-secondary: #b0b0b0;
             --accent: #d4af37;
             --accent-hover: #c9a96e;
-            --border: #333333;
+            --border: #404040;
             --shadow: rgba(0, 0, 0, 0.3);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-primary);
+            background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             transition: var(--transition);
+            min-height: 100vh;
         }
 
         .container {
@@ -58,7 +59,7 @@
         }
 
         .date-display {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 300;
             letter-spacing: -0.02em;
         }
@@ -84,25 +85,27 @@
             display: flex;
             gap: 10px;
             margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
         }
 
         .tab {
             padding: 12px 24px;
-            background: var(--bg-secondary);
+            background: none;
             border: none;
-            border-radius: 8px;
+            border-bottom: 3px solid transparent;
             cursor: pointer;
             transition: var(--transition);
             font-weight: 500;
+            color: var(--text-secondary);
         }
 
         .tab.active {
-            background: var(--accent);
-            color: white;
+            color: var(--accent);
+            border-bottom-color: var(--accent);
         }
 
-        .tab:hover:not(.active) {
-            background: var(--border);
+        .tab:hover {
+            color: var(--accent);
         }
 
         .content-section {
@@ -138,6 +141,7 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             transition: var(--transition);
+            font-family: inherit;
         }
 
         input:focus, textarea:focus {
@@ -160,7 +164,7 @@
             cursor: pointer;
             transition: var(--transition);
             font-weight: 500;
-            margin-right: 10px;
+            font-size: 1rem;
         }
 
         .btn:hover {
@@ -169,8 +173,18 @@
             box-shadow: 0 4px 12px var(--shadow);
         }
 
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
         .search-box {
-            margin-bottom: 20px;
+            margin: 20px 0;
         }
 
         .search-box input {
@@ -219,10 +233,11 @@
             background: var(--bg-secondary);
             border-radius: 12px;
             padding: 15px;
-            box-shadow: 0 4px 20px var(--shadow);
+            box-shadow: 0 8px 32px var(--shadow);
             max-width: 300px;
             z-index: 1000;
             animation: slideIn 0.3s ease;
+            transition: var(--transition);
         }
 
         @keyframes slideIn {
@@ -230,12 +245,14 @@
             to { transform: translateX(0); }
         }
 
-        .desktop-card .note-date {
-            font-weight: 500;
+        .desktop-card .card-date {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
             margin-bottom: 5px;
+            font-weight: 500;
         }
 
-        .desktop-card .note-content {
+        .desktop-card .card-content {
             font-size: 0.9rem;
             line-height: 1.4;
             display: -webkit-box;
@@ -252,7 +269,12 @@
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            font-size: 18px;
+            font-size: 1.2rem;
+            padding: 5px;
+        }
+
+        .desktop-card .close-btn:hover {
+            color: var(--text-primary);
         }
 
         .modal {
@@ -290,19 +312,60 @@
         .modal-close {
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 1.5rem;
             cursor: pointer;
             color: var(--text-secondary);
         }
 
-        .export-import-buttons {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
+        .modal-close:hover {
+            color: var(--text-primary);
         }
 
         .hidden {
             display: none;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow);
+            z-index: 3000;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .date-display {
+                font-size: 1.5rem;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .desktop-card {
+                max-width: 250px;
+                bottom: 10px;
+                right: 10px;
+            }
         }
     </style>
 </head>
@@ -316,7 +379,6 @@
         <div class="tabs">
             <button class="tab active" data-tab="notes">📝 筆記</button>
             <button class="tab" data-tab="work">💼 工作紀錄</button>
-            <button class="tab" data-tab="history">📚 歷史紀錄</button>
         </div>
 
         <!-- 筆記模組 -->
@@ -333,12 +395,16 @@
                 <label for="noteDate">日期</label>
                 <input type="date" id="noteDate">
             </div>
-            <button class="btn" id="addNote">💾 儲存筆記</button>
-
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn" id="addNote">💾 儲存筆記</button>
+                <button class="btn btn-secondary" id="exportNotes">📤 匯出筆記</button>
+                <button class="btn btn-secondary" id="importNotes">📥 匯入筆記</button>
+                <input type="file" id="importNotesFile" class="hidden" accept=".json">
+            </div>
+            
             <div class="search-box">
                 <input type="text" id="noteSearch" placeholder="🔍 搜尋筆記...">
             </div>
-
             <div id="notesList"></div>
         </section>
 
@@ -352,30 +418,22 @@
                 <label for="workContent">工作內容</label>
                 <textarea id="workContent" placeholder="輸入工作內容..."></textarea>
             </div>
-            <button class="btn" id="addWork">💾 儲存工作紀錄</button>
-
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn" id="addWork">💾 儲存工作紀錄</button>
+                <button class="btn btn-secondary" id="exportWork">📤 匯出工作紀錄</button>
+                <button class="btn btn-secondary" id="importWork">📥 匯入工作紀錄</button>
+                <input type="file" id="importWorkFile" class="hidden" accept=".json">
+            </div>
+            
             <div class="search-box">
                 <input type="text" id="workSearch" placeholder="🔍 搜尋工作紀錄...">
             </div>
-
             <div id="workList"></div>
         </section>
-
-        <!-- 歷史紀錄模組 -->
-        <section class="content-section" id="history">
-            <div class="export-import-buttons">
-                <button class="btn" id="exportData">📤 匯出資料</button>
-                <button class="btn" id="importData">📥 匯入資料</button>
-                <input type="file" id="fileInput" class="hidden" accept=".json">
-            </div>
-
-            <div class="search-box">
-                <input type="text" id="historySearch" placeholder="🔍 搜尋歷史紀錄...">
-            </div>
-
-            <div id="historyList"></div>
-        </section>
     </div>
+
+    <!-- 桌面卡片容器 -->
+    <div id="desktopCards"></div>
 
     <!-- 編輯模態框 -->
     <div class="modal" id="editModal">
@@ -385,7 +443,7 @@
                 <button class="modal-close" id="modalClose">&times;</button>
             </div>
             <div class="form-group">
-                <label for="editCategory">類別</label>
+                <label for="editCategory">類別（僅限筆記）</label>
                 <input type="text" id="editCategory">
             </div>
             <div class="form-group">
@@ -432,7 +490,7 @@
                     ...note,
                     createdAt: new Date().toISOString()
                 };
-                this.notes.unshift(newNote);
+                this.notes.push(newNote);
                 this.saveData('notes', this.notes);
                 return newNote;
             }
@@ -443,7 +501,7 @@
                     ...record,
                     createdAt: new Date().toISOString()
                 };
-                this.workRecords.unshift(newRecord);
+                this.workRecords.push(newRecord);
                 this.saveData('workRecords', this.workRecords);
                 return newRecord;
             }
@@ -474,35 +532,6 @@
                 }
             }
 
-            exportData() {
-                const data = {
-                    notes: this.notes,
-                    workRecords: this.workRecords,
-                    exportDate: new Date().toISOString()
-                };
-                
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `notes_backup_${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-
-            importData(data) {
-                if (data.notes) {
-                    this.notes = data.notes;
-                    this.saveData('notes', this.notes);
-                }
-                if (data.workRecords) {
-                    this.workRecords = data.workRecords;
-                    this.saveData('workRecords', this.workRecords);
-                }
-            }
-
             getNotes(searchTerm = '') {
                 if (!searchTerm) return this.notes;
                 return this.notes.filter(note => 
@@ -518,10 +547,25 @@
                 );
             }
 
-            getAllRecords(searchTerm = '') {
-                const notes = this.getNotes(searchTerm).map(note => ({ ...note, type: 'note' }));
-                const workRecords = this.getWorkRecords(searchTerm).map(record => ({ ...record, type: 'work' }));
-                return [...notes, ...workRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
+            exportData(type) {
+                const data = type === 'notes' ? this.notes : this.workRecords;
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${type}-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            importData(type, data) {
+                if (type === 'notes') {
+                    this.notes = [...this.notes, ...data];
+                    this.saveData('notes', this.notes);
+                } else if (type === 'work') {
+                    this.workRecords = [...this.workRecords, ...data];
+                    this.saveData('workRecords', this.workRecords);
+                }
             }
         }
 
@@ -533,7 +577,7 @@
                 this.currentEditType = null;
                 this.editingNoteId = null;
                 this.editingWorkId = null;
-                this.desktopCards = [];
+                this.desktopCards = this.loadDesktopCards();
             }
 
             init() {
@@ -541,8 +585,7 @@
                 this.updateDate();
                 this.renderNotes();
                 this.renderWorkRecords();
-                this.renderHistory();
-                this.loadDesktopCards();
+                this.renderDesktopCards();
             }
 
             setupEventListeners() {
@@ -557,20 +600,20 @@
                 // 筆記功能
                 document.getElementById('addNote').addEventListener('click', () => this.handleNoteSave());
                 document.getElementById('noteDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('exportNotes').addEventListener('click', () => this.dataManager.exportData('notes'));
+                document.getElementById('importNotes').addEventListener('click', () => document.getElementById('importNotesFile').click());
+                document.getElementById('importNotesFile').addEventListener('change', (e) => this.handleImport('notes', e));
 
                 // 工作紀錄功能
                 document.getElementById('addWork').addEventListener('click', () => this.handleWorkSave());
                 document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('exportWork').addEventListener('click', () => this.dataManager.exportData('work'));
+                document.getElementById('importWork').addEventListener('click', () => document.getElementById('importWorkFile').click());
+                document.getElementById('importWorkFile').addEventListener('change', (e) => this.handleImport('work', e));
 
                 // 搜尋功能
                 document.getElementById('noteSearch').addEventListener('input', (e) => this.renderNotes(e.target.value));
                 document.getElementById('workSearch').addEventListener('input', (e) => this.renderWorkRecords(e.target.value));
-                document.getElementById('historySearch').addEventListener('input', (e) => this.renderHistory(e.target.value));
-
-                // 匯出匯入
-                document.getElementById('exportData').addEventListener('click', () => this.dataManager.exportData());
-                document.getElementById('importData').addEventListener('click', () => document.getElementById('fileInput').click());
-                document.getElementById('fileInput').addEventListener('change', (e) => this.handleImport(e));
 
                 // 模態框
                 document.getElementById('modalClose').addEventListener('click', () => this.closeModal());
@@ -582,28 +625,16 @@
 
             updateDate() {
                 const date = new Date();
-                const options = { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric', 
-                    weekday: 'long' 
-                };
-                document.getElementById('currentDate').textContent = 
-                    date.toLocaleDateString('zh-TW', options);
+                const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+                document.getElementById('currentDate').textContent = date.toLocaleDateString('zh-TW', options);
             }
 
             switchTab(tabName) {
                 document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-                document.querySelectorAll('.content-section').forEach(section => 
-                    section.classList.remove('active')
-                );
+                document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
                 
                 document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
                 document.getElementById(tabName).classList.add('active');
-                
-                if (tabName === 'history') {
-                    this.renderHistory();
-                }
             }
 
             toggleTheme() {
@@ -626,20 +657,15 @@
                     return;
                 }
 
-                let savedItem;
                 if (this.editingNoteId) {
-                    // 更新現有筆記
                     this.dataManager.updateItem('note', this.editingNoteId, { category, content, date });
-                    this.showNotification('筆記已更新！', 'success');
+                    this.showNotification('筆記更新成功！', 'success');
                     this.editingNoteId = null;
                     document.getElementById('addNote').textContent = '💾 儲存筆記';
                 } else {
-                    // 新增筆記
-                    savedItem = this.dataManager.addNote({ category, content, date });
-                    this.showNotification('筆記已儲存！', 'success');
-                    
-                    // 添加到桌面卡片
-                    this.addDesktopCard(savedItem, 'note');
+                    const newNote = this.dataManager.addNote({ category, content, date });
+                    this.addDesktopCard(newNote, 'note');
+                    this.showNotification('筆記儲存成功！', 'success');
                 }
 
                 // 清空表單
@@ -647,7 +673,6 @@
                 document.getElementById('noteContent').value = '';
                 document.getElementById('noteDate').value = new Date().toISOString().split('T')[0];
 
-                // 重新渲染列表
                 this.renderNotes();
                 this.saveDesktopCards();
             }
@@ -661,29 +686,50 @@
                     return;
                 }
 
-                let savedItem;
                 if (this.editingWorkId) {
-                    // 更新現有工作紀錄
                     this.dataManager.updateItem('work', this.editingWorkId, { content, date });
-                    this.showNotification('工作紀錄已更新！', 'success');
+                    this.showNotification('工作紀錄更新成功！', 'success');
                     this.editingWorkId = null;
                     document.getElementById('addWork').textContent = '💾 儲存工作紀錄';
                 } else {
-                    // 新增工作紀錄
-                    savedItem = this.dataManager.addWorkRecord({ content, date });
-                    this.showNotification('工作紀錄已儲存！', 'success');
-                    
-                    // 添加到桌面卡片
-                    this.addDesktopCard(savedItem, 'work');
+                    const newRecord = this.dataManager.addWorkRecord({ content, date });
+                    this.addDesktopCard(newRecord, 'work');
+                    this.showNotification('工作紀錄儲存成功！', 'success');
                 }
 
                 // 清空表單
                 document.getElementById('workContent').value = '';
                 document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
 
-                // 重新渲染列表
                 this.renderWorkRecords();
                 this.saveDesktopCards();
+            }
+
+            handleImport(type, event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (Array.isArray(data)) {
+                            this.dataManager.importData(type, data);
+                            this.showNotification(`成功匯入 ${data.length} 筆${type === 'notes' ? '筆記' : '工作紀錄'}！`, 'success');
+                            if (type === 'notes') {
+                                this.renderNotes();
+                            } else {
+                                this.renderWorkRecords();
+                            }
+                        } else {
+                            this.showNotification('檔案格式錯誤', 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('匯入失敗：檔案格式錯誤', 'error');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
             }
 
             renderNotes(searchTerm = '') {
@@ -691,23 +737,23 @@
                 const notes = this.dataManager.getNotes(searchTerm);
 
                 if (notes.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">暫無筆記</p>';
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">暫無筆記</p>';
                     return;
                 }
 
                 container.innerHTML = notes.map(note => `
                     <div class="note-card" onclick="uiManager.editNote(${note.id})">
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div style="flex: 1;">
                                 <div class="note-date">${note.date}</div>
                                 <span class="note-category">${note.category}</span>
-                                <p style="margin-top: 10px;">${this.truncateText(note.content, 100)}</p>
+                                <p style="margin-top: 10px; white-space: pre-wrap;">${this.truncateText(note.content, 200)}</p>
                             </div>
-                            <div style="display: flex; gap: 10px;">
+                            <div style="display: flex; gap: 10px; margin-left: 20px;">
                                 <button class="btn" onclick="event.stopPropagation(); uiManager.editNote(${note.id})" 
-                                        style="padding: 8px 16px; font-size: 0.9rem;">編輯</button>
-                                <button class="btn" onclick="event.stopPropagation(); uiManager.deleteNote(${note.id})" 
-                                        style="padding: 8px 16px; font-size: 0.9rem;">刪除</button>
+                                        style="padding: 8px 16px; font-size: 0.9rem;">✏️ 編輯</button>
+                                <button class="btn btn-secondary" onclick="event.stopPropagation(); uiManager.deleteNote(${note.id})" 
+                                        style="padding: 8px 16px; font-size: 0.9rem;">🗑️ 刪除</button>
                             </div>
                         </div>
                     </div>
@@ -719,50 +765,22 @@
                 const records = this.dataManager.getWorkRecords(searchTerm);
 
                 if (records.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">暫無工作紀錄</p>';
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">暫無工作紀錄</p>';
                     return;
                 }
 
                 container.innerHTML = records.map(record => `
                     <div class="note-card" onclick="uiManager.editWork(${record.id})">
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div style="flex: 1;">
                                 <div class="note-date">${record.date}</div>
-                                <p style="margin-top: 10px;">${this.truncateText(record.content, 100)}</p>
+                                <p style="margin-top: 10px; white-space: pre-wrap;">${this.truncateText(record.content, 200)}</p>
                             </div>
-                            <div style="display: flex; gap: 10px;">
+                            <div style="display: flex; gap: 10px; margin-left: 20px;">
                                 <button class="btn" onclick="event.stopPropagation(); uiManager.editWork(${record.id})" 
-                                        style="padding: 8px 16px; font-size: 0.9rem;">編輯</button>
-                                <button class="btn" onclick="event.stopPropagation(); uiManager.deleteWork(${record.id})" 
-                                        style="padding: 8px 16px; font-size: 0.9rem;">刪除</button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            renderHistory(searchTerm = '') {
-                const container = document.getElementById('historyList');
-                const records = this.dataManager.getAllRecords(searchTerm);
-
-                if (records.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">暫無歷史紀錄</p>';
-                    return;
-                }
-
-                container.innerHTML = records.map(record => `
-                    <div class="note-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
-                            <div style="flex: 1;">
-                                <div class="note-date">${record.date} - ${record.type === 'note' ? '📝 筆記' : '💼 工作紀錄'}</div>
-                                ${record.category ? `<span class="note-category">${record.category}</span>` : ''}
-                                <p style="margin-top: 10px;">${this.truncateText(record.content, 150)}</p>
-                            </div>
-                            <div style="display: flex; gap: 10px;">
-                                <button class="btn" onclick="uiManager.editItem(${record.id}, '${record.type}')" 
-                                        style="padding: 8px 16px; font-size: 0.9rem;">編輯</button>
-                                <button class="btn" onclick="uiManager.deleteItem(${record.id}, '${record.type}')" 
-                                        style="padding: 8px 16px; font-size: 0.9rem;">刪除</button>
+                                        style="padding: 8px 16px; font-size: 0.9rem;">✏️ 編輯</button>
+                                <button class="btn btn-secondary" onclick="event.stopPropagation(); uiManager.deleteWork(${record.id})" 
+                                        style="padding: 8px 16px; font-size: 0.9rem;">🗑️ 刪除</button>
                             </div>
                         </div>
                     </div>
@@ -771,42 +789,35 @@
 
             editNote(id) {
                 const note = this.dataManager.notes.find(n => n.id === id);
-                if (note) {
-                    this.editingNoteId = id;
-                    document.getElementById('noteCategory').value = note.category;
-                    document.getElementById('noteContent').value = note.content;
-                    document.getElementById('noteDate').value = note.date;
-                    document.getElementById('addNote').textContent = '🔄 更新筆記';
-                    
-                    // 切換到筆記標籤
-                    this.switchTab('notes');
-                    
-                    // 捲動到表單
-                    document.querySelector('#notes .form-group').scrollIntoView({ behavior: 'smooth' });
-                }
+                if (!note) return;
+
+                this.editingNoteId = id;
+                document.getElementById('noteCategory').value = note.category;
+                document.getElementById('noteContent').value = note.content;
+                document.getElementById('noteDate').value = note.date;
+                document.getElementById('addNote').textContent = '🔄 更新筆記';
+
+                this.switchTab('notes');
+                document.getElementById('noteCategory').scrollIntoView({ behavior: 'smooth' });
             }
 
             editWork(id) {
-                const work = this.dataManager.workRecords.find(w => w.id === id);
-                if (work) {
-                    this.editingWorkId = id;
-                    document.getElementById('workContent').value = work.content;
-                    document.getElementById('workDate').value = work.date;
-                    document.getElementById('addWork').textContent = '🔄 更新工作紀錄';
-                    
-                    // 切換到工作紀錄標籤
-                    this.switchTab('work');
-                    
-                    // 捲動到表單
-                    document.querySelector('#work .form-group').scrollIntoView({ behavior: 'smooth' });
-                }
+                const record = this.dataManager.workRecords.find(w => w.id === id);
+                if (!record) return;
+
+                this.editingWorkId = id;
+                document.getElementById('workContent').value = record.content;
+                document.getElementById('workDate').value = record.date;
+                document.getElementById('addWork').textContent = '🔄 更新工作紀錄';
+
+                this.switchTab('work');
+                document.getElementById('workContent').scrollIntoView({ behavior: 'smooth' });
             }
 
             deleteNote(id) {
                 if (confirm('確定要刪除這則筆記嗎？')) {
                     this.dataManager.deleteItem('note', id);
                     this.renderNotes();
-                    this.renderHistory();
                     this.removeDesktopCard(id, 'note');
                     this.showNotification('筆記已刪除！', 'success');
                 }
@@ -816,91 +827,11 @@
                 if (confirm('確定要刪除這筆工作紀錄嗎？')) {
                     this.dataManager.deleteItem('work', id);
                     this.renderWorkRecords();
-                    this.renderHistory();
                     this.removeDesktopCard(id, 'work');
                     this.showNotification('工作紀錄已刪除！', 'success');
                 }
             }
 
-            editItem(id, type) {
-                const item = type === 'note' 
-                    ? this.dataManager.notes.find(n => n.id === id)
-                    : this.dataManager.workRecords.find(w => w.id === id);
-                
-                if (!item) return;
-
-                this.currentEditId = id;
-                this.currentEditType = type;
-
-                document.getElementById('editCategory').value = item.category || '';
-                document.getElementById('editContent').value = item.content;
-                document.getElementById('editDate').value = item.date;
-                
-                document.getElementById('editModal').style.display = 'block';
-            }
-
-            saveEdit() {
-                const category = document.getElementById('editCategory').value.trim();
-                const content = document.getElementById('editContent').value.trim();
-                const date = document.getElementById('editDate').value;
-
-                if (!content) {
-                    this.showNotification('請填寫內容', 'error');
-                    return;
-                }
-
-                const updatedData = this.currentEditType === 'note' 
-                    ? { category, content, date }
-                    : { content, date };
-
-                this.dataManager.updateItem(this.currentEditType, this.currentEditId, updatedData);
-                
-                this.renderNotes();
-                this.renderWorkRecords();
-                this.renderHistory();
-                this.closeModal();
-                this.showNotification('更新成功！', 'success');
-            }
-
-            deleteItem(id, type) {
-                if (confirm('確定要刪除這筆紀錄嗎？')) {
-                    this.dataManager.deleteItem(type, id);
-                    this.renderNotes();
-                    this.renderWorkRecords();
-                    this.renderHistory();
-                    this.removeDesktopCard(id, type);
-                    this.showNotification('紀錄已刪除！', 'success');
-                }
-            }
-
-            closeModal() {
-                document.getElementById('editModal').style.display = 'none';
-                this.currentEditId = null;
-                this.currentEditType = null;
-            }
-
-            handleImport(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        this.dataManager.importData(data);
-                        this.renderNotes();
-                        this.renderWorkRecords();
-                        this.renderHistory();
-                        this.showNotification('資料匯入成功！', 'success');
-                    } catch (error) {
-                        this.showNotification('匯入失敗：檔案格式錯誤', 'error');
-                    }
-                };
-                reader.readAsText(file);
-                event.target.value = '';
-            }
-
-            // 桌面卡片功能
             addDesktopCard(item, type) {
                 const card = {
                     id: item.id,
@@ -916,22 +847,25 @@
             }
 
             renderDesktopCard(card) {
+                const container = document.getElementById('desktopCards');
                 const cardElement = document.createElement('div');
                 cardElement.className = 'desktop-card';
                 cardElement.id = `desktop-card-${card.type}-${card.id}`;
+                
                 cardElement.innerHTML = `
                     <button class="close-btn" onclick="uiManager.removeDesktopCard(${card.id}, '${card.type}')">&times;</button>
-                    <div class="note-date">${card.date}</div>
+                    <div class="card-date">${card.date}</div>
                     ${card.category ? `<div class="note-category">${card.category}</div>` : ''}
-                    <div class="note-content">${this.truncateText(card.content, 100)}</div>
+                    <div class="card-content">${this.truncateText(card.content, 100)}</div>
                 `;
-                document.body.appendChild(cardElement);
+                
+                container.appendChild(cardElement);
             }
 
             removeDesktopCard(id, type) {
-                const cardElement = document.getElementById(`desktop-card-${type}-${id}`);
-                if (cardElement) {
-                    cardElement.remove();
+                const card = document.getElementById(`desktop-card-${type}-${id}`);
+                if (card) {
+                    card.remove();
                 }
                 
                 this.desktopCards = this.desktopCards.filter(card => 
@@ -940,19 +874,23 @@
                 this.saveDesktopCards();
             }
 
+            renderDesktopCards() {
+                const container = document.getElementById('desktopCards');
+                container.innerHTML = '';
+                this.desktopCards.forEach(card => this.renderDesktopCard(card));
+            }
+
             saveDesktopCards() {
                 localStorage.setItem('desktopCards', JSON.stringify(this.desktopCards));
             }
 
             loadDesktopCards() {
-                const saved = localStorage.getItem('desktopCards');
-                if (saved) {
-                    try {
-                        this.desktopCards = JSON.parse(saved);
-                        this.desktopCards.forEach(card => this.renderDesktopCard(card));
-                    } catch (error) {
-                        console.error('載入桌面卡片失敗', error);
-                    }
+                try {
+                    const saved = localStorage.getItem('desktopCards');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (error) {
+                    console.error('載入桌面卡片失敗', error);
+                    return [];
                 }
             }
 
@@ -963,24 +901,13 @@
 
             showNotification(message, type) {
                 const notification = document.createElement('div');
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: ${type === 'success' ? 'var(--accent)' : '#e74c3c'};
-                    color: white;
-                    padding: 15px 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 12px var(--shadow);
-                    z-index: 3000;
-                    animation: slideIn 0.3s ease;
-                `;
+                notification.className = 'notification';
+                notification.style.background = type === 'success' ? 'var(--accent)' : '#e74c3c';
                 notification.textContent = message;
                 document.body.appendChild(notification);
 
                 setTimeout(() => {
-                    notification.style.animation = 'fadeOut 0.3s ease';
-                    setTimeout(() => notification.remove(), 300);
+                    notification.remove();
                 }, 3000);
             }
         }
@@ -989,25 +916,8 @@
         const dataManager = new DataManager();
         const uiManager = new UIManager(dataManager);
 
-        // 添加 fadeOut 動畫
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeOut {
-                from { opacity: 1; transform: translateX(0); }
-                to { opacity: 0; transform: translateX(100%); }
-            }
-        `;
-        document.head.appendChild(style);
-
         // 頁面載入時初始化
         document.addEventListener('DOMContentLoaded', () => {
-            // 載入保存的主題
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            document.getElementById('themeToggle').textContent = 
-                savedTheme === 'dark' ? '☀️ 淺色模式' : '🌙 深色模式';
-            
-            // 初始化 UI
             uiManager.init();
         });
     </script>
