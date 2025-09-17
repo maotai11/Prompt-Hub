@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>筆記工作管理系統</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f5f5f5;
@@ -13,7 +19,7 @@
             --accent: #c9a96e;
             --accent-hover: #b8975a;
             --border: #e0e0e0;
-            --shadow: rgba(0,0,0,0.1);
+            --shadow: rgba(0, 0, 0, 0.1);
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -25,13 +31,7 @@
             --accent: #d4af37;
             --accent-hover: #c9a96e;
             --border: #333333;
-            --shadow: rgba(0,0,0,0.3);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            --shadow: rgba(0, 0, 0, 0.3);
         }
 
         body {
@@ -57,18 +57,18 @@
             margin-bottom: 30px;
         }
 
-        .date-header {
-            font-size: 2rem;
+        .date-display {
+            font-size: 1.8rem;
             font-weight: 300;
             letter-spacing: -0.02em;
         }
 
         .theme-toggle {
             background: var(--accent);
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
             color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
             cursor: pointer;
             transition: var(--transition);
             font-weight: 500;
@@ -107,7 +107,7 @@
 
         .content-section {
             display: none;
-            animation: fadeIn 0.5s ease-in-out;
+            animation: fadeIn 0.5s ease;
         }
 
         .content-section.active {
@@ -119,20 +119,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            transition: var(--transition);
-            cursor: pointer;
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px var(--shadow);
-        }
-
         .form-group {
             margin-bottom: 20px;
         }
@@ -140,11 +126,11 @@
         label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
             color: var(--text-secondary);
+            font-weight: 500;
         }
 
-        input, textarea, select {
+        input, textarea {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--border);
@@ -154,18 +140,23 @@
             transition: var(--transition);
         }
 
-        input:focus, textarea:focus, select:focus {
+        input:focus, textarea:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.1);
         }
 
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
         .btn {
             background: var(--accent);
+            color: white;
             border: none;
             padding: 12px 24px;
             border-radius: 8px;
-            color: white;
             cursor: pointer;
             transition: var(--transition);
             font-weight: 500;
@@ -182,17 +173,27 @@
             margin-bottom: 20px;
         }
 
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
         .note-card {
             background: var(--bg-secondary);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 15px;
             transition: var(--transition);
+            cursor: pointer;
         }
 
         .note-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px var(--shadow);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px var(--shadow);
         }
 
         .note-date {
@@ -211,6 +212,49 @@
             margin-bottom: 10px;
         }
 
+        .desktop-card {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 20px var(--shadow);
+            max-width: 300px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .desktop-card .note-date {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .desktop-card .note-content {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .desktop-card .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -218,8 +262,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
         }
 
         .modal-content {
@@ -228,95 +272,107 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: var(--bg-primary);
-            padding: 30px;
             border-radius: 12px;
-            max-width: 600px;
+            padding: 30px;
+            max-width: 500px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
         }
 
-        .close {
-            position: absolute;
-            top: 15px;
-            right: 20px;
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
             font-size: 24px;
             cursor: pointer;
             color: var(--text-secondary);
         }
 
-        .close:hover {
-            color: var(--text-primary);
+        .export-import-buttons {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1 class="date-header" id="currentDate"></h1>
-            <button class="theme-toggle" id="themeToggle">切換主題</button>
+            <h1 class="date-display" id="currentDate"></h1>
+            <button class="theme-toggle" id="themeToggle">🌙 深色模式</button>
         </header>
 
         <div class="tabs">
-            <button class="tab active" data-tab="notes">筆記</button>
-            <button class="tab" data-tab="work">工作紀錄</button>
-            <button class="tab" data-tab="history">歷史紀錄</button>
+            <button class="tab active" data-tab="notes">📝 筆記</button>
+            <button class="tab" data-tab="work">💼 工作紀錄</button>
+            <button class="tab" data-tab="history">📚 歷史紀錄</button>
         </div>
 
         <!-- 筆記模組 -->
         <section class="content-section active" id="notes">
             <div class="form-group">
-                <label>類別</label>
-                <input type="text" id="noteCategory" placeholder="輸入類別（如：會議、想法、待辦）">
+                <label for="noteCategory">類別</label>
+                <input type="text" id="noteCategory" placeholder="例如：會議、想法、待辦事項">
             </div>
             <div class="form-group">
-                <label>內容</label>
-                <textarea id="noteContent" rows="4" placeholder="輸入筆記內容..."></textarea>
+                <label for="noteContent">內容</label>
+                <textarea id="noteContent" placeholder="輸入您的筆記內容..."></textarea>
             </div>
             <div class="form-group">
-                <label>日期</label>
+                <label for="noteDate">日期</label>
                 <input type="date" id="noteDate">
             </div>
-            <button class="btn" id="addNote">新增筆記</button>
-            
+            <button class="btn" id="addNote">💾 儲存筆記</button>
+
             <div class="search-box">
-                <input type="text" id="noteSearch" placeholder="搜尋筆記...">
+                <input type="text" id="noteSearch" placeholder="🔍 搜尋筆記...">
             </div>
-            
+
             <div id="notesList"></div>
         </section>
 
         <!-- 工作紀錄模組 -->
         <section class="content-section" id="work">
             <div class="form-group">
-                <label>日期</label>
+                <label for="workDate">日期</label>
                 <input type="date" id="workDate">
             </div>
             <div class="form-group">
-                <label>工作內容</label>
-                <textarea id="workContent" rows="4" placeholder="輸入工作內容..."></textarea>
+                <label for="workContent">工作內容</label>
+                <textarea id="workContent" placeholder="輸入工作內容..."></textarea>
             </div>
-            <button class="btn" id="addWork">新增工作紀錄</button>
-            
+            <button class="btn" id="addWork">💾 儲存工作紀錄</button>
+
             <div class="search-box">
-                <input type="text" id="workSearch" placeholder="搜尋工作紀錄...">
+                <input type="text" id="workSearch" placeholder="🔍 搜尋工作紀錄...">
             </div>
-            
+
             <div id="workList"></div>
         </section>
 
         <!-- 歷史紀錄模組 -->
         <section class="content-section" id="history">
-            <div style="margin-bottom: 20px;">
-                <button class="btn" id="exportData">匯出資料</button>
-                <button class="btn" id="importData">匯入資料</button>
-                <input type="file" id="fileInput" style="display: none;" accept=".json">
+            <div class="export-import-buttons">
+                <button class="btn" id="exportData">📤 匯出資料</button>
+                <button class="btn" id="importData">📥 匯入資料</button>
+                <input type="file" id="fileInput" class="hidden" accept=".json">
             </div>
-            
+
             <div class="search-box">
-                <input type="text" id="historySearch" placeholder="搜尋歷史紀錄...">
+                <input type="text" id="historySearch" placeholder="🔍 搜尋歷史紀錄...">
             </div>
-            
+
             <div id="historyList"></div>
         </section>
     </div>
@@ -324,26 +380,28 @@
     <!-- 編輯模態框 -->
     <div class="modal" id="editModal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>編輯紀錄</h2>
+            <div class="modal-header">
+                <h2>編輯紀錄</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
             <div class="form-group">
-                <label>類別</label>
+                <label for="editCategory">類別</label>
                 <input type="text" id="editCategory">
             </div>
             <div class="form-group">
-                <label>內容</label>
+                <label for="editContent">內容</label>
                 <textarea id="editContent" rows="4"></textarea>
             </div>
             <div class="form-group">
-                <label>日期</label>
+                <label for="editDate">日期</label>
                 <input type="date" id="editDate">
             </div>
-            <button class="btn" id="saveEdit">儲存變更</button>
+            <button class="btn" id="saveEdit">💾 儲存變更</button>
         </div>
     </div>
 
     <script>
-        // 資料管理
+        // 資料管理類別
         class DataManager {
             constructor() {
                 this.notes = this.loadData('notes') || [];
@@ -351,22 +409,43 @@
             }
 
             loadData(key) {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : null;
+                try {
+                    const data = localStorage.getItem(key);
+                    return data ? JSON.parse(data) : null;
+                } catch (error) {
+                    console.error(`載入資料錯誤: ${key}`, error);
+                    return null;
+                }
             }
 
             saveData(key, data) {
-                localStorage.setItem(key, JSON.stringify(data));
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (error) {
+                    console.error(`儲存資料錯誤: ${key}`, error);
+                }
             }
 
             addNote(note) {
-                this.notes.push({ ...note, id: Date.now() });
+                const newNote = {
+                    id: Date.now(),
+                    ...note,
+                    createdAt: new Date().toISOString()
+                };
+                this.notes.unshift(newNote);
                 this.saveData('notes', this.notes);
+                return newNote;
             }
 
             addWorkRecord(record) {
-                this.workRecords.push({ ...record, id: Date.now() });
+                const newRecord = {
+                    id: Date.now(),
+                    ...record,
+                    createdAt: new Date().toISOString()
+                };
+                this.workRecords.unshift(newRecord);
                 this.saveData('workRecords', this.workRecords);
+                return newRecord;
             }
 
             updateItem(type, id, updatedData) {
@@ -401,30 +480,60 @@
                     workRecords: this.workRecords,
                     exportDate: new Date().toISOString()
                 };
+                
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `notes_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
                 a.click();
+                document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }
 
             importData(data) {
-                this.notes = data.notes || [];
-                this.workRecords = data.workRecords || [];
-                this.saveData('notes', this.notes);
-                this.saveData('workRecords', this.workRecords);
+                if (data.notes) {
+                    this.notes = data.notes;
+                    this.saveData('notes', this.notes);
+                }
+                if (data.workRecords) {
+                    this.workRecords = data.workRecords;
+                    this.saveData('workRecords', this.workRecords);
+                }
+            }
+
+            getNotes(searchTerm = '') {
+                if (!searchTerm) return this.notes;
+                return this.notes.filter(note => 
+                    note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    note.category.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+
+            getWorkRecords(searchTerm = '') {
+                if (!searchTerm) return this.workRecords;
+                return this.workRecords.filter(record => 
+                    record.content.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+
+            getAllRecords(searchTerm = '') {
+                const notes = this.getNotes(searchTerm).map(note => ({ ...note, type: 'note' }));
+                const workRecords = this.getWorkRecords(searchTerm).map(record => ({ ...record, type: 'work' }));
+                return [...notes, ...workRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
             }
         }
 
-        // UI 管理
+        // UI 管理類別
         class UIManager {
             constructor(dataManager) {
                 this.dataManager = dataManager;
                 this.currentEditId = null;
                 this.currentEditType = null;
-                this.editingNoteId = null; // 新增：追蹤正在編輯的筆記ID
+                this.editingNoteId = null;
+                this.editingWorkId = null;
+                this.desktopCards = [];
             }
 
             init() {
@@ -433,6 +542,7 @@
                 this.renderNotes();
                 this.renderWorkRecords();
                 this.renderHistory();
+                this.loadDesktopCards();
             }
 
             setupEventListeners() {
@@ -444,29 +554,27 @@
                 // 主題切換
                 document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
 
-                // 新增筆記
+                // 筆記功能
                 document.getElementById('addNote').addEventListener('click', () => this.handleNoteSave());
                 document.getElementById('noteDate').value = new Date().toISOString().split('T')[0];
 
-                // 新增工作紀錄
+                // 工作紀錄功能
                 document.getElementById('addWork').addEventListener('click', () => this.handleWorkSave());
                 document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
 
                 // 搜尋功能
-                document.getElementById('noteSearch').addEventListener('input', (e) => this.searchNotes(e.target.value));
-                document.getElementById('workSearch').addEventListener('input', (e) => this.searchWorkRecords(e.target.value));
-                document.getElementById('historySearch').addEventListener('input', (e) => this.searchHistory(e.target.value));
+                document.getElementById('noteSearch').addEventListener('input', (e) => this.renderNotes(e.target.value));
+                document.getElementById('workSearch').addEventListener('input', (e) => this.renderWorkRecords(e.target.value));
+                document.getElementById('historySearch').addEventListener('input', (e) => this.renderHistory(e.target.value));
 
                 // 匯出匯入
                 document.getElementById('exportData').addEventListener('click', () => this.dataManager.exportData());
                 document.getElementById('importData').addEventListener('click', () => document.getElementById('fileInput').click());
-                document.getElementById('fileInput').addEventListener('change', (e) => this.importData(e));
+                document.getElementById('fileInput').addEventListener('change', (e) => this.handleImport(e));
 
-                // 編輯模態框
-                document.querySelector('.close').addEventListener('click', () => this.closeModal());
+                // 模態框
+                document.getElementById('modalClose').addEventListener('click', () => this.closeModal());
                 document.getElementById('saveEdit').addEventListener('click', () => this.saveEdit());
-
-                // 點擊模態框外部關閉
                 document.getElementById('editModal').addEventListener('click', (e) => {
                     if (e.target.id === 'editModal') this.closeModal();
                 });
@@ -474,13 +582,21 @@
 
             updateDate() {
                 const date = new Date();
-                const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-                document.getElementById('currentDate').textContent = date.toLocaleDateString('zh-TW', options);
+                const options = { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric', 
+                    weekday: 'long' 
+                };
+                document.getElementById('currentDate').textContent = 
+                    date.toLocaleDateString('zh-TW', options);
             }
 
             switchTab(tabName) {
                 document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-                document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(section => 
+                    section.classList.remove('active')
+                );
                 
                 document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
                 document.getElementById(tabName).classList.add('active');
@@ -495,6 +611,9 @@
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
                 document.documentElement.setAttribute('data-theme', newTheme);
                 localStorage.setItem('theme', newTheme);
+                
+                const themeText = newTheme === 'dark' ? '☀️ 淺色模式' : '🌙 深色模式';
+                document.getElementById('themeToggle').textContent = themeText;
             }
 
             handleNoteSave() {
@@ -503,26 +622,34 @@
                 const date = document.getElementById('noteDate').value;
 
                 if (!category || !content) {
-                    alert('請填寫類別和內容');
+                    this.showNotification('請填寫類別和內容', 'error');
                     return;
                 }
 
+                let savedItem;
                 if (this.editingNoteId) {
-                    // 編輯模式：更新現有筆記
+                    // 更新現有筆記
                     this.dataManager.updateItem('note', this.editingNoteId, { category, content, date });
+                    this.showNotification('筆記已更新！', 'success');
                     this.editingNoteId = null;
-                    document.getElementById('addNote').textContent = '新增筆記';
+                    document.getElementById('addNote').textContent = '💾 儲存筆記';
                 } else {
-                    // 新增模式
-                    this.dataManager.addNote({ category, content, date });
+                    // 新增筆記
+                    savedItem = this.dataManager.addNote({ category, content, date });
+                    this.showNotification('筆記已儲存！', 'success');
+                    
+                    // 添加到桌面卡片
+                    this.addDesktopCard(savedItem, 'note');
                 }
-                
-                this.renderNotes();
-                
+
                 // 清空表單
                 document.getElementById('noteCategory').value = '';
                 document.getElementById('noteContent').value = '';
                 document.getElementById('noteDate').value = new Date().toISOString().split('T')[0];
+
+                // 重新渲染列表
+                this.renderNotes();
+                this.saveDesktopCards();
             }
 
             handleWorkSave() {
@@ -530,43 +657,57 @@
                 const date = document.getElementById('workDate').value;
 
                 if (!content) {
-                    alert('請填寫工作內容');
+                    this.showNotification('請填寫工作內容', 'error');
                     return;
                 }
 
-                this.dataManager.addWorkRecord({ content, date });
-                this.renderWorkRecords();
-                
+                let savedItem;
+                if (this.editingWorkId) {
+                    // 更新現有工作紀錄
+                    this.dataManager.updateItem('work', this.editingWorkId, { content, date });
+                    this.showNotification('工作紀錄已更新！', 'success');
+                    this.editingWorkId = null;
+                    document.getElementById('addWork').textContent = '💾 儲存工作紀錄';
+                } else {
+                    // 新增工作紀錄
+                    savedItem = this.dataManager.addWorkRecord({ content, date });
+                    this.showNotification('工作紀錄已儲存！', 'success');
+                    
+                    // 添加到桌面卡片
+                    this.addDesktopCard(savedItem, 'work');
+                }
+
                 // 清空表單
                 document.getElementById('workContent').value = '';
                 document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
+
+                // 重新渲染列表
+                this.renderWorkRecords();
+                this.saveDesktopCards();
             }
 
             renderNotes(searchTerm = '') {
                 const container = document.getElementById('notesList');
-                let notes = this.dataManager.notes;
+                const notes = this.dataManager.getNotes(searchTerm);
 
-                if (searchTerm) {
-                    notes = notes.filter(note => 
-                        note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        note.category.toLowerCase().includes(searchTerm.toLowerCase())
-                    );
+                if (notes.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">暫無筆記</p>';
+                    return;
                 }
 
-                // 按日期排序（最新的在前）
-                notes.sort((a, b) => new Date(b.date) - new Date(a.date));
-
                 container.innerHTML = notes.map(note => `
-                    <div class="note-card">
+                    <div class="note-card" onclick="uiManager.editNote(${note.id})">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
-                            <div style="flex: 1;" onclick="uiManager.showNoteDetail(${note.id})">
+                            <div style="flex: 1;">
                                 <div class="note-date">${note.date}</div>
                                 <span class="note-category">${note.category}</span>
-                                <p>${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</p>
+                                <p style="margin-top: 10px;">${this.truncateText(note.content, 100)}</p>
                             </div>
-                            <div>
-                                <button class="btn" onclick="event.stopPropagation(); uiManager.editNote(${note.id})">編輯</button>
-                                <button class="btn" onclick="event.stopPropagation(); uiManager.deleteItem(${note.id}, 'note')">刪除</button>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" onclick="event.stopPropagation(); uiManager.editNote(${note.id})" 
+                                        style="padding: 8px 16px; font-size: 0.9rem;">編輯</button>
+                                <button class="btn" onclick="event.stopPropagation(); uiManager.deleteNote(${note.id})" 
+                                        style="padding: 8px 16px; font-size: 0.9rem;">刪除</button>
                             </div>
                         </div>
                     </div>
@@ -575,27 +716,25 @@
 
             renderWorkRecords(searchTerm = '') {
                 const container = document.getElementById('workList');
-                let records = this.dataManager.workRecords;
+                const records = this.dataManager.getWorkRecords(searchTerm);
 
-                if (searchTerm) {
-                    records = records.filter(record => 
-                        record.content.toLowerCase().includes(searchTerm.toLowerCase())
-                    );
+                if (records.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">暫無工作紀錄</p>';
+                    return;
                 }
 
-                // 按日期排序（最新的在前）
-                records.sort((a, b) => new Date(b.date) - new Date(a.date));
-
                 container.innerHTML = records.map(record => `
-                    <div class="note-card">
+                    <div class="note-card" onclick="uiManager.editWork(${record.id})">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
-                            <div style="flex: 1;" onclick="uiManager.showWorkDetail(${record.id})">
+                            <div style="flex: 1;">
                                 <div class="note-date">${record.date}</div>
-                                <p>${record.content.substring(0, 100)}${record.content.length > 100 ? '...' : ''}</p>
+                                <p style="margin-top: 10px;">${this.truncateText(record.content, 100)}</p>
                             </div>
-                            <div>
-                                <button class="btn" onclick="event.stopPropagation(); uiManager.editWork(${record.id})">編輯</button>
-                                <button class="btn" onclick="event.stopPropagation(); uiManager.deleteItem(${record.id}, 'work')">刪除</button>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" onclick="event.stopPropagation(); uiManager.editWork(${record.id})" 
+                                        style="padding: 8px 16px; font-size: 0.9rem;">編輯</button>
+                                <button class="btn" onclick="event.stopPropagation(); uiManager.deleteWork(${record.id})" 
+                                        style="padding: 8px 16px; font-size: 0.9rem;">刪除</button>
                             </div>
                         </div>
                     </div>
@@ -604,62 +743,30 @@
 
             renderHistory(searchTerm = '') {
                 const container = document.getElementById('historyList');
-                let allRecords = [
-                    ...this.dataManager.notes.map(note => ({ ...note, type: 'note' })),
-                    ...this.dataManager.workRecords.map(work => ({ ...work, type: 'work' }))
-                ];
+                const records = this.dataManager.getAllRecords(searchTerm);
 
-                if (searchTerm) {
-                    allRecords = allRecords.filter(record => 
-                        record.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (record.category && record.category.toLowerCase().includes(searchTerm.toLowerCase()))
-                    );
+                if (records.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">暫無歷史紀錄</p>';
+                    return;
                 }
 
-                // 按日期排序（最新的在前）
-                allRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                container.innerHTML = allRecords.map(record => `
+                container.innerHTML = records.map(record => `
                     <div class="note-card">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div style="flex: 1;">
-                                <div class="note-date">${record.date} - ${record.type === 'note' ? '筆記' : '工作紀錄'}</div>
+                                <div class="note-date">${record.date} - ${record.type === 'note' ? '📝 筆記' : '💼 工作紀錄'}</div>
                                 ${record.category ? `<span class="note-category">${record.category}</span>` : ''}
-                                <p>${record.content}</p>
+                                <p style="margin-top: 10px;">${this.truncateText(record.content, 150)}</p>
                             </div>
-                            <div>
-                                <button class="btn" onclick="uiManager.editItem(${record.id}, '${record.type}')">編輯</button>
-                                <button class="btn" onclick="uiManager.deleteItem(${record.id}, '${record.type}')">刪除</button>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" onclick="uiManager.editItem(${record.id}, '${record.type}')" 
+                                        style="padding: 8px 16px; font-size: 0.9rem;">編輯</button>
+                                <button class="btn" onclick="uiManager.deleteItem(${record.id}, '${record.type}')" 
+                                        style="padding: 8px 16px; font-size: 0.9rem;">刪除</button>
                             </div>
                         </div>
                     </div>
                 `).join('');
-            }
-
-            searchNotes(term) {
-                this.renderNotes(term);
-            }
-
-            searchWorkRecords(term) {
-                this.renderWorkRecords(term);
-            }
-
-            searchHistory(term) {
-                this.renderHistory(term);
-            }
-
-            showNoteDetail(id) {
-                const note = this.dataManager.notes.find(n => n.id === id);
-                if (note) {
-                    alert(`類別：${note.category}\n日期：${note.date}\n\n內容：\n${note.content}`);
-                }
-            }
-
-            showWorkDetail(id) {
-                const work = this.dataManager.workRecords.find(w => w.id === id);
-                if (work) {
-                    alert(`日期：${work.date}\n\n內容：\n${work.content}`);
-                }
             }
 
             editNote(id) {
@@ -669,234 +776,29 @@
                     document.getElementById('noteCategory').value = note.category;
                     document.getElementById('noteContent').value = note.content;
                     document.getElementById('noteDate').value = note.date;
-                    document.getElementById('addNote').textContent = '更新筆記';
+                    document.getElementById('addNote').textContent = '🔄 更新筆記';
                     
-                    // 捲動到表單位置
-                    document.getElementById('notes').scrollTop = 0;
-                    window.scrollTo(0, 0);
+                    // 切換到筆記標籤
+                    this.switchTab('notes');
+                    
+                    // 捲動到表單
+                    document.querySelector('#notes .form-group').scrollIntoView({ behavior: 'smooth' });
                 }
             }
 
             editWork(id) {
                 const work = this.dataManager.workRecords.find(w => w.id === id);
                 if (work) {
-                    this.currentEditId = id;
-                    this.currentEditType = 'work';
-                    document.getElementById('editContent').value = work.content;
-                    document.getElementById('editDate').value = work.date;
-                    document.getElementById('editCategory').value = '';
-                    document.getElementById('editModal').style.display = 'block';
-                }
-            }
-
-            editItem(id, type) {
-                this.currentEditId = id;
-                this.currentEditType = type;
-
-                let item;
-                if (type === 'note') {
-                    item = this.dataManager.notes.find(n => n.id === id);
-                    document.getElementById('editCategory').value = item.category;
-                } else {
-                    item = this.dataManager.workRecords.find(w => w.id === id);
-                    document.getElementById('editCategory').value = '';
-                }
-
-                document.getElementById('editContent').value = item.content;
-                document.getElementById('editDate').value = item.date;
-                
-                document.getElementById('editModal').style.display = 'block';
-            }
-
-            saveEdit() {
-                const content = document.getElementById('editContent').value.trim();
-                const date = document.getElementById('editDate').value;
-                const category = document.getElementById('editCategory').value.trim();
-
-                if (!content) {
-                    alert('請填寫內容');
-                    return;
-                }
-
-                const updatedData = { content, date };
-                if (this.currentEditType === 'note') {
-                    updatedData.category = category;
-                }
-
-                this.dataManager.updateItem(this.currentEditType, this.currentEditId, updatedData);
-                this.renderNotes();
-                this.renderWorkRecords();
-                this.renderHistory();
-                this.closeModal();
-            }
-
-            deleteItem(id, type) {
-                if (confirm('確定要刪除這筆紀錄嗎？')) {
-                    this.dataManager.deleteItem(type, id);
-                    this.renderNotes();
-                    this.renderWorkRecords();
-                    this.renderHistory();
-                }
-            }
-
-            closeModal() {
-                document.getElementById('editModal').style.display = 'none';
-                this.currentEditId = null;
-                this.currentEditType = null;
-            }
-
-            importData(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        this.dataManager.importData(data);
-                        this.renderNotes();
-                        this.renderWorkRecords();
-                        this.renderHistory();
-                        alert('資料匯入成功！');
-                    } catch (error) {
-                        alert('匯入失敗：檔案格式錯誤');
-                    }
-                };
-                reader.readAsText(file);
-                event.target.value = '';
-            }
-        }
-
-        // 初始化應用
-        const dataManager = new DataManager();
-        const uiManager = new UIManager(dataManager);
-
-        // 頁面載入時初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            // 載入保存的主題
-            const savedTheme = localStorage.getItem('theme                    alert('請填寫工作內容');
-                    return;
-                }
-
-                this.dataManager.addWorkRecord({ content, date });
-                this.renderWorkRecords();
-                
-                // 清空表單
-                document.getElementById('workContent').value = '';
-                document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
-                
-                // 添加成功反饋
-                this.showFeedback('工作紀錄已儲存！', 'success');
-            }
-
-            showFeedback(message, type) {
-                // 創建反饋元素
-                const feedback = document.createElement('div');
-                feedback.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    padding: 15px 20px;
-                    border-radius: 8px;
-                    color: white;
-                    font-weight: 500;
-                    z-index: 2000;
-                    transition: all 0.3s ease;
-                    transform: translateX(100%);
-                `;
-                
-                if (type === 'success') {
-                    feedback.style.background = 'var(--accent)';
-                } else if (type === 'error') {
-                    feedback.style.background = '#e74c3c';
-                }
-                
-                feedback.textContent = message;
-                document.body.appendChild(feedback);
-                
-                // 動畫顯示
-                setTimeout(() => {
-                    feedback.style.transform = 'translateX(0)';
-                }, 100);
-                
-                // 3秒後移除
-                setTimeout(() => {
-                    feedback.style.transform = 'translateX(100%)';
-                    setTimeout(() => {
-                        document.body.removeChild(feedback);
-                    }, 300);
-                }, 3000);
-            }
-
-            renderNotes(searchTerm = '') {
-                const container = document.getElementById('notesList');
-                let notes = this.dataManager.notes;
-
-                if (searchTerm) {
-                    notes = notes.filter(note => 
-                        note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        note.category.toLowerCase().includes(searchTerm.toLowerCase())
-                    );
-                }
-
-                // 按日期排序（最新的在前）
-                notes.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                container.innerHTML = notes.map(note => `
-                    <div class="note-card" onclick="uiManager.editNote(${note.id})">
-                        <div class="note-date">${note.date}</div>
-                        <span class="note-category">${note.category}</span>
-                        <p>${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</p>
-                        <div style="margin-top: 10px;">
-                            <button class="btn" onclick="event.stopPropagation(); uiManager.editNote(${note.id})">編輯</button>
-                            <button class="btn" onclick="event.stopPropagation(); uiManager.deleteNote(${note.id})">刪除</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            renderWorkRecords(searchTerm = '') {
-                const container = document.getElementById('workList');
-                let records = this.dataManager.workRecords;
-
-                if (searchTerm) {
-                    records = records.filter(record => 
-                        record.content.toLowerCase().includes(searchTerm.toLowerCase())
-                    );
-                }
-
-                // 按日期排序（最新的在前）
-                records.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                container.innerHTML = records.map(record => `
-                    <div class="note-card">
-                        <div class="note-date">${record.date}</div>
-                        <p>${record.content.substring(0, 100)}${record.content.length > 100 ? '...' : ''}</p>
-                        <div style="margin-top: 10px;">
-                            <button class="btn" onclick="uiManager.editWorkRecord(${record.id})">編輯</button>
-                            <button class="btn" onclick="uiManager.deleteWorkRecord(${record.id})">刪除</button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            editNote(id) {
-                const note = this.dataManager.notes.find(n => n.id === id);
-                if (note) {
-                    // 填充表單
-                    document.getElementById('noteCategory').value = note.category;
-                    document.getElementById('noteContent').value = note.content;
-                    document.getElementById('noteDate').value = note.date;
+                    this.editingWorkId = id;
+                    document.getElementById('workContent').value = work.content;
+                    document.getElementById('workDate').value = work.date;
+                    document.getElementById('addWork').textContent = '🔄 更新工作紀錄';
                     
-                    // 切換到筆記標籤
-                    this.switchTab('notes');
-                    
-                    // 設置編輯模式
-                    this.editingNoteId = id;
-                    document.getElementById('addNote').textContent = '更新筆記';
+                    // 切換到工作紀錄標籤
+                    this.switchTab('work');
                     
                     // 捲動到表單
-                    document.querySelector('#notes .form-group').scrollIntoView({ behavior: 'smooth' });
+                    document.querySelector('#work .form-group').scrollIntoView({ behavior: 'smooth' });
                 }
             }
 
@@ -904,110 +806,33 @@
                 if (confirm('確定要刪除這則筆記嗎？')) {
                     this.dataManager.deleteItem('note', id);
                     this.renderNotes();
-                    this.showFeedback('筆記已刪除', 'success');
+                    this.renderHistory();
+                    this.removeDesktopCard(id, 'note');
+                    this.showNotification('筆記已刪除！', 'success');
                 }
             }
 
-            editWorkRecord(id) {
-                const work = this.dataManager.workRecords.find(w => w.id === id);
-                if (work) {
-                    // 填充表單
-                    document.getElementById('workContent').value = work.content;
-                    document.getElementById('workDate').value = work.date;
-                    
-                    // 切換到工作紀錄標籤
-                    this.switchTab('work');
-                    
-                    // 設置編輯模式
-                    this.editingWorkId = id;
-                    document.getElementById('addWork').textContent = '更新工作紀錄';
-                    
-                    // 捲動到表單
-                    document.querySelector('#work .form-group').scrollIntoView({ behavior: 'smooth' });
-                }
-            }
-
-            deleteWorkRecord(id) {
-                if (confirm('確定要刪除這則工作紀錄嗎？')) {
+            deleteWork(id) {
+                if (confirm('確定要刪除這筆工作紀錄嗎？')) {
                     this.dataManager.deleteItem('work', id);
                     this.renderWorkRecords();
-                    this.showFeedback('工作紀錄已刪除', 'success');
-                }
-            }
-
-            renderHistory(searchTerm = '') {
-                const container = document.getElementById('historyList');
-                let allRecords = [
-                    ...this.dataManager.notes.map(note => ({ ...note, type: 'note' })),
-                    ...this.dataManager.workRecords.map(work => ({ ...work, type: 'work' }))
-                ];
-
-                if (searchTerm) {
-                    allRecords = allRecords.filter(record => 
-                        record.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (record.category && record.category.toLowerCase().includes(searchTerm.toLowerCase()))
-                    );
-                }
-
-                // 按日期排序（最新的在前）
-                allRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                container.innerHTML = allRecords.map(record => `
-                    <div class="note-card">
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
-                            <div style="flex: 1;">
-                                <div class="note-date">${record.date} - ${record.type === 'note' ? '筆記' : '工作紀錄'}</div>
-                                ${record.category ? `<span class="note-category">${record.category}</span>` : ''}
-                                <p>${record.content}</p>
-                            </div>
-                            <div>
-                                <button class="btn" onclick="uiManager.editItem(${record.id}, '${record.type}')">編輯</button>
-                                <button class="btn" onclick="uiManager.deleteItem(${record.id}, '${record.type}')">刪除</button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            searchNotes(term) {
-                this.renderNotes(term);
-            }
-
-            searchWorkRecords(term) {
-                this.renderWorkRecords(term);
-            }
-
-            searchHistory(term) {
-                this.renderHistory(term);
-            }
-
-            showNoteDetail(id) {
-                const note = this.dataManager.notes.find(n => n.id === id);
-                if (note) {
-                    alert(`類別：${note.category}\n日期：${note.date}\n\n內容：\n${note.content}`);
-                }
-            }
-
-            showWorkDetail(id) {
-                const work = this.dataManager.workRecords.find(w => w.id === id);
-                if (work) {
-                    alert(`日期：${work.date}\n\n內容：\n${work.content}`);
+                    this.renderHistory();
+                    this.removeDesktopCard(id, 'work');
+                    this.showNotification('工作紀錄已刪除！', 'success');
                 }
             }
 
             editItem(id, type) {
+                const item = type === 'note' 
+                    ? this.dataManager.notes.find(n => n.id === id)
+                    : this.dataManager.workRecords.find(w => w.id === id);
+                
+                if (!item) return;
+
                 this.currentEditId = id;
                 this.currentEditType = type;
 
-                let item;
-                if (type === 'note') {
-                    item = this.dataManager.notes.find(n => n.id === id);
-                    document.getElementById('editCategory').value = item.category;
-                } else {
-                    item = this.dataManager.workRecords.find(w => w.id === id);
-                    document.getElementById('editCategory').value = '';
-                }
-
+                document.getElementById('editCategory').value = item.category || '';
                 document.getElementById('editContent').value = item.content;
                 document.getElementById('editDate').value = item.date;
                 
@@ -1015,31 +840,36 @@
             }
 
             saveEdit() {
+                const category = document.getElementById('editCategory').value.trim();
                 const content = document.getElementById('editContent').value.trim();
                 const date = document.getElementById('editDate').value;
-                const category = document.getElementById('editCategory').value.trim();
 
                 if (!content) {
-                    alert('請填寫內容');
+                    this.showNotification('請填寫內容', 'error');
                     return;
                 }
 
-                const updatedData = { content, date };
-                if (this.currentEditType === 'note') {
-                    updatedData.category = category;
-                }
+                const updatedData = this.currentEditType === 'note' 
+                    ? { category, content, date }
+                    : { content, date };
 
                 this.dataManager.updateItem(this.currentEditType, this.currentEditId, updatedData);
+                
+                this.renderNotes();
+                this.renderWorkRecords();
                 this.renderHistory();
                 this.closeModal();
-                this.showFeedback('更新成功！', 'success');
+                this.showNotification('更新成功！', 'success');
             }
 
             deleteItem(id, type) {
                 if (confirm('確定要刪除這筆紀錄嗎？')) {
                     this.dataManager.deleteItem(type, id);
+                    this.renderNotes();
+                    this.renderWorkRecords();
                     this.renderHistory();
-                    this.showFeedback('刪除成功！', 'success');
+                    this.removeDesktopCard(id, type);
+                    this.showNotification('紀錄已刪除！', 'success');
                 }
             }
 
@@ -1049,7 +879,7 @@
                 this.currentEditType = null;
             }
 
-            importData(event) {
+            handleImport(event) {
                 const file = event.target.files[0];
                 if (!file) return;
 
@@ -1061,13 +891,97 @@
                         this.renderNotes();
                         this.renderWorkRecords();
                         this.renderHistory();
-                        this.showFeedback('資料匯入成功！', 'success');
+                        this.showNotification('資料匯入成功！', 'success');
                     } catch (error) {
-                        this.showFeedback('匯入失敗：檔案格式錯誤', 'error');
+                        this.showNotification('匯入失敗：檔案格式錯誤', 'error');
                     }
                 };
                 reader.readAsText(file);
                 event.target.value = '';
+            }
+
+            // 桌面卡片功能
+            addDesktopCard(item, type) {
+                const card = {
+                    id: item.id,
+                    type: type,
+                    date: item.date,
+                    content: item.content,
+                    category: item.category || ''
+                };
+
+                this.desktopCards.push(card);
+                this.renderDesktopCard(card);
+                this.saveDesktopCards();
+            }
+
+            renderDesktopCard(card) {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'desktop-card';
+                cardElement.id = `desktop-card-${card.type}-${card.id}`;
+                cardElement.innerHTML = `
+                    <button class="close-btn" onclick="uiManager.removeDesktopCard(${card.id}, '${card.type}')">&times;</button>
+                    <div class="note-date">${card.date}</div>
+                    ${card.category ? `<div class="note-category">${card.category}</div>` : ''}
+                    <div class="note-content">${this.truncateText(card.content, 100)}</div>
+                `;
+                document.body.appendChild(cardElement);
+            }
+
+            removeDesktopCard(id, type) {
+                const cardElement = document.getElementById(`desktop-card-${type}-${id}`);
+                if (cardElement) {
+                    cardElement.remove();
+                }
+                
+                this.desktopCards = this.desktopCards.filter(card => 
+                    !(card.id === id && card.type === type)
+                );
+                this.saveDesktopCards();
+            }
+
+            saveDesktopCards() {
+                localStorage.setItem('desktopCards', JSON.stringify(this.desktopCards));
+            }
+
+            loadDesktopCards() {
+                const saved = localStorage.getItem('desktopCards');
+                if (saved) {
+                    try {
+                        this.desktopCards = JSON.parse(saved);
+                        this.desktopCards.forEach(card => this.renderDesktopCard(card));
+                    } catch (error) {
+                        console.error('載入桌面卡片失敗', error);
+                    }
+                }
+            }
+
+            truncateText(text, maxLength) {
+                if (text.length <= maxLength) return text;
+                return text.substring(0, maxLength) + '...';
+            }
+
+            showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${type === 'success' ? 'var(--accent)' : '#e74c3c'};
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px var(--shadow);
+                    z-index: 3000;
+                    animation: slideIn 0.3s ease;
+                `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'fadeOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
             }
         }
 
@@ -1075,12 +989,25 @@
         const dataManager = new DataManager();
         const uiManager = new UIManager(dataManager);
 
+        // 添加 fadeOut 動畫
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateX(0); }
+                to { opacity: 0; transform: translateX(100%); }
+            }
+        `;
+        document.head.appendChild(style);
+
         // 頁面載入時初始化
         document.addEventListener('DOMContentLoaded', () => {
             // 載入保存的主題
             const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
+            document.getElementById('themeToggle').textContent = 
+                savedTheme === 'dark' ? '☀️ 淺色模式' : '🌙 深色模式';
             
+            // 初始化 UI
             uiManager.init();
         });
     </script>
