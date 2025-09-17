@@ -424,6 +424,7 @@
                 this.dataManager = dataManager;
                 this.currentEditId = null;
                 this.currentEditType = null;
+                this.editingNoteId = null; // 新增：追蹤正在編輯的筆記ID
             }
 
             init() {
@@ -444,11 +445,11 @@
                 document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
 
                 // 新增筆記
-                document.getElementById('addNote').addEventListener('click', () => this.addNote());
+                document.getElementById('addNote').addEventListener('click', () => this.handleNoteSave());
                 document.getElementById('noteDate').value = new Date().toISOString().split('T')[0];
 
                 // 新增工作紀錄
-                document.getElementById('addWork').addEventListener('click', () => this.addWorkRecord());
+                document.getElementById('addWork').addEventListener('click', () => this.handleWorkSave());
                 document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
 
                 // 搜尋功能
@@ -496,7 +497,7 @@
                 localStorage.setItem('theme', newTheme);
             }
 
-            addNote() {
+            handleNoteSave() {
                 const category = document.getElementById('noteCategory').value.trim();
                 const content = document.getElementById('noteContent').value.trim();
                 const date = document.getElementById('noteDate').value;
@@ -506,7 +507,16 @@
                     return;
                 }
 
-                this.dataManager.addNote({ category, content, date });
+                if (this.editingNoteId) {
+                    // 編輯模式：更新現有筆記
+                    this.dataManager.updateItem('note', this.editingNoteId, { category, content, date });
+                    this.editingNoteId = null;
+                    document.getElementById('addNote').textContent = '新增筆記';
+                } else {
+                    // 新增模式
+                    this.dataManager.addNote({ category, content, date });
+                }
+                
                 this.renderNotes();
                 
                 // 清空表單
@@ -515,7 +525,7 @@
                 document.getElementById('noteDate').value = new Date().toISOString().split('T')[0];
             }
 
-            addWorkRecord() {
+            handleWorkSave() {
                 const content = document.getElementById('workContent').value.trim();
                 const date = document.getElementById('workDate').value;
 
@@ -547,10 +557,18 @@
                 notes.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 container.innerHTML = notes.map(note => `
-                    <div class="note-card" onclick="uiManager.showNoteDetail(${note.id})">
-                        <div class="note-date">${note.date}</div>
-                        <span class="note-category">${note.category}</span>
-                        <p>${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</p>
+                    <div class="note-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;" onclick="uiManager.showNoteDetail(${note.id})">
+                                <div class="note-date">${note.date}</div>
+                                <span class="note-category">${note.category}</span>
+                                <p>${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</p>
+                            </div>
+                            <div>
+                                <button class="btn" onclick="event.stopPropagation(); uiManager.editNote(${note.id})">編輯</button>
+                                <button class="btn" onclick="event.stopPropagation(); uiManager.deleteItem(${note.id}, 'note')">刪除</button>
+                            </div>
+                        </div>
                     </div>
                 `).join('');
             }
@@ -569,11 +587,352 @@
                 records.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 container.innerHTML = records.map(record => `
-                    <div class="note-card" onclick="uiManager.showWorkDetail(${record.id})">
-                        <div class="note-date">${record.date}</div>
-                        <p>${record.content.substring(0, 100)}${record.content.length > 100 ? '...' : ''}</p>
+                    <div class="note-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;" onclick="uiManager.showWorkDetail(${record.id})">
+                                <div class="note-date">${record.date}</div>
+                                <p>${record.content.substring(0, 100)}${record.content.length > 100 ? '...' : ''}</p>
+                            </div>
+                            <div>
+                                <button class="btn" onclick="event.stopPropagation(); uiManager.editWork(${record.id})">編輯</button>
+                                <button class="btn" onclick="event.stopPropagation(); uiManager.deleteItem(${record.id}, 'work')">刪除</button>
+                            </div>
+                        </div>
                     </div>
                 `).join('');
+            }
+
+            renderHistory(searchTerm = '') {
+                const container = document.getElementById('historyList');
+                let allRecords = [
+                    ...this.dataManager.notes.map(note => ({ ...note, type: 'note' })),
+                    ...this.dataManager.workRecords.map(work => ({ ...work, type: 'work' }))
+                ];
+
+                if (searchTerm) {
+                    allRecords = allRecords.filter(record => 
+                        record.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (record.category && record.category.toLowerCase().includes(searchTerm.toLowerCase()))
+                    );
+                }
+
+                // 按日期排序（最新的在前）
+                allRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                container.innerHTML = allRecords.map(record => `
+                    <div class="note-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <div class="note-date">${record.date} - ${record.type === 'note' ? '筆記' : '工作紀錄'}</div>
+                                ${record.category ? `<span class="note-category">${record.category}</span>` : ''}
+                                <p>${record.content}</p>
+                            </div>
+                            <div>
+                                <button class="btn" onclick="uiManager.editItem(${record.id}, '${record.type}')">編輯</button>
+                                <button class="btn" onclick="uiManager.deleteItem(${record.id}, '${record.type}')">刪除</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            searchNotes(term) {
+                this.renderNotes(term);
+            }
+
+            searchWorkRecords(term) {
+                this.renderWorkRecords(term);
+            }
+
+            searchHistory(term) {
+                this.renderHistory(term);
+            }
+
+            showNoteDetail(id) {
+                const note = this.dataManager.notes.find(n => n.id === id);
+                if (note) {
+                    alert(`類別：${note.category}\n日期：${note.date}\n\n內容：\n${note.content}`);
+                }
+            }
+
+            showWorkDetail(id) {
+                const work = this.dataManager.workRecords.find(w => w.id === id);
+                if (work) {
+                    alert(`日期：${work.date}\n\n內容：\n${work.content}`);
+                }
+            }
+
+            editNote(id) {
+                const note = this.dataManager.notes.find(n => n.id === id);
+                if (note) {
+                    this.editingNoteId = id;
+                    document.getElementById('noteCategory').value = note.category;
+                    document.getElementById('noteContent').value = note.content;
+                    document.getElementById('noteDate').value = note.date;
+                    document.getElementById('addNote').textContent = '更新筆記';
+                    
+                    // 捲動到表單位置
+                    document.getElementById('notes').scrollTop = 0;
+                    window.scrollTo(0, 0);
+                }
+            }
+
+            editWork(id) {
+                const work = this.dataManager.workRecords.find(w => w.id === id);
+                if (work) {
+                    this.currentEditId = id;
+                    this.currentEditType = 'work';
+                    document.getElementById('editContent').value = work.content;
+                    document.getElementById('editDate').value = work.date;
+                    document.getElementById('editCategory').value = '';
+                    document.getElementById('editModal').style.display = 'block';
+                }
+            }
+
+            editItem(id, type) {
+                this.currentEditId = id;
+                this.currentEditType = type;
+
+                let item;
+                if (type === 'note') {
+                    item = this.dataManager.notes.find(n => n.id === id);
+                    document.getElementById('editCategory').value = item.category;
+                } else {
+                    item = this.dataManager.workRecords.find(w => w.id === id);
+                    document.getElementById('editCategory').value = '';
+                }
+
+                document.getElementById('editContent').value = item.content;
+                document.getElementById('editDate').value = item.date;
+                
+                document.getElementById('editModal').style.display = 'block';
+            }
+
+            saveEdit() {
+                const content = document.getElementById('editContent').value.trim();
+                const date = document.getElementById('editDate').value;
+                const category = document.getElementById('editCategory').value.trim();
+
+                if (!content) {
+                    alert('請填寫內容');
+                    return;
+                }
+
+                const updatedData = { content, date };
+                if (this.currentEditType === 'note') {
+                    updatedData.category = category;
+                }
+
+                this.dataManager.updateItem(this.currentEditType, this.currentEditId, updatedData);
+                this.renderNotes();
+                this.renderWorkRecords();
+                this.renderHistory();
+                this.closeModal();
+            }
+
+            deleteItem(id, type) {
+                if (confirm('確定要刪除這筆紀錄嗎？')) {
+                    this.dataManager.deleteItem(type, id);
+                    this.renderNotes();
+                    this.renderWorkRecords();
+                    this.renderHistory();
+                }
+            }
+
+            closeModal() {
+                document.getElementById('editModal').style.display = 'none';
+                this.currentEditId = null;
+                this.currentEditType = null;
+            }
+
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        this.dataManager.importData(data);
+                        this.renderNotes();
+                        this.renderWorkRecords();
+                        this.renderHistory();
+                        alert('資料匯入成功！');
+                    } catch (error) {
+                        alert('匯入失敗：檔案格式錯誤');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            }
+        }
+
+        // 初始化應用
+        const dataManager = new DataManager();
+        const uiManager = new UIManager(dataManager);
+
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 載入保存的主題
+            const savedTheme = localStorage.getItem('theme                    alert('請填寫工作內容');
+                    return;
+                }
+
+                this.dataManager.addWorkRecord({ content, date });
+                this.renderWorkRecords();
+                
+                // 清空表單
+                document.getElementById('workContent').value = '';
+                document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
+                
+                // 添加成功反饋
+                this.showFeedback('工作紀錄已儲存！', 'success');
+            }
+
+            showFeedback(message, type) {
+                // 創建反饋元素
+                const feedback = document.createElement('div');
+                feedback.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: 500;
+                    z-index: 2000;
+                    transition: all 0.3s ease;
+                    transform: translateX(100%);
+                `;
+                
+                if (type === 'success') {
+                    feedback.style.background = 'var(--accent)';
+                } else if (type === 'error') {
+                    feedback.style.background = '#e74c3c';
+                }
+                
+                feedback.textContent = message;
+                document.body.appendChild(feedback);
+                
+                // 動畫顯示
+                setTimeout(() => {
+                    feedback.style.transform = 'translateX(0)';
+                }, 100);
+                
+                // 3秒後移除
+                setTimeout(() => {
+                    feedback.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        document.body.removeChild(feedback);
+                    }, 300);
+                }, 3000);
+            }
+
+            renderNotes(searchTerm = '') {
+                const container = document.getElementById('notesList');
+                let notes = this.dataManager.notes;
+
+                if (searchTerm) {
+                    notes = notes.filter(note => 
+                        note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        note.category.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                }
+
+                // 按日期排序（最新的在前）
+                notes.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                container.innerHTML = notes.map(note => `
+                    <div class="note-card" onclick="uiManager.editNote(${note.id})">
+                        <div class="note-date">${note.date}</div>
+                        <span class="note-category">${note.category}</span>
+                        <p>${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</p>
+                        <div style="margin-top: 10px;">
+                            <button class="btn" onclick="event.stopPropagation(); uiManager.editNote(${note.id})">編輯</button>
+                            <button class="btn" onclick="event.stopPropagation(); uiManager.deleteNote(${note.id})">刪除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderWorkRecords(searchTerm = '') {
+                const container = document.getElementById('workList');
+                let records = this.dataManager.workRecords;
+
+                if (searchTerm) {
+                    records = records.filter(record => 
+                        record.content.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                }
+
+                // 按日期排序（最新的在前）
+                records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                container.innerHTML = records.map(record => `
+                    <div class="note-card">
+                        <div class="note-date">${record.date}</div>
+                        <p>${record.content.substring(0, 100)}${record.content.length > 100 ? '...' : ''}</p>
+                        <div style="margin-top: 10px;">
+                            <button class="btn" onclick="uiManager.editWorkRecord(${record.id})">編輯</button>
+                            <button class="btn" onclick="uiManager.deleteWorkRecord(${record.id})">刪除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            editNote(id) {
+                const note = this.dataManager.notes.find(n => n.id === id);
+                if (note) {
+                    // 填充表單
+                    document.getElementById('noteCategory').value = note.category;
+                    document.getElementById('noteContent').value = note.content;
+                    document.getElementById('noteDate').value = note.date;
+                    
+                    // 切換到筆記標籤
+                    this.switchTab('notes');
+                    
+                    // 設置編輯模式
+                    this.editingNoteId = id;
+                    document.getElementById('addNote').textContent = '更新筆記';
+                    
+                    // 捲動到表單
+                    document.querySelector('#notes .form-group').scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            deleteNote(id) {
+                if (confirm('確定要刪除這則筆記嗎？')) {
+                    this.dataManager.deleteItem('note', id);
+                    this.renderNotes();
+                    this.showFeedback('筆記已刪除', 'success');
+                }
+            }
+
+            editWorkRecord(id) {
+                const work = this.dataManager.workRecords.find(w => w.id === id);
+                if (work) {
+                    // 填充表單
+                    document.getElementById('workContent').value = work.content;
+                    document.getElementById('workDate').value = work.date;
+                    
+                    // 切換到工作紀錄標籤
+                    this.switchTab('work');
+                    
+                    // 設置編輯模式
+                    this.editingWorkId = id;
+                    document.getElementById('addWork').textContent = '更新工作紀錄';
+                    
+                    // 捲動到表單
+                    document.querySelector('#work .form-group').scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            deleteWorkRecord(id) {
+                if (confirm('確定要刪除這則工作紀錄嗎？')) {
+                    this.dataManager.deleteItem('work', id);
+                    this.renderWorkRecords();
+                    this.showFeedback('工作紀錄已刪除', 'success');
+                }
             }
 
             renderHistory(searchTerm = '') {
@@ -673,12 +1032,14 @@
                 this.dataManager.updateItem(this.currentEditType, this.currentEditId, updatedData);
                 this.renderHistory();
                 this.closeModal();
+                this.showFeedback('更新成功！', 'success');
             }
 
             deleteItem(id, type) {
                 if (confirm('確定要刪除這筆紀錄嗎？')) {
                     this.dataManager.deleteItem(type, id);
                     this.renderHistory();
+                    this.showFeedback('刪除成功！', 'success');
                 }
             }
 
@@ -700,9 +1061,9 @@
                         this.renderNotes();
                         this.renderWorkRecords();
                         this.renderHistory();
-                        alert('資料匯入成功！');
+                        this.showFeedback('資料匯入成功！', 'success');
                     } catch (error) {
-                        alert('匯入失敗：檔案格式錯誤');
+                        this.showFeedback('匯入失敗：檔案格式錯誤', 'error');
                     }
                 };
                 reader.readAsText(file);
