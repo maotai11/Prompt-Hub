@@ -1,10 +1,9 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>離線客戶資料庫＆營業稅｜分頁式＋友善列印（file:// 可用）</title>
-
+<title>離線客戶資料庫＆營業稅｜分頁＋列印＋IndexedDB（file:// 可用）</title>
 <style>
   :root{
     --bg:#0f1216; --card:#141820; --muted:#8aa0b2; --text:#e8eef4; --acc:#3aa0ff; --warn:#ffb020; --danger:#ff5a6a;
@@ -30,8 +29,7 @@
   .btn-ok{background:var(--ok);color:#01261c;border:none}
   .btn-warn{background:var(--warn);color:#261a00;border:none}
   .btn-danger{background:var(--danger);color:#2a0004;border:none}
-  .muted{color:var(--muted)}
-  .small{font-size:.87rem}
+  .muted{color:var(--muted)} .small{font-size:.87rem}
   .pill{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:.8rem}
   .kbd{font-family:ui-monospace,Menlo,monospace;background:#0b0e12;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
   .hr{height:1px;background:var(--border);margin:12px 0}
@@ -43,14 +41,14 @@
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media (max-width:900px){.two-col{grid-template-columns:1fr}}
 
-  /* 分頁式 UI */
   .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   .tab{border:1px solid var(--border);background:#0d1015;color:var(--text);padding:10px 14px;border-radius:999px;cursor:pointer}
   .tab.active{background:var(--acc);color:#001b33;border-color:transparent}
   .tab-panels > section{display:none}
   .tab-panels > section.active{display:block}
 
-  /* 列印友善樣式 */
+  .notice{border:1px dashed var(--warn);background:#2a210a;color:#ffd27a;padding:10px;border-radius:10px}
+
   @media print{
     :root{color-scheme:light}
     body{background:#fff;color:#000}
@@ -61,52 +59,31 @@
     .table th,.table td{border:1px solid #000 !important}
     details{border:none;background:transparent}
     summary{display:none}
-    /* 讓細字可讀 */
     .small{font-size:0.95rem}
-    /* 模組2：日期群組之間可中斷頁面（依實際頁面長度可微調） */
     .print-break{page-break-inside:avoid;page-break-after:auto}
   }
 </style>
 
-<!-- 內嵌初始 JSON：首次載入且 localStorage 無資料時使用 -->
+<!-- 內嵌 seed（初次/無資料時導入） -->
 <script type="application/json" id="seed-customers">
-{
-  "customers":[
-    {
-      "id":"C0001",
-      "companyName":"範例股份有限公司",
-      "regAddr":"台北市信義區示例路 100 號",
-      "contactAddr":"台北市信義區示例路 200 號",
-      "taxId":"12345678",
-      "bizRegNo":"A123456789",
-      "principal":"王小明",
-      "contact":"林小姐",
-      "phone":"02-1234-5678",
-      "suspendFrom":"",
-      "suspendTo":"",
-      "notesHistory":[
-        {"ts": "2025-09-01T10:00:00", "voucherType":"進項","text":"首度建檔，確認統編與收發方式"}
-      ]
-    }
-  ]
-}
+{"customers":[{"id":"C0001","companyName":"範例股份有限公司","regAddr":"台北市信義區示例路 100 號","contactAddr":"台北市信義區示例路 200 號","taxId":"12345678","bizRegNo":"A123456789","principal":"王小明","contact":"林小姐","phone":"02-1234-5678","suspendFrom":"","suspendTo":"","notesHistory":[{"ts":"2025-09-01T10:00:00","voucherType":"進項","text":"首度建檔，確認統編與收發方式"}]}]}
 </script>
 </head>
 <body>
 <div class="wrap grid">
 
-  <!-- 頁首與分頁 -->
   <header class="card">
     <div class="row" style="justify-content:space-between;align-items:center">
       <div>
         <h1>離線客戶資料庫 ＆ 營業稅模組</h1>
-        <div class="small muted">純前端單檔・無外部資源・可 JSON/CSV 匯入匯出・支援列印</div>
+        <div class="small muted">單檔・分頁式 UI・友善列印・IndexedDB 優先持久化・JSON/CSV 匯入匯出</div>
       </div>
       <div class="row no-print">
         <button class="btn" type="button" id="btn-print">列印</button>
         <button class="btn" type="button" id="btn-snapshot">下載快照（M1+M2+方式）</button>
       </div>
     </div>
+    <div id="env-notice" class="notice no-print" style="display:none"></div>
     <div class="tabs no-print" id="tabs">
       <button class="tab active" type="button" data-tab="module1">客戶資料庫</button>
       <button class="tab" type="button" data-tab="module2">營業稅</button>
@@ -124,28 +101,27 @@
         </div>
       </div>
 
-      <!-- 頂端輸入列 -->
       <div class="grid">
         <div class="two-col">
           <div class="grid">
             <div class="row">
-              <div style="flex:1"><label>用戶代號</label><input id="m1-id" placeholder="例如：C0002" /></div>
-              <div style="flex:2"><label>公司名稱</label><input id="m1-company" placeholder="公司名稱" /></div>
+              <div style="flex:1"><label>用戶代號</label><input id="m1-id" /></div>
+              <div style="flex:2"><label>公司名稱</label><input id="m1-company" /></div>
             </div>
             <div class="row">
-              <div style="flex:1"><label>設籍地址</label><input id="m1-reg" placeholder="設籍地址" /></div>
-              <div style="flex:1"><label>聯絡地址</label><input id="m1-addr" placeholder="聯絡地址" /></div>
+              <div style="flex:1"><label>設籍地址</label><input id="m1-reg" /></div>
+              <div style="flex:1"><label>聯絡地址</label><input id="m1-addr" /></div>
             </div>
             <div class="row">
-              <div style="flex:1"><label>聯絡人電話</label><input id="m1-phone" placeholder="電話" /></div>
-              <div style="flex:1"><label>稅籍編號</label><input id="m1-bizno" placeholder="稅籍編號" /></div>
+              <div style="flex:1"><label>聯絡人電話</label><input id="m1-phone" /></div>
+              <div style="flex:1"><label>稅籍編號</label><input id="m1-bizno" /></div>
             </div>
             <div class="row">
-              <div style="flex:1"><label>統一編號</label><input id="m1-taxid" placeholder="統一編號(8碼)" /></div>
-              <div style="flex:1"><label>負責人</label><input id="m1-principal" placeholder="負責人" /></div>
+              <div style="flex:1"><label>統一編號</label><input id="m1-taxid" /></div>
+              <div style="flex:1"><label>負責人</label><input id="m1-principal" /></div>
             </div>
             <div class="row">
-              <div style="flex:1"><label>聯絡人</label><input id="m1-contact" placeholder="聯絡人" /></div>
+              <div style="flex:1"><label>聯絡人</label><input id="m1-contact" /></div>
               <div style="flex:1;display:flex;gap:8px">
                 <div style="flex:1"><label>停業日期(起)</label><input id="m1-sfrom" type="date" /></div>
                 <div style="flex:1"><label>停業日期(迄)</label><input id="m1-sto" type="date" /></div>
@@ -158,15 +134,12 @@
             </div>
           </div>
 
-          <!-- 匯入/備份 -->
           <div class="grid no-print">
             <div class="card" style="background:#0d1015">
               <div class="row"><strong>JSON 匯入（模組1）：</strong><input id="m1-json-in" type="file" accept=".json" /></div>
               <div class="hr"></div>
               <div class="row"><strong>CSV 匯入（建立/覆蓋客戶）：</strong><input id="m1-csv-in" type="file" accept=".csv" /></div>
-              <div class="small muted" style="margin-top:6px">
-                CSV 欄位：id,companyName,regAddr,contactAddr,phone,bizRegNo,taxId,principal,contact,suspendFrom,suspendTo（以 id 覆蓋）
-              </div>
+              <div class="small muted" style="margin-top:6px">欄位：id,companyName,regAddr,contactAddr,phone,bizRegNo,taxId,principal,contact,suspendFrom,suspendTo</div>
             </div>
           </div>
         </div>
@@ -174,12 +147,9 @@
 
       <div class="hr"></div>
 
-      <!-- 客戶列表 -->
       <div class="flex-between row" style="justify-content:space-between;align-items:center">
         <h3>客戶列表</h3>
-        <div class="row no-print">
-          <input id="m1-search" placeholder="關鍵字（代號/公司/統編/人名/電話）" />
-        </div>
+        <div class="row no-print"><input id="m1-search" placeholder="關鍵字（代號/公司/統編/人名/電話）" /></div>
       </div>
       <table class="table" id="m1-table">
         <thead>
@@ -187,7 +157,7 @@
             <th>代號</th><th>公司名稱</th><th>統一編號</th><th>聯絡人/電話</th><th>地址</th><th>停業</th><th class="no-print">操作</th>
           </tr>
         </thead>
-        <tbody id="m1-tbody"><!-- 動態 --></tbody>
+        <tbody id="m1-tbody"></tbody>
       </table>
       <div class="small muted">展開每筆可寫入「傳票類別 / 常用備註 / 筆記紀錄」，會自動存入「歷史資料庫」。列印時會自動展開。</div>
     </section>
@@ -202,26 +172,20 @@
         </div>
       </div>
 
-      <!-- 頂端：日期＋期別 -->
       <div class="row">
         <div class="pill">今天：<span id="m2-today"></span></div>
         <div class="pill">民國年度：<span id="m2-roc"></span></div>
         <div class="row">
           <label>期別</label>
           <select id="m2-period" class="no-print">
-            <option value="01-02">01-02</option>
-            <option value="03-04">03-04</option>
-            <option value="05-06">05-06</option>
-            <option value="07-08">07-08</option>
-            <option value="09-10">09-10</option>
-            <option value="11-12">11-12</option>
+            <option>01-02</option><option>03-04</option><option>05-06</option>
+            <option>07-08</option><option>09-10</option><option>11-12</option>
           </select>
         </div>
       </div>
 
       <div class="hr"></div>
 
-      <!-- 建立預定收回項目 -->
       <div class="grid">
         <h3>新增預定收發票項目</h3>
         <div class="two-col">
@@ -249,27 +213,26 @@
               <button class="btn btn-ok" type="button" id="m2-add">加入清單</button>
               <button class="btn" type="button" id="m2-clear">清除欄位</button>
             </div>
-            <div class="small muted">※ 今日＝預定日 == 今天；明日清單＝今天 +1/+2/+3 天，並依天數排序（顯示日期與星期）。</div>
+            <div class="small muted">今日＝預定日 == 今天；明日清單＝今天 +1/+2/+3，依天數排序（含星期）。</div>
           </div>
         </div>
       </div>
 
       <div class="hr"></div>
 
-      <!-- 清單 -->
       <div class="two-col">
         <div class="grid print-break">
           <h3>今日預定收回客戶</h3>
           <table class="table">
             <thead><tr><th>日期(星期)</th><th>客戶</th><th>方式</th><th>提醒</th><th class="no-print">操作</th></tr></thead>
-            <tbody id="m2-today-list"><!-- 動態 --></tbody>
+            <tbody id="m2-today-list"></tbody>
           </table>
         </div>
         <div class="grid print-break">
           <h3>未來三日（+1 / +2 / +3）</h3>
           <table class="table">
             <thead><tr><th>日期(星期)</th><th>客戶</th><th>方式</th><th>提醒</th><th class="no-print">操作</th></tr></thead>
-            <tbody id="m2-next-list"><!-- 動態 --></tbody>
+            <tbody id="m2-next-list"></tbody>
           </table>
         </div>
       </div>
@@ -279,13 +242,13 @@
   <footer class="card small muted no-print">
     <div class="row">
       <span>事件委派啟用・所有按鈕皆有 <span class="kbd">type="button"</span> ・全域錯誤攔截已啟用。</span>
-      <span>如需 Service Worker / fetch / ES Modules，請以本機伺服器啟動（<span class="kbd">python -m http.server</span>）。</span>
+      <span>若需 Service Worker / fetch / ES Modules，請以本機伺服器啟動（<span class="kbd">python -m http.server</span>）。</span>
     </div>
   </footer>
 </div>
 
 <script defer>
-/* ================= 全域錯誤攔截 ================= */
+/* ========= 全域錯誤攔截 ========= */
 window.onerror = function(message, source, lineno, colno, error){
   console.error("[window.onerror]", message, source, lineno, colno, error);
   alert("發生錯誤：" + message + "\\n請按 F12 開啟 console 以查看詳細。");
@@ -295,87 +258,283 @@ window.addEventListener("unhandledrejection", function(e){
   alert("非同步錯誤：" + (e.reason && e.reason.message ? e.reason.message : e.reason));
 });
 
-/* ================= 資料層 ================= */
-const DB_KEYS = {
-  M1: "db_customers_v1",
-  M2: "db_tax_v1",
-  METHODS: "db_methods_v1"
-};
-function loadLS(key, fallback){ try{ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):fallback;}catch(e){console.warn("parse LS fail",key,e);return fallback;} }
-function saveLS(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
+/*** =========================================================
+     STORAGE LAYER (IndexedDB + localStorage fallback)
+     目的：在 file:// 底下增加持久性穩定度
+========================================================= ***/
+const DB_KEYS = { M1:"db_customers_v1", M2:"db_tax_v1", METHODS:"db_methods_v1" };
 
-/* 初始資料 */
-const customers = loadLS(DB_KEYS.M1, { customers: [] });
-const tax = loadLS(DB_KEYS.M2, { items: [] });
-const methods = loadLS(DB_KEYS.METHODS, { list: ["親送","郵寄","快遞","EMAIL","LINE"] });
+/* IndexedDB 輕量封裝 */
+const IDB_NAME = "offline_client_db";
+const IDB_VERSION = 1;
+let idbAvailable = false;
+let idbDb = null;
 
-(function seedIfEmpty(){
-  if (!customers.customers || customers.customers.length === 0){
+function idbInit(){
+  return new Promise((resolve)=>{
     try{
-      const seed = document.getElementById("seed-customers");
-      if (seed){
-        const data = JSON.parse(seed.textContent);
-        if (data && data.customers){
-          customers.customers = data.customers;
-          saveLS(DB_KEYS.M1, customers);
-        }
-      }
-    }catch(e){ console.warn("seed parse fail", e); }
-  }
-})();
+      const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onerror = ()=> resolve(false);
+      req.onsuccess = ()=>{ idbDb = req.result; idbAvailable = true; resolve(true); };
+      req.onupgradeneeded = (e)=>{
+        const db = e.target.result;
+        // 三個 object store
+        if(!db.objectStoreNames.contains(DB_KEYS.M1)) db.createObjectStore(DB_KEYS.M1);
+        if(!db.objectStoreNames.contains(DB_KEYS.M2)) db.createObjectStore(DB_KEYS.M2);
+        if(!db.objectStoreNames.contains(DB_KEYS.METHODS)) db.createObjectStore(DB_KEYS.METHODS);
+      };
+    }catch(_){ resolve(false); }
+  });
+}
+function idbGet(store, key){
+  return new Promise((resolve)=> {
+    try{
+      const tx = idbDb.transaction(store, "readonly");
+      const os = tx.objectStore(store);
+      const req = os.get(key);
+      req.onsuccess = ()=> resolve(req.result ?? null);
+      req.onerror = ()=> resolve(null);
+    }catch(_){ resolve(null); }
+  });
+}
+function idbSet(store, key, val){
+  return new Promise((resolve)=> {
+    try{
+      const tx = idbDb.transaction(store, "readwrite");
+      const os = tx.objectStore(store);
+      const req = os.put(val, key);
+      req.onsuccess = ()=> resolve(true);
+      req.onerror = ()=> resolve(false);
+    }catch(_){ resolve(false); }
+  });
+}
 
-/* ================= 工具 ================= */
+/* localStorage 備援 */
+function lsLoad(key, fallback){
+  try{ const raw = localStorage.getItem(key); return raw?JSON.parse(raw):fallback; }
+  catch(e){ console.warn("ls parse fail", key, e); return fallback; }
+}
+function lsSave(key, data){ localStorage.setItem(key, JSON.stringify(data)); }
+
+/* 高階 API：先走 IDB，失敗再走 LS */
+async function storeLoad(key, fallback){
+  if(idbAvailable){
+    const got = await idbGet(key, "value");
+    if(got !== null) return got;
+    return fallback;
+  }else{
+    return lsLoad(key, fallback);
+  }
+}
+async function storeSave(key, data){
+  if(idbAvailable){
+    const ok = await idbSet(key, "value", data);
+    if(!ok) lsSave(key, data); // 失敗再補 localStorage
+  }else{
+    lsSave(key, data);
+  }
+}
+
+/* ========= 工具 ========= */
 function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function isoPlusDays(iso, days){ const d=new Date(iso); d.setDate(d.getDate()+days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function weekdayZH(iso){ return ["日","一","二","三","四","五","六"][new Date(iso).getDay()]; }
 function escapeHTML(s){ return (s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function downloadJSON(filename, obj){ const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+function $(sel){ return document.querySelector(sel); }
 
-function downloadJSON(filename, obj){
-  const blob = new Blob([JSON.stringify(obj,null,2)], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+/* ========= 全域狀態（載入後填） ========= */
+let customers = { customers: [] };
+let tax = { items: [] };
+let methods = { list: ["親送","郵寄","快遞","EMAIL","LINE"] };
+
+/* ========= 載入流程 ========= */
+async function bootstrap(){
+  const ok = await idbInit();
+  idbAvailable = ok;
+
+  // 從儲存層載入
+  customers = await storeLoad(DB_KEYS.M1, { customers: [] });
+  tax       = await storeLoad(DB_KEYS.M2, { items: [] });
+  methods   = await storeLoad(DB_KEYS.METHODS, { list: ["親送","郵寄","快遞","EMAIL","LINE"] });
+
+  // 初次 or 全空 → 導入 seed
+  if ((!customers.customers || customers.customers.length===0) &&
+      (!tax.items || tax.items.length===0)){
+    try{
+      const seed = $("#seed-customers"); if(seed){
+        const data = JSON.parse(seed.textContent);
+        customers = { customers: data.customers || [] };
+        await storeSave(DB_KEYS.M1, customers);
+      }
+    }catch(e){ console.warn("seed parse fail", e); }
+  }
+
+  // UI 初始化
+  initUI();
+  renderAll();
+
+  // 環境檢測提示（模組2有、模組1空）
+  if((tax.items && tax.items.length>0) && (!customers.customers || customers.customers.length===0)){
+    const box = $("#env-notice");
+    box.style.display = "block";
+    box.innerHTML = `
+      <strong>偵測到可能的 file:// 儲存分區差異：</strong>
+      模組2有資料，但模組1為空。這通常代表你以不同檔名/路徑或無痕模式開啟。<br>
+      建議：固定用同一檔名與資料夾開啟；或使用本機伺服器（<span class="kbd">python -m http.server</span>）。<br>
+      你也可以立即 <button class="btn btn-warn" type="button" id="btn-load-seed">導入範例</button>
+      或 <label class="btn" for="btn-restore-json">匯入快照<input id="btn-restore-json" type="file" accept=".json" style="display:none"></label>。
+    `;
+    box.addEventListener("click", (e)=>{
+      if(e.target.id==="btn-load-seed"){
+        try{
+          const data = JSON.parse($("#seed-customers").textContent);
+          customers = { customers: data.customers || [] };
+          storeSave(DB_KEYS.M1, customers).then(()=> renderAll());
+          alert("已導入範例客戶。");
+        }catch(err){ alert("導入失敗："+err.message); }
+      }
+    });
+    box.querySelector("#btn-restore-json").addEventListener("change", (e)=>{
+      const f = e.target.files && e.target.files[0]; if(!f) return;
+      const r = new FileReader();
+      r.onload = ()=>{
+        try{
+          const obj = JSON.parse(r.result);
+          if(obj.module1) customers = obj.module1;
+          if(obj.module2) tax = obj.module2;
+          if(obj.methods) methods = obj.methods;
+          Promise.all([
+            storeSave(DB_KEYS.M1, customers),
+            storeSave(DB_KEYS.M2, tax),
+            storeSave(DB_KEYS.METHODS, methods)
+          ]).then(()=> renderAll());
+          alert("已從快照還原。");
+        }catch(err){ alert("快照不合法："+err.message); }
+      };
+      r.readAsText(f);
+    });
+  }
 }
 
-/* ================== 分頁式 UI ================== */
-const tabsEl = document.getElementById("tabs");
-const panels = document.querySelector(".tab-panels");
-tabsEl.addEventListener("click", (e)=>{
-  const btn = e.target.closest(".tab"); if(!btn) return;
-  const name = btn.getAttribute("data-tab");
-  tabsEl.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t===btn));
-  panels.querySelectorAll("section").forEach(sec=>sec.classList.toggle("active", sec.id===name));
-  // 切頁後若有需要，可觸發重繪
-});
+/* ========= UI 綁定與渲染 ========= */
+/* Tabs */
+const tabsEl = $("#tabs"); const panels = document.querySelector(".tab-panels");
+if(tabsEl){
+  tabsEl.addEventListener("click", (e)=>{
+    const btn = e.target.closest(".tab"); if(!btn) return;
+    const name = btn.getAttribute("data-tab");
+    tabsEl.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t===btn));
+    panels.querySelectorAll("section").forEach(sec=>sec.classList.toggle("active", sec.id===name));
+  });
+}
 
-/* ================== 模組1 DOM ================== */
+/* M1 DOM */
 const m1 = {
-  id: m("#m1-id"), company: m("#m1-company"),
-  reg: m("#m1-reg"), addr: m("#m1-addr"),
-  phone: m("#m1-phone"), bizno: m("#m1-bizno"),
-  taxid: m("#m1-taxid"), principal: m("#m1-principal"),
-  contact: m("#m1-contact"), sfrom: m("#m1-sfrom"), sto: m("#m1-sto"),
-  save: m("#m1-save"), clear: m("#m1-clear"),
-  jsonIn: m("#m1-json-in"), jsonExport: m("#m1-json-export"),
-  csvIn: m("#m1-csv-in"), search: m("#m1-search"),
-  reseed: m("#m1-reseed"), tbody: m("#m1-tbody")
+  id: $("#m1-id"), company: $("#m1-company"), reg: $("#m1-reg"), addr: $("#m1-addr"),
+  phone: $("#m1-phone"), bizno: $("#m1-bizno"), taxid: $("#m1-taxid"),
+  principal: $("#m1-principal"), contact: $("#m1-contact"),
+  sfrom: $("#m1-sfrom"), sto: $("#m1-sto"),
+  save: $("#m1-save"), clear: $("#m1-clear"),
+  jsonIn: $("#m1-json-in"), jsonExport: $("#m1-json-export"),
+  csvIn: $("#m1-csv-in"), search: $("#m1-search"),
+  reseed: $("#m1-reseed"), tbody: $("#m1-tbody")
 };
-function m(sel){ return document.querySelector(sel); }
-
-/* ================== 模組2 DOM ================== */
+/* M2 DOM */
 const m2 = {
-  today: m("#m2-today"), roc: m("#m2-roc"), period: m("#m2-period"),
-  jsonExport: m("#m2-json-export"), jsonIn: m("#m2-json-in"),
-  customerSel: m("#m2-customer"), methodSel: m("#m2-method"),
-  methodNew: m("#m2-method-new"), methodAdd: m("#m2-method-add"), methodDel: m("#m2-method-del"),
-  date: m("#m2-date"), remind: m("#m2-remind"),
-  add: m("#m2-add"), clear: m("#m2-clear"),
-  todayList: m("#m2-today-list"), nextList: m("#m2-next-list")
+  today: $("#m2-today"), roc: $("#m2-roc"), period: $("#m2-period"),
+  jsonExport: $("#m2-json-export"), jsonIn: $("#m2-json-in"),
+  customerSel: $("#m2-customer"), methodSel: $("#m2-method"),
+  methodNew: $("#m2-method-new"), methodAdd: $("#m2-method-add"), methodDel: $("#m2-method-del"),
+  date: $("#m2-date"), remind: $("#m2-remind"),
+  add: $("#m2-add"), clear: $("#m2-clear"),
+  todayList: $("#m2-today-list"), nextList: $("#m2-next-list")
 };
 
-/* ================== 模組1邏輯 ================== */
+function initUI(){
+  // 列印 & 快照
+  $("#btn-print").addEventListener("click", ()=> window.print());
+  $("#btn-snapshot").addEventListener("click", ()=> downloadJSON(`backup_${Date.now()}.json`, { module1: customers, module2: tax, methods }));
+
+  // 列印展開/還原 details
+  let detailsState = [];
+  window.onbeforeprint = function(){
+    detailsState = Array.from(document.querySelectorAll("details")).map(d=>({el:d,open:d.open}));
+    document.querySelectorAll("details").forEach(d=> d.open = true);
+  };
+  window.onafterprint = function(){
+    detailsState.forEach(s=> s.el.open = s.open);
+    detailsState = [];
+  };
+
+  // M1 綁定
+  m1.save.addEventListener("click", upsertCustomer);
+  m1.clear.addEventListener("click", clearM1Fields);
+  m1.search.addEventListener("input", renderM1Table);
+  m1.jsonExport.addEventListener("click", ()=> downloadJSON(`customers_${Date.now()}.json`, customers));
+  m1.jsonIn.addEventListener("change", (e)=> e.target.files[0] && importJSONToM1(e.target.files[0]));
+  m1.csvIn.addEventListener("change", (e)=> e.target.files[0] && importCSVToCustomers(e.target.files[0]));
+  m1.reseed.addEventListener("click", ()=>{
+    if(!confirm("將載入示範資料並覆蓋現有客戶。繼續？")) return;
+    try{
+      const data = JSON.parse($("#seed-customers").textContent);
+      customers = { customers: data.customers || [] };
+      storeSave(DB_KEYS.M1, customers).then(()=>{ renderM1Table(); populateM2Customers(); });
+    }catch(e){ alert("載入失敗："+e.message); }
+  });
+
+  // M2 綁定
+  function refreshDates(){
+    const d=new Date(); const y=d.getFullYear(), m=d.getMonth()+1, da=d.getDate();
+    m2.today.textContent = `${y}-${String(m).padStart(2,"0")}-${String(da).padStart(2,"0")}（${weekdayZH(todayISO())}）`;
+    m2.roc.textContent = `${y-1911}`;
+  }
+  refreshDates();
+
+  if(m2.methodAdd) m2.methodAdd.addEventListener("click", addMethod);
+  if(m2.methodDel) m2.methodDel.addEventListener("click", delMethod);
+  if(m2.add) m2.add.addEventListener("click", addTaxItem);
+  if(m2.clear) m2.clear.addEventListener("click", ()=>{ m2.customerSel.value=""; m2.methodSel.selectedIndex=0; m2.date.value=""; m2.remind.value=""; });
+
+  // 委派：M1 表格
+  m1.tbody.addEventListener("click",(e)=>{
+    const btn = e.target.closest("button"); if(!btn) return;
+    const id = btn.getAttribute("data-id"); const act = btn.getAttribute("data-act");
+    if(act==="edit") editFillCustomer(id);
+    else if(act==="del") deleteCustomer(id);
+    else if(act==="add-note"){
+      const wrap = btn.closest("details");
+      const typeSel = wrap.querySelector('[data-role="note-type"]');
+      const textInp = wrap.querySelector('[data-role="note-text"]');
+      const type = typeSel?typeSel.value.trim():"備註";
+      const text = textInp?textInp.value.trim():"";
+      if(!text){ alert("請輸入備註內容"); return; }
+      appendNote(id, type, text);
+      renderM1Table();
+    }
+  });
+
+  // 委派：M2 清單
+  m2.todayList.addEventListener("click",(e)=>{
+    const btn=e.target.closest("button"); if(!btn) return;
+    const id=btn.getAttribute("data-id"); const act=btn.getAttribute("data-act");
+    if(act==="edit-tax") editTaxItem(id); else if(act==="del-tax") deleteTaxItem(id);
+  });
+  m2.nextList.addEventListener("click",(e)=>{
+    const btn=e.target.closest("button"); if(!btn) return;
+    const id=btn.getAttribute("data-id"); const act=btn.getAttribute("data-act");
+    if(act==="edit-tax") editTaxItem(id); else if(act==="del-tax") deleteTaxItem(id);
+  });
+}
+
+function renderAll(){
+  renderM1Table(); populateM2Customers(); populateMethods(); renderM2Lists();
+}
+
+/* ====== M1：CRUD / 匯入匯出 ====== */
 function clearM1Fields(){ ["id","company","reg","addr","phone","bizno","taxid","principal","contact","sfrom","sto"].forEach(k=>m1[k].value=""); }
-function upsertCustomer(){
-  const id = m1.id.value.trim();
+async function upsertCustomer(){
+  const id = (m1.id.value||"").trim();
   if(!id){ alert("請輸入用戶代號"); return; }
   const obj = {
     id,
@@ -394,14 +553,14 @@ function upsertCustomer(){
   const idx = customers.customers.findIndex(c=>c.id===id);
   if(idx>=0){ obj.notesHistory = customers.customers[idx].notesHistory || []; customers.customers[idx]=obj; }
   else customers.customers.push(obj);
-  saveLS(DB_KEYS.M1, customers);
+  await storeSave(DB_KEYS.M1, customers);
   renderM1Table(); populateM2Customers();
   alert("已儲存。");
 }
-function deleteCustomer(id){
+async function deleteCustomer(id){
   if(!confirm(`確定刪除客戶 ${id}？`)) return;
   const i = customers.customers.findIndex(c=>c.id===id);
-  if(i>=0){ customers.customers.splice(i,1); saveLS(DB_KEYS.M1, customers); renderM1Table(); populateM2Customers(); }
+  if(i>=0){ customers.customers.splice(i,1); await storeSave(DB_KEYS.M1, customers); renderM1Table(); populateM2Customers(); }
 }
 function editFillCustomer(id){
   const c = customers.customers.find(x=>x.id===id); if(!c) return;
@@ -411,20 +570,18 @@ function editFillCustomer(id){
   m1.sfrom.value=c.suspendFrom||""; m1.sto.value=c.suspendTo||"";
   window.scrollTo({top:0,behavior:"smooth"});
 }
-function appendNote(id, voucherType, text){
+async function appendNote(id, voucherType, text){
   const c = customers.customers.find(x=>x.id===id); if(!c) return;
   c.notesHistory = c.notesHistory || []; c.notesHistory.push({ts:new Date().toISOString(), voucherType, text});
-  saveLS(DB_KEYS.M1, customers);
+  await storeSave(DB_KEYS.M1, customers);
 }
 function renderM1Table(){
   const q = (m1.search.value||"").toLowerCase();
-  const arr = customers.customers
-    .filter(c=>{
-      if(!q) return true;
-      const hay = [c.id,c.companyName,c.taxId,c.principal,c.contact,c.phone].join("|").toLowerCase();
-      return hay.includes(q);
-    })
-    .sort((a,b)=>a.id.localeCompare(b.id));
+  const arr = customers.customers.filter(c=>{
+    if(!q) return true;
+    const hay = [c.id,c.companyName,c.taxId,c.principal,c.contact,c.phone].join("|").toLowerCase();
+    return hay.includes(q);
+  }).sort((a,b)=>a.id.localeCompare(b.id));
   m1.tbody.innerHTML = arr.map(c=>{
     const stop = (c.suspendFrom||"") || (c.suspendTo||"") ? `${c.suspendFrom||""}~${c.suspendTo||""}` : "";
     const addr = [c.regAddr,c.contactAddr].filter(Boolean).join("<br>");
@@ -464,24 +621,7 @@ function renderM1Table(){
   }).join("");
 }
 
-/* 事件委派：模組1表格操作 */
-m1.tbody.addEventListener("click",(e)=>{
-  const btn = e.target.closest("button"); if(!btn) return;
-  const id = btn.getAttribute("data-id"); const act = btn.getAttribute("data-act");
-  if(act==="edit") editFillCustomer(id);
-  else if(act==="del") deleteCustomer(id);
-  else if(act==="add-note"){
-    const wrap = btn.closest("details");
-    const typeSel = wrap.querySelector('[data-role="note-type"]');
-    const textInp = wrap.querySelector('[data-role="note-text"]');
-    const type = typeSel?typeSel.value.trim():"備註";
-    const text = textInp?textInp.value.trim():"";
-    if(!text){ alert("請輸入備註內容"); return; }
-    appendNote(id, type, text); renderM1Table();
-  }
-});
-
-/* CSV 解析（支援引號） */
+/* CSV 解析＆匯入 */
 function parseCSV(text){
   const rows=[]; let row=[],val="",inQ=false;
   for(let i=0;i<text.length;i++){
@@ -502,15 +642,14 @@ function parseCSV(text){
 }
 function importCSVToCustomers(file){
   const reader=new FileReader();
-  reader.onload=()=>{
+  reader.onload=async ()=>{
     const text=reader.result||""; const rows=parseCSV(text); if(!rows.length){ alert("CSV 空白"); return; }
     const headers=rows[0].map(h=>h.trim()); const idx=(n)=>headers.indexOf(n); const get=(r,n)=> r[idx(n)]||"";
     for(let i=1;i<rows.length;i++){
       const r=rows[i]; if(!r||!r.length) continue;
       const id=(get(r,"id")||"").trim(); if(!id) continue;
       const obj={
-        id,
-        companyName:get(r,"companyName"), regAddr:get(r,"regAddr"), contactAddr:get(r,"contactAddr"),
+        id, companyName:get(r,"companyName"), regAddr:get(r,"regAddr"), contactAddr:get(r,"contactAddr"),
         phone:get(r,"phone"), bizRegNo:get(r,"bizRegNo"), taxId:get(r,"taxId"),
         principal:get(r,"principal"), contact:get(r,"contact"),
         suspendFrom:get(r,"suspendFrom"), suspendTo:get(r,"suspendTo"),
@@ -520,49 +659,55 @@ function importCSVToCustomers(file){
       if(exist>=0){ obj.notesHistory = customers.customers[exist].notesHistory || []; customers.customers[exist]=obj; }
       else customers.customers.push(obj);
     }
-    saveLS(DB_KEYS.M1, customers); renderM1Table(); populateM2Customers(); alert("CSV 匯入完成。");
+    await storeSave(DB_KEYS.M1, customers);
+    renderM1Table(); populateM2Customers(); alert("CSV 匯入完成。");
   };
   reader.readAsText(file);
 }
-
-/* JSON 匯入（模組1） */
 function importJSONToM1(file){
   const reader=new FileReader();
-  reader.onload=()=>{
+  reader.onload=async ()=>{
     try{
       const data=JSON.parse(reader.result);
-      if(Array.isArray(data.customers)) customers.customers=data.customers;
-      else if(Array.isArray(data)) customers.customers=data;
-      else throw new Error("格式需為 { customers:[...] } 或純陣列");
-      saveLS(DB_KEYS.M1, customers); renderM1Table(); populateM2Customers(); alert("模組1 JSON 匯入完成。");
+      if(Array.isArray(data.customers)) customers=data;
+      else if(Array.isArray(data)) customers={customers:data};
+      else if(data && data.customers) customers=data;
+      else throw new Error("格式需為 { customers:[...] } 或純陣列/包裝");
+      await storeSave(DB_KEYS.M1, customers);
+      renderM1Table(); populateM2Customers(); alert("模組1 JSON 匯入完成。");
     }catch(e){ alert("JSON 解析失敗："+e.message); }
   };
   reader.readAsText(file);
 }
 
-/* ================== 模組2邏輯 ================== */
+/* ====== M2：清單 ====== */
 function populateM2Customers(){
+  if(!m2.customerSel) return;
   m2.customerSel.innerHTML = `<option value="">請選擇客戶</option>` + customers.customers.slice().sort((a,b)=>a.id.localeCompare(b.id))
     .map(c=>`<option value="${c.id}">${c.id}｜${escapeHTML(c.companyName||"")}</option>`).join("");
 }
-function populateMethods(){ m2.methodSel.innerHTML = methods.list.map(n=>`<option>${escapeHTML(n)}</option>`).join(""); }
-function addMethod(){
+function populateMethods(){ if(m2.methodSel) m2.methodSel.innerHTML = methods.list.map(n=>`<option>${escapeHTML(n)}</option>`).join(""); }
+async function addMethod(){
   const name=(m2.methodNew.value||"").trim(); if(!name){ alert("請輸入新方式名稱"); return; }
   if(methods.list.includes(name)){ alert("方式已存在"); return; }
-  methods.list.push(name); saveLS(DB_KEYS.METHODS, methods); populateMethods(); m2.methodNew.value="";
+  methods.list.push(name);
+  await storeSave(DB_KEYS.METHODS, methods);
+  populateMethods(); m2.methodNew.value="";
 }
-function delMethod(){
+async function delMethod(){
   const cur=m2.methodSel.value; if(!cur) return;
   if(!confirm(`刪除方式「${cur}」？`)) return;
-  const i=methods.list.indexOf(cur); if(i>=0){ methods.list.splice(i,1); saveLS(DB_KEYS.METHODS, methods); populateMethods(); }
+  const i=methods.list.indexOf(cur);
+  if(i>=0){ methods.list.splice(i,1); await storeSave(DB_KEYS.METHODS, methods); populateMethods(); }
 }
-function addTaxItem(){
+async function addTaxItem(){
   const cid=m2.customerSel.value; if(!cid){ alert("請選擇客戶"); return; }
   const c=customers.customers.find(x=>x.id===cid); if(!c){ alert("客戶不存在"); return; }
   const method=m2.methodSel.value||""; const date=m2.date.value||""; if(!date){ alert("請選擇預定日"); return; }
   const note=m2.remind.value||""; const id="T"+Date.now();
   tax.items.push({ id, customerId: cid, method, date, note });
-  saveLS(DB_KEYS.M2, tax); renderM2Lists(); alert("已加入清單。");
+  await storeSave(DB_KEYS.M2, tax);
+  renderM2Lists(); alert("已加入清單。");
 }
 function formatCustomerReadonly(cid){
   const c=customers.customers.find(x=>x.id===cid);
@@ -616,80 +761,22 @@ function renderM2Lists(){
     `;
   }).join("") || `<tr><td colspan="5" class="muted">未來三日無預定</td></tr>`;
 }
-function editTaxItem(id){
+async function editTaxItem(id){
   const it=tax.items.find(x=>x.id===id); if(!it) return;
   m2.customerSel.value=it.customerId; m2.methodSel.value=it.method; m2.date.value=it.date; m2.remind.value=it.note||"";
-  tax.items = tax.items.filter(x=>x.id!==id); saveLS(DB_KEYS.M2, tax); renderM2Lists();
-}
-function deleteTaxItem(id){
-  if(!confirm("刪除這筆預定？")) return;
-  tax.items = tax.items.filter(x=>x.id!==id); saveLS(DB_KEYS.M2, tax); renderM2Lists();
-}
-
-/* 委派：模組2清單操作 */
-m2.todayList.addEventListener("click",(e)=>{
-  const btn=e.target.closest("button"); if(!btn) return;
-  const id=btn.getAttribute("data-id"); const act=btn.getAttribute("data-act");
-  if(act==="edit-tax") editTaxItem(id); else if(act==="del-tax") deleteTaxItem(id);
-});
-m2.nextList.addEventListener("click",(e)=>{
-  const btn=e.target.closest("button"); if(!btn) return;
-  const id=btn.getAttribute("data-id"); const act=btn.getAttribute("data-act");
-  if(act==="edit-tax") editTaxItem(id); else if(act==="del-tax") deleteTaxItem(id);
-});
-
-/* ================== 共同：列印 & 快照 ================== */
-const btnPrint = document.getElementById("btn-print");
-const btnSnapshot = document.getElementById("btn-snapshot");
-btnPrint.addEventListener("click", ()=> window.print());
-btnSnapshot.addEventListener("click", ()=> downloadJSON(`backup_${Date.now()}.json`, { module1: customers, module2: tax, methods }));
-
-/* 列印前展開所有 details、列印後還原 */
-let detailsState = [];
-window.onbeforeprint = function(){
-  detailsState = Array.from(document.querySelectorAll("details")).map(d=>({el:d,open:d.open}));
-  document.querySelectorAll("details").forEach(d=> d.open = true);
-};
-window.onafterprint = function(){
-  detailsState.forEach(s=> s.el.open = s.open);
-  detailsState = [];
-};
-
-/* ================== 綁定與初始化 ================== */
-document.addEventListener("DOMContentLoaded", ()=>{
-  // 模組1
-  m1.save.addEventListener("click", upsertCustomer);
-  m1.clear.addEventListener("click", clearM1Fields);
-  m1.search.addEventListener("input", renderM1Table);
-  m1.jsonExport.addEventListener("click", ()=> downloadJSON(`customers_${Date.now()}.json`, customers));
-  m1.jsonIn.addEventListener("change",(e)=> e.target.files[0] && importJSONToM1(e.target.files[0]));
-  m1.csvIn.addEventListener("change",(e)=> e.target.files[0] && importCSVToCustomers(e.target.files[0]));
-  m1.reseed.addEventListener("click", ()=>{
-    if(!confirm("將載入示範資料並覆蓋現有客戶。繼續？")) return;
-    try{
-      const data = JSON.parse(document.getElementById("seed-customers").textContent);
-      customers.customers = data.customers || [];
-      saveLS(DB_KEYS.M1, customers); renderM1Table(); populateM2Customers();
-    }catch(e){ alert("載入失敗："+e.message); }
-  });
-
-  // 模組2
-  function refreshDates(){
-    const d=new Date(); const y=d.getFullYear(), m=d.getMonth()+1, da=d.getDate();
-    m2.today.textContent = `${y}-${String(m).padStart(2,"0")}-${String(da).padStart(2,"0")}（${weekdayZH(todayISO())}）`;
-    m2.roc.textContent = `${y-1911}`;
-  }
-  refreshDates();
-  populateM2Customers(); populateMethods();
+  tax.items = tax.items.filter(x=>x.id!==id);
+  await storeSave(DB_KEYS.M2, tax);
   renderM2Lists();
+}
+async function deleteTaxItem(id){
+  if(!confirm("刪除這筆預定？")) return;
+  tax.items = tax.items.filter(x=>x.id!==id);
+  await storeSave(DB_KEYS.M2, tax);
+  renderM2Lists();
+}
 
-  m2.methodAdd.addEventListener("click", addMethod);
-  m2.methodDel.addEventListener("click", delMethod);
-  m2.add.addEventListener("click", addTaxItem);
-  m2.clear.addEventListener("click", ()=>{ m2.customerSel.value=""; m2.methodSel.selectedIndex=0; m2.date.value=""; m2.remind.value=""; });
-});
-
-/* 如需 Service Worker / fetch / ES Modules → 請以本機伺服器啟動（例如：python -m http.server） */
+/* ====== 初始化 ====== */
+document.addEventListener("DOMContentLoaded", bootstrap);
 </script>
 </body>
 </html>
