@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>離線客戶資料庫＆營業稅｜分頁＋列印＋IndexedDB（file:// 可用）</title>
+<title>離線客戶資料庫＆營業稅｜分頁＋列印＋IndexedDB（含備註編輯/單客/全客匯出Excel）</title>
 <style>
   :root{
     --bg:#0f1216; --card:#141820; --muted:#8aa0b2; --text:#e8eef4; --acc:#3aa0ff; --warn:#ffb020; --danger:#ff5a6a;
@@ -66,7 +66,7 @@
 
 <!-- 內嵌 seed（初次/無資料時導入） -->
 <script type="application/json" id="seed-customers">
-{"customers":[{"id":"C0001","companyName":"範例股份有限公司","regAddr":"台北市信義區示例路 100 號","contactAddr":"台北市信義區示例路 200 號","taxId":"12345678","bizRegNo":"A123456789","principal":"王小明","contact":"林小姐","phone":"02-1234-5678","suspendFrom":"","suspendTo":"","notesHistory":[{"ts":"2025-09-01T10:00:00","voucherType":"進項","text":"首度建檔，確認統編與收發方式"}]}]}
+{"customers":[{"id":"C0001","companyName":"範例股份有限公司","regAddr":"台北市信義區示例路 100 號","contactAddr":"台北市信義區示例路 200 號","taxId":"12345678","bizRegNo":"A123456789","principal":"王小明","contact":"林小姐","phone":"02-1234-5678","suspendFrom":"","suspendTo":"","notesHistory":[{"id":"Nseeddemo","ts":"2025-09-01T10:00:00","voucherType":"進項","text":"首度建檔，確認統編與收發方式"}]}]}
 </script>
 </head>
 <body>
@@ -96,6 +96,7 @@
       <div class="row" style="justify-content:space-between;align-items:center">
         <div><h2>模組1｜客戶資料庫</h2> <span class="pill">可編輯 / 覆蓋 / 刪除 / JSON / CSV</span></div>
         <div class="row no-print">
+          <button class="btn" type="button" id="m1-notes-export-all">匯出全部備註 Excel</button>
           <button class="btn" type="button" id="m1-json-export">JSON 匯出</button>
           <div class="small muted">CSV 匯入請用右側區塊</div>
         </div>
@@ -260,11 +261,9 @@ window.addEventListener("unhandledrejection", function(e){
 
 /*** =========================================================
      STORAGE LAYER (IndexedDB + localStorage fallback)
-     目的：在 file:// 底下增加持久性穩定度
 ========================================================= ***/
 const DB_KEYS = { M1:"db_customers_v1", M2:"db_tax_v1", METHODS:"db_methods_v1" };
 
-/* IndexedDB 輕量封裝 */
 const IDB_NAME = "offline_client_db";
 const IDB_VERSION = 1;
 let idbAvailable = false;
@@ -278,7 +277,6 @@ function idbInit(){
       req.onsuccess = ()=>{ idbDb = req.result; idbAvailable = true; resolve(true); };
       req.onupgradeneeded = (e)=>{
         const db = e.target.result;
-        // 三個 object store
         if(!db.objectStoreNames.contains(DB_KEYS.M1)) db.createObjectStore(DB_KEYS.M1);
         if(!db.objectStoreNames.contains(DB_KEYS.M2)) db.createObjectStore(DB_KEYS.M2);
         if(!db.objectStoreNames.contains(DB_KEYS.METHODS)) db.createObjectStore(DB_KEYS.METHODS);
@@ -329,7 +327,7 @@ async function storeLoad(key, fallback){
 async function storeSave(key, data){
   if(idbAvailable){
     const ok = await idbSet(key, "value", data);
-    if(!ok) lsSave(key, data); // 失敗再補 localStorage
+    if(!ok) lsSave(key, data);
   }else{
     lsSave(key, data);
   }
@@ -343,7 +341,7 @@ function escapeHTML(s){ return (s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":
 function downloadJSON(filename, obj){ const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
 function $(sel){ return document.querySelector(sel); }
 
-/* ========= 全域狀態（載入後填） ========= */
+/* ========= 全域狀態 ========= */
 let customers = { customers: [] };
 let tax = { items: [] };
 let methods = { list: ["親送","郵寄","快遞","EMAIL","LINE"] };
@@ -353,12 +351,10 @@ async function bootstrap(){
   const ok = await idbInit();
   idbAvailable = ok;
 
-  // 從儲存層載入
   customers = await storeLoad(DB_KEYS.M1, { customers: [] });
   tax       = await storeLoad(DB_KEYS.M2, { items: [] });
   methods   = await storeLoad(DB_KEYS.METHODS, { list: ["親送","郵寄","快遞","EMAIL","LINE"] });
 
-  // 初次 or 全空 → 導入 seed
   if ((!customers.customers || customers.customers.length===0) &&
       (!tax.items || tax.items.length===0)){
     try{
@@ -370,19 +366,17 @@ async function bootstrap(){
     }catch(e){ console.warn("seed parse fail", e); }
   }
 
-  // UI 初始化
   initUI();
   renderAll();
 
-  // 環境檢測提示（模組2有、模組1空）
   if((tax.items && tax.items.length>0) && (!customers.customers || customers.customers.length===0)){
     const box = $("#env-notice");
     box.style.display = "block";
     box.innerHTML = `
       <strong>偵測到可能的 file:// 儲存分區差異：</strong>
-      模組2有資料，但模組1為空。這通常代表你以不同檔名/路徑或無痕模式開啟。<br>
-      建議：固定用同一檔名與資料夾開啟；或使用本機伺服器（<span class="kbd">python -m http.server</span>）。<br>
-      你也可以立即 <button class="btn btn-warn" type="button" id="btn-load-seed">導入範例</button>
+      模組2有資料，但模組1為空。通常代表以不同檔名/路徑或無痕模式開啟。<br>
+      建議固定同一檔名與資料夾開啟；或使用本機伺服器（<span class="kbd">python -m http.server</span>）。<br>
+      也可立即 <button class="btn btn-warn" type="button" id="btn-load-seed">導入範例</button>
       或 <label class="btn" for="btn-restore-json">匯入快照<input id="btn-restore-json" type="file" accept=".json" style="display:none"></label>。
     `;
     box.addEventListener("click", (e)=>{
@@ -418,7 +412,6 @@ async function bootstrap(){
 }
 
 /* ========= UI 綁定與渲染 ========= */
-/* Tabs */
 const tabsEl = $("#tabs"); const panels = document.querySelector(".tab-panels");
 if(tabsEl){
   tabsEl.addEventListener("click", (e)=>{
@@ -438,7 +431,8 @@ const m1 = {
   save: $("#m1-save"), clear: $("#m1-clear"),
   jsonIn: $("#m1-json-in"), jsonExport: $("#m1-json-export"),
   csvIn: $("#m1-csv-in"), search: $("#m1-search"),
-  reseed: $("#m1-reseed"), tbody: $("#m1-tbody")
+  reseed: $("#m1-reseed"), tbody: $("#m1-tbody"),
+  notesExportAll: $("#m1-notes-export-all")
 };
 /* M2 DOM */
 const m2 = {
@@ -452,22 +446,16 @@ const m2 = {
 };
 
 function initUI(){
-  // 列印 & 快照
   $("#btn-print").addEventListener("click", ()=> window.print());
   $("#btn-snapshot").addEventListener("click", ()=> downloadJSON(`backup_${Date.now()}.json`, { module1: customers, module2: tax, methods }));
 
-  // 列印展開/還原 details
   let detailsState = [];
   window.onbeforeprint = function(){
     detailsState = Array.from(document.querySelectorAll("details")).map(d=>({el:d,open:d.open}));
     document.querySelectorAll("details").forEach(d=> d.open = true);
   };
-  window.onafterprint = function(){
-    detailsState.forEach(s=> s.el.open = s.open);
-    detailsState = [];
-  };
+  window.onafterprint = function(){ detailsState.forEach(s=> s.el.open = s.open); detailsState = []; };
 
-  // M1 綁定
   m1.save.addEventListener("click", upsertCustomer);
   m1.clear.addEventListener("click", clearM1Fields);
   m1.search.addEventListener("input", renderM1Table);
@@ -482,8 +470,9 @@ function initUI(){
       storeSave(DB_KEYS.M1, customers).then(()=>{ renderM1Table(); populateM2Customers(); });
     }catch(e){ alert("載入失敗："+e.message); }
   });
+  // 新：全客戶備註一次匯出
+  m1.notesExportAll.addEventListener("click", exportAllNotesToExcel);
 
-  // M2 綁定
   function refreshDates(){
     const d=new Date(); const y=d.getFullYear(), m=d.getMonth()+1, da=d.getDate();
     m2.today.textContent = `${y}-${String(m).padStart(2,"0")}-${String(da).padStart(2,"0")}（${weekdayZH(todayISO())}）`;
@@ -496,25 +485,76 @@ function initUI(){
   if(m2.add) m2.add.addEventListener("click", addTaxItem);
   if(m2.clear) m2.clear.addEventListener("click", ()=>{ m2.customerSel.value=""; m2.methodSel.selectedIndex=0; m2.date.value=""; m2.remind.value=""; });
 
-  // 委派：M1 表格
+  /* 委派：M1 表格（含備註編輯/刪除/儲存/匯出Excel） */
   m1.tbody.addEventListener("click",(e)=>{
     const btn = e.target.closest("button"); if(!btn) return;
-    const id = btn.getAttribute("data-id"); const act = btn.getAttribute("data-act");
-    if(act==="edit") editFillCustomer(id);
-    else if(act==="del") deleteCustomer(id);
-    else if(act==="add-note"){
+    const id = btn.getAttribute("data-id");
+    const act = btn.getAttribute("data-act");
+    const nid = btn.getAttribute("data-nid");
+
+    if(act==="edit") { editFillCustomer(id); return; }
+    if(act==="del")  { deleteCustomer(id); return; }
+
+    if(act==="add-note"){
       const wrap = btn.closest("details");
       const typeSel = wrap.querySelector('[data-role="note-type"]');
       const textInp = wrap.querySelector('[data-role="note-text"]');
       const type = typeSel?typeSel.value.trim():"備註";
       const text = textInp?textInp.value.trim():"";
       if(!text){ alert("請輸入備註內容"); return; }
-      appendNote(id, type, text);
-      renderM1Table();
+      appendNote(id, type, text).then(()=> renderM1Table());
+      return;
+    }
+
+    if(act==="export-notes-xls"){ exportNotesToExcel(id); return; }
+
+    if(act==="del-note"){
+      if(!confirm("刪除此備註？")) return;
+      deleteNote(id, nid).then(()=> renderM1Table());
+      return;
+    }
+
+    if(act==="edit-note"){
+      const row = e.target.closest("[data-note-row]");
+      if(!row) return;
+      const txtEl = row.querySelector(".note-text");
+      const oldText = txtEl ? txtEl.textContent : "";
+      const c = customers.customers.find(x=>x.id===id);
+      const { note } = c ? findNoteById(c, nid) : {note:null};
+      const oldType = note ? note.voucherType : "備註";
+
+      row.innerHTML = `
+        <div class="row" style="align-items:center" data-cid="${id}" data-nid="${nid}">
+          <select data-role="edit-note-type">
+            <option ${oldType==="進項"?"selected":""}>進項</option>
+            <option ${oldType==="銷項"?"selected":""}>銷項</option>
+            <option ${oldType==="折讓"?"selected":""}>折讓</option>
+            <option ${oldType==="常用備註"?"selected":""}>常用備註</option>
+            <option ${oldType==="筆記紀錄"?"selected":""}>筆記紀錄</option>
+          </select>
+          <input data-role="edit-note-text" style="flex:1" value="${(oldText||"").replace(/"/g,'&quot;')}" />
+          <button class="btn btn-ok" type="button" data-act="save-note" data-id="${id}" data-nid="${nid}">儲存覆蓋</button>
+          <button class="btn" type="button" data-act="cancel-edit-note" data-id="${id}" data-nid="${nid}">取消</button>
+        </div>
+      `;
+      return;
+    }
+
+    if(act==="cancel-edit-note"){ renderM1Table(); return; }
+
+    if(act==="save-note"){
+      const row = e.target.closest("[data-cid][data-nid]");
+      const typeSel = row.querySelector('[data-role="edit-note-type"]');
+      const textInp = row.querySelector('[data-role="edit-note-text"]');
+      const type = typeSel ? typeSel.value.trim() : "備註";
+      const text = textInp ? textInp.value.trim() : "";
+      if(!text){ alert("請輸入備註內容"); return; }
+      updateNote(id, nid, { voucherType:type, text }).then(()=> renderM1Table());
+      return;
     }
   });
 
-  // 委派：M2 清單
+  /* 委派：M2 清單 */
   m2.todayList.addEventListener("click",(e)=>{
     const btn=e.target.closest("button"); if(!btn) return;
     const id=btn.getAttribute("data-id"); const act=btn.getAttribute("data-act");
@@ -527,11 +567,9 @@ function initUI(){
   });
 }
 
-function renderAll(){
-  renderM1Table(); populateM2Customers(); populateMethods(); renderM2Lists();
-}
+function renderAll(){ renderM1Table(); populateM2Customers(); populateMethods(); renderM2Lists(); }
 
-/* ====== M1：CRUD / 匯入匯出 ====== */
+/* ====== 模組1：CRUD／備註功能／匯入匯出 ====== */
 function clearM1Fields(){ ["id","company","reg","addr","phone","bizno","taxid","principal","contact","sfrom","sto"].forEach(k=>m1[k].value=""); }
 async function upsertCustomer(){
   const id = (m1.id.value||"").trim();
@@ -570,11 +608,98 @@ function editFillCustomer(id){
   m1.sfrom.value=c.suspendFrom||""; m1.sto.value=c.suspendTo||"";
   window.scrollTo({top:0,behavior:"smooth"});
 }
+
+/* 新版：新增備註（確保每筆有唯一 id） */
 async function appendNote(id, voucherType, text){
   const c = customers.customers.find(x=>x.id===id); if(!c) return;
-  c.notesHistory = c.notesHistory || []; c.notesHistory.push({ts:new Date().toISOString(), voucherType, text});
+  c.notesHistory = c.notesHistory || [];
+  c.notesHistory.push({
+    id: "N" + Date.now() + Math.random().toString(16).slice(2),
+    ts: new Date().toISOString(),
+    voucherType, text
+  });
   await storeSave(DB_KEYS.M1, customers);
 }
+
+/* 備註工具：查找／更新／刪除 */
+function findNoteById(customer, noteId){
+  if(!customer || !customer.notesHistory) return { idx:-1, note:null };
+  const idx = customer.notesHistory.findIndex(n => n.id === noteId);
+  return { idx, note: idx>=0 ? customer.notesHistory[idx] : null };
+}
+async function updateNote(customerId, noteId, next){
+  const c = customers.customers.find(x=>x.id===customerId); if(!c) return false;
+  const { idx } = findNoteById(c, noteId);
+  if(idx < 0) return false;
+  c.notesHistory[idx].voucherType = next.voucherType;
+  c.notesHistory[idx].text = next.text;
+  c.notesHistory[idx].ts = new Date().toISOString();
+  await storeSave(DB_KEYS.M1, customers);
+  return true;
+}
+async function deleteNote(customerId, noteId){
+  const c = customers.customers.find(x=>x.id===customerId); if(!c) return false;
+  const { idx } = findNoteById(c, noteId);
+  if(idx < 0) return false;
+  c.notesHistory.splice(idx, 1);
+  await storeSave(DB_KEYS.M1, customers);
+  return true;
+}
+
+/* 單一客戶：備註匯出 Excel（HTML 表格 .xls） */
+function exportNotesToExcel(customerId){
+  const c = customers.customers.find(x=>x.id===customerId);
+  if(!c){ alert("找不到客戶"); return; }
+  const rows = (c.notesHistory||[]).slice().sort((a,b)=> (a.ts>b.ts?1:-1));
+  const esc = (s)=> String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const html =
+`<html><head><meta charset="UTF-8"></head><body>
+<table border="1">
+  <tr><th>客戶代號</th><td>${esc(c.id)}</td><th>公司名稱</th><td>${esc(c.companyName||"")}</td></tr>
+</table>
+<br/>
+<table border="1">
+  <tr><th>#</th><th>時間</th><th>傳票類別</th><th>備註內容</th></tr>
+  ${rows.map((n,i)=> `<tr><td>${i+1}</td><td>${esc(n.ts)}</td><td>${esc(n.voucherType||"")}</td><td>${esc(n.text||"")}</td></tr>`).join("")}
+</table>
+</body></html>`;
+  const blob = new Blob([html], {type:"application/vnd.ms-excel"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `notes_${c.id}.xls`; a.click(); URL.revokeObjectURL(url);
+}
+
+/* ★ 全客戶：備註一次匯出 Excel（HTML 多表格 .xls） */
+function exportAllNotesToExcel(){
+  const list = customers.customers.slice().sort((a,b)=> a.id.localeCompare(b.id));
+  if(list.length===0){ alert("目前沒有客戶資料"); return; }
+  const esc = (s)=> String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const sections = list.map(c=>{
+    const rows = (c.notesHistory||[]).slice().sort((a,b)=> (a.ts>b.ts?1:-1));
+    const body = rows.length
+      ? rows.map((n,i)=> `<tr><td>${i+1}</td><td>${esc(n.ts||"")}</td><td>${esc(n.voucherType||"")}</td><td>${esc(n.text||"")}</td></tr>`).join("")
+      : `<tr><td colspan="4">（無備註）</td></tr>`;
+    return `
+      <table border="1">
+        <tr><th colspan="4" style="background:#eee">客戶：${esc(c.id)}｜${esc(c.companyName||"")}</th></tr>
+        <tr><th>#</th><th>時間</th><th>傳票類別</th><th>備註內容</th></tr>
+        ${body}
+      </table>
+      <br/>
+    `;
+  }).join("\n");
+
+  const html = `<html><head><meta charset="UTF-8"></head><body>${sections}</body></html>`;
+  const blob = new Blob([html], {type:"application/vnd.ms-excel"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `notes_all_${Date.now()}.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* 渲染客戶列表（含備註區塊功能按鈕） */
 function renderM1Table(){
   const q = (m1.search.value||"").toLowerCase();
   const arr = customers.customers.filter(c=>{
@@ -582,13 +707,37 @@ function renderM1Table(){
     const hay = [c.id,c.companyName,c.taxId,c.principal,c.contact,c.phone].join("|").toLowerCase();
     return hay.includes(q);
   }).sort((a,b)=>a.id.localeCompare(b.id));
+
+  // 補舊資料備註的 id
+  let touched = false;
+  arr.forEach(c=>{
+    c.notesHistory = c.notesHistory || [];
+    c.notesHistory.forEach(n=>{
+      if(!n.id){ n.id = "N" + Date.now() + Math.random().toString(16).slice(2); touched = true; }
+    });
+  });
+  if(touched){ storeSave(DB_KEYS.M1, customers); }
+
   m1.tbody.innerHTML = arr.map(c=>{
     const stop = (c.suspendFrom||"") || (c.suspendTo||"") ? `${c.suspendFrom||""}~${c.suspendTo||""}` : "";
     const addr = [c.regAddr,c.contactAddr].filter(Boolean).join("<br>");
-    const notesHtml = (c.notesHistory||[]).slice().reverse().map(n=>{
+    const notesList = (c.notesHistory||[]).slice().reverse();
+
+    const notesHtml = notesList.map(n=>{
       const d=new Date(n.ts); const stamp = isNaN(d)? n.ts : d.toLocaleString();
-      return `<div class="small"><span class="pill">${n.voucherType||"備註"}</span> ${escapeHTML(n.text||"")} <span class="muted">(${stamp})</span></div>`;
+      return `
+        <div class="small" data-note-row data-cid="${c.id}" data-nid="${n.id}">
+          <span class="pill">${escapeHTML(n.voucherType||"備註")}</span>
+          <span class="note-text">${escapeHTML(n.text||"")}</span>
+          <span class="muted">（${stamp}）</span>
+          <span class="no-print" style="margin-left:8px">
+            <button class="btn" type="button" data-act="edit-note" data-id="${c.id}" data-nid="${n.id}">編輯</button>
+            <button class="btn btn-danger" type="button" data-act="del-note" data-id="${c.id}" data-nid="${n.id}">刪除</button>
+          </span>
+        </div>
+      `;
     }).join("") || `<div class="small muted">尚無歷史紀錄</div>`;
+
     return `
       <tr>
         <td><strong>${c.id}</strong></td>
@@ -611,8 +760,11 @@ function renderM1Table(){
                 </select>
                 <input placeholder="輸入備註內容…" data-id="${c.id}" data-role="note-text" style="flex:1" />
                 <button class="btn btn-ok" type="button" data-act="add-note" data-id="${c.id}">新增備註</button>
+                <button class="btn" type="button" data-act="export-notes-xls" data-id="${c.id}">匯出 Excel</button>
               </div>
-              <div>${notesHtml}</div>
+              <div data-role="notes-list">
+                ${notesHtml}
+              </div>
             </div>
           </details>
         </td>
@@ -680,7 +832,7 @@ function importJSONToM1(file){
   reader.readAsText(file);
 }
 
-/* ====== M2：清單 ====== */
+/* ====== 模組2：清單 ====== */
 function populateM2Customers(){
   if(!m2.customerSel) return;
   m2.customerSel.innerHTML = `<option value="">請選擇客戶</option>` + customers.customers.slice().sort((a,b)=>a.id.localeCompare(b.id))
