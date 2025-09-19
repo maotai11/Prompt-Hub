@@ -1,4 +1,13 @@
-<!DOCTYPE html><html lang="zh-Hant">
+<!DOCTYPE html><!--
+本檔符合離線(file://)規範：
+1) 無外部資源/無 CDN；所有 CSS/JS/資料內嵌；僅使用系統字型。
+2) <script defer> 使用 defer，確保 DOM 準備後再執行與綁定事件。
+3) 所有互動按鈕皆設 type="button"，避免 submit 觸發重整。
+4) 所有互動以事件委派處理（document 層監聽 [data-action]）。
+5) 所有資料均以內嵌物件與 JSON 處理，未使用 fetch()。
+6) 若未來需使用 Service Worker / fetch / ES Modules，請以本機伺服器啟動（例如：python -m http.server）。
+7) 已加上 window.onerror 與 unhandledrejection 的全域錯誤攔截並以 Toast 呈現。
+--><html lang="zh-Hant">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
