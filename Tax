@@ -1,424 +1,1691 @@
-<!DOCTYPE html><!--
-本檔符合離線(file://)規範：
-1) 無外部資源/無 CDN；所有 CSS/JS/資料內嵌；僅使用系統字型。
-2) <script> 使用 defer，或以 DOMContentLoaded 確保 DOM 準備後再綁定事件。
-3) 所有互動按鈕皆設 type="button"，避免 submit 觸發重整。
-4) 所有互動以事件委派處理（document 層監聽 [data-action]）。
-5) 所有資料均以內嵌物件與 JSON 處理，未使用 fetch()（file:// 友善）。
-6) 若未來需使用 Service Worker / fetch / ES Modules，請以本機伺服器啟動（例如：python -m http.server）。
-7) 已加上 window.onerror 與 unhandledrejection 的全域錯誤攔截並以 Toast 呈現。
---><html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TW 稅務/海關/薪資 單檔離線工具 · 2025</title>
-<style>
-  :root{--bg:#0b0c10;--card:#13151b;--ink:#e6e9ef;--muted:#a7adba;--pri:#52a9ff;--ok:#2ecc71;--warn:#f39c12;--err:#ff6b6b;--bd:#2e3340}
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Arial,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
-  h1,h2,h3{margin:.6rem 0}
-  .app{display:grid;grid-template-rows:auto 1fr auto;min-height:100%}
-  header{position:sticky;top:0;background:linear-gradient(180deg,rgba(11,12,16,.98),rgba(11,12,16,.85));backdrop-filter:saturate(120%) blur(6px);border-bottom:1px solid var(--bd);z-index:10}
-  .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.6rem .8rem}
-  .toolbar .sp{flex:1}
-  .btn{appearance:none;border:1px solid var(--bd);background:#1b1e27;color:var(--ink);padding:.45rem .7rem;border-radius:.6rem;cursor:pointer;min-height:36px}
-  .btn[data-variant="pri"]{background:var(--pri);color:#001225;border-color:transparent}
-  .btn[data-variant="warn"]{background:var(--warn);color:#1a1300}
-  .btn[data-variant="ok"]{background:var(--ok);color:#001a0a}
-  .btn:disabled{opacity:.6;cursor:not-allowed}
-  .tabs{display:flex;gap:.4rem;flex-wrap:wrap;padding:.4rem .8rem;border-top:1px solid var(--bd)}
-  .tab{padding:.4rem .6rem;border-radius:.6rem;border:1px solid var(--bd);cursor:pointer;background:#151922;color:var(--muted)}
-  .tab[aria-selected="true"]{background:#1e2432;color:var(--ink);border-color:#3a4154}
-  main{padding:1rem;max-width:1200px;margin:0 auto}
-  .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:1rem;margin:0 0 1rem 0}
-  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:.8rem}
-  .col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
-  label{display:block;color:var(--muted);font-size:12px;margin:.4rem 0 .2rem}
-  input[type="text"],input[type="number"],select,textarea{width:100%;min-width:250px;background:#0f1117;border:1px solid #2a2f3b;color:var(--ink);padding:.5rem .6rem;border-radius:.5rem;line-height:1.4}
-  textarea{min-height:120px}
-  .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
-  .muted{color:var(--muted)}.mono{font-family:ui-monospace,Consolas,Menlo,monospace}
-  .result{padding:.6rem .7rem;background:#10131a;border:1px dashed #2f3544;border-radius:.5rem;word-break:break-word}
-  .result pre{white-space:pre-wrap;margin:0}
-  .pill{display:inline-block;padding:.12rem .45rem;border:1px solid #3a4154;border-radius:999px;font-size:12px;color:var(--muted)}
-  .toast{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:.5rem;z-index:100}
-  .toast .t{background:#0f1117;border-left:4px solid var(--pri);border:1px solid #2a2f3b;color:var(--ink);padding:.6rem .7rem;border-radius:.5rem;min-width:260px;max-width:520px}
-  .toast .t.err{border-left-color:var(--err)}.toast .t.warn{border-left-color:var(--warn)}
-  details{margin-top:.5rem}
-  details>summary{cursor:pointer;color:#b7c0d1}
-  [hidden]{display:none!important}
-  @media (max-width: 600px){.grid{grid-template-columns:repeat(6,1fr)}.col-6,.col-4,.col-3,.col-8{grid-column:span 6}input,select,textarea{width:100%}.toolbar{gap:.4rem}}
-  @media print{header,.tabs,.toolbar [data-noprint], .toast, details{display:none!important}body{background:#fff;color:#000}.card{border:1px solid #777}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣稅務/海關/薪資 單檔離線工具</title>
+    <style>
+        /* --- 全域與基本樣式 --- */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --header-bg: #343a40;
+            --header-text: #ffffff;
+            --tab-active-bg: var(--primary-color);
+            --tab-inactive-bg: #e9ecef;
+            --tab-inactive-text: #495057;
+            --button-bg: var(--primary-color);
+            --button-hover-bg: #0056b3;
+            --danger-bg: #dc3545;
+            --danger-hover-bg: #c82333;
+            --success-bg: #28a745;
+            --code-bg: #e8eaed;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+            flex-grow: 1;
+        }
+
+        /* --- 標頭與工具列 --- */
+        .app-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 0.5rem 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+        .app-header h1 {
+            font-size: 1.2rem;
+            margin: 0;
+            white-space: nowrap;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .toolbar button, .toolbar .file-input-wrapper {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .toolbar button:hover {
+            opacity: 0.85;
+        }
+        .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+
+        /* --- 分頁導覽 --- */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+        .tabs button {
+            padding: 0.8rem 1rem;
+            border: none;
+            background-color: var(--tab-inactive-bg);
+            color: var(--tab-inactive-text);
+            cursor: pointer;
+            font-size: 0.9rem;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tabs button.active {
+            background-color: var(--card-bg);
+            color: var(--primary-color);
+            border: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--card-bg);
+            font-weight: bold;
+        }
+
+        /* --- 內容區塊 --- */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+        .card h3 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        /* --- 表單元件 --- */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .form-group small {
+            font-weight: normal;
+            color: var(--secondary-color);
+        }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .main-action {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        .main-action:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        /* --- 結果顯示區 --- */
+        #result-display {
+            position: sticky;
+            top: 1rem;
+        }
+        #result-display h3 {
+            color: var(--primary-color);
+        }
+        .result-block {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #eef7ff;
+            border-left: 5px solid var(--primary-color);
+            border-radius: 4px;
+        }
+        .result-final {
+            font-size: 1.5rem;
+            font-weight: bold;
+            word-wrap: break-word;
+        }
+        .result-final span {
+            font-size: 1rem;
+            font-weight: normal;
+            color: var(--secondary-color);
+        }
+        details {
+            margin-top: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        summary {
+            font-weight: bold;
+            padding: 0.5rem;
+            cursor: pointer;
+            background-color: #f1f1f1;
+        }
+        .steps, .iteration-table {
+            padding: 1rem;
+            background-color: var(--card-bg);
+            font-family: "Courier New", Courier, monospace;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .iteration-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+        }
+        .iteration-table th, .iteration-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.4rem;
+            text-align: right;
+        }
+
+        /* --- 頁尾 --- */
+        .app-footer {
+            text-align: center;
+            padding: 1rem;
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            margin-top: 2rem;
+        }
+        .rounding-control label {
+            margin: 0 0.5rem;
+        }
+
+        /* --- Toast 通知 --- */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .toast {
+            background-color: var(--danger-bg);
+            color: white;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(-20px);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* --- 參數級距表 --- */
+        #params-tab .card table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #params-tab .card th, #params-tab .card td {
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            text-align: left;
+        }
+        #params-tab .card th {
+            background-color: #f1f1f1;
+        }
+        #params-tab .card td input {
+            width: 95%;
+            border: none;
+            background: transparent;
+        }
+        #params-tab .card .action-cell { text-align: center; }
+
+        /* --- 列印樣式 --- */
+        @media print {
+            body {
+                font-size: 10pt;
+                color: #000;
+                background-color: #fff;
+            }
+            .app-header, .tabs, .app-footer, .no-print {
+                display: none !important;
+            }
+            .container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            .tab-content.active {
+                display: block !important;
+            }
+            .module-grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            .card {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                border-radius: 0;
+                padding: 1rem;
+                page-break-inside: avoid;
+            }
+            h3 {
+                font-size: 1.2rem;
+            }
+            input, select, textarea {
+                border: 1px solid #ccc;
+            }
+            details {
+                page-break-inside: avoid;
+            }
+            details[open] summary {
+                background-color: #eee;
+            }
+            details[open] {
+                border-color: #999;
+            }
+            .iteration-table td, .iteration-table th {
+                padding: 2px 4px;
+            }
+            /* 確保計算結果區與輸入區都在同一頁 */
+            #calculator-column, #result-column {
+                 width: 100% !important;
+            }
+            .module-grid {
+                display: block;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="app" id="app">
-  <header>
-    <div class="toolbar">
-      <strong>TW 稅務/海關/薪資 單檔離線工具</strong>
-      <span class="pill" id="formulaVersion">F1–F16 v2025.09</span>
-      <span class="sp"></span>
-      <button class="btn" data-action="create-restore" type="button">建立 Restore Point</button>
-      <button class="btn" data-action="export-backup" type="button">匯出備份</button>
-      <label class="btn" data-noprint>
-        匯入備份
-        <input style="display:none" type="file" accept="application/json" id="importFile" />
-      </label>
-      <button class="btn" data-action="run-tests" type="button">執行內建測試</button>
-      <button class="btn" data-action="print" type="button">列印</button>
-      <button class="btn" data-action="reset" type="button" title="清空本地儲存" data-variant="warn">重置</button>
-    </div>
-    <nav class="tabs" role="tablist" id="tabs">
-      <button class="tab" role="tab" aria-selected="true" data-tab="vat" type="button">VAT/發票</button>
-      <button class="tab" role="tab" data-tab="withhold" type="button">扣繳＋二代健保</button>
-      <button class="tab" role="tab" data-tab="customs" type="button">海關/進口</button>
-      <button class="tab" role="tab" data-tab="locals" type="button">地方/特種稅</button>
-      <button class="tab" role="tab" data-tab="salary" type="button">薪資/級距預扣</button>
-      <button class="tab" role="tab" data-tab="ifrs" type="button">IFRS 16</button>
-      <button class="tab" role="tab" data-tab="transfer" type="button">轉帳分拆</button>
-      <button class="tab" role="tab" data-tab="params" type="button">參數/級距表</button>
-      <button class="tab" role="tab" data-tab="history" type="button">歷史/回滾</button>
-    </nav>
-  </header>
-  <main id="main">
-    <!-- 預先渲染所有面板（無 JS 也能看到欄位） -->
-    <section data-panel="vat">
-      <div class="card">
-        <h2>VAT / 發票（F1）</h2>
-        <div class="grid">
-          <div class="col-6">
-            <label>模式</label>
-            <div class="row">
-              <label class="pill"><input type="radio" name="vat_mode" value="N_to_G" checked> 未稅 N → 含稅 G</label>
-              <label class="pill"><input type="radio" name="vat_mode" value="G_to_N"> 含稅 G → 未稅 N</label>
+
+    <header class="app-header">
+        <h1>🇹🇼 稅務離線工具</h1>
+        <div class="toolbar no-print">
+            <button type="button" data-action="createRestorePoint">建立還原點</button>
+            <button type="button" data-action="exportBackup">匯出備份 (JSON)</button>
+            <label class="file-input-wrapper">
+                匯入備份
+                <input type="file" id="import-file-input" accept=".json" data-action="importBackup">
+            </label>
+            <button type="button" data-action="runTests">執行內建測試</button>
+            <button type="button" data-action="print">列印</button>
+            <button type="button" data-action="resetApp" style="background-color: var(--danger-bg);">重置 App</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav class="tabs no-print">
+            <button type="button" class="tab-link active" data-tab="vat">VAT/發票 (F1)</button>
+            <button type="button" class="tab-link" data-tab="withholding">扣繳/二代健保 (F2)</button>
+            <button type="button" class="tab-link" data-tab="customs">海關/進口 (F3-F6)</button>
+            <button type="button" class="tab-link" data-tab="local-tax">地方/特種稅 (F7-F11)</button>
+            <button type="button" class="tab-link" data-tab="salary">薪資預扣 (F12)</button>
+            <button type="button" class="tab-link" data-tab="ifrs16">IFRS 16 (F13-F14)</button>
+            <button type="button" class="tab-link" data-tab="splitter">轉帳分拆 (F15)</button>
+            <button type="button" class="tab-link" data-tab="params">⚙️ 參數/級距表</button>
+            <button type="button" class="tab-link" data-tab="history">🔄 歷史/回滾</button>
+        </nav>
+
+        <main id="main-content">
+
+            <div id="vat-tab" class="tab-content active">
+                <div class="module-grid">
+                    <div id="calculator-column" class="card">
+                        <h3>營業稅 (VAT) 計算</h3>
+                        <div class="form-group">
+                            <label for="vat-mode">計算模式</label>
+                            <select id="vat-mode">
+                                <option value="NtoG">未稅 (N) → 含稅 (G)</option>
+                                <option value="GtoN">含稅 (G) → 未稅 (N)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="vat-amount">金額</label>
+                            <input type="number" id="vat-amount" placeholder="輸入未稅或含稅金額">
+                        </div>
+                        <div class="form-group">
+                            <label for="vat-rate">稅率 <small>(例如: 0.05 或 5%)</small></label>
+                            <input type="text" id="vat-rate" value="5%">
+                        </div>
+                        <button type="button" class="main-action" data-action="calculateVat">計算</button>
+                        <h3 style="margin-top: 2rem;">批量 CSV 計算</h3>
+                        <div class="form-group">
+                            <label for="vat-csv">貼上 CSV 資料 <small>(首欄為標題，次欄為金額)</small></label>
+                            <textarea id="vat-csv" placeholder="例如：&#10;ID,Amount&#10;A01,1000&#10;A02,2500"></textarea>
+                        </div>
+                        <button type="button" class="main-action" data-action="calculateVatCsv">批量計算並下載</button>
+                    </div>
+                    <div id="result-column" class="card">
+                        <h3>計算結果</h3>
+                        <div id="vat-result" class="result-block-container">請填寫左側欄位並按計算。</div>
+                    </div>
+                </div>
             </div>
-            <div class="grid" style="margin-top:.6rem">
-              <div class="col-6"><label>未稅 N（元）</label><input name="vat_N" type="number" placeholder="ex. 1000"></div>
-              <div class="col-6"><label>含稅 G（元）</label><input name="vat_G" type="number" placeholder="ex. 1050"></div>
-              <div class="col-6"><label>VAT 稅率 t_v</label><input name="vat_t" type="text" value="0.05"><div class="muted">可輸入 0.05 或 5%</div></div>
+
+            <div id="withholding-tab" class="tab-content">
+                 <div class="module-grid">
+                    <div class="card">
+                        <h3>扣繳及二代健保補充保費</h3>
+                         <div class="form-group">
+                            <label for="wh-mode">計算模式</label>
+                            <select id="wh-mode">
+                                <option value="AtoN">給付總額 (A) → 實付淨額 (N)</option>
+                                <option value="NtoA">實付淨額 (N) → 給付總額 (A) [反推]</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="wh-amount">金額</label>
+                            <input type="number" id="wh-amount" placeholder="輸入總額或淨額">
+                        </div>
+                        <div class="form-group">
+                            <label for="wh-tax-rate">扣繳率 (r_w)</label>
+                            <input type="text" id="wh-tax-rate" placeholder="例如: 0.1 或 10%">
+                        </div>
+                        <div class="form-group">
+                            <label for="wh-nhi-rate">二代健保補充保費率 (r_h)</label>
+                            <input type="text" id="wh-nhi-rate" placeholder="使用參數區設定">
+                        </div>
+                         <div class="form-group">
+                            <label for="wh-nhi-threshold">二代健保門檻 (H)</label>
+                            <input type="number" id="wh-nhi-threshold" placeholder="使用參數區設定">
+                        </div>
+                        <button type="button" class="main-action" data-action="calculateWithholding">計算</button>
+                    </div>
+                    <div class="card">
+                        <h3>計算結果</h3>
+                        <div id="wh-result" class="result-block-container"></div>
+                    </div>
+                </div>
             </div>
-            <div class="row" style="margin-top:.6rem">
-              <button class="btn" data-action="vat-calc" type="button">計算</button>
-              <button class="btn" data-action="vat-batch-open" type="button">批量</button>
+
+            <div id="customs-tab" class="tab-content">
+                <div class="module-grid">
+                    <div class="card">
+                       <h3>(F3) 完稅價格 (CIF) 計算</h3>
+                        <div class="form-group">
+                            <label for="cif-base-price">離岸價格 (FOB)</label>
+                            <input type="number" id="cif-fob" placeholder="貨物本身價格">
+                        </div>
+                         <div class="form-group">
+                            <label for="cif-freight">運費 (F)</label>
+                            <input type="number" id="cif-freight" placeholder="到進口港之運費">
+                        </div>
+                        <div class="form-group">
+                            <label for="cif-insurance">保險費 (I)</label>
+                            <input type="number" id="cif-insurance" placeholder="若無則依提示率估算">
+                        </div>
+                        <button type="button" class="main-action" data-action="calculateCif">計算 CIF</button>
+                        <hr style="margin: 2rem 0;">
+                        <h3>(F5) 反推 CIF from 總成本</h3>
+                        <div class="form-group">
+                            <label for="rev-landed-cost">目標進口總成本 (Landed Cost)</label>
+                            <input type="number" id="rev-landed-cost" placeholder="輸入最終目標成本">
+                        </div>
+                        <p><small>請先在右側填寫 F4 的各項稅率參數。</small></p>
+                        <button type="button" class="main-action" data-action="reverseCalculateLandedCost">反推 CIF</button>
+                    </div>
+                    <div class="card">
+                        <h3>(F4) 進口總成本 (Landed Cost) 計算</h3>
+                        <div class="form-group">
+                            <label for="lc-cif">完稅價格 (CIF)</label>
+                            <input type="number" id="lc-cif" placeholder="從 F3 計算或手動輸入">
+                        </div>
+                        <div class="form-group"><label for="lc-duty-rate">關稅 (d)</label><input type="text" id="lc-duty-rate" value="10%"></div>
+                        <div class="form-group"><label for="lc-excise-rate">貨物/酒稅 (c)</label><input type="text" id="lc-excise-rate" value="15%"></div>
+                        <div class="form-group"><label for="lc-vat-rate">營業稅 (t_v)</label><input type="text" id="lc-vat-rate" value="5%"></div>
+                        <div class="form-group"><label for="lc-fixed-tax">固定稅 (τ)</label><input type="number" id="lc-fixed-tax" value="0"></div>
+                        <div class="form-group"><label for="lc-health-surcharge">健康捐 (h)</label><input type="number" id="lc-health-surcharge" value="0"></div>
+                        <div class="form-group"><label for="lc-promotion-fee">推廣費 (p)</label><input type="text" id="lc-promotion-fee" value="0.04%"></div>
+                        <div class="form-group">
+                            <input type="checkbox" id="lc-bonded" style="width: auto;">
+                            <label for="lc-bonded" style="display: inline;">保稅/FTA (關稅為0)</label>
+                        </div>
+                        <button type="button" class="main-action" data-action="calculateLandedCost">計算總成本</button>
+                    </div>
+                </div>
+                 <div class="card" style="margin-top: 1.5rem;">
+                    <h3>計算結果</h3>
+                    <div id="customs-result" class="result-block-container"></div>
+                </div>
             </div>
-          </div>
-          <div class="col-6"><div class="result" id="vat_result"><pre>結果將顯示於此</pre></div></div>
-          <div class="col-12" id="vat_batch" hidden>
-            <div class="card" style="background:#10131a">
-              <h3>批量計算（CSV）</h3>
-              <label>輸入（CSV）</label>
-              <textarea id="vat_batch_in" placeholder="N,G,t_v
-1000,,5%
-,1050,0.05"></textarea>
-              <div class="row" style="margin-top:.6rem">
-                <button class="btn" data-action="vat-batch-run" type="button">批量計算</button>
-                <button class="btn" data-action="vat-batch-export" type="button">匯出結果 CSV</button>
-              </div>
-              <div class="result" id="vat_batch_out"><pre>—</pre></div>
+
+            <div id="local-tax-tab" class="tab-content">
+                <p>此功能正在建構中...</p>
             </div>
-          </div>
-        </div>
-      </div>
-    </section><section data-panel="withhold" hidden>
-  <div class="card">
-    <h2>扣繳＋二代健保（F2）</h2>
-    <div class="grid">
-      <div class="col-6">
-        <label>模式</label>
-        <div class="row">
-          <label class="pill"><input type="radio" name="wh_mode" value="gross_to_net" checked> 毛額 A → 淨額 N</label>
-          <label class="pill"><input type="radio" name="wh_mode" value="net_to_gross"> 淨額 N → 毛額 A</label>
-        </div>
-        <div class="grid" style="margin-top:.6rem">
-          <div class="col-6"><label>毛額 A（元）</label><input name="wh_A" type="number" placeholder="50000"></div>
-          <div class="col-6"><label>淨額 N（元）</label><input name="wh_N" type="number"></div>
-          <div class="col-4"><label>扣繳率 r_w</label><input name="wh_rw" type="text" value="0.05"></div>
-          <div class="col-4"><label>二代健保補充率 r_h</label><input name="wh_rh" type="text" value="0.0211"></div>
-          <div class="col-4"><label>健保門檻 H（元）</label><input name="wh_H" type="number" value="20000"></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="wh-calc" type="button">計算</button></div>
-      </div>
-      <div class="col-6"><div class="result" id="wh_result"><pre>—</pre></div></div>
-    </div>
-  </div>
-</section>
-
-<section data-panel="customs" hidden>
-  <div class="card">
-    <h2>海關/進口（F3–F6）</h2>
-    <div class="grid">
-      <div class="col-6">
-        <h3 class="muted">到岸價組合（CIF）</h3>
-        <div class="grid">
-          <div class="col-6"><label>FOB 價格（元）</label><input name="cif_fob" type="number" placeholder="擇一填"></div>
-          <div class="col-6"><label>CFR 價格（元）</label><input name="cif_cfr" type="number" placeholder="擇一填"></div>
-          <div class="col-4"><label>運費 F（元）</label><input name="cif_F" type="number" value="0"></div>
-          <div class="col-4"><label>保費 I（元）</label><input name="cif_I" type="number" placeholder="空白自估"></div>
-          <div class="col-4"><label>保費率 hint ι</label><input name="cif_ih" type="text" value="0.003"></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="cif-calc" type="button">計算 CIF</button></div>
-        <div class="result" id="cif_result"><pre>—</pre></div>
-      </div>
-      <div class="col-6">
-        <h3 class="muted">層級稅 / 到岸總成本</h3>
-        <div class="grid">
-          <div class="col-4"><label>關稅率 d</label><input name="tx_d" type="text" placeholder="10%"></div>
-          <div class="col-4"><label>貨物/酒稅率 c</label><input name="tx_c" type="text" value="0"></div>
-          <div class="col-4"><label>VAT t_v</label><input name="tx_tv" type="text" value="0.05"></div>
-          <div class="col-4"><label>固定稅 τ（元）</label><input name="tx_tau" type="number" value="0"></div>
-          <div class="col-4"><label>健康捐 h（元）</label><input name="tx_h" type="number" value="0"></div>
-          <div class="col-4"><label>推廣費率 p</label><input name="tx_p" type="text" value="0.0004"></div>
-          <div class="col-6"><label>CIF（元）</label><input name="tx_cif" type="number" placeholder="先於左側計算或手填"></div>
-          <div class="col-6"><label>Bonded / FTA</label>
-            <div class="row">
-              <label class="pill"><input type="checkbox" name="bonded"> 保稅（關稅免）</label>
-              <label class="pill"><input type="checkbox" name="fta"> FTA 優惠稅率</label>
-              <input name="fta_rate" type="text" placeholder="FTA 關稅率 ex. 5%" style="max-width:120px">
+            
+            <div id="salary-tab" class="tab-content">
+                <div class="module-grid">
+                    <div class="card">
+                        <h3>薪資所得稅預扣</h3>
+                         <div class="form-group">
+                            <label for="salary-mode">計算模式</label>
+                            <select id="salary-mode">
+                                <option value="GtoN">毛薪 (G) → 實領淨薪 (N)</option>
+                                <option value="NtoG">實領淨薪 (N) → 毛薪 (G) [反推]</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="salary-amount">薪資金額</label>
+                            <input type="number" id="salary-amount" placeholder="輸入毛薪或淨薪">
+                        </div>
+                        <p><small>將使用「參數/級距表」分頁中設定的薪資級距表進行計算。</small></p>
+                        <button type="button" class="main-action" data-action="calculateSalary">計算</button>
+                        <h3 style="margin-top: 2rem;">批量 CSV 計算</h3>
+                        <div class="form-group">
+                            <label for="salary-csv">貼上 CSV 資料 <small>(首欄為標題，次欄為毛薪)</small></label>
+                            <textarea id="salary-csv" placeholder="例如：&#10;Employee,GrossSalary&#10;E01,50000&#10;E02,85000"></textarea>
+                        </div>
+                        <button type="button" class="main-action" data-action="calculateSalaryCsv">批量計算並下載</button>
+                    </div>
+                    <div class="card">
+                        <h3>計算結果</h3>
+                        <div id="salary-result" class="result-block-container"></div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="row" style="margin-top:.6rem">
-          <button class="btn" data-action="tx-calc" type="button">計算稅負/到岸成本</button>
-          <button class="btn" data-action="tx-reverse" type="button">反推 CIF（給定 L）</button>
-          <input name="tx_L" type="number" placeholder="輸入目標 Landed L（元）" style="max-width:240px">
-        </div>
-        <div class="result" id="tx_result"><pre>—</pre></div>
-      </div>
+
+            <div id="ifrs16-tab" class="tab-content">
+                <div class="module-grid">
+                    <div class="card">
+                       <h3>(F13) 年金現值 (PV)</h3>
+                        <div class="form-group">
+                            <label for="pv-payment">每期付款 (P)</label>
+                            <input type="number" id="pv-payment">
+                        </div>
+                         <div class="form-group">
+                            <label for="pv-periods">期數 (n)</label>
+                            <input type="number" id="pv-periods">
+                        </div>
+                        <div class="form-group">
+                            <label for="pv-rate">月利率 (r_m) <small>例如: 0.005 (0.5%)</small></label>
+                            <input type="number" id="pv-rate" step="0.0001">
+                        </div>
+                        <button type="button" class="main-action" data-action="calculatePV">計算現值</button>
+                    </div>
+                    <div class="card">
+                        <h3>(F14) 內部報酬率 (IRR) 反推</h3>
+                        <div class="form-group">
+                            <label for="irr-pv">現值 (PV)</label>
+                            <input type="number" id="irr-pv">
+                        </div>
+                        <div class="form-group">
+                            <label for="irr-payment">每期付款 (P)</label>
+                            <input type="number" id="irr-payment">
+                        </div>
+                        <div class="form-group">
+                            <label for="irr-periods">期數 (n)</label>
+                            <input type="number" id="irr-periods">
+                        </div>
+                        <p><small>將使用牛頓法/二分法反推月利率。</small></p>
+                        <button type="button" class="main-action" data-action="calculateIRR">計算 IRR</button>
+                    </div>
+                </div>
+                 <div class="card" style="margin-top: 1.5rem;">
+                    <h3>計算結果</h3>
+                    <div id="ifrs16-result" class="result-block-container"></div>
+                </div>
+            </div>
+
+            <div id="splitter-tab" class="tab-content">
+                 <div class="module-grid">
+                    <div class="card">
+                        <h3>轉帳金額分拆</h3>
+                        <div class="form-group">
+                            <label for="split-limit">單筆轉帳上限</label>
+                            <input type="number" id="split-limit" placeholder="例如: 50000">
+                        </div>
+                        <div class="form-group">
+                            <label for="split-amounts">當日金額序列 <small>(以逗號或換行分隔)</small></label>
+                            <textarea id="split-amounts" placeholder="例如:&#10;20000, 35000, 48000, 15000, 51000"></textarea>
+                        </div>
+                        <button type="button" class="main-action" data-action="calculateSplit">執行分拆</button>
+                    </div>
+                    <div class="card">
+                        <h3>計算結果</h3>
+                        <div id="split-result" class="result-block-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="params-tab" class="tab-content">
+                <div class="module-grid">
+                    <div class="card">
+                        <h3>系統參數</h3>
+                        <div class="form-group">
+                            <label for="param-vat-rate">營業稅率 (VAT)</label>
+                            <input type="text" id="param-vat-rate">
+                        </div>
+                         <div class="form-group">
+                            <label for="param-nhi-rate">二代健保補充保費率</label>
+                            <input type="text" id="param-nhi-rate">
+                        </div>
+                        <div class="form-group">
+                            <label for="param-nhi-threshold">二代健保起扣門檻</label>
+                            <input type="number" id="param-nhi-threshold">
+                        </div>
+                         <button type="button" class="main-action" data-action="saveParams">儲存參數</button>
+                    </div>
+                    <div class="card">
+                        <h3>薪資所得稅級距表</h3>
+                        <table id="salary-brackets-table">
+                            <thead>
+                                <tr><th>級距上限 (月)</th><th>稅率 (%)</th><th>速算扣除數</th><th>操作</th></tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                        <button type="button" data-action="addSalaryBracket" style="margin-top: 1rem;">新增一列</button>
+                        <button type="button" data-action="saveSalaryBrackets" class="main-action" style="margin-top: 1rem;">儲存級距表</button>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 1.5rem;">
+                     <h3>CSV 對應精靈 (匯入薪資級距)</h3>
+                     <div class="form-group">
+                         <label for="csv-paste-area">1. 貼上官方或自備的級距 CSV</label>
+                         <textarea id="csv-paste-area" placeholder="貼上 CSV 內容，首列應為標題"></textarea>
+                     </div>
+                     <div id="csv-mapping-ui" style="display:none;">
+                         <p>2. 指定對應欄位</p>
+                         <div style="display:flex; gap: 1rem;">
+                             <div class="form-group"><label for="csv-col-upper">級距上限 (upper)</label><select id="csv-col-upper"></select></div>
+                             <div class="form-group"><label for="csv-col-rate">稅率 (rate)</label><select id="csv-col-rate"></select></div>
+                             <div class="form-group"><label for="csv-col-qd">速算扣除數 (qd)</label><select id="csv-col-qd"></select></div>
+                         </div>
+                         <div class="form-group">
+                             <input type="checkbox" id="csv-rate-is-percent" checked style="width: auto;">
+                             <label for="csv-rate-is-percent" style="display: inline;">稅率欄位是百分比 (例如: 5 代表 5%)</label>
+                         </div>
+                         <button type="button" class="main-action" data-action="previewCsvBrackets">3. 解析並預覽</button>
+                     </div>
+                     <div id="csv-preview-area" style="margin-top: 1rem;"></div>
+                </div>
+            </div>
+
+            <div id="history-tab" class="tab-content">
+                <div class="module-grid">
+                    <div class="card">
+                        <h3>版本快照 (Versions)</h3>
+                        <p>手動儲存的參數設定集，可用於不同年度或情境切換。</p>
+                        <div id="versions-list"></div>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <input type="text" id="new-version-name" placeholder="輸入新版本名稱">
+                            <button type="button" class="main-action" data-action="saveVersion" style="margin-top: 0.5rem;">儲存當前設定為新版本</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>還原點 (Restore Points)</h3>
+                        <p>操作前的自動或手動快照，用於快速復原錯誤操作。</p>
+                        <div id="restore-points-list"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
     </div>
-  </div>
-</section>
 
-<section data-panel="locals" hidden>
-  <div class="card">
-    <h2>地方/特種稅（F7–F11）</h2>
-    <div class="grid">
-      <div class="col-6">
-        <h3>房屋稅（F7）</h3>
-        <div class="grid">
-          <div class="col-6"><label>課稅現值 B_h（元）</label><input name="house_Bh" type="number"></div>
-          <div class="col-6"><label>用途</label>
-            <select name="house_use">
-              <option value="self_use">自住</option>
-              <option value="rental">出租</option>
-              <option value="builder">建商</option>
-            </select>
-          </div>
+    <footer class="app-footer no-print">
+        <div class="rounding-control">
+            <strong>計算規則：</strong>
+            <label><input type="radio" name="rounding" value="round" checked> 四捨五入</label>
+            <label><input type="radio" name="rounding" value="ceil"> 無條件進位</label>
+            <label><input type="radio" name="rounding" value="floor"> 無條件捨去</label>
+            <small>(所有稅額計算到整數位)</small>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="house-calc" type="button">計算</button></div>
-        <div class="result" id="house_result"><pre>—</pre></div>
-      </div>
-      <div class="col-6">
-        <h3>地價稅（F8）</h3>
-        <div class="grid">
-          <div class="col-6"><label>課稅地價 V（元）</label><input name="land_V" type="number"></div>
-          <div class="col-6"><label>起點地價 T₀（元）</label><input name="land_T0" type="number" value="1000000"></div>
-        </div>
-        <div class="row" style="margin:.6rem 0"><button class="btn" data-action="land-calc" type="button">計算</button></div>
-        <div class="result" id="land_result"><pre>—</pre></div>
-      </div>
-      <div class="col-6">
-        <h3>契稅（F9）</h3>
-        <div class="grid">
-          <div class="col-6"><label>課稅基礎 B_d（元）</label><input name="deed_Bd" type="number"></div>
-          <div class="col-6"><label>契稅率 r_d</label><input name="deed_rd" type="text" value="0.06"></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="deed-calc" type="button">計算</button></div>
-        <div class="result" id="deed_result"><pre>—</pre></div>
-      </div>
-      <div class="col-6">
-        <h3>期貨/選擇權交易稅（F10）</h3>
-        <div class="grid">
-          <div class="col-6"><label>期貨名目本金 N_f（元）</label><input name="fo_Nf" type="number"></div>
-          <div class="col-6"><label>選擇權權利金 P_o（元）</label><input name="fo_Po" type="number"></div>
-          <div class="col-6"><label>期貨稅率 r_f</label><input name="fo_rf" type="text" value="0.0002"></div>
-          <div class="col-6"><label>選擇權稅率 r_o</label><input name="fo_ro" type="text" value="0.001"></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="fo-calc" type="button">計算</button></div>
-        <div class="result" id="fo_result"><pre>—</pre></div>
-      </div>
-      <div class="col-12">
-        <h3>碳費（F11）</h3>
-        <div class="grid">
-          <div class="col-3"><label>模式</label><select name="carbon_mode"><option value="forward">正算（e→Fee）</option><option value="reverse">反推（Fee→e）</option></select></div>
-          <div class="col-3"><label>年度排放量 e（噸）</label><input name="carbon_e" type="number"></div>
-          <div class="col-3"><label>碳費 Fee（元）</label><input name="carbon_fee" type="number"></div>
-          <div class="col-3"><label>免課門檻 e₀（噸）</label><input name="carbon_e0" type="number" value="25000"></div>
-          <div class="col-4"><label>調整係數 a</label><input name="carbon_a" type="number" value="1"></div>
-          <div class="col-4"><label>單價（元/噸）</label><input name="carbon_price" type="number" value="300"></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="carbon-calc" type="button">計算</button></div>
-        <div class="result" id="carbon_result"><pre>—</pre></div>
-      </div>
-    </div>
-  </div>
-</section>
+    </footer>
 
-<section data-panel="salary" hidden>
-  <div class="card">
-    <h2>薪資/級距預扣（F12）</h2>
-    <div class="grid">
-      <div class="col-6">
-        <label>模式</label>
-        <div class="row">
-          <label class="pill"><input type="radio" name="sal_mode" value="gross_to_net" checked> 毛薪 G → 淨薪 N</label>
-          <label class="pill"><input type="radio" name="sal_mode" value="net_to_gross"> 淨薪 N → 毛薪 G（數值法）</label>
-        </div>
-        <div class="grid" style="margin-top:.6rem">
-          <div class="col-6"><label>毛薪 G（元）</label><input name="sal_G" type="number"></div>
-          <div class="col-6"><label>淨薪 N（元）</label><input name="sal_N" type="number"></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="sal-calc" type="button">計算</button> <button class="btn" data-action="sal-batch-open" type="button">批量</button></div>
-      </div>
-      <div class="col-6"><div class="result" id="sal_result"><pre>—</pre></div></div>
-      <div class="col-12" id="sal_batch" hidden>
-        <div class="card" style="background:#10131a">
-          <h3>批量計算（CSV）</h3>
-          <label>輸入（CSV）</label>
-          <textarea id="sal_batch_in" placeholder="G,N
+    <div id="toast-container"></div>
+    
+    <script type="application/json" id="initial-data">
+    {
+        "params": {
+            "vatRate": 0.05,
+            "nhiRate": 0.0211,
+            "nhiThreshold": 20000,
+            "salaryBrackets": [
+                {"upper": 45000, "rate": 0.06, "qd": 0},
+                {"upper": 50000, "rate": 0.06, "qd": 0},
+                {"upper": 60000, "rate": 0.06, "qd": 0},
+                {"upper": Infinity, "rate": 0.18, "qd": 8400} 
+            ]
+        },
+        "versions": [],
+        "restorePoints": []
+    }
+    </script>
 
-80000, ,60000"></textarea> <div class="row" style="margin-top:.6rem"> <button class="btn" data-action="sal-batch-run" type="button">批量計算</button> <button class="btn" data-action="sal-batch-export" type="button">匯出結果 CSV</button> </div> <div class="result" id="sal_batch_out"><pre>—</pre></div> </div> </div> </div> </div> </section>
+    <script defer>
+    // --- 全域錯誤攔截，避免「看似沒反應」 ---
+    // 註解：此處攔截全域錯誤，並以 Toast 訊息顯示，方便離線偵錯。
+    window.onerror = function (message, source, lineno, colno, error) {
+        TaxApp.ui.showToast(`JavaScript 錯誤: ${message} at ${lineno}:${colno}`);
+        console.error({ message, source, lineno, colno, error });
+        return true;
+    };
+    window.addEventListener('unhandledrejection', function (event) {
+        TaxApp.ui.showToast(`非同步錯誤: ${event.reason}`);
+        console.error(event);
+    });
 
-<section data-panel="ifrs" hidden>
-  <div class="card">
-    <h2>IFRS 16（F13–F14）</h2>
-    <div class="grid">
-      <div class="col-6">
-        <h3>年金現值（F13）</h3>
-        <div class="grid">
-          <div class="col-4"><label>每期付款 P（元）</label><input name="pv_P" type="number"></div>
-          <div class="col-4"><label>期數 n</label><input name="pv_n" type="number" value="36"></div>
-          <div class="col-4"><label>月利率 r_m</label><input name="pv_rm" type="text" placeholder="0.25% 或 0.0025"></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="pv-calc" type="button">計算現值</button></div>
-        <div class="result" id="pv_result"><pre>—</pre></div>
-      </div>
-      <div class="col-6">
-        <h3>反推 IRR（F14）</h3>
-        <div class="grid">
-          <div class="col-4"><label>每期付款 P（元）</label><input name="irr_P" type="number"></div>
-          <div class="col-4"><label>期數 n</label><input name="irr_n" type="number" value="36"></div>
-          <div class="col-4"><label>現值 PV（元）</label><input name="irr_PV" type="number"></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="irr-calc" type="button">計算 IRR</button></div>
-        <div class="result" id="irr_result"><pre>—</pre></div>
-      </div>
-    </div>
-  </div>
-</section>
+    // --- 主應用程式命名空間 ---
+    const TaxApp = {
+        state: {
+            params: {},
+            versions: [],
+            restorePoints: []
+        },
 
-<section data-panel="transfer" hidden>
-  <div class="card">
-    <h2>轉帳分拆工具（F15）</h2>
-    <div class="grid">
-      <div class="col-6">
-        <div class="grid">
-          <div class="col-6"><label>單筆上限 L（元）</label><input name="tr_L" type="number" value="1000000"></div>
-          <div class="col-12"><label>同日金額序列（用逗號或換行）</label><textarea name="tr_list" placeholder="120000, 500000, 450000, 300000, 900000"></textarea></div>
-        </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="tr-calc" type="button">分組</button></div>
-      </div>
-      <div class="col-6"><div class="result" id="tr_result"><pre>—</pre></div></div>
-    </div>
-  </div>
-</section>
+        // --- 初始化 ---
+        init() {
+            this.loadState();
+            this.events.setup();
+            this.ui.renderInitialView();
+            console.log("稅務工具初始化完成。");
+        },
 
-<section data-panel="params" hidden>
-  <div class="card">
-    <h2>參數/級距表（2025 預設，可於此更新）</h2>
-    <div class="kpi row" style="gap:.6rem;flex-wrap:wrap">
-      <div class="pill">年度 <strong id="kpi_year">2025</strong></div>
-      <div class="pill">VAT <strong id="kpi_vat">5%</strong></div>
-      <div class="pill">NHI 補充率 <strong id="kpi_nhi">2.11‰</strong></div>
-    </div>
-    <div class="grid" style="margin-top:.6rem">
-      <div class="col-4"><label>VAT 稅率</label><input name="p_vat" type="text" value="0.05"></div>
-      <div class="col-4"><label>NHI 補充率</label><input name="p_nhi" type="text" value="0.0211"></div>
-      <div class="col-4"><label>NHI 門檻 H</label><input name="p_H" type="number" value="20000"></div>
-      <div class="col-4"><label>保費率 hint ι</label><input name="p_ih" type="text" value="0.003"></div>
-      <div class="col-4"><label>推廣費率 p</label><input name="p_pr" type="text" value="0.0004"></div>
-      <div class="col-4"><label>碳費單價</label><input name="p_cu" type="number" value="300"></div>
-      <div class="col-4"><label>碳費門檻 e₀</label><input name="p_ce0" type="number" value="25000"></div>
-      <div class="col-4"><label>碳費調整 a</label><input name="p_ca" type="number" value="1"></div>
-    </div>
-    <h3 style="margin-top:1rem">薪資級距表（F12）</h3>
-    <div class="muted">欄位：上限 upper、邊際稅率 rate、速算扣除數 qd。最後一列 upper=Infinity 請填 <code>Infinity</code>。</div>
-    <table class="table" id="tbl_salary">
-      <thead><tr><th style="text-align:left">#</th><th>upper</th><th>rate</th><th>qd</th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <div class="row" style="margin:.6rem 0">
-      <button class="btn" data-action="sal-row-add" type="button">新增級距</button>
-      <button class="btn" data-action="sal-row-save" data-variant="ok" type="button">儲存級距</button>
-    </div>
-    <div class="card" style="background:#10131a">
-      <h3>薪資級距 CSV 對應精靈（離線）</h3>
-      <div class="grid">
-        <div class="col-12"><label>貼上官方 CSV（第一列為標題）</label><textarea id="csv_map_in" placeholder="upper,rate,qd
+        // --- 狀態管理 ---
+        loadState() {
+            try {
+                const storedState = localStorage.getItem('taxApp_state');
+                if (storedState) {
+                    this.state = JSON.parse(storedState);
+                } else {
+                    const initialState = JSON.parse(document.getElementById('initial-data').textContent);
+                    this.state = initialState;
+                    this.saveState();
+                    this.ui.showToast("偵測到首次使用，已載入預設資料。");
+                }
+            } catch (e) {
+                console.error("讀取 localStorage 失敗:", e);
+                this.ui.showToast("讀取本地資料失敗，將使用預設值。");
+                const initialState = JSON.parse(document.getElementById('initial-data').textContent);
+                this.state = initialState;
+            }
+        },
 
-50000,5%,0 100000,12%,3500 ... Infinity,40%,73500"></textarea></div> <div class="col-12"><button class="btn" data-action="csv-map-parse" type="button">解析 CSV</button></div> <div class="col-12" id="csv_map_ui" hidden> <div class="row"> <label>upper 欄位<select id="map_upper"></select></label> <label>rate 欄位<select id="map_rate"></select></label> <label>qd 欄位<select id="map_qd"></select></label> <label class="pill"><input type="checkbox" id="map_rate_percent" checked> rate 是百分比（%）</label> </div> <div class="row" style="margin-top:.6rem"><button class="btn" data-action="csv-map-apply" data-variant="ok" type="button">匯入至級距表</button></div> <div class="result mono" id="csv_map_preview"><pre>—</pre></div> </div> </div> </div> <h3>地價稅級距（F8）</h3> <div class="grid"> <div class="col-4"><label>起點地價 T₀</label><input name="p_T0" type="number" value="1000000"></div> </div> <div class="muted">欄位：倍數上限 m_upper、稅率 rate、差額扣除 delta</div> <div id="land_tbl" class="result mono" contenteditable="true">[ { "m_upper": 10, "rate": 0.01, "delta": 0 }, { "m_upper": 20, "rate": 0.02, "delta": 1000 }, { "m_upper": 40, "rate": 0.03, "delta": 3000 }, { "m_upper": "Infinity", "rate": 0.04, "delta": 7000 } ]</div> <div class="row" style="margin-top:.6rem"> <button class="btn" data-action="params-save" data-variant="ok" type="button">儲存所有參數</button> <button class="btn" data-action="version-commit" type="button">建立版本（保存目前參數）</button> </div> <div class="card" style="background:#10131a"> <h3>內建測試輸出</h3> <div class="result mono" id="test_result"><pre>尚未執行</pre></div> </div> </div> </section>
+        saveState() {
+            try {
+                localStorage.setItem('taxApp_state', JSON.stringify(this.state));
+            } catch (e) {
+                console.error("儲存 localStorage 失敗:", e);
+                this.ui.showToast("儲存設定到本地失敗，可能已滿或瀏覽器不支援。");
+            }
+        },
+        
+        createRestorePoint(name) {
+            const point = {
+                id: `rp_${new Date().getTime()}`,
+                name: name || `還原點 @ ${new Date().toLocaleString()}`,
+                timestamp: new Date().toISOString(),
+                state: JSON.parse(JSON.stringify(this.state)) // Deep copy
+            };
+            this.state.restorePoints.unshift(point);
+            if (this.state.restorePoints.length > 20) { // Keep last 20
+                this.state.restorePoints.pop();
+            }
+            this.saveState();
+            this.ui.renderHistory();
+            this.ui.showToast(`已建立還原點: ${point.name}`, 'success');
+        },
 
-<section data-panel="history" hidden>
-  <div class="card">
-    <h2>歷史/回滾</h2>
-    <h3>版本</h3>
-    <table class="table" id="ver_table"><thead><tr><th style="text-align:left">名稱</th><th>建立時間</th><th>操作</th></tr></thead><tbody></tbody></table>
-    <h3 style="margin-top:1rem">Restore Points</h3>
-    <table class="table" id="rp_table"><thead><tr><th style="text-align:left">原因</th><th>時間</th><th>操作</th></tr></thead><tbody></tbody></table>
-  </div>
-</section>
+        // --- 核心計算邏輯 ---
+        calculations: {
+            // ... (計算函式將在此處定義)
+        },
 
-<noscript>
-  <div class="card" style="border-color:#aa3333">本工具需要啟用 JavaScript 才能計算。若你看到本訊息或看不到表單，請改用較新版本瀏覽器。</div>
-</noscript>
+        // --- UI 更新邏輯 ---
+        ui: {
+            // ... (UI 相關函式將在此處定義)
+        },
 
-  </main>
-  <footer class="row" style="padding:.6rem .8rem;border-top:1px solid var(--bd);color:var(--muted)">
-    <div>
-      <span>Rounding:</span>
-      <label class="pill"><input type="radio" name="rounding" value="round0" checked> 四捨五入</label>
-      <label class="pill"><input type="radio" name="rounding" value="ceil0"> 無條件進位</label>
-      <label class="pill"><input type="radio" name="rounding" value="floor0"> 無條件捨去</label>
-    </div>
-    <span class="sp" style="flex:1"></span>
-    <span class="muted">單檔 · 離線（file://）· 無外部資源 · 所有按鈕 type="button" · 事件委派</span>
-  </footer>
-</div>
-<div class="toast" id="toast"></div>
-<script defer>
-(function(){
-  // ===== Utilities =====
-  const $  = (sel, el=document) => el.querySelector(sel);
-  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
-  const byId = (id)=> document.getElementById(id);
-  const nowTs = ()=> new Date().toISOString();
-  const clone = (obj)=> JSON.parse(JSON.stringify(obj)); // 兼容舊版瀏覽器
-  const toNum = (v)=> typeof v==='number'? v : Number(String(v).trim());
-  const esc = (s)=> String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));// Toast & global error capture const toastBox = byId('toast'); function showToast(msg, type='info', timeout=4200){ const div = document.createElement('div'); div.className = 't ' + (type==='error'?'err': type==='warn'?'warn':''); div.textContent = msg; toastBox.appendChild(div); setTimeout(()=>div.remove(), timeout); } window.onerror = (message, source, lineno, colno)=>{ showToast('錯誤: '+message+' @'+lineno+':'+colno,'error',8000); }; window.onunhandledrejection = (e)=>{ showToast('未捕捉的例外: '+(e.reason&&e.reason.message?e.reason.message:e.reason),'error',8000); };
+        // --- 事件處理 ---
+        events: {
+            // ... (事件監聽器將在此處定義)
+        },
 
-// Rounding function round0(x){return Math.round(x)} function ceil0(x){return Math.ceil(x)} function floor0(x){return Math.floor(x)} function getRounding(){ const r=document.querySelector('input[name="rounding"]:checked'); return r? r.value : 'round0'; } function R(x){ const rule=getRounding(); return rule==='ceil0'? ceil0(x): rule==='floor0'? floor0(x): round0(x); }
+        // --- 工具函式 ---
+        utils: {
+            // ... (共用函式將在此處定義)
+        }
+    };
+    
+    // --- 實作各模組 ---
+    
+    // =============================
+    //      UTILITIES (TaxApp.utils)
+    // =============================
+    TaxApp.utils = {
+        // 解析輸入的百分比或小數
+        parseRate(input) {
+            if (typeof input !== 'string') input = String(input);
+            input = input.trim();
+            if (input.endsWith('%')) {
+                return parseFloat(input.slice(0, -1)) / 100;
+            }
+            return parseFloat(input);
+        },
 
-// Parsers function parseMoney(input, opts={min:-Infinity, allowNeg:false}){ if(input===''|| input==null) throw new Error('缺少必填金額'); let x = toNum(input); if(!Number.isFinite(x)) throw new Error('金額格式錯誤'); if(!opts.allowNeg && x < 0) throw new Error('金額不可為負'); if(x < (opts.min ?? -Infinity)) throw new Error('金額低於允許範圍'); return x; } function parseRate(input,{min=0,max=1}={}){ if(input===''|| input==null) throw new Error('缺少稅率'); let s=String(input).trim(); if(s.endsWith('%')) s=s.slice(0,-1); let x=toNum(s); if(!Number.isFinite(x)) throw new Error('稅率格式錯誤'); if(x>1) x/=100; if(x<min) x=min; if(x>max) x=max; return x; } function parseIntGE1(input){ let n=Math.floor(toNum(input)); if(!Number.isFinite(n)||n<1) n=1; return n; }
+        // 根據使用者選擇的規則進行四捨五入
+        round(value) {
+            const rule = document.querySelector('input[name="rounding"]:checked').value;
+            if (rule === 'ceil') return Math.ceil(value);
+            if (rule === 'floor') return Math.floor(value);
+            return Math.round(value); // 'round'
+        },
+        
+        // 格式化數字為千分位
+        formatNumber(num) {
+            if (num === null || num === undefined) return '';
+            return num.toLocaleString('en-US');
+        },
 
-// LocalStorage (file:// OK) const LS_KEY = 'tw_tax_suite_v2025'; const APP = window.APP = { meta: { appVersion:'1.1.0', formulaVersion:'F1–F16 v2025.09', createdAt: nowTs(), updatedAt: nowTs() }, params: { year: 2025, vat_rate: 0.05, rounding: 'round0', withhold_rate_default: 0.05, nhi_threshold: 20000, nhi_supp_rate: 0.0211, premium_hint_rate: 0.003, promo_rate: 0.0004, bonded: false, fta_duty_rate: null, carbon_threshold_ton: 25000, carbon_unit_price: 300, carbon_adjust: 1, salary_brackets: [ { upper: 50000,   rate: 0.05, qd: 0 }, { upper: 100000,  rate: 0.12, qd: 3500 }, { upper: 200000,  rate: 0.20, qd: 13500 }, { upper: 400000,  rate: 0.30, qd: 33500 }, { upper: null,    rate: 0.40, qd: 73500 } ], land_tax: { T0: 1000000, brackets: [ { m_upper: 10,       rate: 0.01, delta: 0 }, { m_upper: 20,       rate: 0.02, delta: 1000 }, { m_upper: 40,       rate: 0.03, delta: 3000 }, { m_upper: 'Infinity', rate: 0.04, delta: 7000 } ] }, house_tax_rates: { self_use: 0.012, rental: 0.03, builder: 0.10 }, deed_rate: 0.06, futures_rate: 0.0002, options_rate: 0.001, }, versions: [], history: [], currentVersionId: null }; function snapshotData(){ return { params: clone(APP.params), meta: clone(APP.meta) }; } function makeId(prefix='id'){ return ${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}; } function save(){ APP.meta.updatedAt=nowTs(); localStorage.setItem(LS_KEY, JSON.stringify(APP)); } function load(){ const raw=localStorage.getItem(LS_KEY); if(!raw){ const vId=makeId('v'); APP.currentVersionId=vId; APP.versions.push({id:vId,label:'初始版本',createdAt:nowTs(),dataSnapshot:snapshotData()}); save(); return; } try{ const obj=JSON.parse(raw); Object.assign(APP,obj);}catch(e){ showToast('載入本地資料失敗，使用預設','error'); } } function createRestorePoint(reason='操作'){ const rp={id:makeId('rp'),reason,createdAt:nowTs(),snapshot:snapshotData()}; APP.history.unshift(rp); if(APP.history.length>200) APP.history.pop(); save(); showToast('已建立 Restore Point: '+reason); refreshHistoryTables(); } function restoreAsNewVersion(rpId){ const rp=APP.history.find(x=>x.id===rpId); if(!rp) return showToast('找不到 Restore Point','error'); const vId=makeId('v'); APP.versions.push({id:vId,label:'從RP還原 '+new Date(rp.createdAt).toLocaleString(),createdAt:nowTs(),dataSnapshot:clone(rp.snapshot)}); APP.currentVersionId=vId; APP.params=clone(rp.snapshot.params); save(); refreshKPI(); refreshHistoryTables(); showToast('已建立新版本並切換'); } function switchVersion(vId){ const v=APP.versions.find(x=>x.id===vId); if(!v) return showToast('版本不存在','error'); APP.currentVersionId=vId; APP.params=clone(v.dataSnapshot.params); save(); refreshKPI(); showToast('已切換版本: '+(v.label||vId)); } function commitVersion(label='手動版本'){ const vId=makeId('v'); APP.versions.push({id:vId,label,createdAt:nowTs(),dataSnapshot:snapshotData()}); APP.currentVersionId=vId; save(); refreshHistoryTables(); showToast('已建立新版本: '+label); } function exportBackup(){ const pack={ _kind:'tw_tax_suite_backup', _ts:nowTs(), appVersion:APP.meta.appVersion, formulaVersion:APP.meta.formulaVersion, currentVersionId:APP.currentVersionId, versions:APP.versions, history:APP.history, params:APP.params }; const blob=new Blob([JSON.stringify(pack,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=tw-tax-backup-${Date.now()}.json; a.click(); URL.revokeObjectURL(a.href); } function importBackup(obj){ if(!obj||obj.kind!=='tw_tax_suite_backup') throw new Error('備份格式錯誤'); createRestorePoint('匯入備份前'); const existingIds=new Set(APP.versions.map(v=>v.id).concat(APP.history.map(h=>h.id))); const remapId=id=> existingIds.has(id)? makeId(id.split('')[0]||'id'): id; if(Array.isArray(obj.versions)){ for(const v of obj.versions){ let nid=remapId(v.id); existingIds.add(nid); APP.versions.push({id:nid,label:(v.label||'匯入版本'),createdAt:v.createdAt||nowTs(),dataSnapshot:v.dataSnapshot}); } } if(Array.isArray(obj.history)){ for(const h of obj.history){ let nid=remapId(h.id); existingIds.add(nid); APP.history.push({id:nid,reason:(h.reason||'匯入'),createdAt:h.createdAt||nowTs(),snapshot:h.snapshot}); } } save(); refreshKPI(); refreshHistoryTables(); showToast('匯入完成（合併不覆蓋、ID 重編、維持目前版本）','ok'); }
+        // 簡單的 CSV 解析器，支援引號
+        parseCSV(text) {
+            // 註解：此解析器為簡化版，適用於離線工具。
+            // 若要處理複雜轉義，建議使用更強健的函式庫。
+            const lines = text.trim().split(/\r?\n/);
+            if (lines.length < 2) return [];
+            
+            const header = lines[0].split(',').map(h => h.trim());
+            const data = [];
 
-// ===== Helpers: render result + steps ===== function renderResultWithSteps(targetId, res){ const el=byId(targetId); if(!el) return; const json=esc(JSON.stringify(res,null,2)); let html = <pre class="mono">${json}</pre>; if(res._steps && res._steps.length){ html += <details><summary>展開步驟（${res._steps.length}）</summary><pre class="mono">${esc(res._steps.join(' '))}</pre></details>; } if(res._iter && res._iter.length){ const head = 'i	lo	hi	mid	f(mid)'; const lines = res._iter.map(r=>${r.i}	${Math.round(r.lo)}	${Math.round(r.hi)}	${Math.round(r.mid)}	${Math.round(r.fmid)}); html += <details><summary>迭代收斂（${res._iter.length} 步）</summary><pre class="mono">${esc([head].concat(lines).join(' '))}</pre></details>; } el.innerHTML = html; }
+            for (let i = 1; i < lines.length; i++) {
+                const row = {};
+                const values = lines[i].split(','); // 簡化版分割
+                header.forEach((key, index) => {
+                    row[key] = values[index] ? values[index].trim() : '';
+                });
+                data.push(row);
+            }
+            return data;
+        },
 
-// ===== Formulas (F1–F16) with step logs ===== function F1_VAT({mode,N,G,t_v}){ const steps=[]; const t=parseRate(t_v,{min:0,max:0.2}); steps.push([F1] 稅率 t_v=${t}); if(mode==='N_to_G'){ const n=parseMoney(N,{min:0}); steps.push(N=${n}); const raw = n*(1+t); steps.push(G_raw = N*(1+t) = ${n}*(1+${t}) = ${raw}); const g=R(raw); steps.push(G = R(G_raw) = ${g}); const T=R(g-n); steps.push(T = R(G-N) = ${g}-${n} = ${T}); return {N:n,G:g,T,t_v:t,R:getRounding(), _steps:steps}; } else if(mode==='G_to_N'){ const g=parseMoney(G,{min:0}); steps.push(G=${g}); const raw = g/(1+t); steps.push(N_raw = G/(1+t) = ${g}/(1+${t}) = ${raw}); const n=R(raw); steps.push(N = R(N_raw) = ${n}); const T=R(g-n); steps.push(T = R(G-N) = ${g}-${n} = ${T}); return {N:n,G:g,T,t_v:t,R:getRounding(), _steps:steps}; } throw new Error('VAT 模式錯誤'); } function F2_Withhold({mode,A,N,r_w,r_h,H}){ const steps=[]; const rw=parseRate(r_w,{min:0,max:0.3}); const rh=parseRate(r_h,{min:0,max:0.05}); const H0=Math.max(0,toNum(H)||0); steps.push([F2] 參數 rw=${rw}, rh=${rh}, H=${H0}); if(mode==='gross_to_net'){ const a=parseMoney(A,{min:0}); steps.push(A=${a}); const W=R(arw); steps.push(W = R(A*rw) = R(${a}*${rw}) = ${W}); const H$ = a>H0? R((a-H0)rh): 0; steps.push(H$ = ${a}>${H0}? R((A-H)*rh) : 0 = ${H$}); const n=R(a-W-H$); steps.push(N = R(A-W-H$) = R(${a}-${W}-${H$}) = ${n}); return {A:a,W,H$:H$,N:n,R:getRounding(),r_w:rw,r_h:rh,H:H0,_steps:steps}; } else if(mode==='net_to_gross'){ const n=parseMoney(N,{min:0}); steps.push(N=${n}); const A1=n/(1-rw); steps.push(試算 A1 = N/(1-rw) = ${n}/(1-${rw}) = ${A1}); if(A1<=H0){ const W=R(A1rw); steps.push(A1<=H → H$=0, W=R(A1*rw)=${W}); return {A:R(A1),W,H$:0,N:n,R:getRounding(),assumption:'A<=H',_steps:steps}; } const denom=1-rw-rh; if(denom<=0) throw new Error('參數不可解：1-rw-rh ≤ 0'); steps.push(A>H → 解 A：denom=1-rw-rh=${denom}); const A2=(n - rhH0)/denom; steps.push(A2=(N - rh*H)/denom = (${n} - ${rh}*${H0})/${denom} = ${A2}); const W=R(A2rw); steps.push(W=R(A2*rw) = ${W}); const H$=R((A2-H0)rh); steps.push(H$=R((A2-H)*rh) = ${H$}); return {A:R(A2),W,H$:H$,N:n,R:getRounding(),assumption:'A>H',_steps:steps}; } throw new Error('扣繳/健保 模式錯誤'); } function F3_CIF({P_fob,P_cfr,F,I,premium_hint_rate}){ const steps=[]; const f=Math.max(0,toNum(F)||0); const i_hint=Math.max(0,toNum(I)||0)||0; const ih=parseRate(premium_hint_rate,{min:0,max:0.1}); steps.push([F3] F=${f}, I_hint=${i_hint}, ι=${ih}); let FOB=null,CFR=null,CIF=null,Icalc=null; if(P_fob!==''&&P_fob!=null){ FOB=parseMoney(P_fob,{min:0}); steps.push(FOB=${FOB}); CFR=R(FOB+f); steps.push(CFR=R(FOB+F)=${CFR}); Icalc= i_hint>0? i_hint: R(CFRih); steps.push(I=${Icalc} (${i_hint>0?'手填':'R(CFR*ι)'})); CIF=R(CFR+Icalc); steps.push(CIF=R(CFR+I)=${CIF}); } else if(P_cfr!==''&&P_cfr!=null){ CFR=parseMoney(P_cfr,{min:0}); steps.push(CFR=${CFR}); FOB=R(CFR-f); if(FOB<0) FOB=0; steps.push(FOB=R(CFR-F)→${FOB}); Icalc= i_hint>0? i_hint: R(CFRih); steps.push(I=${Icalc}); CIF=R(CFR+Icalc); steps.push(CIF=${CIF}); } else { throw new Error('需提供 FOB 或 CFR 其一'); } return {FOB,CFR,I:Icalc,F:f,CIF,_steps:steps}; } function F4_Taxes({CIF,d,c,t_v,tau,health,promo_rate}){ const steps=[]; const cif=parseMoney(CIF,{min:0}); const dutyRate=parseRate(d,{min:0,max:1}); const excRate=parseRate(c,{min:0,max:1}); const vatRate=parseRate(t_v,{min:0,max:0.2}); const prRate=parseRate(promo_rate,{min:0,max:0.01}); const tau0=Math.max(0,toNum(tau)||0); const h0=Math.max(0,toNum(health)||0); steps.push([F4] CIF=${cif}, d=${dutyRate}, c=${excRate}, t_v=${vatRate}, τ=${tau0}, h=${h0}, p=${prRate}); const duty=R(cifdutyRate); steps.push(duty=R(CIF*d) = R(${cif}*${dutyRate}) = ${duty}); const exc=R((cif+duty)excRate); steps.push(exc=R((CIF+duty)*c) = R(${cif}+${duty})*${excRate} = ${exc}); const vat=R((cif+duty+exc+tau0+h0)vatRate); steps.push(vat=R((CIF+duty+exc+τ+h)*t_v) = ${vat}); const promo=R((cif+duty+exc)prRate); steps.push(promo=R((CIF+duty+exc)*p) = ${promo}); const totalTax=R(duty+exc+vat+tau0+h0+promo); steps.push(totalTax=R(sum)=${totalTax}); const landed=R(cif+totalTax); steps.push(landed=R(CIF+totalTax)=${landed}); return {duty,exc,vat,promo,tau:tau0,health:h0,totalTax,landed,_steps:steps}; } function F5_ReverseCIF({L,d,c,t_v,tau,health,promo_rate}){ const steps=[]; const iter=[]; const Ltarget=parseMoney(L,{min:0}); let lo=0, hi=Math.max(1,Ltarget); const maxIter=60, eps=1; const params={d,c,t_v,tau,health,promo_rate}; const f=(x)=> F4_Taxes({CIF:x,...params}).landed; while(f(hi)<Ltarget){ hi=2; if(hi>1e12) throw new Error('上界過大，參數異常'); } let mid, y; for(let i=1;i<=maxIter;i++){ mid=(lo+hi)/2; y=f(mid); iter.push({i,lo,hi,mid,fmid:y}); if(Math.abs(y-Ltarget)<=eps) break; if(y<Ltarget) lo=mid; else hi=mid; } const CIF=R(mid); const taxes=F4_Taxes({CIF,...params}); steps.push([F5] 目標 L=${Ltarget}, 收斂誤差≤${eps}, 迭代≤${maxIter}); return {CIF,...taxes,R:getRounding(),iter:≤${maxIter},tol:eps,_steps:steps,_iter:iter}; } function F7_HouseTax({B_h,usecase,house_tax_rates}){ const steps=[]; const base=parseMoney(B_h,{min:0}); const rate=house_tax_rates[usecase] ?? house_tax_rates.self_use; steps.push([F7] 稅率=${rate}); const tax=R(baserate); steps.push(tax=R(B_h*rate)=${tax}); return {tax,rate,_steps:steps}; } function F8_LandTax({V,T0,brackets}){ const steps=[]; const v=parseMoney(V,{min:0}); const t0=Math.max(0,toNum(T0)||0); if(v===0) return {tax:0,multiple:0,rate:0,delta:0,_steps:['V=0 → 稅額0']}; const m=v/(t0||1); steps.push([F8] 倍數 m=V/T0=${m}); let rate=0,delta=0; for(const b of brackets){ const mu=(b.m_upper==='Infinity'||b.m_upper===null)? Infinity: toNum(b.m_upper); if(m<=mu){ rate=b.rate; delta=b.delta; steps.push(落於 m≤${mu} → rate=${rate}, δ=${delta}); break; } } const tax=R(vrate - delta); steps.push(tax=R(V*rate-δ)=${tax}); return {tax,multiple:m,rate,delta,_steps:steps}; } function F9_Deed({B_d,r_d}){ const steps=[]; const base=parseMoney(B_d,{min:0}); const rate=parseRate(r_d,{min:0,max:1}); steps.push([F9] rate=${rate}); const tax=R(baserate); steps.push(tax=R(B_d*rate)=${tax}); return {tax,rate,_steps:steps}; } function F10_FutOpt({N_f,P_o,r_f,r_o}){ const steps=[]; const nf=Math.max(0,toNum(N_f)||0); const po=Math.max(0,toNum(P_o)||0); const rf=parseRate(r_f,{min:0,max:0.01}); const ro=parseRate(r_o,{min:0,max:0.01}); steps.push([F10] rf=${rf}, ro=${ro}); const futures=R(nfrf); steps.push(futures=R(N_f*rf)=${futures}); const options=R(poro); steps.push(options=R(P_o*ro)=${options}); return {futures,options,_steps:steps}; } function F11_Carbon({mode,e,fee,e0,a,unitPrice}){ const steps=[]; const e_0=Math.max(0,toNum(e0)||0); const adj=Math.max(0,toNum(a)||0); const price=Math.max(0,toNum(unitPrice)||0); steps.push([F11] e0=${e_0}, a=${adj}, price=${price}); if(mode==='forward'){ const E=Math.max(0,toNum(e)||0); const excess=Math.max(0,E-e_0); const F= excess>0? R(excessadjprice): 0; steps.push(E=${E}, excess=max(0,E-e0)=${excess}, Fee=${F}); return {fee:F,excess,R:getRounding(),_steps:steps}; } else { const Fee=Math.max(0,toNum(fee)||0); const E=R(Fee/(adjprice)+e_0); steps.push(給定 Fee=${Fee} → e=R(Fee/(a*price)+e0)=${E}); return {e:E,R:getRounding(),_steps:steps}; } } function findBracket(G,tbl){ for(const row of tbl){ const up = (row.upper==null)? Infinity : row.upper; if(G<=up){ return row; } } return tbl[tbl.length-1]; } function W_from_tbl(G,tbl){ for(const row of tbl){ const up = (row.upper==null)? Infinity : row.upper; if(G<=up){ return R(Grow.rate - (row.qd||0)); } } const last=tbl[tbl.length-1]; return R(Glast.rate - (last.qd||0)); } function F12_Salary({mode,G,N,tbl}){ const steps=[]; if(!tbl||!tbl.length) throw new Error('缺少級距表'); if(mode==='gross_to_net'){ const g=parseMoney(G,{min:0}); const b=findBracket(g,tbl); steps.push([F12] G=${g}, 命中 upper=${b.upper??'Infinity'}, rate=${b.rate}, qd=${b.qd||0}); const W=R(gb.rate - (b.qd||0)); steps.push(W=R(G*rate-qd)=${W}); const n=R(g-W); steps.push(N=R(G-W)=${n}); return {G:g,W,N:n,_steps:steps}; } else { const nTarget=parseMoney(N,{min:0}); steps.push([F12反推] 目標 N=${nTarget}); let lo=0, hi=Math.max(nTarget2,3000000), mid; const eps=1, maxIter=40; const iter=[]; for(let i=1;i<=maxIter;i++){ mid=(lo+hi)/2; const W=W_from_tbl(mid,tbl); const Nmid=R(mid-W); iter.push({i,lo,hi,mid,fmid:Nmid}); if(Math.abs(Nmid-nTarget)<=eps) break; if(Nmid<nTarget) lo=mid; else hi=mid; } const Gsol=R(mid); const Wsol=W_from_tbl(Gsol,tbl); steps.push(收斂於 G≈${Gsol}, W=${Wsol}); return {G:Gsol,W:Wsol,N:nTarget,iter:≤${maxIter},tol:eps,_steps:steps,_iter:iter}; } } function F13_PV({P,n,r_m}){ const steps=[]; const pay=parseMoney(P,{min:0}); const N=parseIntGE1(n); const rm=parseRate(r_m,{min:0,max:1}); steps.push([F13] P=${pay}, n=${N}, r_m=${rm}); const PV= rm===0? R(payN): R(pay * (1 - Math.pow(1+rm,-N))/rm); steps.push(PV=${PV}); return {PV,P:pay,n:N,r_m:rm,_steps:steps}; } function F14_IRR({P,n,PV}){ const steps=[]; const pay=parseMoney(P,{min:0}); const N=parseIntGE1(n); const pv=parseMoney(PV,{min:0}); const f=(r)=> pay*(1-Math.pow(1+r,-N))/r - pv; const df=(r)=>{ const a=Math.pow(1+r,-N); return pay * ((Na)/(r(1+r)) - (1-a)/(rr)); }; let r=0.02; const maxIter=60, tol=1e-8; const iter=[]; steps.push([F14] 牛頓法起始 r0=${r}); for(let i=1;i<=maxIter;i++){ const y=f(r),dy=df(r); if(!Number.isFinite(y)||!Number.isFinite(dy)||Math.abs(dy)<1e-12){ steps.push('牛頓失敗：導數過小/數值不穩'); break; } const r1=r - y/dy; iter.push({i,lo:NaN,hi:NaN,mid:r1,fmid:y}); if(r1<=-0.99||!Number.isFinite(r1)){ steps.push('牛頓發散/無效，改用二分法'); r1=r; break; } if(Math.abs(r1-r)<tol){ r=r1; steps.push(收斂 r=${r}); break; } r=r1; } if(r<=-0.99||!Number.isFinite(r)){ let lo=0,hi=1,mid,y; for(let i=1;i<=maxIter;i++){ mid=(lo+hi)/2; y=f(mid); iter.push({i,lo,hi,mid,fmid:y}); if(Math.abs(y)<tol) { r=mid; break; } if(y>0) lo=mid; else hi=mid; } steps.push('二分法完成'); } const r_m=(Math.round(r1e6)/1e6).toFixed(6); const r_a=(Math.round(r121e6)/1e6).toFixed(6); steps.push(r_m=${r_m}, r_a=${r_a}); return {r_m,r_a,_steps:steps,_iter:iter}; } function F15_Split({limit,list}){ const steps=[]; const L=Math.max(1,toNum(limit)||1000000); const arr=(list||[]).map(x=>toNum(x)).filter(v=>Number.isFinite(v)&&v>=0); const groups=[]; let bucket=0; let k=1; for(const s of arr){ if(s>L){ if(bucket>0){ groups.push(bucket); steps.push(組${k++}=${bucket}); bucket=0; } groups.push(s); steps.push(單筆>${L} → 組${k++}=${s}); continue; } if(bucket+s>L){ groups.push(bucket); steps.push(組${k++}=${bucket}); bucket=s; } else bucket+=s; } if(bucket>0){ groups.push(bucket); steps.push(組${k++}=${bucket});} const total=groups.reduce((a,b)=>a+b,0); return {groups,count:groups.length,total,limit:L,_steps:steps}; }
+        // 產生 CSV 內容並觸發下載
+        downloadCSV(filename, csvContent) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
 
-// ===== Panels toggle (no virtual render) ===== function showPanel(name){ $$('main [data-panel]').forEach(sec=> sec.hidden = (sec.getAttribute('data-panel')!==name)); }
+    // =============================
+    //      UI (TaxApp.ui)
+    // =============================
+    TaxApp.ui = {
+        showToast(message, type = 'error') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            if (type === 'success') {
+                toast.style.backgroundColor = 'var(--success-bg)';
+            }
+            toast.textContent = message;
+            container.appendChild(toast);
 
-// ===== UI helpers ===== function refreshKPI(){ $('#kpi_year') && ($('#kpi_year').textContent = APP.params.year); $('#kpi_vat') && ($('#kpi_vat').textContent = (APP.params.vat_rate100)+'%'); $('#kpi_nhi') && ($('#kpi_nhi').textContent = (APP.params.nhi_supp_rate1000).toFixed(1)+'‰'); const rEl=document.querySelector(input[name=rounding][value="${APP.params.rounding||'round0'}"]); if(rEl) rEl.checked=true; // salary table const tbody = byId('tbl_salary').querySelector('tbody'); tbody.innerHTML=''; APP.params.salary_brackets.forEach((r,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=<td style="text-align:left">${i+1}</td><td><input data-k="upper" data-idx="${i}" type="text" value="${r.upper==null?'Infinity':r.upper}"></td><td><input data-k="rate" data-idx="${i}" type="text" value="${r.rate}"></td><td><input data-k="qd" data-idx="${i}" type="number" value="${r.qd||0}"></td>; tbody.appendChild(tr); }); } function refreshHistoryTables(){ const vt=byId('ver_table').querySelector('tbody'); const rt=byId('rp_table').querySelector('tbody'); vt.innerHTML = APP.versions.map(v=><tr><td style="text-align:left">${v.label||v.id}</td><td>${new Date(v.createdAt).toLocaleString()}</td><td><button class="btn" data-action="ver-switch" data-id="${v.id}" type="button">切換</button></td></tr>).join('') || '<tr><td colspan="3">—</td></tr>'; rt.innerHTML = APP.history.map(h=><tr><td style="text-align:left">${h.reason||h.id}</td><td>${new Date(h.createdAt).toLocaleString()}</td><td><button class="btn" data-action="rp-restore" data-id="${h.id}" type="button">回滾→新版本</button></td></tr>).join('') || '<tr><td colspan="3">—</td></tr>'; }
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
 
-// ===== CSV parser (no fetch, offline) ===== function parseCSV(text){ const rows=[]; let row=[]; let i=0, q=false, field=''; while(i<text.length){ const c=text[i++]; if(q){ if(c==='"'){ if(text[i]==='"'){ field+='"'; i++; } else { q=false; } } else field+=c; } else { if(c==='"') q=true; else if(c===','){ row.push(field); field=''; } else if(c===' '){ row.push(field); rows.push(row); row=[]; field=''; } else if(c===' '){ /* ignore */ } else field+=c; } } if(field.length||row.length) { row.push(field); rows.push(row); } return rows; }
+            // Auto hide
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    container.removeChild(toast);
+                }, 500);
+            }, 5000);
+        },
+        
+        renderResult(containerId, result) {
+            const container = document.getElementById(containerId);
+            if (!result) {
+                container.innerHTML = '<p>計算出錯或無結果。</p>';
+                return;
+            }
 
-// ===== Event Delegation ===== document.addEventListener('click', (ev)=>{ const t = ev.target.closest('[data-action], .tab'); if(!t) return; if(t.classList.contains('tab')){ $$('.tab').forEach(b=>b.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); showPanel(t.dataset.tab); return; } const act=t.dataset.action; try{ switch(act){ case 'print': window.print(); break; case 'reset': if(confirm('清空本地所有資料？')){ localStorage.removeItem(LS_KEY); location.reload(); } break; case 'export-backup': exportBackup(); break; case 'create-restore': createRestorePoint('手動'); break; case 'run-tests': runSelfTests(); break; // VAT case 'vat-calc':{ const mode=document.querySelector('input[name=vat_mode]:checked').value; const N=$('input[name=vat_N]').value; const G=$('input[name=vat_G]').value; const t_v=$('input[name=vat_t]').value; const res=F1_VAT({mode,N,G,t_v}); renderResultWithSteps('vat_result',res); createRestorePoint('VAT 計算'); } break; case 'vat-batch-open':{ const sec=byId('vat_batch'); sec.hidden=!sec.hidden; } break; case 'vat-batch-run':{ const csv=byId('vat_batch_in').value.trim(); const rows=csv.split(/ ? /).filter(Boolean); const out=[]; if(rows.length){ out.push(['N','G','T','t_v','R'].join(',')); for(const line of rows.slice(1)){ const [N,G,tv]=line.split(','); try{ const r=F1_VAT({mode:(N&&N.trim()!=='')?'N_to_G':'G_to_N',N,G,t_v:tv||APP.params.vat_rate}); out.push([r.N,r.G,r.T,r.t_v,r.R].join(',')); }catch(e){ out.push(['ERR:'+e.message]); } } } byId('vat_batch_out').innerHTML='<pre>'+esc(out.join(' ')||'—')+'</pre>'; } break; case 'vat-batch-export':{ const txt=byId('vat_batch_out').innerText; const blob=new Blob([txt],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='vat_batch_result.csv'; a.click(); URL.revokeObjectURL(a.href); } break; // Withhold case 'wh-calc':{ const mode=document.querySelector('input[name=wh_mode]:checked').value; const q=n=> $(input[name=${n}]).value; const res=F2_Withhold({mode,A:q('wh_A'),N:q('wh_N'),r_w:q('wh_rw'),r_h:q('wh_rh'),H:q('wh_H')}); renderResultWithSteps('wh_result',res); createRestorePoint('扣繳/健保 計算'); } break; // Customs case 'cif-calc':{ const q=n=> $(input[name=${n}]).value; const res=F3_CIF({P_fob:q('cif_fob'),P_cfr:q('cif_cfr'),F:q('cif_F'),I:q('cif_I'),premium_hint_rate:q('cif_ih')}); renderResultWithSteps('cif_result',res); } break; case 'tx-calc':{ const q=n=> $(input[name=${n}]).value; const bonded=$('input[name=bonded]').checked; const fta=$('input[name=fta]').checked; const ftaRate=$('input[name=fta_rate]').value; let d=q('tx_d'); if(bonded) d='0'; else if(fta&&ftaRate) d=ftaRate; const res=F4_Taxes({CIF:q('tx_cif'),d,c:q('tx_c'),t_v:q('tx_tv'),tau:q('tx_tau'),health:q('tx_h'),promo_rate:q('tx_p')}); renderResultWithSteps('tx_result',res); createRestorePoint('海關稅負 計算'); } break; case 'tx-reverse':{ const q=n=> $(input[name=${n}]).value; const bonded=$('input[name=bonded]').checked; const fta=$('input[name=fta]').checked; const ftaRate=$('input[name=fta_rate]').value; let d=q('tx_d'); if(bonded) d='0'; else if(fta&&ftaRate) d=ftaRate; const res=F5_ReverseCIF({L:q('tx_L'),d,c:q('tx_c'),t_v:q('tx_tv'),tau:q('tx_tau'),health:q('tx_h'),promo_rate:q('tx_p')}); renderResultWithSteps('tx_result',res); createRestorePoint('海關 反推 CIF'); } break; // Locals case 'house-calc':{ const q=n=> $(input[name=${n}], select[name=${n}]).value; const res=F7_HouseTax({B_h:q('house_Bh'),usecase:q('house_use'),house_tax_rates:APP.params.house_tax_rates}); renderResultWithSteps('house_result',res); } break; case 'land-calc':{ const q=n=> $(input[name=${n}]).value; const landBr=(()=>{ try{ const j=JSON.parse(byId('land_tbl').innerText); return j; }catch(e){ return APP.params.land_tax.brackets; } })(); const res=F8_LandTax({V:q('land_V'),T0:q('land_T0'),brackets:landBr}); renderResultWithSteps('land_result',res); } break; case 'deed-calc':{ const q=n=> $(input[name=${n}]).value; const res=F9_Deed({B_d:q('deed_Bd'),r_d:q('deed_rd')}); renderResultWithSteps('deed_result',res); } break; case 'fo-calc':{ const q=n=> $(input[name=${n}]).value; const res=F10_FutOpt({N_f:q('fo_Nf'),P_o:q('fo_Po'),r_f:q('fo_rf'),r_o:q('fo_ro')}); renderResultWithSteps('fo_result',res); } break; case 'carbon-calc':{ const q=n=> $(input[name=${n}], select[name=${n}]).value; const res=F11_Carbon({mode:q('carbon_mode'),e:q('carbon_e'),fee:q('carbon_fee'),e0:q('carbon_e0'),a:q('carbon_a'),unitPrice:q('carbon_price')}); renderResultWithSteps('carbon_result',res); } break; // Salary case 'sal-calc':{ const mode=document.querySelector('input[name=sal_mode]:checked').value; const q=n=> $(input[name=${n}]).value; const res=F12_Salary({mode,G:q('sal_G'),N:q('sal_N'),tbl:APP.params.salary_brackets}); renderResultWithSteps('sal_result',res); } break; case 'sal-batch-open':{ const sec=byId('sal_batch'); sec.hidden=!sec.hidden; } break; case 'sal-batch-run':{ const csv=byId('sal_batch_in').value.trim(); const rows=csv.split(/ ? /).filter(Boolean); const out=[]; if(rows.length){ out.push(['G','W','N'].join(',')); for(const line of rows.slice(1)){ const [G,N]=line.split(','); try{ const mode=(G&&G.trim()!=='')?'gross_to_net':'net_to_gross'; const r=F12_Salary({mode,G,N,tbl:APP.params.salary_brackets}); out.push([r.G,r.W,r.N].join(',')); }catch(e){ out.push(['ERR:'+e.message]); } } } byId('sal_batch_out').innerHTML='<pre>'+esc(out.join(' ')||'—')+'</pre>'; } break; case 'sal-batch-export':{ const txt=byId('sal_batch_out').innerText; const blob=new Blob([txt],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='salary_batch_result.csv'; a.click(); URL.revokeObjectURL(a.href); } break; // IFRS case 'pv-calc':{ const q=n=> $(input[name=${n}]).value; const res=F13_PV({P:q('pv_P'),n:q('pv_n'),r_m:q('pv_rm')}); renderResultWithSteps('pv_result',res); } break; case 'irr-calc':{ const q=n=> $(input[name=${n}]).value; const res=F14_IRR({P:q('irr_P'),n:q('irr_n'),PV:q('irr_PV')}); renderResultWithSteps('irr_result',res); } break; // Transfer split case 'tr-calc':{ const L=$('input[name=tr_L]').value; const listStr=$('textarea[name=tr_list]').value; const list=listStr.split(/[ ,]+/).map(s=>s.trim()).filter(Boolean); const res=F15_Split({limit:L,list}); renderResultWithSteps('tr_result',res); } break; // Params & Versions case 'sal-row-add':{ APP.params.salary_brackets.push({upper:null,rate:0.05,qd:0}); refreshKPI(); } break; case 'sal-row-save':{ const rows=$$('#tbl_salary tbody tr'); const arr=[]; for(const tr of rows){ const upper=tr.querySelector('input[data-k=upper]').value.trim(); const up= (upper==='Infinity'||upper==='')? null : toNum(upper); const rate=parseRate(tr.querySelector('input[data-k=rate]').value,{min:0,max:1}); const qd=Math.max(0,toNum(tr.querySelector('input[data-k=qd]').value)||0); arr.push({upper:up,rate,qd}); } arr.sort((a,b)=> ((a.upper==null?Number.POSITIVE_INFINITY:a.upper) - (b.upper==null?Number.POSITIVE_INFINITY:b.upper)) ); APP.params.salary_brackets=arr; save(); showToast('級距表已更新','ok'); } break; case 'csv-map-parse':{ const text=byId('csv_map_in').value.trim(); if(!text) return showToast('請先貼上 CSV','warn'); const rows=parseCSV(text); const headers=rows[0]; const body=rows.slice(1).filter(r=>r.some(c=>String(c).trim()!=='') ); const sel=(id)=> byId(id); const fill=(id)=>{ const s=sel(id); s.innerHTML=headers.map((h,i)=><option value="${i}">${esc(h||('col'+i))}</option>).join(''); }; fill('map_upper'); fill('map_rate'); fill('map_qd'); byId('csv_map_ui').hidden=false; const preview=body.slice(0,5).map(r=>r.join(',')).join(' '); byId('csv_map_preview').innerHTML='<pre>'+esc(preview||'—')+'</pre>'; byId('csv_map_ui').dataset.rows=JSON.stringify(body); byId('csv_map_ui').dataset.headers=JSON.stringify(headers); } break; case 'csv-map-apply':{ const ui=byId('csv_map_ui'); const body=JSON.parse(ui.dataset.rows||'[]'); const headers=JSON.parse(ui.dataset.headers||'[]'); const iU=toNum(byId('map_upper').value), iR=toNum(byId('map_rate').value), iQ=toNum(byId('map_qd').value); const isPct=byId('map_rate_percent').checked; if([iU,iR,iQ].some(i=>!Number.isFinite(i))) return showToast('請完成欄位對應','warn'); const arr=[]; for(const r of body){ let upper=String(r[iU]).trim(); if(upper===''||upper.toLowerCase()==='infinity'||upper==='∞') upper=null; else upper=toNum(upper); let rateRaw=String(r[iR]).trim(); if(isPct && !rateRaw.endsWith('%') && toNum(rateRaw)>1) rateRaw+= '%'; const rate=parseRate(rateRaw,{min:0,max:1}); const qd=Math.max(0,toNum(r[iQ])||0); arr.push({upper,rate,qd}); } arr.sort((a,b)=> ((a.upper==null?Number.POSITIVE_INFINITY:a.upper) - (b.upper==null?Number.POSITIVE_INFINITY:b.upper)) ); APP.params.salary_brackets=arr; save(); refreshKPI(); createRestorePoint('CSV 匯入級距'); showToast('已匯入 CSV 級距','ok'); } break; case 'params-save':{ const q=n=> $(input[name=${n}]).value; APP.params.vat_rate=parseRate(q('p_vat'),{min:0,max:0.2}); APP.params.nhi_supp_rate=parseRate(q('p_nhi'),{min:0,max:0.05}); APP.params.nhi_threshold=Math.max(0,toNum(q('p_H'))||0); APP.params.premium_hint_rate=parseRate(q('p_ih'),{min:0,max:0.1}); APP.params.promo_rate=parseRate(q('p_pr'),{min:0,max:0.01}); APP.params.carbon_unit_price=Math.max(0,toNum(q('p_cu'))||0); APP.params.carbon_threshold_ton=Math.max(0,toNum(q('p_ce0'))||0); APP.params.carbon_adjust=Math.max(0,toNum(q('p_ca'))||0); try{ const land=JSON.parse(byId('land_tbl').innerText); APP.params.land_tax.T0=Math.max(0,toNum(q('p_T0'))||0); APP.params.land_tax.brackets=land; }catch(e){ showToast('地價稅級距 JSON 解析失敗','error'); return; } APP.params.rounding=getRounding(); save(); createRestorePoint('更新參數'); refreshKPI(); showToast('參數已儲存','ok'); } break; case 'version-commit':{ const label=prompt('版本名稱：','參數快照 '+new Date().toLocaleString()); if(label) commitVersion(label); } break; case 'ver-switch': switchVersion(t.dataset.id); break; case 'rp-restore': restoreAsNewVersion(t.dataset.id); break; } }catch(e){ showToast(e.message||String(e),'error'); } });
+            let html = `
+                <div class="result-block">
+                    <div class="result-final">${result.final.label}: ${TaxApp.utils.formatNumber(result.final.value)}</div>
+                    ${result.final.sub ? `<p>${result.final.sub}</p>` : ''}
+                </div>
+            `;
 
-// File input byId('importFile').addEventListener('change', (ev)=>{ const f=ev.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ importBackup(JSON.parse(fr.result)); }catch(e){ showToast('匯入失敗: '+e.message,'error'); } finally{ ev.target.value=''; } }; fr.readAsText(f); });
+            if (result.steps) {
+                html += `
+                    <details open>
+                        <summary>展開計算步驟</summary>
+                        <div class="steps">${result.steps}</div>
+                    </details>
+                `;
+            }
 
-// ===== Tests ===== function approx(a,b,tol){ return Math.abs(a-b) <= (tol||1); } function runSelfTests(){ const out=[]; try{ // 1) VAT let r=F1_VAT({mode:'N_to_G',N:1000,t_v:0.05}); out.push([VAT] N=1000,t=5% → G=${r.G},T=${r.T} ${r.G===1050&&r.T===50?'PASS':'FAIL'}); // 2) 扣繳+健保 r=F2_Withhold({mode:'gross_to_net',A:50000,r_w:0.05,r_h:0.0211,H:20000}); out.push([Withhold] A=50000 → N=${r.N} (W=${r.W},H$=${r.H$}) ${r.N===46867?'PASS':'CHECK'}); // 3) 海關反推 let f4=F4_Taxes({CIF:1000,d:0.1,c:0,t_v:0.05,tau:0,health:0,promo_rate:0}); let f5=F5_ReverseCIF({L:f4.landed,d:0.1,c:0,t_v:0.05,tau:0,health:0,promo_rate:0}); out.push([Customs] CIF=1000 → L=${f4.landed}，反推→CIF=${f5.CIF} ${approx(f5.CIF,1000)?'PASS':'CHECK'}); // 4) 薪資正算 r=F12_Salary({mode:'gross_to_net',G:80000,tbl:APP.params.salary_brackets}); out.push([Salary] G=80000 → W=${r.W},N=${r.N} ${(r.W===6100&&r.N===73900)?'PASS':'CHECK'}); // 5) 薪資反推 r=F12_Salary({mode:'net_to_gross',N:73900,tbl:APP.params.salary_brackets}); out.push([Salary rev] N=73900 → G≈${r.G} ${approx(r.G,80000)?'PASS':'CHECK'}); // 6) PV r=F13_PV({P:10000,n:12,r_m:0.01}); out.push([PV] P=10000,n=12,r=1% → PV=${r.PV}); // 7) IRR const pv=F13_PV({P:10000,n:36,r_m:0.02}).PV; r=F14_IRR({P:10000,n:36,PV:pv}); out.push([IRR] 由 PV 反推 → r_m=${r.r_m} (≈0.020000) ${Math.abs(parseFloat(r.r_m)-0.02)<1e-4?'PASS':'CHECK'}); }catch(e){ out.push('測試執行錯誤: '+(e.message||e)); } byId('test_result').innerHTML = '<pre>'+esc(out.join(' '))+'</pre>'; showToast('內建測試完成','ok'); }
+            if (result.iterationTable) {
+                 html += `
+                    <details open>
+                        <summary>迭代收斂表</summary>
+                        <div class="iteration-table">
+                            <table>
+                                <thead><tr>${result.iterationTable.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                                <tbody>
+                                    ${result.iterationTable.rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                `;
+            }
+            container.innerHTML = html;
+        },
+        
+        renderInitialView() {
+            // 載入參數到 UI
+            document.getElementById('param-vat-rate').value = TaxApp.state.params.vatRate * 100 + '%';
+            document.getElementById('param-nhi-rate').value = TaxApp.state.params.nhiRate * 100 + '%';
+            document.getElementById('param-nhi-threshold').value = TaxApp.state.params.nhiThreshold;
+            
+            // 預填部分欄位
+            document.getElementById('wh-nhi-rate').value = TaxApp.state.params.nhiRate * 100 + '%';
+            document.getElementById('wh-nhi-threshold').value = TaxApp.state.params.nhiThreshold;
 
-// Init load(); refreshKPI(); refreshHistoryTables(); showPanel('vat'); })(); </script>
+            this.renderSalaryBrackets();
+            this.renderHistory();
+        },
+        
+        renderSalaryBrackets() {
+            const tbody = document.querySelector('#salary-brackets-table tbody');
+            tbody.innerHTML = '';
+            TaxApp.state.params.salaryBrackets.forEach((bracket, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="number" value="${isFinite(bracket.upper) ? bracket.upper : ''}" placeholder="Infinity" data-index="${index}" data-field="upper"></td>
+                    <td><input type="number" value="${bracket.rate * 100}" data-index="${index}" data-field="rate"></td>
+                    <td><input type="number" value="${bracket.qd}" data-index="${index}" data-field="qd"></td>
+                    <td class="action-cell"><button type="button" data-action="removeSalaryBracket" data-index="${index}">-</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        },
+        
+        renderHistory() {
+            const versionsList = document.getElementById('versions-list');
+            versionsList.innerHTML = '<h4>可用版本</h4>';
+            if (TaxApp.state.versions.length === 0) {
+                versionsList.innerHTML += '<p>尚無已儲存的版本。</p>';
+            } else {
+                TaxApp.state.versions.forEach(v => {
+                    versionsList.innerHTML += `
+                        <div style="border-bottom: 1px solid #eee; padding: 0.5rem 0;">
+                            <strong>${v.name}</strong> <small>(${new Date(v.timestamp).toLocaleString()})</small>
+                            <button type="button" data-action="loadVersion" data-id="${v.id}">載入</button>
+                            <button type="button" data-action="deleteVersion" data-id="${v.id}">刪除</button>
+                        </div>
+                    `;
+                });
+            }
 
+            const rpList = document.getElementById('restore-points-list');
+            rpList.innerHTML = '<h4>還原點列表 (最新 20 筆)</h4>';
+             if (TaxApp.state.restorePoints.length === 0) {
+                rpList.innerHTML += '<p>尚無還原點。</p>';
+            } else {
+                TaxApp.state.restorePoints.forEach(rp => {
+                    rpList.innerHTML += `
+                        <div style="border-bottom: 1px solid #eee; padding: 0.5rem 0;">
+                            ${rp.name}
+                            <button type="button" data-action="rollback" data-id="${rp.id}">回滾至此</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+    };
+    
+    // ==================================
+    // CALCULATIONS (TaxApp.calculations)
+    // ==================================
+    TaxApp.calculations = {
+        vat({ mode, amount, rate }) {
+            let n, g, t;
+            let steps = `使用參數:\n  模式 = ${mode}\n  金額 = ${amount}\n  稅率 = ${rate * 100}%\n`;
+
+            if (mode === 'NtoG') {
+                n = amount;
+                t = TaxApp.utils.round(n * rate);
+                g = n + t;
+                steps += `1. 計算稅額 (T): ${n} * ${rate} = ${n * rate} → (取整) → ${t}\n`;
+                steps += `2. 計算含稅額 (G): ${n} + ${t} = ${g}`;
+                return { final: { label: '含稅額 (G)', value: g, sub: `未稅額 (N) = ${n}, 稅額 (T) = ${t}` }, steps };
+            } else { // GtoN
+                g = amount;
+                // G = N + round(N * r)  =>  G approx N * (1+r)  => N approx G / (1+r)
+                n = TaxApp.utils.round(g / (1 + rate));
+                t = g - n;
+                steps += `1. 推算未稅額 (N): ${g} / (1 + ${rate}) = ${g / (1 + rate)} → (取整) → ${n}\n`;
+                steps += `2. 計算稅額 (T): ${g} - ${n} = ${t}\n`;
+                steps += `3. 驗證: ${n} + round(${n}*${rate}) = ${n} + ${TaxApp.utils.round(n*rate)} = ${n + TaxApp.utils.round(n*rate)} (應接近 ${g})`;
+                return { final: { label: '未稅額 (N)', value: n, sub: `含稅額 (G) = ${g}, 稅額 (T) = ${t}` }, steps };
+            }
+        },
+
+        withholding({ mode, amount, r_w, r_h, H }) {
+            let a, n, t, h;
+            let steps = `使用參數:\n  扣繳率 r_w = ${r_w*100}%\n  健保率 r_h = ${r_h*100}%\n  門檻 H = ${H}\n`;
+            
+            if (mode === 'AtoN') {
+                a = amount;
+                t = TaxApp.utils.round(a * r_w);
+                h = a > H ? TaxApp.utils.round(a * r_h) : 0;
+                n = a - t - h;
+                steps += `1. 計算扣繳稅額 (T): ${a} * ${r_w} = ${a*r_w} → ${t}\n`;
+                steps += `2. 判斷健保補充保費: ${a} ${a > H ? '>' : '<='} ${H}\n`;
+                steps += `3. 計算健保補充保費 (H_fee): ${a > H ? `${a} * ${r_h} = ${a*r_h} → ${h}` : '0'}\n`;
+                steps += `4. 計算淨額 (N): ${a} - ${t} - ${h} = ${n}`;
+                return { final: { label: '實付淨額 (N)', value: n }, steps };
+            } else { // NtoA
+                n = amount;
+                // N = A - round(A*r_w) - (A > H ? round(A*r_h) : 0)
+                // 這是反推，需要解方程。我們先假設一個解
+                // Case 1: A <= H (無健保費)
+                // N approx A * (1 - r_w) => A approx N / (1 - r_w)
+                let a_candidate1 = n / (1 - r_w);
+                steps += `反推計算 (N → A):\n`;
+                steps += `情況 1: 假設給付總額 A ≤ ${H} (無補充保費)\n`;
+                steps += `  A ≈ N / (1 - r_w) = ${n} / (1 - ${r_w}) = ${a_candidate1.toFixed(2)}\n`;
+                if (a_candidate1 <= H) {
+                    a = TaxApp.utils.round(n / (1 - r_w));
+                    t = TaxApp.utils.round(a * r_w);
+                    h = 0;
+                    steps += `  候選解 A = ${a_candidate1.toFixed(2)} ≤ ${H}，假設成立。\n`;
+                    steps += `  重新計算 A = round(N / (1-r_w)) = ${a}\n`;
+                    steps += `  驗證: A - round(A*r_w) = ${a} - ${t} = ${a-t} (應接近 ${n})`;
+                    return { final: { label: '給付總額 (A)', value: a }, steps };
+                }
+                
+                // Case 2: A > H (有健保費)
+                steps += `  候選解 A = ${a_candidate1.toFixed(2)} > ${H}，假設不成立。\n`;
+                steps += `情況 2: 假設給付總額 A > ${H} (有補充保費)\n`;
+                 // N approx A * (1 - r_w - r_h) => A approx N / (1 - r_w - r_h)
+                let a_candidate2 = n / (1 - r_w - r_h);
+                steps += `  A ≈ N / (1 - r_w - r_h) = ${n} / (1 - ${r_w} - ${r_h}) = ${a_candidate2.toFixed(2)}\n`;
+                 if (a_candidate2 <= H) {
+                    steps += `  候選解 A = ${a_candidate2.toFixed(2)} ≤ ${H}，與假設矛盾。可能無解或在邊界。\n`;
+                    return { final: { label: '計算矛盾', value: 'N/A' }, steps };
+                 }
+                 a = TaxApp.utils.round(n / (1 - r_w - r_h));
+                 t = TaxApp.utils.round(a * r_w);
+                 h = TaxApp.utils.round(a * r_h);
+                 steps += `  重新計算 A = round(N / (1-r_w-r_h)) = ${a}\n`;
+                 steps += `  驗證: A - round(A*r_w) - round(A*r_h) = ${a} - ${t} - ${h} = ${a-t-h} (應接近 ${n})`;
+                 return { final: { label: '給付總額 (A)', value: a }, steps };
+            }
+        },
+        
+        landedCost({ cif, rates, isBonded }) {
+            let steps = `完稅價格 (CIF) = ${TaxApp.utils.formatNumber(cif)}\n\n`;
+            let current_base = cif;
+            
+            let duty = isBonded ? 0 : TaxApp.utils.round(current_base * rates.duty);
+            steps += `1. 關稅 (Duty) = ${isBonded ? '0 (保稅/FTA)' : `${cif} * ${rates.duty*100}% = ${TaxApp.utils.formatNumber(duty)}`}\n`;
+            current_base += duty;
+            
+            let excise = TaxApp.utils.round(current_base * rates.excise);
+            steps += `2. 貨物稅 (Excise) = (${cif} + ${duty}) * ${rates.excise*100}% = ${TaxApp.utils.formatNumber(excise)}\n`;
+            current_base += excise;
+            
+            let vat = TaxApp.utils.round(current_base * rates.vat);
+            steps += `3. 營業稅 (VAT) = (${cif} + ${duty} + ${excise}) * ${rates.vat*100}% = ${TaxApp.utils.formatNumber(vat)}\n`;
+            current_base += vat;
+            
+            steps += `4. 固定稅 (Fixed) = ${TaxApp.utils.formatNumber(rates.fixed)}\n`;
+            current_base += rates.fixed;
+            
+            steps += `5. 健康捐 (Health) = ${TaxApp.utils.formatNumber(rates.health)}\n`;
+            current_base += rates.health;
+
+            //推廣費以 CIF 為基礎
+            let promotion = TaxApp.utils.round(cif * rates.promotion);
+            steps += `6. 推廣費 (Promotion) = ${cif} * ${rates.promotion*100}% = ${TaxApp.utils.formatNumber(promotion)}\n`;
+            current_base += promotion;
+
+            const landed = cif + duty + excise + vat + rates.fixed + rates.health + promotion;
+            steps += `\n總成本 (Landed Cost) = CIF + 各項稅費 = ${TaxApp.utils.formatNumber(landed)}`;
+
+            return {
+                final: { label: '進口總成本', value: landed },
+                steps
+            };
+        },
+        
+        reverseLandedCost({ targetLanded, rates, isBonded }) {
+            const f = (cif) => this.landedCost({ cif, rates, isBonded }).final.value;
+            let low = 0;
+            let high = targetLanded; // CIF 不會比總成本高
+            let steps = `目標總成本 L = ${TaxApp.utils.formatNumber(targetLanded)}\n採用二分法求解 CIF...\n`;
+            const iterationTable = { headers: ['次數', 'Low CIF', 'High CIF', 'Mid CIF', '計算成本', '差異'], rows: [] };
+            
+            for (let i=0; i < 100; i++) {
+                let mid = (low + high) / 2;
+                if (mid <= 0) break;
+                let calculatedLanded = f(mid);
+                let diff = calculatedLanded - targetLanded;
+                
+                iterationTable.rows.push([
+                    i + 1, 
+                    mid === 0 ? '0' : TaxApp.utils.formatNumber(low.toFixed(4)),
+                    TaxApp.utils.formatNumber(high.toFixed(4)),
+                    TaxApp.utils.formatNumber(mid.toFixed(4)),
+                    TaxApp.utils.formatNumber(calculatedLanded.toFixed(4)),
+                    diff.toFixed(4)
+                ]);
+
+                if (Math.abs(diff) < 0.01) {
+                    steps += `\n收斂成功！`;
+                    return {
+                        final: { label: '反推 CIF', value: mid },
+                        steps,
+                        iterationTable
+                    };
+                }
+                
+                if (diff > 0) {
+                    high = mid;
+                } else {
+                    low = mid;
+                }
+            }
+            steps += `\n計算超過 100 次迭代仍未收斂，可能無解。`;
+            return {
+                final: { label: '無法收斂', value: 'N/A' },
+                steps,
+                iterationTable
+            };
+        },
+        
+        salaryTax({ mode, amount, brackets }) {
+            const sortedBrackets = [...brackets].sort((a,b) => a.upper - b.upper);
+            
+            const calculateTax = (gross) => {
+                const bracket = sortedBrackets.find(b => gross <= b.upper);
+                if (!bracket) return { tax: -1, net: -1 }; // Should not happen with Infinity
+                
+                const tax = TaxApp.utils.round(gross * bracket.rate) - bracket.qd;
+                const net = gross - tax;
+                return { gross, tax, net, bracket };
+            };
+            
+            if (mode === 'GtoN') {
+                const result = calculateTax(amount);
+                let steps = `毛薪 (G) = ${TaxApp.utils.formatNumber(amount)}\n`;
+                steps += `1. 查找適用級距: ${amount} <= ${result.bracket.upper}, 適用稅率 ${result.bracket.rate*100}%, 速算扣除數 ${result.bracket.qd}\n`;
+                steps += `2. 計算預扣稅額 (T): ${amount} * ${result.bracket.rate} - ${result.bracket.qd} = ${amount * result.bracket.rate - result.bracket.qd} → ${result.tax}\n`;
+                steps += `3. 計算淨薪 (N): ${amount} - ${result.tax} = ${result.net}`;
+                return { final: { label: '實領淨薪 (N)', value: result.net }, steps };
+            } else { // NtoG
+                const targetNet = amount;
+                // 使用二分法反推
+                let low = targetNet; // 毛薪至少是淨薪
+                let high = targetNet * 2; // 初始猜測上限
+                const iterationTable = { headers: ['次數', 'Low G', 'High G', 'Mid G', '計算淨薪 N', '差異'], rows: [] };
+                let finalGross = -1;
+                
+                for(let i=0; i < 100; i++) {
+                    let midGross = (low + high) / 2;
+                    let { net: calculatedNet } = calculateTax(midGross);
+                    let diff = calculatedNet - targetNet;
+
+                    iterationTable.rows.push([
+                        i + 1,
+                        TaxApp.utils.formatNumber(low.toFixed(2)),
+                        TaxApp.utils.formatNumber(high.toFixed(2)),
+                        TaxApp.utils.formatNumber(midGross.toFixed(2)),
+                        TaxApp.utils.formatNumber(calculatedNet.toFixed(2)),
+                        diff.toFixed(2)
+                    ]);
+                    
+                    if (Math.abs(diff) < 0.5) { // 允許 0.5 元誤差
+                        finalGross = midGross;
+                        break;
+                    }
+                    
+                    if (diff > 0) {
+                        high = midGross;
+                    } else {
+                        low = midGross;
+                    }
+                     // 如果 G > N 關係不成立，擴大搜索範圍
+                    if (low >= high) {
+                        high *= 2;
+                    }
+                }
+                
+                if (finalGross !== -1) {
+                    return {
+                        final: { label: '反推毛薪 (G)', value: finalGross },
+                        steps: `從目標淨薪 ${TaxApp.utils.formatNumber(targetNet)} 反推毛薪。`,
+                        iterationTable
+                    };
+                } else {
+                    return {
+                        final: { label: '無法收斂', value: 'N/A' },
+                        steps: `無法從目標淨薪 ${TaxApp.utils.formatNumber(targetNet)} 反推毛薪。`,
+                        iterationTable
+                    }
+                }
+            }
+        },
+
+        presentValue({ payment, periods, rate }) {
+            if (rate <= 0) return { final: { label: '錯誤', value: '利率需>0'}, steps: '月利率不可為0或負數'};
+            const pv = payment * (1 - Math.pow(1 + rate, -periods)) / rate;
+            let steps = `年金現值公式: PV = P * [1 - (1 + r)^-n] / r\n`;
+            steps += `PV = ${payment} * [1 - (1 + ${rate})^-${periods}] / ${rate}\n`;
+            steps += `PV = ${payment} * [1 - ${Math.pow(1 + rate, -periods).toFixed(6)}] / ${rate}\n`;
+            steps += `PV = ${pv.toFixed(2)}`;
+            return { final: { label: '年金現值 (PV)', value: pv }, steps };
+        },
+        
+        irr({ pv, payment, periods }) {
+            // IRR: P * [1 - (1 + r)^-n] / r - PV = 0
+            const f = (r) => payment * (1 - Math.pow(1 + r, -periods)) / r - pv;
+            
+            let low = 0.00001;
+            let high = 1.0;
+            const iterationTable = { headers: ['次數', 'Rate (r)', 'f(r)'], rows: [] };
+            
+            for (let i=0; i < 100; i++) {
+                let mid = (low + high) / 2;
+                let f_mid = f(mid);
+                
+                iterationTable.rows.push([ i+1, mid.toFixed(6), f_mid.toFixed(4) ]);
+                
+                if (Math.abs(f_mid) < 0.01) {
+                    const annualIRR = (Math.pow(1 + mid, 12) - 1) * 100;
+                    return {
+                        final: { label: '月利率 (r_m)', value: mid * 100, sub: `年化 IRR: ${annualIRR.toFixed(4)}%` },
+                        steps: '使用二分法求解內部報酬率 (月)。',
+                        iterationTable
+                    };
+                }
+                
+                if (f(low) * f_mid < 0) {
+                    high = mid;
+                } else {
+                    low = mid;
+                }
+            }
+            return { final: { label: '無法收斂', value: 'N/A' }, steps: 'IRR 計算未能在 100 次迭代內收斂。' };
+        },
+
+        splitTransactions({ limit, amounts }) {
+            let groups = [];
+            let currentGroup = { items: [], sum: 0 };
+            let steps = `轉帳上限: ${TaxApp.utils.formatNumber(limit)}\n\n`;
+
+            amounts.forEach((amount, index) => {
+                steps += `處理第 ${index + 1} 筆金額: ${TaxApp.utils.formatNumber(amount)}\n`;
+                if (amount > limit) {
+                    steps += `  - 金額 ${TaxApp.utils.formatNumber(amount)} 超過上限，獨立成組 (警告)\n`;
+                    if (currentGroup.sum > 0) groups.push(currentGroup);
+                    groups.push({ items: [amount], sum: amount });
+                    currentGroup = { items: [], sum: 0 };
+                } else if (currentGroup.sum + amount > limit) {
+                    steps += `  - 目前組總和 ${TaxApp.utils.formatNumber(currentGroup.sum)} + ${TaxApp.utils.formatNumber(amount)} > ${TaxApp.utils.formatNumber(limit)}，結束此組\n`;
+                    groups.push(currentGroup);
+                    steps += `  - 建立新組，放入 ${TaxApp.utils.formatNumber(amount)}\n`;
+                    currentGroup = { items: [amount], sum: amount };
+                } else {
+                    currentGroup.items.push(amount);
+                    currentGroup.sum += amount;
+                    steps += `  - 加入目前組，新總和為 ${TaxApp.utils.formatNumber(currentGroup.sum)}\n`;
+                }
+            });
+            
+            if (currentGroup.sum > 0) {
+                groups.push(currentGroup);
+            }
+            steps += `\n處理完畢。`;
+
+            let summary = groups.map((g, i) => `第 ${i+1} 組: [${g.items.map(TaxApp.utils.formatNumber).join(', ')}]，總計: ${TaxApp.utils.formatNumber(g.sum)}`).join('\n');
+            
+            return {
+                final: { label: '分拆結果', value: `${groups.length} 組`, sub: summary },
+                steps
+            };
+        }
+    };
+    
+    // =============================
+    //      EVENTS (TaxApp.events)
+    // =============================
+    TaxApp.events = {
+        setup() {
+            // 註解：使用事件委派，將監聽器綁定在父容器，處理動態新增元素的事件。
+            const mainContent = document.getElementById('main-content');
+            
+            document.querySelector('.tabs').addEventListener('click', this.handleTabClick);
+            document.querySelector('.toolbar').addEventListener('click', this.handleToolbarClick);
+            document.getElementById('import-file-input').addEventListener('change', this.handleImportFile);
+            mainContent.addEventListener('click', this.handleMainContentClick);
+            mainContent.addEventListener('change', this.handleMainContentChange);
+            document.getElementById('csv-paste-area').addEventListener('paste', this.handleCsvPaste);
+        },
+
+        handleTabClick(e) {
+            if (!e.target.matches('.tab-link')) return;
+            document.querySelectorAll('.tab-link').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            e.target.classList.add('active');
+            document.getElementById(e.target.dataset.tab + '-tab').classList.add('active');
+        },
+        
+        handleToolbarClick(e) {
+            const action = e.target.dataset.action;
+            if (!action) return;
+
+            switch (action) {
+                case 'createRestorePoint':
+                    TaxApp.createRestorePoint(prompt("請輸入還原點名稱（可選）"));
+                    break;
+                case 'exportBackup':
+                    const json = JSON.stringify(TaxApp.state, null, 2);
+                    const blob = new Blob([json], {type: 'application/json'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `tax-tool-backup-${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    TaxApp.ui.showToast('備份已匯出', 'success');
+                    break;
+                case 'runTests':
+                    alert("內建測試功能待實現。");
+                    break;
+                case 'print':
+                    window.print();
+                    break;
+                case 'resetApp':
+                    if (confirm("警告：這將清除所有本地儲存的資料，包括參數、版本和還原點。確定要重置嗎？")) {
+                        localStorage.removeItem('taxApp_state');
+                        window.location.reload();
+                    }
+                    break;
+            }
+        },
+        
+        handleImportFile(e) {
+             const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedState = JSON.parse(event.target.result);
+                    // 簡單合併邏輯：不覆蓋，只新增
+                    // 這裡可以設計更複雜的合併策略
+                    if (importedState.params) TaxApp.state.params = importedState.params;
+                    if (importedState.versions) TaxApp.state.versions = [...TaxApp.state.versions, ...importedState.versions];
+                    
+                    TaxApp.saveState();
+                    TaxApp.ui.renderInitialView();
+                    TaxApp.ui.showToast("備份匯入成功！", "success");
+                } catch (err) {
+                    TaxApp.ui.showToast("匯入失敗：無效的 JSON 檔案。");
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+        },
+
+        handleMainContentClick(e) {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const { action, id, index } = target.dataset;
+            TaxApp.createRestorePoint(`執行操作 [${action}] 之前`);
+
+            try {
+                switch(action) {
+                    case 'calculateVat':
+                        {
+                            const mode = document.getElementById('vat-mode').value;
+                            const amount = parseFloat(document.getElementById('vat-amount').value);
+                            const rate = TaxApp.utils.parseRate(document.getElementById('vat-rate').value);
+                            if (isNaN(amount) || isNaN(rate)) throw new Error("請輸入有效的金額和稅率。");
+                            const result = TaxApp.calculations.vat({ mode, amount, rate });
+                            TaxApp.ui.renderResult('vat-result', result);
+                        }
+                        break;
+                    case 'calculateVatCsv':
+                        {
+                            const csvText = document.getElementById('vat-csv').value;
+                            const data = TaxApp.utils.parseCSV(csvText);
+                            const rate = TaxApp.utils.parseRate(document.getElementById('vat-rate').value);
+                            if (data.length === 0) throw new Error("無效的 CSV 資料。");
+                            
+                            const amountKey = Object.keys(data[0])[1]; // Assume second column is amount
+                            let resultCsv = "ID,OriginalAmount,Mode,CalculatedAmount,Tax,TotalAmount\n";
+                            data.forEach(row => {
+                                const amount = parseFloat(row[amountKey]);
+                                if(isNaN(amount)) return;
+                                const result = TaxApp.calculations.vat({ mode: 'NtoG', amount, rate });
+                                resultCsv += `${row[Object.keys(row)[0]]},${amount},NtoG,${result.final.value},${result.final.value - amount},${result.final.value}\n`;
+                            });
+                            TaxApp.utils.downloadCSV('vat_batch_result.csv', resultCsv);
+                        }
+                        break;
+                    case 'calculateWithholding':
+                        {
+                            const mode = document.getElementById('wh-mode').value;
+                            const amount = parseFloat(document.getElementById('wh-amount').value);
+                            const r_w = TaxApp.utils.parseRate(document.getElementById('wh-tax-rate').value);
+                            const r_h = TaxApp.utils.parseRate(document.getElementById('wh-nhi-rate').value);
+                            const H = parseFloat(document.getElementById('wh-nhi-threshold').value);
+                            if (isNaN(amount) || isNaN(r_w)) throw new Error("請輸入有效的金額和扣繳率。");
+                            
+                            const result = TaxApp.calculations.withholding({ mode, amount, r_w, r_h, H });
+                            TaxApp.ui.renderResult('wh-result', result);
+                        }
+                        break;
+                    case 'calculateCif':
+                        {
+                           const fob = parseFloat(document.getElementById('cif-fob').value) || 0;
+                           const freight = parseFloat(document.getElementById('cif-freight').value) || 0;
+                           let insurance = parseFloat(document.getElementById('cif-insurance').value);
+                           let steps = `FOB = ${fob}, Freight = ${freight}\n`;
+                           if (isNaN(insurance)) {
+                               // 依提示率估算保費，此處簡化
+                               insurance = TaxApp.utils.round((fob + freight) * 0.005); // 假設
+                               steps += `保險費 (I) 未填，估算為 (FOB+F)*0.5% = ${insurance}\n`
+                           }
+                           const cif = fob + freight + insurance;
+                           steps += `CIF = FOB + F + I = ${fob} + ${freight} + ${insurance} = ${cif}`;
+                           const result = { final: { label: '完稅價格 (CIF)', value: cif}, steps };
+                           TaxApp.ui.renderResult('customs-result', result);
+                           document.getElementById('lc-cif').value = cif;
+                        }
+                        break;
+                    case 'calculateLandedCost':
+                        {
+                            const cif = parseFloat(document.getElementById('lc-cif').value);
+                             if (isNaN(cif)) throw new Error("請先計算或輸入有效的 CIF。");
+                            const rates = {
+                                duty: TaxApp.utils.parseRate(document.getElementById('lc-duty-rate').value),
+                                excise: TaxApp.utils.parseRate(document.getElementById('lc-excise-rate').value),
+                                vat: TaxApp.utils.parseRate(document.getElementById('lc-vat-rate').value),
+                                fixed: parseFloat(document.getElementById('lc-fixed-tax').value) || 0,
+                                health: parseFloat(document.getElementById('lc-health-surcharge').value) || 0,
+                                promotion: TaxApp.utils.parseRate(document.getElementById('lc-promotion-fee').value)
+                            };
+                            const isBonded = document.getElementById('lc-bonded').checked;
+                            const result = TaxApp.calculations.landedCost({ cif, rates, isBonded });
+                            TaxApp.ui.renderResult('customs-result', result);
+                        }
+                        break;
+                     case 'reverseCalculateLandedCost':
+                        {
+                            const targetLanded = parseFloat(document.getElementById('rev-landed-cost').value);
+                             if (isNaN(targetLanded)) throw new Error("請輸入目標總成本。");
+                             const rates = {
+                                duty: TaxApp.utils.parseRate(document.getElementById('lc-duty-rate').value),
+                                excise: TaxApp.utils.parseRate(document.getElementById('lc-excise-rate').value),
+                                vat: TaxApp.utils.parseRate(document.getElementById('lc-vat-rate').value),
+                                fixed: parseFloat(document.getElementById('lc-fixed-tax').value) || 0,
+                                health: parseFloat(document.getElementById('lc-health-surcharge').value) || 0,
+                                promotion: TaxApp.utils.parseRate(document.getElementById('lc-promotion-fee').value)
+                            };
+                            const isBonded = document.getElementById('lc-bonded').checked;
+                            const result = TaxApp.calculations.reverseLandedCost({ targetLanded, rates, isBonded });
+                            TaxApp.ui.renderResult('customs-result', result);
+                        }
+                        break;
+                    case 'calculateSalary':
+                        {
+                            const mode = document.getElementById('salary-mode').value;
+                            const amount = parseFloat(document.getElementById('salary-amount').value);
+                            if (isNaN(amount)) throw new Error("請輸入有效的薪資金額。");
+                            const result = TaxApp.calculations.salaryTax({ mode, amount, brackets: TaxApp.state.params.salaryBrackets });
+                            TaxApp.ui.renderResult('salary-result', result);
+                        }
+                        break;
+                     case 'calculatePV':
+                        {
+                            const payment = parseFloat(document.getElementById('pv-payment').value);
+                            const periods = parseInt(document.getElementById('pv-periods').value);
+                            const rate = parseFloat(document.getElementById('pv-rate').value);
+                            if (isNaN(payment) || isNaN(periods) || isNaN(rate)) throw new Error("請輸入有效的數值。");
+                            const result = TaxApp.calculations.presentValue({ payment, periods, rate });
+                            TaxApp.ui.renderResult('ifrs16-result', result);
+                        }
+                        break;
+                     case 'calculateIRR':
+                        {
+                            const pv = parseFloat(document.getElementById('irr-pv').value);
+                            const payment = parseFloat(document.getElementById('irr-payment').value);
+                            const periods = parseInt(document.getElementById('irr-periods').value);
+                            if (isNaN(pv) || isNaN(payment) || isNaN(periods)) throw new Error("請輸入有效的數值。");
+                            const result = TaxApp.calculations.irr({ pv, payment, periods });
+                            TaxApp.ui.renderResult('ifrs16-result', result);
+                        }
+                        break;
+                     case 'calculateSplit':
+                        {
+                            const limit = parseFloat(document.getElementById('split-limit').value);
+                            const amountsStr = document.getElementById('split-amounts').value;
+                            if (isNaN(limit)) throw new Error("請輸入有效的上限金額。");
+                            const amounts = amountsStr.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
+                             if (amounts.length === 0) throw new Error("請輸入有效的金額序列。");
+                            const result = TaxApp.calculations.splitTransactions({ limit, amounts });
+                            TaxApp.ui.renderResult('split-result', result);
+                        }
+                        break;
+                    case 'saveParams':
+                        TaxApp.state.params.vatRate = TaxApp.utils.parseRate(document.getElementById('param-vat-rate').value);
+                        TaxApp.state.params.nhiRate = TaxApp.utils.parseRate(document.getElementById('param-nhi-rate').value);
+                        TaxApp.state.params.nhiThreshold = parseFloat(document.getElementById('param-nhi-threshold').value);
+                        TaxApp.saveState();
+                        TaxApp.ui.showToast('系統參數已儲存。', 'success');
+                        TaxApp.ui.renderInitialView(); // re-sync other tabs
+                        break;
+                    case 'addSalaryBracket':
+                        TaxApp.state.params.salaryBrackets.push({ upper: '', rate: 0, qd: 0 });
+                        TaxApp.ui.renderSalaryBrackets();
+                        break;
+                    case 'removeSalaryBracket':
+                        TaxApp.state.params.salaryBrackets.splice(parseInt(index), 1);
+                        TaxApp.ui.renderSalaryBrackets();
+                        break;
+                    case 'saveSalaryBrackets':
+                        const inputs = document.querySelectorAll('#salary-brackets-table tbody input');
+                        inputs.forEach(input => {
+                            const { index, field } = input.dataset;
+                            let value = (field === 'upper' && input.value === '') ? Infinity : parseFloat(input.value);
+                            if (field === 'rate') value /= 100;
+                            TaxApp.state.params.salaryBrackets[index][field] = value;
+                        });
+                        TaxApp.saveState();
+                        TaxApp.ui.showToast('薪資級距表已儲存。', 'success');
+                        break;
+                    case 'previewCsvBrackets':
+                        {
+                            const text = document.getElementById('csv-paste-area').value;
+                            const data = TaxApp.utils.parseCSV(text);
+                            const map = {
+                                upper: document.getElementById('csv-col-upper').value,
+                                rate: document.getElementById('csv-col-rate').value,
+                                qd: document.getElementById('csv-col-qd').value,
+                            };
+                            const rateIsPercent = document.getElementById('csv-rate-is-percent').checked;
+
+                            const newBrackets = data.map(row => ({
+                                upper: parseFloat(row[map.upper]) || Infinity,
+                                rate: parseFloat(row[map.rate]) / (rateIsPercent ? 100 : 1),
+                                qd: parseFloat(row[map.qd]) || 0
+                            }));
+
+                            // Display preview
+                            const previewArea = document.getElementById('csv-preview-area');
+                            previewArea.innerHTML = `<h4>預覽</h4><pre>${JSON.stringify(newBrackets, null, 2)}</pre>
+                            <button type="button" class="main-action" data-action="importCsvBrackets">確認匯入</button>`;
+                            // Store in a temp place for import
+                            previewArea.dataset.brackets = JSON.stringify(newBrackets);
+                        }
+                        break;
+                    case 'importCsvBrackets':
+                        {
+                           const bracketsJSON = document.getElementById('csv-preview-area').dataset.brackets;
+                           TaxApp.state.params.salaryBrackets = JSON.parse(bracketsJSON);
+                           TaxApp.saveState();
+                           TaxApp.ui.renderSalaryBrackets();
+                           TaxApp.ui.showToast('薪資級距已從 CSV 匯入。', 'success');
+                           document.getElementById('csv-preview-area').innerHTML = '';
+                        }
+                        break;
+                    case 'saveVersion':
+                        {
+                            const name = document.getElementById('new-version-name').value.trim();
+                            if (!name) throw new Error("請輸入版本名稱。");
+                            const version = {
+                                id: `v_${new Date().getTime()}`,
+                                name: name,
+                                timestamp: new Date().toISOString(),
+                                params: JSON.parse(JSON.stringify(TaxApp.state.params))
+                            };
+                            TaxApp.state.versions.push(version);
+                            TaxApp.saveState();
+                            TaxApp.ui.renderHistory();
+                            document.getElementById('new-version-name').value = '';
+                        }
+                        break;
+                    case 'loadVersion':
+                        {
+                            const version = TaxApp.state.versions.find(v => v.id === id);
+                            if (version && confirm(`確定要載入版本 "${version.name}" 嗎？當前參數將被覆蓋。`)) {
+                                TaxApp.state.params = JSON.parse(JSON.stringify(version.params)); // deep copy
+                                TaxApp.saveState();
+                                TaxApp.ui.renderInitialView();
+                                TaxApp.ui.showToast(`已載入版本: ${version.name}`, 'success');
+                            }
+                        }
+                        break;
+                    case 'deleteVersion':
+                        {
+                           const version = TaxApp.state.versions.find(v => v.id === id);
+                           if (version && confirm(`確定要刪除版本 "${version.name}" 嗎？`)) {
+                               TaxApp.state.versions = TaxApp.state.versions.filter(v => v.id !== id);
+                               TaxApp.saveState();
+                               TaxApp.ui.renderHistory();
+                           }
+                        }
+                        break;
+                    case 'rollback':
+                        {
+                            const rp = TaxApp.state.restorePoints.find(r => r.id === id);
+                            if (rp && confirm(`確定要回滾到 "${rp.name}" 嗎？所有之後的變更將會遺失。`)) {
+                                TaxApp.state = JSON.parse(JSON.stringify(rp.state)); // deep copy
+                                TaxApp.saveState();
+                                TaxApp.ui.renderInitialView();
+                                TaxApp.ui.showToast('已成功回滾。', 'success');
+                            }
+                        }
+                        break;
+                }
+            } catch (err) {
+                TaxApp.ui.showToast(err.message);
+                console.error(err);
+            }
+        },
+        
+        handleMainContentChange(e) {
+            // Placeholder for potential future use
+        },
+
+        handleCsvPaste(e) {
+            // Delay to allow textarea to populate
+            setTimeout(() => {
+                const text = e.target.value;
+                const lines = text.trim().split(/\r?\n/);
+                if (lines.length < 1) return;
+                
+                const headers = lines[0].split(',').map(h => h.trim());
+                const mappingUI = document.getElementById('csv-mapping-ui');
+                const selects = mappingUI.querySelectorAll('select');
+                
+                selects.forEach(select => {
+                    select.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                });
+                mappingUI.style.display = 'block';
+            }, 10);
+        }
+    };
+    
+    // --- 程式進入點 ---
+    // 註解：使用 DOMContentLoaded 確保 DOM 結構完全載入後再執行腳本。
+    document.addEventListener('DOMContentLoaded', () => {
+        TaxApp.init();
+
+        // 列印事件處理
+        window.onbeforeprint = () => {
+            document.querySelectorAll('details').forEach(d => d.open = true);
+        };
+        // 註解：列印後恢復折疊狀態的功能在此版本中省略，
+        // 因為無法簡單追蹤原始狀態，但 onbeforeprint 確保列印時內容完整。
+    });
+
+    </script>
 </body>
 </html>
