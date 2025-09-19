@@ -1,10 +1,10 @@
 <!DOCTYPE html><!--
 本檔符合離線(file://)規範：
 1) 無外部資源/無 CDN；所有 CSS/JS/資料內嵌；僅使用系統字型。
-2) <script defer> 使用 defer，確保 DOM 準備後再執行與綁定事件。
+2) <script> 使用 defer，或以 DOMContentLoaded 確保 DOM 準備後再綁定事件。
 3) 所有互動按鈕皆設 type="button"，避免 submit 觸發重整。
 4) 所有互動以事件委派處理（document 層監聽 [data-action]）。
-5) 所有資料均以內嵌物件與 JSON 處理，未使用 fetch()。
+5) 所有資料均以內嵌物件與 JSON 處理，未使用 fetch()（file:// 友善）。
 6) 若未來需使用 Service Worker / fetch / ES Modules，請以本機伺服器啟動（例如：python -m http.server）。
 7) 已加上 window.onerror 與 unhandledrejection 的全域錯誤攔截並以 Toast 呈現。
 --><html lang="zh-Hant">
@@ -13,19 +13,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>TW 稅務/海關/薪資 單檔離線工具 · 2025</title>
 <style>
-  :root{
-    --bg:#0b0c10;--card:#13151b;--ink:#e6e9ef;--muted:#a7adba;--pri:#52a9ff;--ok:#2ecc71;--warn:#f39c12;--err:#ff6b6b;--bd:#2e3340;
-  }
+  :root{--bg:#0b0c10;--card:#13151b;--ink:#e6e9ef;--muted:#a7adba;--pri:#52a9ff;--ok:#2ecc71;--warn:#f39c12;--err:#ff6b6b;--bd:#2e3340}
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Arial,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Arial,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
   h1,h2,h3{margin:.6rem 0}
-  a{color:var(--pri)}
   .app{display:grid;grid-template-rows:auto 1fr auto;min-height:100%}
   header{position:sticky;top:0;background:linear-gradient(180deg,rgba(11,12,16,.98),rgba(11,12,16,.85));backdrop-filter:saturate(120%) blur(6px);border-bottom:1px solid var(--bd);z-index:10}
   .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.6rem .8rem}
   .toolbar .sp{flex:1}
-  .btn{appearance:none;border:1px solid var(--bd);background:#1b1e27;color:var(--ink);padding:.45rem .7rem;border-radius:.6rem;cursor:pointer}
+  .btn{appearance:none;border:1px solid var(--bd);background:#1b1e27;color:var(--ink);padding:.45rem .7rem;border-radius:.6rem;cursor:pointer;min-height:36px}
   .btn[data-variant="pri"]{background:var(--pri);color:#001225;border-color:transparent}
   .btn[data-variant="warn"]{background:var(--warn);color:#1a1300}
   .btn[data-variant="ok"]{background:var(--ok);color:#001a0a}
@@ -36,50 +33,23 @@
   main{padding:1rem;max-width:1200px;margin:0 auto}
   .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:1rem;margin:0 0 1rem 0}
   .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:.8rem}
-  .col-6{grid-column:span 6}
-  .col-4{grid-column:span 4}
-  .col-3{grid-column:span 3}
-  .col-8{grid-column:span 8}
-  .col-12{grid-column:span 12}
+  .col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
   label{display:block;color:var(--muted);font-size:12px;margin:.4rem 0 .2rem}
-  input[type="text"],input[type="number"],select,textarea{width:100%;background:#0f1117;border:1px solid #2a2f3b;color:var(--ink);padding:.5rem .6rem;border-radius:.5rem}
+  input[type="text"],input[type="number"],select,textarea{width:100%;min-width:250px;background:#0f1117;border:1px solid #2a2f3b;color:var(--ink);padding:.5rem .6rem;border-radius:.5rem;line-height:1.4}
   textarea{min-height:120px}
   .row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
-  .muted{color:var(--muted)}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-  .hint{font-size:12px;color:var(--muted)}
-  .result{padding:.6rem .7rem;background:#10131a;border:1px dashed #2f3544;border-radius:.5rem;white-space:pre-wrap;word-break:break-word}
-  .error{border-color:var(--err)!important;box-shadow:0 0 0 2px rgba(255,107,107,.15)}
-  .ok{color:var(--ok)}
-  .warn{color:var(--warn)}
-  .err{color:var(--err)}
-  details{background:#10131a;border:1px solid #2e3340;border-radius:.6rem;padding:.6rem}
-  summary{cursor:pointer}
-  .table{width:100%;border-collapse:collapse}
-  .table th,.table td{border-bottom:1px solid #2a2f3b;padding:.4rem .5rem;text-align:right}
-  .table th:first-child,.table td:first-child{text-align:left}
+  .muted{color:var(--muted)}.mono{font-family:ui-monospace,Consolas,Menlo,monospace}
+  .result{padding:.6rem .7rem;background:#10131a;border:1px dashed #2f3544;border-radius:.5rem;word-break:break-word}
+  .result pre{white-space:pre-wrap;margin:0}
   .pill{display:inline-block;padding:.12rem .45rem;border:1px solid #3a4154;border-radius:999px;font-size:12px;color:var(--muted)}
   .toast{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:.5rem;z-index:100}
-  .toast .t{background:#0f1117;border-left:4px solid var(--pri);border:1px solid #2a2f3b;color:var(--ink);padding:.6rem .7rem;border-radius:.5rem;min-width:260px;max-width:420px}
-  .toast .t.err{border-left-color:var(--err)}
-  .toast .t.warn{border-left-color:var(--warn)}
-  .code{background:#0f1117;border:1px solid #2a2f3b;color:#c9d1d9;font-family:ui-monospace,Consolas,monospace;padding:.6rem;border-radius:.5rem;overflow:auto}
-  .kpi{display:flex;gap:1rem;flex-wrap:wrap}
-  .kpi .box{padding:.6rem .8rem;background:#10151e;border:1px solid #2a2f3b;border-radius:.6rem}
-  @media (max-width: 600px){
-    .grid{grid-template-columns:repeat(6,1fr)}
-    .col-6{grid-column:span 6}
-    .col-4{grid-column:span 6}
-    .col-3{grid-column:span 6}
-    .col-8{grid-column:span 6}
-    input,select,textarea{width:100%}
-    .toolbar{gap:.4rem}
-  }
-  @media print{
-    header,.tabs,.toolbar [data-noprint], .toast{display:none!important}
-    body{background:#fff;color:#000}
-    .card{border:1px solid #777}
-  }
+  .toast .t{background:#0f1117;border-left:4px solid var(--pri);border:1px solid #2a2f3b;color:var(--ink);padding:.6rem .7rem;border-radius:.5rem;min-width:260px;max-width:520px}
+  .toast .t.err{border-left-color:var(--err)}.toast .t.warn{border-left-color:var(--warn)}
+  details{margin-top:.5rem}
+  details>summary{cursor:pointer;color:#b7c0d1}
+  [hidden]{display:none!important}
+  @media (max-width: 600px){.grid{grid-template-columns:repeat(6,1fr)}.col-6,.col-4,.col-3,.col-8{grid-column:span 6}input,select,textarea{width:100%}.toolbar{gap:.4rem}}
+  @media print{header,.tabs,.toolbar [data-noprint], .toast, details{display:none!important}body{background:#fff;color:#000}.card{border:1px solid #777}}
 </style>
 </head>
 <body>
@@ -95,136 +65,62 @@
         匯入備份
         <input style="display:none" type="file" accept="application/json" id="importFile" />
       </label>
+      <button class="btn" data-action="run-tests" type="button">執行內建測試</button>
       <button class="btn" data-action="print" type="button">列印</button>
       <button class="btn" data-action="reset" type="button" title="清空本地儲存" data-variant="warn">重置</button>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
-      <button class="tab" role="tab" aria-selected="true" data-tab="vat">VAT/發票</button>
-      <button class="tab" role="tab" data-tab="withhold">扣繳＋二代健保</button>
-      <button class="tab" role="tab" data-tab="customs">海關/進口</button>
-      <button class="tab" role="tab" data-tab="locals">地方/特種稅</button>
-      <button class="tab" role="tab" data-tab="salary">薪資/級距預扣</button>
-      <button class="tab" role="tab" data-tab="ifrs">IFRS 16</button>
-      <button class="tab" role="tab" data-tab="transfer">轉帳分拆</button>
-      <button class="tab" role="tab" data-tab="params">參數/級距表</button>
-      <button class="tab" role="tab" data-tab="history">歷史/回滾</button>
+      <button class="tab" role="tab" aria-selected="true" data-tab="vat" type="button">VAT/發票</button>
+      <button class="tab" role="tab" data-tab="withhold" type="button">扣繳＋二代健保</button>
+      <button class="tab" role="tab" data-tab="customs" type="button">海關/進口</button>
+      <button class="tab" role="tab" data-tab="locals" type="button">地方/特種稅</button>
+      <button class="tab" role="tab" data-tab="salary" type="button">薪資/級距預扣</button>
+      <button class="tab" role="tab" data-tab="ifrs" type="button">IFRS 16</button>
+      <button class="tab" role="tab" data-tab="transfer" type="button">轉帳分拆</button>
+      <button class="tab" role="tab" data-tab="params" type="button">參數/級距表</button>
+      <button class="tab" role="tab" data-tab="history" type="button">歷史/回滾</button>
     </nav>
   </header>
   <main id="main">
-    <!-- Panels will be injected -->
-  </main>
-  <footer class="row" style="padding:.6rem .8rem;border-top:1px solid var(--bd);color:var(--muted)">
-    <div>
-      <span>Rounding:</span>
-      <label class="pill"><input type="radio" name="rounding" value="round0" checked> 四捨五入</label>
-      <label class="pill"><input type="radio" name="rounding" value="ceil0"> 無條件進位</label>
-      <label class="pill"><input type="radio" name="rounding" value="floor0"> 無條件捨去</label>
-    </div>
-    <span class="sp"></span>
-    <span class="muted">單檔 · 離線（file://）· 無外部資源 · 所有按鈕 type="button" · 事件委派</span>
-  </footer>
-</div>
-<div class="toast" id="toast"></div>
-<script>
-// ==========================
-// Utility & Core Framework
-// ==========================
-(function(){
-  const $ = (sel, el=document) => el.querySelector(sel);
-  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
-  const byId = id => document.getElementById(id);
-  const nowTs = () => new Date().toISOString();
-  const clone = obj => structuredClone(obj);
-  const toNum = (v) => typeof v==='number'? v : Number(String(v).trim());// Toast const toastBox = byId('toast'); function showToast(msg, type='info', timeout=4200){ const div = document.createElement('div'); div.className = 't ' + (type==='error'?'err': type==='warn'?'warn':''); div.textContent = msg; toastBox.appendChild(div); setTimeout(()=>div.remove(), timeout); }
-
-// Global Error Capture window.onerror = function(message, source, lineno, colno, error){ showToast('錯誤: ' + message + ' @' + lineno+':'+colno, 'error', 8000); }; window.onunhandledrejection = function(e){ showToast('未捕捉的例外: ' + (e.reason && e.reason.message ? e.reason.message : e.reason), 'error', 8000); };
-
-// Rounding function round0(x){return Math.round(x);} function ceil0(x){return Math.ceil(x);} function floor0(x){return Math.floor(x);} function applyRounding(x, rule){ switch(rule){ case 'ceil0': return ceil0(x); case 'floor0': return floor0(x); default: return round0(x); } } function getRounding(){ const r = document.querySelector('input[name="rounding"]:checked'); return r? r.value : 'round0'; }
-
-// Parsing helpers with unit/percent handling and validation function parseMoney(input, opts={min:-Infinity, allowNeg:false}){ if(input===''|| input==null) throw new Error('缺少必填金額'); let x = toNum(input); if(!Number.isFinite(x)) throw new Error('金額格式錯誤'); if(!opts.allowNeg && x < 0) throw new Error('金額不可為負'); if(x < (opts.min ?? -Infinity)) throw new Error('金額低於允許範圍'); return x; } // rate: accept 0.05 or 5(%) function parseRate(input, {min=0, max=1}={}){ if(input===''|| input==null) throw new Error('缺少稅率'); let s = String(input).trim(); if(s.endsWith('%')) s = s.slice(0,-1); let x = toNum(s); if(!Number.isFinite(x)) throw new Error('稅率格式錯誤'); if(x>1) x = x/100; // interpret as percentage if(x<min) x=min; if(x>max) x=max; return x; } function parseIntGE1(input){ let n = Math.floor(toNum(input)); if(!Number.isFinite(n) || n<1) n=1; return n; } function markError(inputEl){ if(!inputEl) return; inputEl.classList.add('error'); setTimeout(()=>inputEl.classList.remove('error'), 1600); }
-
-// Local Storage Persistence const LS_KEY = 'tw_tax_suite_v2025'; const APP = window.APP = { meta: { appVersion: '1.0.0', formulaVersion: 'F1–F16 v2025.09', createdAt: nowTs(), updatedAt: nowTs() }, params: { year: 2025, vat_rate: 0.05, // F1 default (t_v) rounding: 'round0', // Withholding & NHI (F2) withhold_rate_default: 0.05, // 預設（可依類別調整） nhi_threshold: 20000, // H nhi_supp_rate: 0.0211, // r_h (2.11%) // Customs (F3–F6) premium_hint_rate: 0.003, // ι default 0.3% promo_rate: 0.0004, // p 0.04% bonded: false, fta_duty_rate: null, // Carbon fee (F11) carbon_threshold_ton: 25000, carbon_unit_price: 300, carbon_adjust: 1, // Salary withholding table (F12) — demo table (請於參數面板更新為官方 2025 表) // piecewise: upper, rate, quick_deduction salary_brackets: [ { upper: 50000, rate: 0.05, qd: 0 }, { upper: 100000, rate: 0.12, qd: 3500 }, { upper: 200000, rate: 0.20, qd: 13500 }, { upper: 400000, rate: 0.30, qd: 33500 }, { upper: Infinity, rate: 0.40, qd: 73500 } ], // Land value tax (F8) — demo progressive multipliers (需依地價稅 2025 調整) land_tax: { T0: 1000000, // 起點地價 brackets: [ // multiple (m) upper, rate, quick deduction (delta) { m_upper: 10, rate: 0.01, delta: 0 }, { m_upper: 20, rate: 0.02, delta: 1000 }, { m_upper: 40, rate: 0.03, delta: 3000 }, { m_upper: Infinity, rate: 0.04, delta: 7000 } ] }, // House tax (F7) — simplified demo (依用途/戶數自行調整) house_tax_rates: { self_use: 0.012, // 1.2% rental: 0.03, builder: 0.10 }, // Deed / Futures / Options (F9–F10) — demo defaults deed_rate: 0.06, futures_rate: 0.0002, options_rate: 0.001, }, versions: [], // [{id, label, createdAt, dataSnapshot}] history: [],  // restore points [{id, reason, createdAt, snapshot}] currentVersionId: null };
-
-function save(){ APP.meta.updatedAt = nowTs(); localStorage.setItem(LS_KEY, JSON.stringify(APP)); } function load(){ const raw = localStorage.getItem(LS_KEY); if(!raw){ // initialize first version const vId = makeId('v'); APP.currentVersionId = vId; APP.versions.push({id: vId, label: '初始版本', createdAt: nowTs(), dataSnapshot: snapshotData()}); save(); return; } try{ const obj = JSON.parse(raw); Object.assign(APP, obj); }catch(err){ showToast('載入本地資料失敗，使用預設。','error'); } }
-
-function snapshotData(){ // minimal snapshot of parameters and meta; extend if有資料集 return { params: clone(APP.params), meta: clone(APP.meta) }; } function makeId(prefix='id'){ return ${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}; }
-
-function createRestorePoint(reason='操作'){ const rp = { id: makeId('rp'), reason, createdAt: nowTs(), snapshot: snapshotData() }; APP.history.unshift(rp); // keep last 200 restore points if(APP.history.length>200) APP.history.pop(); save(); showToast('已建立 Restore Point: '+reason); }
-
-function restoreAsNewVersion(rpId){ const rp = APP.history.find(x=>x.id===rpId); if(!rp) return showToast('找不到 Restore Point','error'); // create a new version from snapshot const vId = makeId('v'); APP.versions.push({id:vId,label:'從RP還原 '+new Date(rp.createdAt).toLocaleString(),createdAt:nowTs(),dataSnapshot:clone(rp.snapshot)}); APP.currentVersionId = vId; // apply snapshot to app runtime APP.params = clone(rp.snapshot.params); save(); render(); showToast('已建立新版本並切換'); }
-
-function switchVersion(vId){ const v = APP.versions.find(x=>x.id===vId); if(!v) return showToast('版本不存在','error'); APP.currentVersionId = vId; APP.params = clone(v.dataSnapshot.params); save(); render(); showToast('已切換版本: '+(v.label||vId)); }
-
-function commitVersion(label='手動版本'){ const vId = makeId('v'); APP.versions.push({id:vId,label,createdAt:nowTs(),dataSnapshot:snapshotData()}); APP.currentVersionId = vId; save(); showToast('已建立新版本: '+label); }
-
-// Backup export/import with merge (no overwrite) function exportBackup(){ const pack = { _kind: 'tw_tax_suite_backup', _ts: nowTs(), appVersion: APP.meta.appVersion, formulaVersion: APP.meta.formulaVersion, currentVersionId: APP.currentVersionId, versions: APP.versions, history: APP.history, params: APP.params }; const blob = new Blob([JSON.stringify(pack,null,2)],{type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = tw-tax-backup-${Date.now()}.json; a.click(); URL.revokeObjectURL(a.href); }
-
-function importBackup(obj){ if(!obj || obj.kind!=='tw_tax_suite_backup') throw new Error('備份格式錯誤'); createRestorePoint('匯入備份前'); // merge params (prefer local; import as an alt profile not implemented -> shallow merge new simple keys only) // We'll not overwrite existing params; user可在面板手動採用 // merge versions/history with id regeneration if clash const existingIds = new Set(APP.versions.map(v=>v.id).concat(APP.history.map(h=>h.id))); const remapId = id => existingIds.has(id)? makeId(id.split('')[0]||'id'): id;
-
-if(Array.isArray(obj.versions)){
-  for(const v of obj.versions){
-    let nid = remapId(v.id); existingIds.add(nid);
-    APP.versions.push({id:nid,label:(v.label||'匯入版本'),createdAt:v.createdAt||nowTs(),dataSnapshot:v.dataSnapshot});
-  }
-}
-if(Array.isArray(obj.history)){
-  for(const h of obj.history){
-    let nid = remapId(h.id); existingIds.add(nid);
-    APP.history.push({id:nid,reason:(h.reason||'匯入'),createdAt:h.createdAt||nowTs(),snapshot:h.snapshot});
-  }
-}
-// keep current pointer
-save();
-render();
-showToast('匯入完成（採合併不覆蓋、ID 重編、維持目前版本）','ok');
-
-}
-
-// ========================== // Math / Formulas (F1–F16) // ========================== function R(x){return applyRounding(x, getRounding());}
-
-// F1 VAT basic relations function F1_VAT({mode, N, G, t_v}){ const t = parseRate(t_v,{min:0,max:0.2}); const rule = getRounding(); if(mode==='N_to_G'){ const n = parseMoney(N,{min:0}); const g = R(n*(1+t)); const T = R(g - n); return {N:n,G:g,T,R:rule,t_v:t}; }else if(mode==='G_to_N'){ const g = parseMoney(G,{min:0}); const n = R(g/(1+t)); const T = R(g - n); return {N:n,G:g,T,R:rule,t_v:t}; }else{ throw new Error('VAT 模式錯誤'); } }
-
-// F2 Withholding + NHI (門檻) — closed-form for reverse where applicable function F2_Withhold({mode, A, N, r_w, r_h, H}){ const rw = parseRate(r_w,{min:0,max:0.3}); const rh = parseRate(r_h,{min:0,max:0.05}); const H0 = toNum(H)||0; if(H0<0) throw new Error('門檻不可 <0'); const rule = getRounding(); if(mode==='gross_to_net'){ const a = parseMoney(A,{min:0}); const W = R(arw); const H$ = a>H0 ? R((a-H0)rh) : 0; const n = R(a - W - H$); return {A:a,W,H$:H$,N:n,R:rule,r_w:rw,r_h:rh,H:H0}; }else if(mode==='net_to_gross'){ const n = parseMoney(N,{min:0}); // piecewise closed-form // case1: A<=H -> N = A(1-rw) const A1 = n/(1-rw); if(A1<=H0){ const W = R(A1rw); const H$=0; const a=R(A1); return {A:a,W,H$:H$,N:n,R:rule,r_w:rw,r_h:rh,H:H0,assumption:'A<=H'}; } // case2: A>H -> N = A*(1-rw-rh)+rhH const denom = (1-rw-rh); if(denom<=0) throw new Error('參數導致不可解：1-rw-rh ≤ 0'); const A2 = (n - rhH0)/denom; const W = R(A2*rw); const H$ = R((A2-H0)*rh); const a = R(A2); return {A:a,W,H$:H$,N:n,R:rule,r_w:rw,r_h:rh,H:H0,assumption:'A>H'}; }else{ throw new Error('扣繳/健保 模式錯誤'); } }
-
-// F3 CIF 組合 function F3_CIF({P_fob, P_cfr, F, I, premium_hint_rate}){ const f = Math.max(0, toNum(F)||0); const i_hint = Math.max(0, toNum(I)||0) || 0; // 若空則後續可用 hint 推估 const ih = parseRate(premium_hint_rate,{min:0,max:0.1}); let FOB = null, CFR = null, CIF = null, Icalc = null; if(P_fob!=='' && P_fob!=null){ FOB = parseMoney(P_fob,{min:0}); CFR = R(FOB + f); Icalc = i_hint>0? i_hint : R(CFRih); CIF = R(CFR + Icalc); }else if(P_cfr!=='' && P_cfr!=null){ CFR = parseMoney(P_cfr,{min:0}); FOB = R(CFR - f); if(FOB<0) FOB=0; Icalc = i_hint>0? i_hint : R(CFRih); CIF = R(CFR + Icalc); }else{ throw new Error('需提供 FOB 或 CFR 其一'); } return {FOB,CFR,I:Icalc,F:f,CIF}; }
-
-// F4 層級稅 (duty, excise, VAT, promo, fixed taxes τ, h) function F4_Taxes({CIF, d, c, t_v, tau, health, promo_rate}){ const cif = parseMoney(CIF,{min:0}); const dutyRate = parseRate(d,{min:0,max:1}); const excRate  = parseRate(c,{min:0,max:1}); const vatRate  = parseRate(t_v,{min:0,max:0.2}); const prRate   = parseRate(promo_rate,{min:0,max:0.01}); const tau0 = Math.max(0, toNum(tau)||0); const h0   = Math.max(0, toNum(health)||0);
-
-const duty = R(cif * dutyRate);
-const exc  = R((cif + duty) * excRate);
-const vat  = R((cif + duty + exc + tau0 + h0) * vatRate);
-const promo= R((cif + duty + exc) * prRate);
-const totalTax = R(duty + exc + vat + tau0 + h0 + promo);
-const landed = R(cif + totalTax);
-return {duty, exc, vat, promo, tau:tau0, health:h0, totalTax, landed};
-
-}
-
-// F5 反推 CIF: given target Landed L function F5_ReverseCIF({L, d, c, t_v, tau, health, promo_rate}){ const Ltarget = parseMoney(L,{min:0}); const rule = getRounding(); // monotonic increasing f(CIF) = landed(CIF) let lo = 0, hi = Math.max(1, Ltarget); const maxIter = 60; const eps = 1; // ≤ 1 元 const params = {d,c,t_v,tau,health,promo_rate}; const f = (x)=> F4_Taxes({CIF:x, ...params}).landed; // uses rounding inside per spec // ensure hi big enough while(f(hi) < Ltarget){ hi *= 2; if(hi>1e12) throw new Error('上界過大，可能參數異常'); } let mid, y; for(let i=0;i<maxIter;i++){ mid = (lo+hi)/2; y = f(mid); if(Math.abs(y - Ltarget) <= eps) break; if(y < Ltarget) lo = mid; else hi = mid; } const CIF = R(mid); const taxes = F4_Taxes({CIF, ...params}); return {CIF, ...taxes, R:rule, iter:'≤'+maxIter, tol:eps}; }
-
-// F6 保稅 / FTA 調整 duty rate function applyBondedFTA(dutyRateRaw, {bonded, fta_duty_rate}){ if(bonded) return 0; if(fta_duty_rate!=null) return fta_duty_rate; return dutyRateRaw; }
-
-// F7 房屋稅（簡化）: tax = B_h * r_h(usecase) function F7_HouseTax({B_h, usecase, house_tax_rates}){ const base = parseMoney(B_h,{min:0}); const rate = house_tax_rates[usecase] ?? house_tax_rates.self_use; const tax = R(base * rate); return {tax, rate}; }
-
-// F8 地價稅：倍數累進 + 差額扣除 function F8_LandTax({V, T0, brackets}){ const v = parseMoney(V,{min:0}); const t0 = Math.max(0, toNum(T0)||0); if(v===0) return {tax:0,multiple:0,rate:0,delta:0}; const m = v / (t0 || 1); let rate=0, delta=0; for(const b of brackets){ if(m <= b.m_upper){ rate=b.rate; delta=b.delta; break; } } const tax = R(v*rate - delta); return {tax, multiple:m, rate, delta}; }
-
-// F9 契稅 function F9_Deed({B_d, r_d}){ const base = parseMoney(B_d,{min:0}); const rate = parseRate(r_d,{min:0,max:1}); return {tax: R(base*rate), rate}; }
-
-// F10 期貨/選擇權稅 function F10_FutOpt({N_f, P_o, r_f, r_o}){ const nf = Math.max(0, toNum(N_f)||0); const po = Math.max(0, toNum(P_o)||0); const rf = parseRate(r_f,{min:0,max:0.01}); const ro = parseRate(r_o,{min:0,max:0.01}); return {futures:R(nfrf), options:R(poro)}; }
-
-// F11 碳費 function F11_Carbon({mode, e, fee, e0, a, unitPrice}){ const e_0 = Math.max(0, toNum(e0)||0); const adj = Math.max(0, toNum(a)||0); const price = Math.max(0, toNum(unitPrice)||0); const rule = getRounding(); if(mode==='forward'){ const E = Math.max(0, toNum(e)||0); const excess = Math.max(0, E - e_0); const F = excess>0 ? R(excess * adj * price) : 0; return {fee:F, excess, R:rule}; }else{ const Fee = Math.max(0, toNum(fee)||0); const E = R(Fee/(adj*price) + e_0); return {e:E, R:rule}; } }
-
-// F12 預扣函數 (piecewise) function W_from_tbl(G, tbl){ // find bracket where G <= upper for(const row of tbl){ if(G <= row.upper){ return R(Grow.rate - (row.qd||0)); } } // last Infinity row must catch const last = tbl[tbl.length-1]; return R(Glast.rate - (last.qd||0)); } function F12_Salary({mode, G, N, tbl}){ if(!tbl || !tbl.length) throw new Error('缺少級距表'); if(mode==='gross_to_net'){ const g = parseMoney(G,{min:0}); const W = W_from_tbl(g, tbl); const n = R(g - W); return {G:g, W, N:n}; }else{ const nTarget = parseMoney(N,{min:0}); let lo=0, hi=Math.max(nTarget*2, 3000000), mid; const eps=1, maxIter=40; for(let i=0;i<maxIter;i++){ mid = (lo+hi)/2; const W = W_from_tbl(mid, tbl); const Nmid = R(mid - W); if(Math.abs(Nmid - nTarget)<=eps) break; if(Nmid < nTarget) lo = mid; else hi = mid; } const Gsol = R(mid); const Wsol = W_from_tbl(Gsol, tbl); return {G:Gsol, W:Wsol, N:nTarget, iter:'≤'+maxIter, tol:eps}; } }
-
-// F13 年金現值（期末付） function F13_PV({P, n, r_m}){ const pay = parseMoney(P,{min:0}); const N = parseIntGE1(n); const rm = parseRate(r_m,{min:0,max:1}); const PV = rm===0? R(pay*N) : R(pay * (1 - Math.pow(1+rm, -N)) / rm); return {PV, P:pay, n:N, r_m:rm}; }
-
-// F14 反推 IRR (月利率) from P, n, PV function F14_IRR({P, n, PV}){ const pay = parseMoney(P,{min:0}); const N = parseIntGE1(n); const pv = parseMoney(PV,{min:0}); const f = (r)=> pay*(1 - Math.pow(1+r,-N))/r - pv; const df= (r)=> { const a = Math.pow(1+r,-N); return pay * ( (Na)/(r(1+r)) - (1 - a)/(rr) ); }; let r = 0.02; // 初值 2%/月 const maxIter=60, tol=1e-8; for(let i=0;i<maxIter;i++){ const y=f(r), dy=df(r); if(!Number.isFinite(y) || !Number.isFinite(dy) || Math.abs(dy)<1e-12){ break; } const r1 = r - y/dy; if(r1<=-0.99 || !Number.isFinite(r1)) break; if(Math.abs(r1 - r) < tol) { r=r1; break; } r = r1; } // if out of range or no convergence, fallback to bisection on [0,1] if(r<=-0.99 || !Number.isFinite(r)){ let lo=0, hi=1, mid; let y; for(let i=0;i<maxIter;i++){ mid=(lo+hi)/2; y=f(mid); if(Math.abs(y) < tol) break; if(y>0) lo=mid; else hi=mid; } r = mid; } const r_m = r; const r_a = r12; const r_m_str = (Math.round(r_m1e6)/1e6).toFixed(6); const r_a_str = (Math.round(r_a1e6)/1e6).toFixed(6); return {r_m: r_m_str, r_a: r_a_str}; }
-
-// F15 轉帳分拆（裝箱型 greedy） function F15_Split({limit, list}){ const L = Math.max(1, toNum(limit)||1000000); const arr = (list||[]).map(x=>toNum(x)).filter(v=>Number.isFinite(v) && v>=0); const groups=[]; let bucket=0; for(const s of arr){ if(s>L){ // 自成一組 if(bucket>0){ groups.push(bucket); bucket=0; } groups.push(s); continue; } if(bucket + s > L){ groups.push(bucket); bucket = s; } else bucket += s; } if(bucket>0) groups.push(bucket); const total = groups.reduce((a,b)=>a+b,0); return {groups, count:groups.length, total, limit:L}; }
-
-// ========================== // UI Rendering // ========================== const panels = { vat(){ return  <div class="card"> <h2>VAT / 發票（F1）</h2> <div class="grid"> <div class="col-6"> <label>模式</label> <div class="row"> <label class="pill"><input type="radio" name="vat_mode" value="N_to_G" checked> 未稅 N → 含稅 G</label> <label class="pill"><input type="radio" name="vat_mode" value="G_to_N"> 含稅 G → 未稅 N</label> </div> <div class="grid" style="margin-top:.6rem"> <div class="col-6"><label>未稅 N（元）</label><input name="vat_N" type="number" placeholder="ex. 1000"></div> <div class="col-6"><label>含稅 G（元）</label><input name="vat_G" type="number" placeholder="ex. 1050"></div> <div class="col-6"><label>VAT 稅率 t_v</label><input name="vat_t" type="text" value="${APP.params.vat_rate}"><div class="hint">可輸入 0.05 或 5%</div></div> </div> <div class="row" style="margin-top:.6rem"> <button class="btn" data-action="vat-calc" type="button">計算</button> <button class="btn" data-action="vat-batch-open" type="button">批量</button> </div> </div> <div class="col-6"> <div class="result" id="vat_result">結果將顯示於此</div> </div> <div class="col-12" id="vat_batch" style="display:none"> <details open> <summary>批量計算（貼上 CSV：N 或 G 其中一欄；t_v 可選）</summary> <div class="grid"> <div class="col-12"><label>輸入（CSV）</label><textarea id="vat_batch_in" placeholder="N,G,t_v\n1000,,5%\n,1050,0.05"></textarea></div> <div class="col-12 row"> <button class="btn" data-action="vat-batch-run">批量計算</button> <button class="btn" data-action="vat-batch-export">匯出結果 CSV</button> </div> <div class="col-12"><div class="result" id="vat_batch_out"></div></div> </div> </details> </div> </div> </div>; },
-
-withhold(){ return `
+    <!-- 預先渲染所有面板（無 JS 也能看到欄位） -->
+    <section data-panel="vat">
+      <div class="card">
+        <h2>VAT / 發票（F1）</h2>
+        <div class="grid">
+          <div class="col-6">
+            <label>模式</label>
+            <div class="row">
+              <label class="pill"><input type="radio" name="vat_mode" value="N_to_G" checked> 未稅 N → 含稅 G</label>
+              <label class="pill"><input type="radio" name="vat_mode" value="G_to_N"> 含稅 G → 未稅 N</label>
+            </div>
+            <div class="grid" style="margin-top:.6rem">
+              <div class="col-6"><label>未稅 N（元）</label><input name="vat_N" type="number" placeholder="ex. 1000"></div>
+              <div class="col-6"><label>含稅 G（元）</label><input name="vat_G" type="number" placeholder="ex. 1050"></div>
+              <div class="col-6"><label>VAT 稅率 t_v</label><input name="vat_t" type="text" value="0.05"><div class="muted">可輸入 0.05 或 5%</div></div>
+            </div>
+            <div class="row" style="margin-top:.6rem">
+              <button class="btn" data-action="vat-calc" type="button">計算</button>
+              <button class="btn" data-action="vat-batch-open" type="button">批量</button>
+            </div>
+          </div>
+          <div class="col-6"><div class="result" id="vat_result"><pre>結果將顯示於此</pre></div></div>
+          <div class="col-12" id="vat_batch" hidden>
+            <div class="card" style="background:#10131a">
+              <h3>批量計算（CSV）</h3>
+              <label>輸入（CSV）</label>
+              <textarea id="vat_batch_in" placeholder="N,G,t_v
+1000,,5%
+,1050,0.05"></textarea>
+              <div class="row" style="margin-top:.6rem">
+                <button class="btn" data-action="vat-batch-run" type="button">批量計算</button>
+                <button class="btn" data-action="vat-batch-export" type="button">匯出結果 CSV</button>
+              </div>
+              <div class="result" id="vat_batch_out"><pre>—</pre></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section><section data-panel="withhold" hidden>
   <div class="card">
     <h2>扣繳＋二代健保（F2）</h2>
     <div class="grid">
@@ -235,43 +131,44 @@ withhold(){ return `
           <label class="pill"><input type="radio" name="wh_mode" value="net_to_gross"> 淨額 N → 毛額 A</label>
         </div>
         <div class="grid" style="margin-top:.6rem">
-          <div class="col-6"><label>毛額 A（元）</label><input name="wh_A" type="number" placeholder="ex. 50000"></div>
+          <div class="col-6"><label>毛額 A（元）</label><input name="wh_A" type="number" placeholder="50000"></div>
           <div class="col-6"><label>淨額 N（元）</label><input name="wh_N" type="number"></div>
-          <div class="col-4"><label>扣繳率 r_w</label><input name="wh_rw" type="text" value="${APP.params.withhold_rate_default}"></div>
-          <div class="col-4"><label>二代健保補充率 r_h</label><input name="wh_rh" type="text" value="${APP.params.nhi_supp_rate}"></div>
-          <div class="col-4"><label>健保門檻 H（元）</label><input name="wh_H" type="number" value="${APP.params.nhi_threshold}"></div>
+          <div class="col-4"><label>扣繳率 r_w</label><input name="wh_rw" type="text" value="0.05"></div>
+          <div class="col-4"><label>二代健保補充率 r_h</label><input name="wh_rh" type="text" value="0.0211"></div>
+          <div class="col-4"><label>健保門檻 H（元）</label><input name="wh_H" type="number" value="20000"></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="wh-calc">計算</button></div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="wh-calc" type="button">計算</button></div>
       </div>
-      <div class="col-6"><div class="result" id="wh_result">結果將顯示於此</div></div>
+      <div class="col-6"><div class="result" id="wh_result"><pre>—</pre></div></div>
     </div>
-  </div>`; },
+  </div>
+</section>
 
-customs(){ return `
+<section data-panel="customs" hidden>
   <div class="card">
     <h2>海關/進口（F3–F6）</h2>
     <div class="grid">
       <div class="col-6">
         <h3 class="muted">到岸價組合（CIF）</h3>
         <div class="grid">
-          <div class="col-6"><label>FOB 價格（元）</label><input name="cif_fob" type="number" placeholder="擇一填寫"></div>
-          <div class="col-6"><label>CFR 價格（元）</label><input name="cif_cfr" type="number" placeholder="擇一填寫"></div>
+          <div class="col-6"><label>FOB 價格（元）</label><input name="cif_fob" type="number" placeholder="擇一填"></div>
+          <div class="col-6"><label>CFR 價格（元）</label><input name="cif_cfr" type="number" placeholder="擇一填"></div>
           <div class="col-4"><label>運費 F（元）</label><input name="cif_F" type="number" value="0"></div>
-          <div class="col-4"><label>保費 I（元）</label><input name="cif_I" type="number" placeholder="空白自動推估"></div>
-          <div class="col-4"><label>保費率 hint ι</label><input name="cif_ih" type="text" value="${APP.params.premium_hint_rate}"></div>
+          <div class="col-4"><label>保費 I（元）</label><input name="cif_I" type="number" placeholder="空白自估"></div>
+          <div class="col-4"><label>保費率 hint ι</label><input name="cif_ih" type="text" value="0.003"></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="cif-calc">計算 CIF</button></div>
-        <div class="result" id="cif_result">—</div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="cif-calc" type="button">計算 CIF</button></div>
+        <div class="result" id="cif_result"><pre>—</pre></div>
       </div>
       <div class="col-6">
         <h3 class="muted">層級稅 / 到岸總成本</h3>
         <div class="grid">
-          <div class="col-4"><label>關稅率 d</label><input name="tx_d" type="text" placeholder="ex. 10%"></div>
+          <div class="col-4"><label>關稅率 d</label><input name="tx_d" type="text" placeholder="10%"></div>
           <div class="col-4"><label>貨物/酒稅率 c</label><input name="tx_c" type="text" value="0"></div>
-          <div class="col-4"><label>VAT t_v</label><input name="tx_tv" type="text" value="${APP.params.vat_rate}"></div>
+          <div class="col-4"><label>VAT t_v</label><input name="tx_tv" type="text" value="0.05"></div>
           <div class="col-4"><label>固定稅 τ（元）</label><input name="tx_tau" type="number" value="0"></div>
           <div class="col-4"><label>健康捐 h（元）</label><input name="tx_h" type="number" value="0"></div>
-          <div class="col-4"><label>推廣費率 p</label><input name="tx_p" type="text" value="${APP.params.promo_rate}"></div>
+          <div class="col-4"><label>推廣費率 p</label><input name="tx_p" type="text" value="0.0004"></div>
           <div class="col-6"><label>CIF（元）</label><input name="tx_cif" type="number" placeholder="先於左側計算或手填"></div>
           <div class="col-6"><label>Bonded / FTA</label>
             <div class="row">
@@ -282,16 +179,17 @@ customs(){ return `
           </div>
         </div>
         <div class="row" style="margin-top:.6rem">
-          <button class="btn" data-action="tx-calc">計算稅負/到岸成本</button>
-          <button class="btn" data-action="tx-reverse">反推 CIF（給定 L）</button>
+          <button class="btn" data-action="tx-calc" type="button">計算稅負/到岸成本</button>
+          <button class="btn" data-action="tx-reverse" type="button">反推 CIF（給定 L）</button>
           <input name="tx_L" type="number" placeholder="輸入目標 Landed L（元）" style="max-width:240px">
         </div>
-        <div class="result" id="tx_result">—</div>
+        <div class="result" id="tx_result"><pre>—</pre></div>
       </div>
     </div>
-  </div>`; },
+  </div>
+</section>
 
-locals(){ return `
+<section data-panel="locals" hidden>
   <div class="card">
     <h2>地方/特種稅（F7–F11）</h2>
     <div class="grid">
@@ -307,37 +205,37 @@ locals(){ return `
             </select>
           </div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="house-calc">計算</button></div>
-        <div class="result" id="house_result">—</div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="house-calc" type="button">計算</button></div>
+        <div class="result" id="house_result"><pre>—</pre></div>
       </div>
       <div class="col-6">
         <h3>地價稅（F8）</h3>
         <div class="grid">
           <div class="col-6"><label>課稅地價 V（元）</label><input name="land_V" type="number"></div>
-          <div class="col-6"><label>起點地價 T₀（元）</label><input name="land_T0" type="number" value="${APP.params.land_tax.T0}"></div>
+          <div class="col-6"><label>起點地價 T₀（元）</label><input name="land_T0" type="number" value="1000000"></div>
         </div>
-        <div class="row" style="margin:.6rem 0"><button class="btn" data-action="land-calc">計算</button></div>
-        <div class="result" id="land_result">—</div>
+        <div class="row" style="margin:.6rem 0"><button class="btn" data-action="land-calc" type="button">計算</button></div>
+        <div class="result" id="land_result"><pre>—</pre></div>
       </div>
       <div class="col-6">
         <h3>契稅（F9）</h3>
         <div class="grid">
           <div class="col-6"><label>課稅基礎 B_d（元）</label><input name="deed_Bd" type="number"></div>
-          <div class="col-6"><label>契稅率 r_d</label><input name="deed_rd" type="text" value="${APP.params.deed_rate}"></div>
+          <div class="col-6"><label>契稅率 r_d</label><input name="deed_rd" type="text" value="0.06"></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="deed-calc">計算</button></div>
-        <div class="result" id="deed_result">—</div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="deed-calc" type="button">計算</button></div>
+        <div class="result" id="deed_result"><pre>—</pre></div>
       </div>
       <div class="col-6">
         <h3>期貨/選擇權交易稅（F10）</h3>
         <div class="grid">
           <div class="col-6"><label>期貨名目本金 N_f（元）</label><input name="fo_Nf" type="number"></div>
           <div class="col-6"><label>選擇權權利金 P_o（元）</label><input name="fo_Po" type="number"></div>
-          <div class="col-6"><label>期貨稅率 r_f</label><input name="fo_rf" type="text" value="${APP.params.futures_rate}"></div>
-          <div class="col-6"><label>選擇權稅率 r_o</label><input name="fo_ro" type="text" value="${APP.params.options_rate}"></div>
+          <div class="col-6"><label>期貨稅率 r_f</label><input name="fo_rf" type="text" value="0.0002"></div>
+          <div class="col-6"><label>選擇權稅率 r_o</label><input name="fo_ro" type="text" value="0.001"></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="fo-calc">計算</button></div>
-        <div class="result" id="fo_result">—</div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="fo-calc" type="button">計算</button></div>
+        <div class="result" id="fo_result"><pre>—</pre></div>
       </div>
       <div class="col-12">
         <h3>碳費（F11）</h3>
@@ -345,17 +243,18 @@ locals(){ return `
           <div class="col-3"><label>模式</label><select name="carbon_mode"><option value="forward">正算（e→Fee）</option><option value="reverse">反推（Fee→e）</option></select></div>
           <div class="col-3"><label>年度排放量 e（噸）</label><input name="carbon_e" type="number"></div>
           <div class="col-3"><label>碳費 Fee（元）</label><input name="carbon_fee" type="number"></div>
-          <div class="col-3"><label>免課門檻 e₀（噸）</label><input name="carbon_e0" type="number" value="${APP.params.carbon_threshold_ton}"></div>
-          <div class="col-4"><label>調整係數 a</label><input name="carbon_a" type="number" value="${APP.params.carbon_adjust}"></div>
-          <div class="col-4"><label>單價（元/噸）</label><input name="carbon_price" type="number" value="${APP.params.carbon_unit_price}"></div>
+          <div class="col-3"><label>免課門檻 e₀（噸）</label><input name="carbon_e0" type="number" value="25000"></div>
+          <div class="col-4"><label>調整係數 a</label><input name="carbon_a" type="number" value="1"></div>
+          <div class="col-4"><label>單價（元/噸）</label><input name="carbon_price" type="number" value="300"></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="carbon-calc">計算</button></div>
-        <div class="result" id="carbon_result">—</div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="carbon-calc" type="button">計算</button></div>
+        <div class="result" id="carbon_result"><pre>—</pre></div>
       </div>
     </div>
-  </div>`; },
+  </div>
+</section>
 
-salary(){ return `
+<section data-panel="salary" hidden>
   <div class="card">
     <h2>薪資/級距預扣（F12）</h2>
     <div class="grid">
@@ -369,26 +268,18 @@ salary(){ return `
           <div class="col-6"><label>毛薪 G（元）</label><input name="sal_G" type="number"></div>
           <div class="col-6"><label>淨薪 N（元）</label><input name="sal_N" type="number"></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="sal-calc">計算</button> <button class="btn" data-action="sal-batch-open">批量</button></div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="sal-calc" type="button">計算</button> <button class="btn" data-action="sal-batch-open" type="button">批量</button></div>
       </div>
-      <div class="col-6"><div class="result" id="sal_result">—</div></div>
-      <div class="col-12" id="sal_batch" style="display:none">
-        <details open>
-          <summary>批量計算（CSV：G 或 N 其中一欄）</summary>
-          <div class="grid">
-            <div class="col-12"><label>輸入（CSV）</label><textarea id="sal_batch_in" placeholder="G,N\n80000,\n,60000"></textarea></div>
-            <div class="col-12 row">
-              <button class="btn" data-action="sal-batch-run">批量計算</button>
-              <button class="btn" data-action="sal-batch-export">匯出結果 CSV</button>
-            </div>
-            <div class="col-12"><div class="result" id="sal_batch_out"></div></div>
-          </div>
-        </details>
-      </div>
-    </div>
-  </div>`; },
+      <div class="col-6"><div class="result" id="sal_result"><pre>—</pre></div></div>
+      <div class="col-12" id="sal_batch" hidden>
+        <div class="card" style="background:#10131a">
+          <h3>批量計算（CSV）</h3>
+          <label>輸入（CSV）</label>
+          <textarea id="sal_batch_in" placeholder="G,N
 
-ifrs(){ return `
+80000, ,60000"></textarea> <div class="row" style="margin-top:.6rem"> <button class="btn" data-action="sal-batch-run" type="button">批量計算</button> <button class="btn" data-action="sal-batch-export" type="button">匯出結果 CSV</button> </div> <div class="result" id="sal_batch_out"><pre>—</pre></div> </div> </div> </div> </div> </section>
+
+<section data-panel="ifrs" hidden>
   <div class="card">
     <h2>IFRS 16（F13–F14）</h2>
     <div class="grid">
@@ -397,10 +288,10 @@ ifrs(){ return `
         <div class="grid">
           <div class="col-4"><label>每期付款 P（元）</label><input name="pv_P" type="number"></div>
           <div class="col-4"><label>期數 n</label><input name="pv_n" type="number" value="36"></div>
-          <div class="col-4"><label>月利率 r_m</label><input name="pv_rm" type="text" placeholder="ex. 0.25% 或 0.0025"></div>
+          <div class="col-4"><label>月利率 r_m</label><input name="pv_rm" type="text" placeholder="0.25% 或 0.0025"></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="pv-calc">計算現值</button></div>
-        <div class="result" id="pv_result">—</div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="pv-calc" type="button">計算現值</button></div>
+        <div class="result" id="pv_result"><pre>—</pre></div>
       </div>
       <div class="col-6">
         <h3>反推 IRR（F14）</h3>
@@ -409,13 +300,14 @@ ifrs(){ return `
           <div class="col-4"><label>期數 n</label><input name="irr_n" type="number" value="36"></div>
           <div class="col-4"><label>現值 PV（元）</label><input name="irr_PV" type="number"></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="irr-calc">計算 IRR</button></div>
-        <div class="result" id="irr_result">—</div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="irr-calc" type="button">計算 IRR</button></div>
+        <div class="result" id="irr_result"><pre>—</pre></div>
       </div>
     </div>
-  </div>`; },
+  </div>
+</section>
 
-transfer(){ return `
+<section data-panel="transfer" hidden>
   <div class="card">
     <h2>轉帳分拆工具（F15）</h2>
     <div class="grid">
@@ -424,282 +316,109 @@ transfer(){ return `
           <div class="col-6"><label>單筆上限 L（元）</label><input name="tr_L" type="number" value="1000000"></div>
           <div class="col-12"><label>同日金額序列（用逗號或換行）</label><textarea name="tr_list" placeholder="120000, 500000, 450000, 300000, 900000"></textarea></div>
         </div>
-        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="tr-calc">分組</button></div>
+        <div class="row" style="margin-top:.6rem"><button class="btn" data-action="tr-calc" type="button">分組</button></div>
       </div>
-      <div class="col-6"><div class="result" id="tr_result">—</div></div>
+      <div class="col-6"><div class="result" id="tr_result"><pre>—</pre></div></div>
     </div>
-  </div>`; },
+  </div>
+</section>
 
-params(){
-  const tbl = APP.params.salary_brackets.map((r,i)=>`<tr><td>${i+1}</td><td><input data-k="upper" data-idx="${i}" type="text" value="${r.upper===Infinity?'Infinity':r.upper}"></td><td><input data-k="rate" data-idx="${i}" type="text" value="${r.rate}"></td><td><input data-k="qd" data-idx="${i}" type="number" value="${r.qd||0}"></td></tr>`).join('');
-  const land = APP.params.land_tax;
-  return `
+<section data-panel="params" hidden>
   <div class="card">
     <h2>參數/級距表（2025 預設，可於此更新）</h2>
-    <div class="kpi">
-      <div class="box">年度 <strong>${APP.params.year}</strong></div>
-      <div class="box">VAT <strong>${APP.params.vat_rate*100}%</strong></div>
-      <div class="box">NHI 補充率 <strong>${(APP.params.nhi_supp_rate*100).toFixed(3)}‰</strong></div>
+    <div class="kpi row" style="gap:.6rem;flex-wrap:wrap">
+      <div class="pill">年度 <strong id="kpi_year">2025</strong></div>
+      <div class="pill">VAT <strong id="kpi_vat">5%</strong></div>
+      <div class="pill">NHI 補充率 <strong id="kpi_nhi">2.11‰</strong></div>
     </div>
     <div class="grid" style="margin-top:.6rem">
-      <div class="col-4"><label>VAT 稅率</label><input name="p_vat" type="text" value="${APP.params.vat_rate}"></div>
-      <div class="col-4"><label>NHI 補充率</label><input name="p_nhi" type="text" value="${APP.params.nhi_supp_rate}"></div>
-      <div class="col-4"><label>NHI 門檻 H</label><input name="p_H" type="number" value="${APP.params.nhi_threshold}"></div>
-      <div class="col-4"><label>保費率 hint ι</label><input name="p_ih" type="text" value="${APP.params.premium_hint_rate}"></div>
-      <div class="col-4"><label>推廣費率 p</label><input name="p_pr" type="text" value="${APP.params.promo_rate}"></div>
-      <div class="col-4"><label>碳費單價</label><input name="p_cu" type="number" value="${APP.params.carbon_unit_price}"></div>
-      <div class="col-4"><label>碳費門檻 e₀</label><input name="p_ce0" type="number" value="${APP.params.carbon_threshold_ton}"></div>
-      <div class="col-4"><label>碳費調整 a</label><input name="p_ca" type="number" value="${APP.params.carbon_adjust}"></div>
+      <div class="col-4"><label>VAT 稅率</label><input name="p_vat" type="text" value="0.05"></div>
+      <div class="col-4"><label>NHI 補充率</label><input name="p_nhi" type="text" value="0.0211"></div>
+      <div class="col-4"><label>NHI 門檻 H</label><input name="p_H" type="number" value="20000"></div>
+      <div class="col-4"><label>保費率 hint ι</label><input name="p_ih" type="text" value="0.003"></div>
+      <div class="col-4"><label>推廣費率 p</label><input name="p_pr" type="text" value="0.0004"></div>
+      <div class="col-4"><label>碳費單價</label><input name="p_cu" type="number" value="300"></div>
+      <div class="col-4"><label>碳費門檻 e₀</label><input name="p_ce0" type="number" value="25000"></div>
+      <div class="col-4"><label>碳費調整 a</label><input name="p_ca" type="number" value="1"></div>
     </div>
     <h3 style="margin-top:1rem">薪資級距表（F12）</h3>
-    <div class="hint">欄位：上限 upper、邊際稅率 rate、速算扣除數 quick_deduction（qd）。請依 2025 官方表更新。</div>
-    <table class="table" id="tbl_salary"><thead><tr><th>#</th><th>upper</th><th>rate</th><th>qd</th></tr></thead><tbody>${tbl}</tbody></table>
+    <div class="muted">欄位：上限 upper、邊際稅率 rate、速算扣除數 qd。最後一列 upper=Infinity 請填 <code>Infinity</code>。</div>
+    <table class="table" id="tbl_salary">
+      <thead><tr><th style="text-align:left">#</th><th>upper</th><th>rate</th><th>qd</th></tr></thead>
+      <tbody></tbody>
+    </table>
     <div class="row" style="margin:.6rem 0">
-      <button class="btn" data-action="sal-row-add">新增級距</button>
-      <button class="btn" data-action="sal-row-save" data-variant="ok">儲存級距</button>
+      <button class="btn" data-action="sal-row-add" type="button">新增級距</button>
+      <button class="btn" data-action="sal-row-save" data-variant="ok" type="button">儲存級距</button>
     </div>
-    <h3>地價稅級距（F8）</h3>
-    <div class="grid">
-      <div class="col-4"><label>起點地價 T₀</label><input name="p_T0" type="number" value="${land.T0}"></div>
+    <div class="card" style="background:#10131a">
+      <h3>薪資級距 CSV 對應精靈（離線）</h3>
+      <div class="grid">
+        <div class="col-12"><label>貼上官方 CSV（第一列為標題）</label><textarea id="csv_map_in" placeholder="upper,rate,qd
+
+50000,5%,0 100000,12%,3500 ... Infinity,40%,73500"></textarea></div> <div class="col-12"><button class="btn" data-action="csv-map-parse" type="button">解析 CSV</button></div> <div class="col-12" id="csv_map_ui" hidden> <div class="row"> <label>upper 欄位<select id="map_upper"></select></label> <label>rate 欄位<select id="map_rate"></select></label> <label>qd 欄位<select id="map_qd"></select></label> <label class="pill"><input type="checkbox" id="map_rate_percent" checked> rate 是百分比（%）</label> </div> <div class="row" style="margin-top:.6rem"><button class="btn" data-action="csv-map-apply" data-variant="ok" type="button">匯入至級距表</button></div> <div class="result mono" id="csv_map_preview"><pre>—</pre></div> </div> </div> </div> <h3>地價稅級距（F8）</h3> <div class="grid"> <div class="col-4"><label>起點地價 T₀</label><input name="p_T0" type="number" value="1000000"></div> </div> <div class="muted">欄位：倍數上限 m_upper、稅率 rate、差額扣除 delta</div> <div id="land_tbl" class="result mono" contenteditable="true">[ { "m_upper": 10, "rate": 0.01, "delta": 0 }, { "m_upper": 20, "rate": 0.02, "delta": 1000 }, { "m_upper": 40, "rate": 0.03, "delta": 3000 }, { "m_upper": "Infinity", "rate": 0.04, "delta": 7000 } ]</div> <div class="row" style="margin-top:.6rem"> <button class="btn" data-action="params-save" data-variant="ok" type="button">儲存所有參數</button> <button class="btn" data-action="version-commit" type="button">建立版本（保存目前參數）</button> </div> <div class="card" style="background:#10131a"> <h3>內建測試輸出</h3> <div class="result mono" id="test_result"><pre>尚未執行</pre></div> </div> </div> </section>
+
+<section data-panel="history" hidden>
+  <div class="card">
+    <h2>歷史/回滾</h2>
+    <h3>版本</h3>
+    <table class="table" id="ver_table"><thead><tr><th style="text-align:left">名稱</th><th>建立時間</th><th>操作</th></tr></thead><tbody></tbody></table>
+    <h3 style="margin-top:1rem">Restore Points</h3>
+    <table class="table" id="rp_table"><thead><tr><th style="text-align:left">原因</th><th>時間</th><th>操作</th></tr></thead><tbody></tbody></table>
+  </div>
+</section>
+
+<noscript>
+  <div class="card" style="border-color:#aa3333">本工具需要啟用 JavaScript 才能計算。若你看到本訊息或看不到表單，請改用較新版本瀏覽器。</div>
+</noscript>
+
+  </main>
+  <footer class="row" style="padding:.6rem .8rem;border-top:1px solid var(--bd);color:var(--muted)">
+    <div>
+      <span>Rounding:</span>
+      <label class="pill"><input type="radio" name="rounding" value="round0" checked> 四捨五入</label>
+      <label class="pill"><input type="radio" name="rounding" value="ceil0"> 無條件進位</label>
+      <label class="pill"><input type="radio" name="rounding" value="floor0"> 無條件捨去</label>
     </div>
-    <div class="hint">欄位：倍數上限 m_upper、稅率 rate、差額扣除 delta</div>
-    <div id="land_tbl" class="code mono" contenteditable="true">${JSON.stringify(land.brackets,null,2)}</div>
-    <div class="row" style="margin-top:.6rem">
-      <button class="btn" data-action="params-save" data-variant="ok">儲存所有參數</button>
-      <button class="btn" data-action="version-commit">建立版本（保存目前參數）</button>
-    </div>
-  </div>`;
-},
+    <span class="sp" style="flex:1"></span>
+    <span class="muted">單檔 · 離線（file://）· 無外部資源 · 所有按鈕 type="button" · 事件委派</span>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+<script defer>
+(function(){
+  // ===== Utilities =====
+  const $  = (sel, el=document) => el.querySelector(sel);
+  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+  const byId = (id)=> document.getElementById(id);
+  const nowTs = ()=> new Date().toISOString();
+  const clone = (obj)=> JSON.parse(JSON.stringify(obj)); // 兼容舊版瀏覽器
+  const toNum = (v)=> typeof v==='number'? v : Number(String(v).trim());
+  const esc = (s)=> String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));// Toast & global error capture const toastBox = byId('toast'); function showToast(msg, type='info', timeout=4200){ const div = document.createElement('div'); div.className = 't ' + (type==='error'?'err': type==='warn'?'warn':''); div.textContent = msg; toastBox.appendChild(div); setTimeout(()=>div.remove(), timeout); } window.onerror = (message, source, lineno, colno)=>{ showToast('錯誤: '+message+' @'+lineno+':'+colno,'error',8000); }; window.onunhandledrejection = (e)=>{ showToast('未捕捉的例外: '+(e.reason&&e.reason.message?e.reason.message:e.reason),'error',8000); };
 
-history(){
-  const vs = APP.versions.map(v=>`<tr><td>${v.label||v.id}</td><td>${new Date(v.createdAt).toLocaleString()}</td><td><button class="btn" data-action="ver-switch" data-id="${v.id}">切換</button></td></tr>`).join('');
-  const hs = APP.history.map(h=>`<tr><td>${h.reason||h.id}</td><td>${new Date(h.createdAt).toLocaleString()}</td><td><button class="btn" data-action="rp-restore" data-id="${h.id}">回滾→新版本</button></td></tr>`).join('');
-  return `
-    <div class="card">
-      <h2>歷史/回滾</h2>
-      <h3>版本</h3>
-      <table class="table"><thead><tr><th>名稱</th><th>建立時間</th><th>操作</th></tr></thead><tbody>${vs||'<tr><td colspan="3">—</td></tr>'}</tbody></table>
-      <h3 style="margin-top:1rem">Restore Points</h3>
-      <table class="table"><thead><tr><th>原因</th><th>時間</th><th>操作</th></tr></thead><tbody>${hs||'<tr><td colspan="3">—</td></tr>'}</tbody></table>
-    </div>`;
-}
+// Rounding function round0(x){return Math.round(x)} function ceil0(x){return Math.ceil(x)} function floor0(x){return Math.floor(x)} function getRounding(){ const r=document.querySelector('input[name="rounding"]:checked'); return r? r.value : 'round0'; } function R(x){ const rule=getRounding(); return rule==='ceil0'? ceil0(x): rule==='floor0'? floor0(x): round0(x); }
 
-};
+// Parsers function parseMoney(input, opts={min:-Infinity, allowNeg:false}){ if(input===''|| input==null) throw new Error('缺少必填金額'); let x = toNum(input); if(!Number.isFinite(x)) throw new Error('金額格式錯誤'); if(!opts.allowNeg && x < 0) throw new Error('金額不可為負'); if(x < (opts.min ?? -Infinity)) throw new Error('金額低於允許範圍'); return x; } function parseRate(input,{min=0,max=1}={}){ if(input===''|| input==null) throw new Error('缺少稅率'); let s=String(input).trim(); if(s.endsWith('%')) s=s.slice(0,-1); let x=toNum(s); if(!Number.isFinite(x)) throw new Error('稅率格式錯誤'); if(x>1) x/=100; if(x<min) x=min; if(x>max) x=max; return x; } function parseIntGE1(input){ let n=Math.floor(toNum(input)); if(!Number.isFinite(n)||n<1) n=1; return n; }
 
-function render(tab){ const tabsEl = byId('tabs'); const active = tab || (tabsEl.querySelector('.tab[aria-selected="true"]').dataset.tab); const main = byId('main'); main.innerHTML = panelsactive; // sync rounding footer to app param on first load const r = APP.params.rounding || 'round0'; const rEl = document.querySelector(input[name=rounding][value="${r}"]); if(rEl) rEl.checked = true; }
+// LocalStorage (file:// OK) const LS_KEY = 'tw_tax_suite_v2025'; const APP = window.APP = { meta: { appVersion:'1.1.0', formulaVersion:'F1–F16 v2025.09', createdAt: nowTs(), updatedAt: nowTs() }, params: { year: 2025, vat_rate: 0.05, rounding: 'round0', withhold_rate_default: 0.05, nhi_threshold: 20000, nhi_supp_rate: 0.0211, premium_hint_rate: 0.003, promo_rate: 0.0004, bonded: false, fta_duty_rate: null, carbon_threshold_ton: 25000, carbon_unit_price: 300, carbon_adjust: 1, salary_brackets: [ { upper: 50000,   rate: 0.05, qd: 0 }, { upper: 100000,  rate: 0.12, qd: 3500 }, { upper: 200000,  rate: 0.20, qd: 13500 }, { upper: 400000,  rate: 0.30, qd: 33500 }, { upper: null,    rate: 0.40, qd: 73500 } ], land_tax: { T0: 1000000, brackets: [ { m_upper: 10,       rate: 0.01, delta: 0 }, { m_upper: 20,       rate: 0.02, delta: 1000 }, { m_upper: 40,       rate: 0.03, delta: 3000 }, { m_upper: 'Infinity', rate: 0.04, delta: 7000 } ] }, house_tax_rates: { self_use: 0.012, rental: 0.03, builder: 0.10 }, deed_rate: 0.06, futures_rate: 0.0002, options_rate: 0.001, }, versions: [], history: [], currentVersionId: null }; function snapshotData(){ return { params: clone(APP.params), meta: clone(APP.meta) }; } function makeId(prefix='id'){ return ${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}; } function save(){ APP.meta.updatedAt=nowTs(); localStorage.setItem(LS_KEY, JSON.stringify(APP)); } function load(){ const raw=localStorage.getItem(LS_KEY); if(!raw){ const vId=makeId('v'); APP.currentVersionId=vId; APP.versions.push({id:vId,label:'初始版本',createdAt:nowTs(),dataSnapshot:snapshotData()}); save(); return; } try{ const obj=JSON.parse(raw); Object.assign(APP,obj);}catch(e){ showToast('載入本地資料失敗，使用預設','error'); } } function createRestorePoint(reason='操作'){ const rp={id:makeId('rp'),reason,createdAt:nowTs(),snapshot:snapshotData()}; APP.history.unshift(rp); if(APP.history.length>200) APP.history.pop(); save(); showToast('已建立 Restore Point: '+reason); refreshHistoryTables(); } function restoreAsNewVersion(rpId){ const rp=APP.history.find(x=>x.id===rpId); if(!rp) return showToast('找不到 Restore Point','error'); const vId=makeId('v'); APP.versions.push({id:vId,label:'從RP還原 '+new Date(rp.createdAt).toLocaleString(),createdAt:nowTs(),dataSnapshot:clone(rp.snapshot)}); APP.currentVersionId=vId; APP.params=clone(rp.snapshot.params); save(); refreshKPI(); refreshHistoryTables(); showToast('已建立新版本並切換'); } function switchVersion(vId){ const v=APP.versions.find(x=>x.id===vId); if(!v) return showToast('版本不存在','error'); APP.currentVersionId=vId; APP.params=clone(v.dataSnapshot.params); save(); refreshKPI(); showToast('已切換版本: '+(v.label||vId)); } function commitVersion(label='手動版本'){ const vId=makeId('v'); APP.versions.push({id:vId,label,createdAt:nowTs(),dataSnapshot:snapshotData()}); APP.currentVersionId=vId; save(); refreshHistoryTables(); showToast('已建立新版本: '+label); } function exportBackup(){ const pack={ _kind:'tw_tax_suite_backup', _ts:nowTs(), appVersion:APP.meta.appVersion, formulaVersion:APP.meta.formulaVersion, currentVersionId:APP.currentVersionId, versions:APP.versions, history:APP.history, params:APP.params }; const blob=new Blob([JSON.stringify(pack,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=tw-tax-backup-${Date.now()}.json; a.click(); URL.revokeObjectURL(a.href); } function importBackup(obj){ if(!obj||obj.kind!=='tw_tax_suite_backup') throw new Error('備份格式錯誤'); createRestorePoint('匯入備份前'); const existingIds=new Set(APP.versions.map(v=>v.id).concat(APP.history.map(h=>h.id))); const remapId=id=> existingIds.has(id)? makeId(id.split('')[0]||'id'): id; if(Array.isArray(obj.versions)){ for(const v of obj.versions){ let nid=remapId(v.id); existingIds.add(nid); APP.versions.push({id:nid,label:(v.label||'匯入版本'),createdAt:v.createdAt||nowTs(),dataSnapshot:v.dataSnapshot}); } } if(Array.isArray(obj.history)){ for(const h of obj.history){ let nid=remapId(h.id); existingIds.add(nid); APP.history.push({id:nid,reason:(h.reason||'匯入'),createdAt:h.createdAt||nowTs(),snapshot:h.snapshot}); } } save(); refreshKPI(); refreshHistoryTables(); showToast('匯入完成（合併不覆蓋、ID 重編、維持目前版本）','ok'); }
 
-// ========================== // Event Delegation // ========================== document.addEventListener('click', (ev)=>{ const t = ev.target.closest('[data-action], .tab'); if(!t) return; const act = t.dataset.action; if(t.classList.contains('tab')){ $$('.tab').forEach(b=>b.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); render(t.dataset.tab); return; } try{ switch(act){ case 'print': window.print(); break; case 'reset': if(confirm('清空本地所有資料？')){ localStorage.removeItem(LS_KEY); location.reload(); } break; case 'export-backup': exportBackup(); break; case 'create-restore': createRestorePoint('手動'); break;
+// ===== Helpers: render result + steps ===== function renderResultWithSteps(targetId, res){ const el=byId(targetId); if(!el) return; const json=esc(JSON.stringify(res,null,2)); let html = <pre class="mono">${json}</pre>; if(res._steps && res._steps.length){ html += <details><summary>展開步驟（${res._steps.length}）</summary><pre class="mono">${esc(res._steps.join(' '))}</pre></details>; } if(res._iter && res._iter.length){ const head = 'i	lo	hi	mid	f(mid)'; const lines = res._iter.map(r=>${r.i}	${Math.round(r.lo)}	${Math.round(r.hi)}	${Math.round(r.mid)}	${Math.round(r.fmid)}); html += <details><summary>迭代收斂（${res._iter.length} 步）</summary><pre class="mono">${esc([head].concat(lines).join(' '))}</pre></details>; } el.innerHTML = html; }
 
-// VAT
-    case 'vat-calc':{
-      const mode = document.querySelector('input[name=vat_mode]:checked').value;
-      const N = byId('main').querySelector('input[name=vat_N]').value;
-      const G = byId('main').querySelector('input[name=vat_G]').value;
-      const t_v = byId('main').querySelector('input[name=vat_t]').value || APP.params.vat_rate;
-      const res = F1_VAT({mode,N,G,t_v});
-      byId('vat_result').textContent = JSON.stringify(res,null,2);
-      createRestorePoint('VAT 計算');
-    } break;
-    case 'vat-batch-open':{
-      const sec = byId('vat_batch'); sec.style.display = sec.style.display==='none'? 'block':'none';
-    } break;
-    case 'vat-batch-run':{
-      const csv = byId('vat_batch_in').value.trim();
-      const rows = csv.split(/\r?\n/).filter(Boolean);
-      const out=[]; out.push(['N','G','T','t_v','R'].join(','));
-      for(const line of rows.slice(1)){
-        const [N,G,tv]= line.split(',');
-        const mode = (N && N.trim()!=='')? 'N_to_G': 'G_to_N';
-        try{ const r = F1_VAT({mode,N,G,t_v: tv||APP.params.vat_rate}); out.push([r.N,r.G,r.T,r.t_v,r.R].join(',')); }
-        catch(e){ out.push(['ERR:'+e.message]); }
-      }
-      const txt = out.join('\n');
-      byId('vat_batch_out').textContent = txt;
-    } break;
-    case 'vat-batch-export':{
-      const txt = byId('vat_batch_out').textContent;
-      const blob = new Blob([txt],{type:'text/csv'});
-      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='vat_batch_result.csv'; a.click(); URL.revokeObjectURL(a.href);
-    } break;
+// ===== Formulas (F1–F16) with step logs ===== function F1_VAT({mode,N,G,t_v}){ const steps=[]; const t=parseRate(t_v,{min:0,max:0.2}); steps.push([F1] 稅率 t_v=${t}); if(mode==='N_to_G'){ const n=parseMoney(N,{min:0}); steps.push(N=${n}); const raw = n*(1+t); steps.push(G_raw = N*(1+t) = ${n}*(1+${t}) = ${raw}); const g=R(raw); steps.push(G = R(G_raw) = ${g}); const T=R(g-n); steps.push(T = R(G-N) = ${g}-${n} = ${T}); return {N:n,G:g,T,t_v:t,R:getRounding(), _steps:steps}; } else if(mode==='G_to_N'){ const g=parseMoney(G,{min:0}); steps.push(G=${g}); const raw = g/(1+t); steps.push(N_raw = G/(1+t) = ${g}/(1+${t}) = ${raw}); const n=R(raw); steps.push(N = R(N_raw) = ${n}); const T=R(g-n); steps.push(T = R(G-N) = ${g}-${n} = ${T}); return {N:n,G:g,T,t_v:t,R:getRounding(), _steps:steps}; } throw new Error('VAT 模式錯誤'); } function F2_Withhold({mode,A,N,r_w,r_h,H}){ const steps=[]; const rw=parseRate(r_w,{min:0,max:0.3}); const rh=parseRate(r_h,{min:0,max:0.05}); const H0=Math.max(0,toNum(H)||0); steps.push([F2] 參數 rw=${rw}, rh=${rh}, H=${H0}); if(mode==='gross_to_net'){ const a=parseMoney(A,{min:0}); steps.push(A=${a}); const W=R(arw); steps.push(W = R(A*rw) = R(${a}*${rw}) = ${W}); const H$ = a>H0? R((a-H0)rh): 0; steps.push(H$ = ${a}>${H0}? R((A-H)*rh) : 0 = ${H$}); const n=R(a-W-H$); steps.push(N = R(A-W-H$) = R(${a}-${W}-${H$}) = ${n}); return {A:a,W,H$:H$,N:n,R:getRounding(),r_w:rw,r_h:rh,H:H0,_steps:steps}; } else if(mode==='net_to_gross'){ const n=parseMoney(N,{min:0}); steps.push(N=${n}); const A1=n/(1-rw); steps.push(試算 A1 = N/(1-rw) = ${n}/(1-${rw}) = ${A1}); if(A1<=H0){ const W=R(A1rw); steps.push(A1<=H → H$=0, W=R(A1*rw)=${W}); return {A:R(A1),W,H$:0,N:n,R:getRounding(),assumption:'A<=H',_steps:steps}; } const denom=1-rw-rh; if(denom<=0) throw new Error('參數不可解：1-rw-rh ≤ 0'); steps.push(A>H → 解 A：denom=1-rw-rh=${denom}); const A2=(n - rhH0)/denom; steps.push(A2=(N - rh*H)/denom = (${n} - ${rh}*${H0})/${denom} = ${A2}); const W=R(A2rw); steps.push(W=R(A2*rw) = ${W}); const H$=R((A2-H0)rh); steps.push(H$=R((A2-H)*rh) = ${H$}); return {A:R(A2),W,H$:H$,N:n,R:getRounding(),assumption:'A>H',_steps:steps}; } throw new Error('扣繳/健保 模式錯誤'); } function F3_CIF({P_fob,P_cfr,F,I,premium_hint_rate}){ const steps=[]; const f=Math.max(0,toNum(F)||0); const i_hint=Math.max(0,toNum(I)||0)||0; const ih=parseRate(premium_hint_rate,{min:0,max:0.1}); steps.push([F3] F=${f}, I_hint=${i_hint}, ι=${ih}); let FOB=null,CFR=null,CIF=null,Icalc=null; if(P_fob!==''&&P_fob!=null){ FOB=parseMoney(P_fob,{min:0}); steps.push(FOB=${FOB}); CFR=R(FOB+f); steps.push(CFR=R(FOB+F)=${CFR}); Icalc= i_hint>0? i_hint: R(CFRih); steps.push(I=${Icalc} (${i_hint>0?'手填':'R(CFR*ι)'})); CIF=R(CFR+Icalc); steps.push(CIF=R(CFR+I)=${CIF}); } else if(P_cfr!==''&&P_cfr!=null){ CFR=parseMoney(P_cfr,{min:0}); steps.push(CFR=${CFR}); FOB=R(CFR-f); if(FOB<0) FOB=0; steps.push(FOB=R(CFR-F)→${FOB}); Icalc= i_hint>0? i_hint: R(CFRih); steps.push(I=${Icalc}); CIF=R(CFR+Icalc); steps.push(CIF=${CIF}); } else { throw new Error('需提供 FOB 或 CFR 其一'); } return {FOB,CFR,I:Icalc,F:f,CIF,_steps:steps}; } function F4_Taxes({CIF,d,c,t_v,tau,health,promo_rate}){ const steps=[]; const cif=parseMoney(CIF,{min:0}); const dutyRate=parseRate(d,{min:0,max:1}); const excRate=parseRate(c,{min:0,max:1}); const vatRate=parseRate(t_v,{min:0,max:0.2}); const prRate=parseRate(promo_rate,{min:0,max:0.01}); const tau0=Math.max(0,toNum(tau)||0); const h0=Math.max(0,toNum(health)||0); steps.push([F4] CIF=${cif}, d=${dutyRate}, c=${excRate}, t_v=${vatRate}, τ=${tau0}, h=${h0}, p=${prRate}); const duty=R(cifdutyRate); steps.push(duty=R(CIF*d) = R(${cif}*${dutyRate}) = ${duty}); const exc=R((cif+duty)excRate); steps.push(exc=R((CIF+duty)*c) = R(${cif}+${duty})*${excRate} = ${exc}); const vat=R((cif+duty+exc+tau0+h0)vatRate); steps.push(vat=R((CIF+duty+exc+τ+h)*t_v) = ${vat}); const promo=R((cif+duty+exc)prRate); steps.push(promo=R((CIF+duty+exc)*p) = ${promo}); const totalTax=R(duty+exc+vat+tau0+h0+promo); steps.push(totalTax=R(sum)=${totalTax}); const landed=R(cif+totalTax); steps.push(landed=R(CIF+totalTax)=${landed}); return {duty,exc,vat,promo,tau:tau0,health:h0,totalTax,landed,_steps:steps}; } function F5_ReverseCIF({L,d,c,t_v,tau,health,promo_rate}){ const steps=[]; const iter=[]; const Ltarget=parseMoney(L,{min:0}); let lo=0, hi=Math.max(1,Ltarget); const maxIter=60, eps=1; const params={d,c,t_v,tau,health,promo_rate}; const f=(x)=> F4_Taxes({CIF:x,...params}).landed; while(f(hi)<Ltarget){ hi=2; if(hi>1e12) throw new Error('上界過大，參數異常'); } let mid, y; for(let i=1;i<=maxIter;i++){ mid=(lo+hi)/2; y=f(mid); iter.push({i,lo,hi,mid,fmid:y}); if(Math.abs(y-Ltarget)<=eps) break; if(y<Ltarget) lo=mid; else hi=mid; } const CIF=R(mid); const taxes=F4_Taxes({CIF,...params}); steps.push([F5] 目標 L=${Ltarget}, 收斂誤差≤${eps}, 迭代≤${maxIter}); return {CIF,...taxes,R:getRounding(),iter:≤${maxIter},tol:eps,_steps:steps,_iter:iter}; } function F7_HouseTax({B_h,usecase,house_tax_rates}){ const steps=[]; const base=parseMoney(B_h,{min:0}); const rate=house_tax_rates[usecase] ?? house_tax_rates.self_use; steps.push([F7] 稅率=${rate}); const tax=R(baserate); steps.push(tax=R(B_h*rate)=${tax}); return {tax,rate,_steps:steps}; } function F8_LandTax({V,T0,brackets}){ const steps=[]; const v=parseMoney(V,{min:0}); const t0=Math.max(0,toNum(T0)||0); if(v===0) return {tax:0,multiple:0,rate:0,delta:0,_steps:['V=0 → 稅額0']}; const m=v/(t0||1); steps.push([F8] 倍數 m=V/T0=${m}); let rate=0,delta=0; for(const b of brackets){ const mu=(b.m_upper==='Infinity'||b.m_upper===null)? Infinity: toNum(b.m_upper); if(m<=mu){ rate=b.rate; delta=b.delta; steps.push(落於 m≤${mu} → rate=${rate}, δ=${delta}); break; } } const tax=R(vrate - delta); steps.push(tax=R(V*rate-δ)=${tax}); return {tax,multiple:m,rate,delta,_steps:steps}; } function F9_Deed({B_d,r_d}){ const steps=[]; const base=parseMoney(B_d,{min:0}); const rate=parseRate(r_d,{min:0,max:1}); steps.push([F9] rate=${rate}); const tax=R(baserate); steps.push(tax=R(B_d*rate)=${tax}); return {tax,rate,_steps:steps}; } function F10_FutOpt({N_f,P_o,r_f,r_o}){ const steps=[]; const nf=Math.max(0,toNum(N_f)||0); const po=Math.max(0,toNum(P_o)||0); const rf=parseRate(r_f,{min:0,max:0.01}); const ro=parseRate(r_o,{min:0,max:0.01}); steps.push([F10] rf=${rf}, ro=${ro}); const futures=R(nfrf); steps.push(futures=R(N_f*rf)=${futures}); const options=R(poro); steps.push(options=R(P_o*ro)=${options}); return {futures,options,_steps:steps}; } function F11_Carbon({mode,e,fee,e0,a,unitPrice}){ const steps=[]; const e_0=Math.max(0,toNum(e0)||0); const adj=Math.max(0,toNum(a)||0); const price=Math.max(0,toNum(unitPrice)||0); steps.push([F11] e0=${e_0}, a=${adj}, price=${price}); if(mode==='forward'){ const E=Math.max(0,toNum(e)||0); const excess=Math.max(0,E-e_0); const F= excess>0? R(excessadjprice): 0; steps.push(E=${E}, excess=max(0,E-e0)=${excess}, Fee=${F}); return {fee:F,excess,R:getRounding(),_steps:steps}; } else { const Fee=Math.max(0,toNum(fee)||0); const E=R(Fee/(adjprice)+e_0); steps.push(給定 Fee=${Fee} → e=R(Fee/(a*price)+e0)=${E}); return {e:E,R:getRounding(),_steps:steps}; } } function findBracket(G,tbl){ for(const row of tbl){ const up = (row.upper==null)? Infinity : row.upper; if(G<=up){ return row; } } return tbl[tbl.length-1]; } function W_from_tbl(G,tbl){ for(const row of tbl){ const up = (row.upper==null)? Infinity : row.upper; if(G<=up){ return R(Grow.rate - (row.qd||0)); } } const last=tbl[tbl.length-1]; return R(Glast.rate - (last.qd||0)); } function F12_Salary({mode,G,N,tbl}){ const steps=[]; if(!tbl||!tbl.length) throw new Error('缺少級距表'); if(mode==='gross_to_net'){ const g=parseMoney(G,{min:0}); const b=findBracket(g,tbl); steps.push([F12] G=${g}, 命中 upper=${b.upper??'Infinity'}, rate=${b.rate}, qd=${b.qd||0}); const W=R(gb.rate - (b.qd||0)); steps.push(W=R(G*rate-qd)=${W}); const n=R(g-W); steps.push(N=R(G-W)=${n}); return {G:g,W,N:n,_steps:steps}; } else { const nTarget=parseMoney(N,{min:0}); steps.push([F12反推] 目標 N=${nTarget}); let lo=0, hi=Math.max(nTarget2,3000000), mid; const eps=1, maxIter=40; const iter=[]; for(let i=1;i<=maxIter;i++){ mid=(lo+hi)/2; const W=W_from_tbl(mid,tbl); const Nmid=R(mid-W); iter.push({i,lo,hi,mid,fmid:Nmid}); if(Math.abs(Nmid-nTarget)<=eps) break; if(Nmid<nTarget) lo=mid; else hi=mid; } const Gsol=R(mid); const Wsol=W_from_tbl(Gsol,tbl); steps.push(收斂於 G≈${Gsol}, W=${Wsol}); return {G:Gsol,W:Wsol,N:nTarget,iter:≤${maxIter},tol:eps,_steps:steps,_iter:iter}; } } function F13_PV({P,n,r_m}){ const steps=[]; const pay=parseMoney(P,{min:0}); const N=parseIntGE1(n); const rm=parseRate(r_m,{min:0,max:1}); steps.push([F13] P=${pay}, n=${N}, r_m=${rm}); const PV= rm===0? R(payN): R(pay * (1 - Math.pow(1+rm,-N))/rm); steps.push(PV=${PV}); return {PV,P:pay,n:N,r_m:rm,_steps:steps}; } function F14_IRR({P,n,PV}){ const steps=[]; const pay=parseMoney(P,{min:0}); const N=parseIntGE1(n); const pv=parseMoney(PV,{min:0}); const f=(r)=> pay*(1-Math.pow(1+r,-N))/r - pv; const df=(r)=>{ const a=Math.pow(1+r,-N); return pay * ((Na)/(r(1+r)) - (1-a)/(rr)); }; let r=0.02; const maxIter=60, tol=1e-8; const iter=[]; steps.push([F14] 牛頓法起始 r0=${r}); for(let i=1;i<=maxIter;i++){ const y=f(r),dy=df(r); if(!Number.isFinite(y)||!Number.isFinite(dy)||Math.abs(dy)<1e-12){ steps.push('牛頓失敗：導數過小/數值不穩'); break; } const r1=r - y/dy; iter.push({i,lo:NaN,hi:NaN,mid:r1,fmid:y}); if(r1<=-0.99||!Number.isFinite(r1)){ steps.push('牛頓發散/無效，改用二分法'); r1=r; break; } if(Math.abs(r1-r)<tol){ r=r1; steps.push(收斂 r=${r}); break; } r=r1; } if(r<=-0.99||!Number.isFinite(r)){ let lo=0,hi=1,mid,y; for(let i=1;i<=maxIter;i++){ mid=(lo+hi)/2; y=f(mid); iter.push({i,lo,hi,mid,fmid:y}); if(Math.abs(y)<tol) { r=mid; break; } if(y>0) lo=mid; else hi=mid; } steps.push('二分法完成'); } const r_m=(Math.round(r1e6)/1e6).toFixed(6); const r_a=(Math.round(r121e6)/1e6).toFixed(6); steps.push(r_m=${r_m}, r_a=${r_a}); return {r_m,r_a,_steps:steps,_iter:iter}; } function F15_Split({limit,list}){ const steps=[]; const L=Math.max(1,toNum(limit)||1000000); const arr=(list||[]).map(x=>toNum(x)).filter(v=>Number.isFinite(v)&&v>=0); const groups=[]; let bucket=0; let k=1; for(const s of arr){ if(s>L){ if(bucket>0){ groups.push(bucket); steps.push(組${k++}=${bucket}); bucket=0; } groups.push(s); steps.push(單筆>${L} → 組${k++}=${s}); continue; } if(bucket+s>L){ groups.push(bucket); steps.push(組${k++}=${bucket}); bucket=s; } else bucket+=s; } if(bucket>0){ groups.push(bucket); steps.push(組${k++}=${bucket});} const total=groups.reduce((a,b)=>a+b,0); return {groups,count:groups.length,total,limit:L,_steps:steps}; }
 
-    // Withholding
-    case 'wh-calc':{
-      const mode = document.querySelector('input[name=wh_mode]:checked').value;
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const res = F2_Withhold({mode, A:q('wh_A'), N:q('wh_N'), r_w:q('wh_rw'), r_h:q('wh_rh'), H:q('wh_H')});
-      byId('wh_result').textContent = JSON.stringify(res,null,2);
-      createRestorePoint('扣繳/健保 計算');
-    } break;
+// ===== Panels toggle (no virtual render) ===== function showPanel(name){ $$('main [data-panel]').forEach(sec=> sec.hidden = (sec.getAttribute('data-panel')!==name)); }
 
-    // Customs
-    case 'cif-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const res = F3_CIF({P_fob:q('cif_fob'), P_cfr:q('cif_cfr'), F:q('cif_F'), I:q('cif_I'), premium_hint_rate:q('cif_ih')});
-      byId('cif_result').textContent = JSON.stringify(res,null,2);
-    } break;
-    case 'tx-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const bonded = byId('main').querySelector('input[name=bonded]').checked;
-      const fta = byId('main').querySelector('input[name=fta]').checked;
-      const ftaRate = byId('main').querySelector('input[name=fta_rate]').value;
-      let d = q('tx_d');
-      if(bonded) d = '0'; else if(fta && ftaRate) d = ftaRate;
-      const res = F4_Taxes({CIF:q('tx_cif'), d, c:q('tx_c'), t_v:q('tx_tv'), tau:q('tx_tau'), health:q('tx_h'), promo_rate:q('tx_p')});
-      byId('tx_result').textContent = JSON.stringify(res,null,2);
-      createRestorePoint('海關稅負 計算');
-    } break;
-    case 'tx-reverse':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const bonded = byId('main').querySelector('input[name=bonded]').checked;
-      const fta = byId('main').querySelector('input[name=fta]').checked;
-      const ftaRate = byId('main').querySelector('input[name=fta_rate]').value;
-      let d = q('tx_d');
-      if(bonded) d = '0'; else if(fta && ftaRate) d = ftaRate;
-      const res = F5_ReverseCIF({L:q('tx_L'), d, c:q('tx_c'), t_v:q('tx_tv'), tau:q('tx_tau'), health:q('tx_h'), promo_rate:q('tx_p')});
-      byId('tx_result').textContent = JSON.stringify(res,null,2);
-      createRestorePoint('海關 反推 CIF');
-    } break;
+// ===== UI helpers ===== function refreshKPI(){ $('#kpi_year') && ($('#kpi_year').textContent = APP.params.year); $('#kpi_vat') && ($('#kpi_vat').textContent = (APP.params.vat_rate100)+'%'); $('#kpi_nhi') && ($('#kpi_nhi').textContent = (APP.params.nhi_supp_rate1000).toFixed(1)+'‰'); const rEl=document.querySelector(input[name=rounding][value="${APP.params.rounding||'round0'}"]); if(rEl) rEl.checked=true; // salary table const tbody = byId('tbl_salary').querySelector('tbody'); tbody.innerHTML=''; APP.params.salary_brackets.forEach((r,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=<td style="text-align:left">${i+1}</td><td><input data-k="upper" data-idx="${i}" type="text" value="${r.upper==null?'Infinity':r.upper}"></td><td><input data-k="rate" data-idx="${i}" type="text" value="${r.rate}"></td><td><input data-k="qd" data-idx="${i}" type="number" value="${r.qd||0}"></td>; tbody.appendChild(tr); }); } function refreshHistoryTables(){ const vt=byId('ver_table').querySelector('tbody'); const rt=byId('rp_table').querySelector('tbody'); vt.innerHTML = APP.versions.map(v=><tr><td style="text-align:left">${v.label||v.id}</td><td>${new Date(v.createdAt).toLocaleString()}</td><td><button class="btn" data-action="ver-switch" data-id="${v.id}" type="button">切換</button></td></tr>).join('') || '<tr><td colspan="3">—</td></tr>'; rt.innerHTML = APP.history.map(h=><tr><td style="text-align:left">${h.reason||h.id}</td><td>${new Date(h.createdAt).toLocaleString()}</td><td><button class="btn" data-action="rp-restore" data-id="${h.id}" type="button">回滾→新版本</button></td></tr>).join('') || '<tr><td colspan="3">—</td></tr>'; }
 
-    // Locals
-    case 'house-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}], select[name=${name}]`).value;
-      const res = F7_HouseTax({B_h:q('house_Bh'), usecase:q('house_use'), house_tax_rates:APP.params.house_tax_rates});
-      byId('house_result').textContent = JSON.stringify(res,null,2);
-    } break;
-    case 'land-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const res = F8_LandTax({V:q('land_V'), T0:q('land_T0'), brackets:APP.params.land_tax.brackets});
-      byId('land_result').textContent = JSON.stringify(res,null,2);
-    } break;
-    case 'deed-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const res = F9_Deed({B_d:q('deed_Bd'), r_d:q('deed_rd')});
-      byId('deed_result').textContent = JSON.stringify(res,null,2);
-    } break;
-    case 'fo-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const res = F10_FutOpt({N_f:q('fo_Nf'), P_o:q('fo_Po'), r_f:q('fo_rf'), r_o:q('fo_ro')});
-      byId('fo_result').textContent = JSON.stringify(res,null,2);
-    } break;
-    case 'carbon-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}], select[name=${name}]`).value;
-      const res = F11_Carbon({mode:q('carbon_mode'), e:q('carbon_e'), fee:q('carbon_fee'), e0:q('carbon_e0'), a:q('carbon_a'), unitPrice:q('carbon_price')});
-      byId('carbon_result').textContent = JSON.stringify(res,null,2);
-    } break;
+// ===== CSV parser (no fetch, offline) ===== function parseCSV(text){ const rows=[]; let row=[]; let i=0, q=false, field=''; while(i<text.length){ const c=text[i++]; if(q){ if(c==='"'){ if(text[i]==='"'){ field+='"'; i++; } else { q=false; } } else field+=c; } else { if(c==='"') q=true; else if(c===','){ row.push(field); field=''; } else if(c===' '){ row.push(field); rows.push(row); row=[]; field=''; } else if(c===' '){ /* ignore */ } else field+=c; } } if(field.length||row.length) { row.push(field); rows.push(row); } return rows; }
 
-    // Salary
-    case 'sal-calc':{
-      const mode = document.querySelector('input[name=sal_mode]:checked').value;
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const res = F12_Salary({mode, G:q('sal_G'), N:q('sal_N'), tbl:APP.params.salary_brackets});
-      byId('sal_result').textContent = JSON.stringify(res,null,2);
-    } break;
-    case 'sal-batch-open':{
-      const sec = byId('sal_batch'); sec.style.display = sec.style.display==='none'? 'block':'none';
-    } break;
-    case 'sal-batch-run':{
-      const csv = byId('sal_batch_in').value.trim();
-      const rows = csv.split(/\r?\n/).filter(Boolean);
-      const out=[]; out.push(['G','W','N'].join(','));
-      for(const line of rows.slice(1)){
-        const [G,N] = line.split(',');
-        try{
-          const mode = (G && G.trim()!=='')? 'gross_to_net':'net_to_gross';
-          const r = F12_Salary({mode, G, N, tbl:APP.params.salary_brackets});
-          out.push([r.G,r.W,r.N].join(','));
-        }catch(e){ out.push(['ERR:'+e.message]); }
-      }
-      byId('sal_batch_out').textContent = out.join('\n');
-    } break;
-    case 'sal-batch-export':{
-      const txt = byId('sal_batch_out').textContent;
-      const blob = new Blob([txt],{type:'text/csv'});
-      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='salary_batch_result.csv'; a.click(); URL.revokeObjectURL(a.href);
-    } break;
+// ===== Event Delegation ===== document.addEventListener('click', (ev)=>{ const t = ev.target.closest('[data-action], .tab'); if(!t) return; if(t.classList.contains('tab')){ $$('.tab').forEach(b=>b.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); showPanel(t.dataset.tab); return; } const act=t.dataset.action; try{ switch(act){ case 'print': window.print(); break; case 'reset': if(confirm('清空本地所有資料？')){ localStorage.removeItem(LS_KEY); location.reload(); } break; case 'export-backup': exportBackup(); break; case 'create-restore': createRestorePoint('手動'); break; case 'run-tests': runSelfTests(); break; // VAT case 'vat-calc':{ const mode=document.querySelector('input[name=vat_mode]:checked').value; const N=$('input[name=vat_N]').value; const G=$('input[name=vat_G]').value; const t_v=$('input[name=vat_t]').value; const res=F1_VAT({mode,N,G,t_v}); renderResultWithSteps('vat_result',res); createRestorePoint('VAT 計算'); } break; case 'vat-batch-open':{ const sec=byId('vat_batch'); sec.hidden=!sec.hidden; } break; case 'vat-batch-run':{ const csv=byId('vat_batch_in').value.trim(); const rows=csv.split(/ ? /).filter(Boolean); const out=[]; if(rows.length){ out.push(['N','G','T','t_v','R'].join(',')); for(const line of rows.slice(1)){ const [N,G,tv]=line.split(','); try{ const r=F1_VAT({mode:(N&&N.trim()!=='')?'N_to_G':'G_to_N',N,G,t_v:tv||APP.params.vat_rate}); out.push([r.N,r.G,r.T,r.t_v,r.R].join(',')); }catch(e){ out.push(['ERR:'+e.message]); } } } byId('vat_batch_out').innerHTML='<pre>'+esc(out.join(' ')||'—')+'</pre>'; } break; case 'vat-batch-export':{ const txt=byId('vat_batch_out').innerText; const blob=new Blob([txt],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='vat_batch_result.csv'; a.click(); URL.revokeObjectURL(a.href); } break; // Withhold case 'wh-calc':{ const mode=document.querySelector('input[name=wh_mode]:checked').value; const q=n=> $(input[name=${n}]).value; const res=F2_Withhold({mode,A:q('wh_A'),N:q('wh_N'),r_w:q('wh_rw'),r_h:q('wh_rh'),H:q('wh_H')}); renderResultWithSteps('wh_result',res); createRestorePoint('扣繳/健保 計算'); } break; // Customs case 'cif-calc':{ const q=n=> $(input[name=${n}]).value; const res=F3_CIF({P_fob:q('cif_fob'),P_cfr:q('cif_cfr'),F:q('cif_F'),I:q('cif_I'),premium_hint_rate:q('cif_ih')}); renderResultWithSteps('cif_result',res); } break; case 'tx-calc':{ const q=n=> $(input[name=${n}]).value; const bonded=$('input[name=bonded]').checked; const fta=$('input[name=fta]').checked; const ftaRate=$('input[name=fta_rate]').value; let d=q('tx_d'); if(bonded) d='0'; else if(fta&&ftaRate) d=ftaRate; const res=F4_Taxes({CIF:q('tx_cif'),d,c:q('tx_c'),t_v:q('tx_tv'),tau:q('tx_tau'),health:q('tx_h'),promo_rate:q('tx_p')}); renderResultWithSteps('tx_result',res); createRestorePoint('海關稅負 計算'); } break; case 'tx-reverse':{ const q=n=> $(input[name=${n}]).value; const bonded=$('input[name=bonded]').checked; const fta=$('input[name=fta]').checked; const ftaRate=$('input[name=fta_rate]').value; let d=q('tx_d'); if(bonded) d='0'; else if(fta&&ftaRate) d=ftaRate; const res=F5_ReverseCIF({L:q('tx_L'),d,c:q('tx_c'),t_v:q('tx_tv'),tau:q('tx_tau'),health:q('tx_h'),promo_rate:q('tx_p')}); renderResultWithSteps('tx_result',res); createRestorePoint('海關 反推 CIF'); } break; // Locals case 'house-calc':{ const q=n=> $(input[name=${n}], select[name=${n}]).value; const res=F7_HouseTax({B_h:q('house_Bh'),usecase:q('house_use'),house_tax_rates:APP.params.house_tax_rates}); renderResultWithSteps('house_result',res); } break; case 'land-calc':{ const q=n=> $(input[name=${n}]).value; const landBr=(()=>{ try{ const j=JSON.parse(byId('land_tbl').innerText); return j; }catch(e){ return APP.params.land_tax.brackets; } })(); const res=F8_LandTax({V:q('land_V'),T0:q('land_T0'),brackets:landBr}); renderResultWithSteps('land_result',res); } break; case 'deed-calc':{ const q=n=> $(input[name=${n}]).value; const res=F9_Deed({B_d:q('deed_Bd'),r_d:q('deed_rd')}); renderResultWithSteps('deed_result',res); } break; case 'fo-calc':{ const q=n=> $(input[name=${n}]).value; const res=F10_FutOpt({N_f:q('fo_Nf'),P_o:q('fo_Po'),r_f:q('fo_rf'),r_o:q('fo_ro')}); renderResultWithSteps('fo_result',res); } break; case 'carbon-calc':{ const q=n=> $(input[name=${n}], select[name=${n}]).value; const res=F11_Carbon({mode:q('carbon_mode'),e:q('carbon_e'),fee:q('carbon_fee'),e0:q('carbon_e0'),a:q('carbon_a'),unitPrice:q('carbon_price')}); renderResultWithSteps('carbon_result',res); } break; // Salary case 'sal-calc':{ const mode=document.querySelector('input[name=sal_mode]:checked').value; const q=n=> $(input[name=${n}]).value; const res=F12_Salary({mode,G:q('sal_G'),N:q('sal_N'),tbl:APP.params.salary_brackets}); renderResultWithSteps('sal_result',res); } break; case 'sal-batch-open':{ const sec=byId('sal_batch'); sec.hidden=!sec.hidden; } break; case 'sal-batch-run':{ const csv=byId('sal_batch_in').value.trim(); const rows=csv.split(/ ? /).filter(Boolean); const out=[]; if(rows.length){ out.push(['G','W','N'].join(',')); for(const line of rows.slice(1)){ const [G,N]=line.split(','); try{ const mode=(G&&G.trim()!=='')?'gross_to_net':'net_to_gross'; const r=F12_Salary({mode,G,N,tbl:APP.params.salary_brackets}); out.push([r.G,r.W,r.N].join(',')); }catch(e){ out.push(['ERR:'+e.message]); } } } byId('sal_batch_out').innerHTML='<pre>'+esc(out.join(' ')||'—')+'</pre>'; } break; case 'sal-batch-export':{ const txt=byId('sal_batch_out').innerText; const blob=new Blob([txt],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='salary_batch_result.csv'; a.click(); URL.revokeObjectURL(a.href); } break; // IFRS case 'pv-calc':{ const q=n=> $(input[name=${n}]).value; const res=F13_PV({P:q('pv_P'),n:q('pv_n'),r_m:q('pv_rm')}); renderResultWithSteps('pv_result',res); } break; case 'irr-calc':{ const q=n=> $(input[name=${n}]).value; const res=F14_IRR({P:q('irr_P'),n:q('irr_n'),PV:q('irr_PV')}); renderResultWithSteps('irr_result',res); } break; // Transfer split case 'tr-calc':{ const L=$('input[name=tr_L]').value; const listStr=$('textarea[name=tr_list]').value; const list=listStr.split(/[ ,]+/).map(s=>s.trim()).filter(Boolean); const res=F15_Split({limit:L,list}); renderResultWithSteps('tr_result',res); } break; // Params & Versions case 'sal-row-add':{ APP.params.salary_brackets.push({upper:null,rate:0.05,qd:0}); refreshKPI(); } break; case 'sal-row-save':{ const rows=$$('#tbl_salary tbody tr'); const arr=[]; for(const tr of rows){ const upper=tr.querySelector('input[data-k=upper]').value.trim(); const up= (upper==='Infinity'||upper==='')? null : toNum(upper); const rate=parseRate(tr.querySelector('input[data-k=rate]').value,{min:0,max:1}); const qd=Math.max(0,toNum(tr.querySelector('input[data-k=qd]').value)||0); arr.push({upper:up,rate,qd}); } arr.sort((a,b)=> ((a.upper==null?Number.POSITIVE_INFINITY:a.upper) - (b.upper==null?Number.POSITIVE_INFINITY:b.upper)) ); APP.params.salary_brackets=arr; save(); showToast('級距表已更新','ok'); } break; case 'csv-map-parse':{ const text=byId('csv_map_in').value.trim(); if(!text) return showToast('請先貼上 CSV','warn'); const rows=parseCSV(text); const headers=rows[0]; const body=rows.slice(1).filter(r=>r.some(c=>String(c).trim()!=='') ); const sel=(id)=> byId(id); const fill=(id)=>{ const s=sel(id); s.innerHTML=headers.map((h,i)=><option value="${i}">${esc(h||('col'+i))}</option>).join(''); }; fill('map_upper'); fill('map_rate'); fill('map_qd'); byId('csv_map_ui').hidden=false; const preview=body.slice(0,5).map(r=>r.join(',')).join(' '); byId('csv_map_preview').innerHTML='<pre>'+esc(preview||'—')+'</pre>'; byId('csv_map_ui').dataset.rows=JSON.stringify(body); byId('csv_map_ui').dataset.headers=JSON.stringify(headers); } break; case 'csv-map-apply':{ const ui=byId('csv_map_ui'); const body=JSON.parse(ui.dataset.rows||'[]'); const headers=JSON.parse(ui.dataset.headers||'[]'); const iU=toNum(byId('map_upper').value), iR=toNum(byId('map_rate').value), iQ=toNum(byId('map_qd').value); const isPct=byId('map_rate_percent').checked; if([iU,iR,iQ].some(i=>!Number.isFinite(i))) return showToast('請完成欄位對應','warn'); const arr=[]; for(const r of body){ let upper=String(r[iU]).trim(); if(upper===''||upper.toLowerCase()==='infinity'||upper==='∞') upper=null; else upper=toNum(upper); let rateRaw=String(r[iR]).trim(); if(isPct && !rateRaw.endsWith('%') && toNum(rateRaw)>1) rateRaw+= '%'; const rate=parseRate(rateRaw,{min:0,max:1}); const qd=Math.max(0,toNum(r[iQ])||0); arr.push({upper,rate,qd}); } arr.sort((a,b)=> ((a.upper==null?Number.POSITIVE_INFINITY:a.upper) - (b.upper==null?Number.POSITIVE_INFINITY:b.upper)) ); APP.params.salary_brackets=arr; save(); refreshKPI(); createRestorePoint('CSV 匯入級距'); showToast('已匯入 CSV 級距','ok'); } break; case 'params-save':{ const q=n=> $(input[name=${n}]).value; APP.params.vat_rate=parseRate(q('p_vat'),{min:0,max:0.2}); APP.params.nhi_supp_rate=parseRate(q('p_nhi'),{min:0,max:0.05}); APP.params.nhi_threshold=Math.max(0,toNum(q('p_H'))||0); APP.params.premium_hint_rate=parseRate(q('p_ih'),{min:0,max:0.1}); APP.params.promo_rate=parseRate(q('p_pr'),{min:0,max:0.01}); APP.params.carbon_unit_price=Math.max(0,toNum(q('p_cu'))||0); APP.params.carbon_threshold_ton=Math.max(0,toNum(q('p_ce0'))||0); APP.params.carbon_adjust=Math.max(0,toNum(q('p_ca'))||0); try{ const land=JSON.parse(byId('land_tbl').innerText); APP.params.land_tax.T0=Math.max(0,toNum(q('p_T0'))||0); APP.params.land_tax.brackets=land; }catch(e){ showToast('地價稅級距 JSON 解析失敗','error'); return; } APP.params.rounding=getRounding(); save(); createRestorePoint('更新參數'); refreshKPI(); showToast('參數已儲存','ok'); } break; case 'version-commit':{ const label=prompt('版本名稱：','參數快照 '+new Date().toLocaleString()); if(label) commitVersion(label); } break; case 'ver-switch': switchVersion(t.dataset.id); break; case 'rp-restore': restoreAsNewVersion(t.dataset.id); break; } }catch(e){ showToast(e.message||String(e),'error'); } });
 
-    // IFRS
-    case 'pv-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const res = F13_PV({P:q('pv_P'), n:q('pv_n'), r_m:q('pv_rm')});
-      byId('pv_result').textContent = JSON.stringify(res,null,2);
-    } break;
-    case 'irr-calc':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      const res = F14_IRR({P:q('irr_P'), n:q('irr_n'), PV:q('irr_PV')});
-      byId('irr_result').textContent = JSON.stringify(res,null,2);
-    } break;
+// File input byId('importFile').addEventListener('change', (ev)=>{ const f=ev.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ importBackup(JSON.parse(fr.result)); }catch(e){ showToast('匯入失敗: '+e.message,'error'); } finally{ ev.target.value=''; } }; fr.readAsText(f); });
 
-    // Transfer split
-    case 'tr-calc':{
-      const q = name=> byId('main').querySelector(`[name=${name}]`).value;
-      const list = q('tr_list').split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
-      const res = F15_Split({limit:q('tr_L'), list});
-      byId('tr_result').textContent = JSON.stringify(res,null,2);
-    } break;
+// ===== Tests ===== function approx(a,b,tol){ return Math.abs(a-b) <= (tol||1); } function runSelfTests(){ const out=[]; try{ // 1) VAT let r=F1_VAT({mode:'N_to_G',N:1000,t_v:0.05}); out.push([VAT] N=1000,t=5% → G=${r.G},T=${r.T} ${r.G===1050&&r.T===50?'PASS':'FAIL'}); // 2) 扣繳+健保 r=F2_Withhold({mode:'gross_to_net',A:50000,r_w:0.05,r_h:0.0211,H:20000}); out.push([Withhold] A=50000 → N=${r.N} (W=${r.W},H$=${r.H$}) ${r.N===46867?'PASS':'CHECK'}); // 3) 海關反推 let f4=F4_Taxes({CIF:1000,d:0.1,c:0,t_v:0.05,tau:0,health:0,promo_rate:0}); let f5=F5_ReverseCIF({L:f4.landed,d:0.1,c:0,t_v:0.05,tau:0,health:0,promo_rate:0}); out.push([Customs] CIF=1000 → L=${f4.landed}，反推→CIF=${f5.CIF} ${approx(f5.CIF,1000)?'PASS':'CHECK'}); // 4) 薪資正算 r=F12_Salary({mode:'gross_to_net',G:80000,tbl:APP.params.salary_brackets}); out.push([Salary] G=80000 → W=${r.W},N=${r.N} ${(r.W===6100&&r.N===73900)?'PASS':'CHECK'}); // 5) 薪資反推 r=F12_Salary({mode:'net_to_gross',N:73900,tbl:APP.params.salary_brackets}); out.push([Salary rev] N=73900 → G≈${r.G} ${approx(r.G,80000)?'PASS':'CHECK'}); // 6) PV r=F13_PV({P:10000,n:12,r_m:0.01}); out.push([PV] P=10000,n=12,r=1% → PV=${r.PV}); // 7) IRR const pv=F13_PV({P:10000,n:36,r_m:0.02}).PV; r=F14_IRR({P:10000,n:36,PV:pv}); out.push([IRR] 由 PV 反推 → r_m=${r.r_m} (≈0.020000) ${Math.abs(parseFloat(r.r_m)-0.02)<1e-4?'PASS':'CHECK'}); }catch(e){ out.push('測試執行錯誤: '+(e.message||e)); } byId('test_result').innerHTML = '<pre>'+esc(out.join(' '))+'</pre>'; showToast('內建測試完成','ok'); }
 
-    // Params
-    case 'sal-row-add':{
-      APP.params.salary_brackets.push({upper:Infinity, rate:0.05, qd:0});
-      render('params');
-    } break;
-    case 'sal-row-save':{
-      const rows = $$('#tbl_salary tbody tr');
-      const arr=[];
-      for(const tr of rows){
-        const upper = tr.querySelector('input[data-k=upper]').value.trim();
-        const up = (upper==='Infinity')? Infinity : toNum(upper);
-        const rate = parseRate(tr.querySelector('input[data-k=rate]').value,{min:0,max:1});
-        const qd = Math.max(0, toNum(tr.querySelector('input[data-k=qd]').value)||0);
-        arr.push({upper:up, rate, qd});
-      }
-      // ensure sorted by upper
-      arr.sort((a,b)=> (a.upper===Infinity?Number.POSITIVE_INFINITY:a.upper) - (b.upper===Infinity?Number.POSITIVE_INFINITY:b.upper));
-      APP.params.salary_brackets = arr;
-      save();
-      showToast('級距表已更新','ok');
-    } break;
-    case 'params-save':{
-      const q = name=> byId('main').querySelector(`input[name=${name}]`).value;
-      APP.params.vat_rate = parseRate(q('p_vat'),{min:0,max:0.2});
-      APP.params.nhi_supp_rate = parseRate(q('p_nhi'),{min:0,max:0.05});
-      APP.params.nhi_threshold = Math.max(0, toNum(q('p_H'))||0);
-      APP.params.premium_hint_rate = parseRate(q('p_ih'),{min:0,max:0.1});
-      APP.params.promo_rate = parseRate(q('p_pr'),{min:0,max:0.01});
-      APP.params.carbon_unit_price = Math.max(0, toNum(q('p_cu'))||0);
-      APP.params.carbon_threshold_ton = Math.max(0, toNum(q('p_ce0'))||0);
-      APP.params.carbon_adjust = Math.max(0, toNum(q('p_ca'))||0);
-      // land brackets from editable JSON
-      try{
-        const j = JSON.parse(byId('land_tbl').innerText);
-        APP.params.land_tax.T0 = Math.max(0, toNum(q('p_T0'))||0);
-        APP.params.land_tax.brackets = j;
-      }catch(e){ showToast('地價稅級距 JSON 解析失敗','error'); return; }
-      // rounding policy footer
-      APP.params.rounding = getRounding();
-      save();
-      createRestorePoint('更新參數');
-      showToast('參數已儲存','ok');
-    } break;
-    case 'version-commit':{
-      const label = prompt('版本名稱：','參數快照 '+new Date().toLocaleString());
-      if(label) commitVersion(label);
-    } break;
-
-    // History actions
-    case 'ver-switch': switchVersion(t.dataset.id); break;
-    case 'rp-restore': restoreAsNewVersion(t.dataset.id); break;
-
-    default: break;
-  }
-}catch(e){
-  showToast(e.message || String(e),'error');
-}
-
-});
-
-// File input (import) byId('importFile').addEventListener('change', (ev)=>{ const f = ev.target.files[0]; if(!f) return; const fr = new FileReader(); fr.onload = ()=>{ try{ importBackup(JSON.parse(fr.result)); } catch(e){ showToast('匯入失敗: '+e.message,'error'); } finally{ ev.target.value=''; } }; fr.readAsText(f); });
-
-// Init load(); render('vat'); })(); </script>
+// Init load(); refreshKPI(); refreshHistoryTables(); showPanel('vat'); })(); </script>
 
 </body>
 </html>
