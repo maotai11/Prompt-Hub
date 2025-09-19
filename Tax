@@ -1,0 +1,725 @@
+<!DOCTYPE html><html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TaxPro Suite — 離線版 v2</title><style>
+  :root{
+    --bg:#0b0f14;/*深色主題*/
+    --panel:#111820;
+    --card:#151e28;
+    --muted:#9fb3c8;
+    --text:#e8f1fa;
+    --accent:#39c3ff;
+    --accent-2:#73e6a1;
+    --danger:#ff6b6b;
+    --warn:#ffd166;
+    --ok:#4cd964;
+    --border:#22303e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial, sans-serif;
+  }
+  .app{display:grid; grid-template-columns: 280px 1fr; min-height:100vh}
+  .sidebar{background:var(--panel); border-right:1px solid var(--border); padding:12px 10px;}
+  .content{display:flex; flex-direction:column;}
+  .topbar{display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5}
+  .bulkbar{display:none; gap:8px; margin-left:auto}
+  .visible{display:flex !important}
+  .btn{background:#1b2836; color:var(--text); border:1px solid var(--border); padding:8px 14px; border-radius:10px; cursor:pointer; height:36px; display:inline-flex; align-items:center; gap:8px}
+  .btn:hover{border-color:#35506a}
+  .btn.primary{background:linear-gradient(180deg, #1b6ea1, #144d73); border-color:#1d5e8c}
+  .btn.warn{background:#3a2b00; border-color:#6b5400; color:#ffd166}
+  .btn.danger{background:#3a1111; border-color:#6b2222; color:#ffb0b0}
+  .btn.ghost{background:transparent}
+  .btn.sm{height:32px; padding:6px 10px}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+
+  .hstack{display:flex; gap:8px; align-items:center}
+  .vstack{display:flex; flex-direction:column; gap:8px}
+  .grow{flex:1}
+
+  .field{display:flex; flex-direction:column; gap:4px; min-width:250px}
+  label{color:var(--muted); font-size:13px}
+  input[type="text"], input[type="number"], select, textarea{
+    background:#0e151c; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px 12px; min-width:250px;
+  }
+  input[type="number"]{appearance:textfield}
+  input::placeholder{color:#7a8da1}
+  .row{display:flex; gap:12px; flex-wrap:wrap}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px}
+  .card h3{margin:0 0 6px 0}
+  .muted{color:var(--muted)}
+  .pill{display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:20px; border:1px solid var(--border); background:#0e151c; font-size:12px}
+
+  .grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:12px}
+
+  .module-card{position:relative}
+  .module-select{position:absolute; top:10px; left:10px}
+
+  .section-title{margin:12px 0 8px; font-weight:700}
+  .divider{height:1px; background:var(--border); margin:8px 0}
+
+  .toast{position:fixed; right:12px; bottom:12px; background:#0e151c; border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.35); max-width:60ch}
+
+  .sidebar .cat{display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:10px; cursor:pointer; user-select:none}
+  .sidebar .cat.active{background:#0e151c; border:1px solid var(--border)}
+
+  .results{background:#0f141a; border:1px dashed #234; border-radius:12px; padding:10px}
+  .code{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#0e151c; border:1px solid var(--border); border-radius:10px; padding:8px; white-space:pre-wrap}
+
+  .badge{font-size:12px; padding:2px 6px; border-radius:8px; border:1px solid var(--border)}
+  .ok{color:var(--accent-2)}
+  .warnc{color:var(--warn)}
+  .err{color:var(--danger)}
+
+  .seg{display:inline-flex; border:1px solid var(--border); border-radius:10px; overflow:hidden}
+  .seg button{height:32px; padding:0 10px; background:#0e151c; color:var(--text); border:0}
+  .seg button.active{background:#1b2836}
+
+  .hidden{display:none !important}
+
+  @media (max-width: 600px){
+    .app{grid-template-columns: 1fr}
+    .sidebar{display:none}
+    input[type="text"], input[type="number"], select, textarea{width:100%; min-width:unset}
+    .field{min-width:unset; width:100%}
+    .row{flex-direction:column}
+    .topbar{flex-wrap:wrap}
+  }
+</style></head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="vstack">
+      <div class="muted" style="padding:6px 8px">類別</div>
+      <div class="cat active" data-cat="all">全部模組</div>
+      <div class="cat" data-cat="vat">營業稅/發票</div>
+      <div class="cat" data-cat="wh">扣繳/二代健保</div>
+      <div class="cat" data-cat="customs">進出口/海關</div>
+      <div class="cat" data-cat="local">地方/特種稅</div>
+      <div class="cat" data-cat="pay">勞健保/薪酬</div>
+      <div class="cat" data-cat="ifrs">IFRS 輔助</div>
+      <div class="cat" data-cat="tools">工具/資料處理</div>
+    </div>
+  </aside>
+  <main class="content">
+    <div class="topbar">
+      <div class="hstack">
+        <button class="btn" type="button" id="btn-new">新增模組</button>
+        <button class="btn" type="button" id="btn-import">匯入</button>
+        <button class="btn" type="button" id="btn-export-all">全模組備份</button>
+        <button class="btn" type="button" id="btn-print-all">合併列印</button>
+        <button class="btn" type="button" id="btn-history">歷史/回滾</button>
+        <button class="btn" type="button" id="btn-restore">建立 Restore Point</button>
+      </div>
+      <div class="bulkbar" id="bulkbar">
+        <span class="pill" id="bulk-count">已選 0</span>
+        <button class="btn primary sm" type="button" data-bulk="compute">批量計算</button>
+        <button class="btn sm" type="button" data-bulk="saveNew">批量另存新版本</button>
+        <button class="btn sm" type="button" data-bulk="overwrite">批量儲存覆蓋</button>
+        <button class="btn sm" type="button" data-bulk="backup">批量備份</button>
+        <button class="btn sm warn" type="button" data-bulk="print">批量列印</button>
+        <button class="btn sm danger" type="button" data-bulk="delete">批量移除</button>
+      </div>
+      <span class="grow"></span>
+      <div class="pill">年度：<select id="year-select"><option value="2025" selected>2025</option></select></div>
+    </div><section style="padding:12px" id="module-list-section">
+  <div class="hstack" style="margin-bottom:8px">
+    <div class="grow"></div>
+    <div class="field" style="min-width:200px">
+      <label>搜尋模組</label>
+      <input type="text" id="search-box" placeholder="輸入名稱或類別關鍵字…" />
+    </div>
+  </div>
+
+  <div class="grid" id="module-grid"></div>
+</section>
+
+<!-- 模組細節頁（表單化） -->
+<section style="padding:12px; display:none" id="module-detail"></section>
+
+<!-- 歷史/回滾抽屜 -->
+<section style="padding:12px; display:none" id="history-panel"></section>
+
+  </main>
+</div><div class="toast" id="toast" style="display:none"></div><!-- 年度參數與表格（皆為內嵌 JSON，離線可用） --><script type="application/json" id="param-pack-2025">
+{
+  "year": 2025,
+  "vat_rate": 0.05,
+  "nhi_supp_rate": 0.0211,
+  "nhi_bonus_threshold_mult": 4,
+  "promo_fee_rate": 0.0004,
+  "rounding": "round0",
+  "insurance_rate_hint": 0.003,
+  "ifrs16_default_period_month": 36,
+  "withholding_defaults": {
+    "rent": 0.10,
+    "interest": 0.10,
+    "royalty": 0.10,
+    "service": 0.10,
+    "nonresident": 0.20
+  },
+  "house_tax": {
+    "self_use": 0.01,
+    "rented": 0.018,
+    "builder_max": 0.048,
+    "progressive": [
+      {"units_max": 2, "rate": 0.032},
+      {"units_max": 4, "rate": 0.038},
+      {"units_max": 6, "rate": 0.042},
+      {"units_max": 9999, "rate": 0.048}
+    ]
+  },
+  "land_tax": {
+    "threshold": 1000000,
+    "brackets": [
+      {"upto": 1, "rate": 0.010, "deduct": 0},
+      {"upto": 5, "rate": 0.015, "deduct": 0.005},
+      {"upto": 10, "rate": 0.025, "deduct": 0.065},
+      {"upto": 15, "rate": 0.035, "deduct": 0.215},
+      {"upto": 20, "rate": 0.045, "deduct": 0.425},
+      {"upto": 9999, "rate": 0.055, "deduct": 0.545}
+    ]
+  },
+  "salary_withholding_brackets": [
+    {"up": 25000, "rate": 0.00},
+    {"up": 50000, "rate": 0.05},
+    {"up": 100000, "rate": 0.10},
+    {"up": 200000, "rate": 0.15},
+    {"up": 99999999, "rate": 0.20}
+  ],
+  "labor_insurance": {
+    "employee_pct": 0.20, "employer_pct": 0.70, "gov_pct": 0.10,
+    "rate": 0.125, "grades": [28590, 30000, 32000, 34500, 36300, 40000, 42000, 45800]
+  },
+  "health_insurance": {
+    "rate": 0.0517, "employee_pct": 0.30, "employer_pct": 0.60, "dep_pct": 0.10,
+    "grades": [26400, 34500, 45800, 65800, 87600, 109200, 145800, 219500]
+  },
+  "futures_option": {"rf": 0.0002, "ro": 0.001},
+  "carbon_fee": {"base": 300, "prefA": 50, "prefB": 100}
+}
+</script><script defer>
+(function(){
+  'use strict';
+
+  /******************* 工具與共用 *******************/
+  const $ = (sel, el=document) => el.querySelector(sel);
+  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+  const on = (el, ev, sel, fn) => { if (typeof sel === 'function') { el.addEventListener(ev, sel); return; } el.addEventListener(ev, e => { if (e.target.closest(sel)) fn(e); }); };
+  const toast = (msg, cls='') => { const t=$('#toast'); t.textContent=msg; t.className = 'toast ' + cls; t.style.display='block'; clearTimeout(t._tid); t._tid=setTimeout(()=>t.style.display='none', 4200); };
+  const clamp = (v, min, max)=> Math.min(max, Math.max(min, v));
+  const uid = (p='id') => p+'_'+Math.random().toString(36).slice(2,9);
+  const fmt = n => new Intl.NumberFormat('zh-Hant', {maximumFractionDigits:0}).format(n);
+  const nowISO = () => new Date().toISOString();
+
+  // 四捨五入策略庫
+  const Rounding = { round0: x => Math.round(x), ceil0:  x => Math.ceil(x), floor0: x => Math.floor(x) };
+
+  // 全域錯誤攔截
+  window.onerror = function(msg, src, line, col, err){ console.error('[onerror]', msg, src, line, col, err); toast('錯誤：'+msg+' @'+line+':'+col, 'err'); };
+  window.addEventListener('unhandledrejection', e => { console.error('[unhandledrejection]', e.reason); toast('非預期錯誤：'+ (e.reason && e.reason.message || e.reason), 'err'); });
+
+  /******************* 簡易儲存層（IndexedDB→fallback localStorage） *******************/
+  const DB = (()=>{
+    const DB_NAME='taxpro_offline_v2'; const DB_VER=2;
+    let idb=null; let usingLocal=false;
+    function open(){
+      return new Promise((res,rej)=>{
+        if(!('indexedDB' in window)) { usingLocal=true; return res(); }
+        const req = indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded = (e)=>{
+          const db = e.target.result;
+          if(!db.objectStoreNames.contains('modules')) db.createObjectStore('modules', {keyPath:'id'});
+          if(!db.objectStoreNames.contains('versions')) db.createObjectStore('versions', {keyPath:'id'});
+          if(!db.objectStoreNames.contains('history')) db.createObjectStore('history', {keyPath:'id'});
+          if(!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', {keyPath:'key'});
+        };
+        req.onsuccess = ()=>{ idb=req.result; res(); };
+        req.onerror = ()=>{ usingLocal=true; res(); };
+      });
+    }
+    function put(store, val){
+      if(usingLocal){ const k='DB_'+store; const obj=JSON.parse(localStorage.getItem(k)||'{}'); obj[val[ store==='settings'?'key':'id' ]] = val; localStorage.setItem(k, JSON.stringify(obj)); return Promise.resolve(); }
+      return new Promise((res,rej)=>{ const tx=idb.transaction(store,'readwrite'); tx.objectStore(store).put(val); tx.oncomplete=()=>res(); tx.onerror=e=>rej(e); });
+    }
+    function all(store){
+      if(usingLocal){ const obj=JSON.parse(localStorage.getItem('DB_'+store)||'{}'); return Promise.resolve(Object.values(obj)); }
+      return new Promise((res,rej)=>{ const tx=idb.transaction(store,'readonly'); const st=tx.objectStore(store); const req=st.getAll(); req.onsuccess=()=>res(req.result); req.onerror=e=>rej(e); });
+    }
+    function del(store, key){
+      if(usingLocal){ const obj=JSON.parse(localStorage.getItem('DB_'+store)||'{}'); delete obj[key]; localStorage.setItem('DB_'+store', JSON.stringify(obj)); return Promise.resolve(); }
+      return new Promise((res,rej)=>{ const tx=idb.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=()=>res(); tx.onerror=e=>rej(e); });
+    }
+    return { open, put, all, del };
+  })();
+
+  /******************* 年度參數 *******************/
+  let PARAMS = JSON.parse($('#param-pack-2025').textContent);
+  $('#year-select').addEventListener('change', e=>{ const y=e.target.value; toast('已選年度：'+y); });
+
+  /******************* 資料模型與狀態 *******************/
+  /** Module: { id, type, name, year, deleted, currentVersionId } */
+  /** Version: { id, moduleId, ver, status, notes, input, output, formulaVersion, createdAt } */
+  /** History: { id, at, action, scope, modules[], payload } */
+
+  const State = { modules:[], versions:[], selected:new Set(), filterCat:'all', search:'' };
+
+  function findVersionsByModule(mid){ return State.versions.filter(v=>v.moduleId===mid).sort((a,b)=>a.createdAt.localeCompare(b.createdAt)); }
+  function currentVersion(mid){ const m=State.modules.find(x=>x.id===mid); return State.versions.find(v=>v.id===m.currentVersionId); }
+
+  async function loadAll(){ await DB.open(); State.modules = await DB.all('modules'); State.versions = await DB.all('versions'); renderGrid(); }
+
+  /******************* 範本模組（擴充） *******************/
+  const MODULE_TEMPLATES = {
+    vat_calc: { type:'vat', name:'發票含稅↔未稅', input:{ mode:'gross_to_net', gross:2100, net:null, vat_rate:PARAMS.vat_rate, rounding:PARAMS.rounding }, notes:'A1' },
+    wh_nhi: { type:'wh', name:'扣繳＋二代健保', input:{ mode:'forward', kind:'rent', amt:30000, wht_rate:PARAMS.withholding_defaults.rent, net_target:null }, notes:'B2' },
+    customs_import: { type:'customs', name:'進口稅層級', input:{ mode:'forward', price_mode:'FOB', price_value:100000, freight:8000, insurance:null, duty_rate:0.1, commodity_tax_rate:0.13, tobacco_tax:0, health_levy:0, vat_rate:PARAMS.vat_rate, promo_fee_rate:PARAMS.promo_fee_rate, ins_rate_hint:PARAMS.insurance_rate_hint, target:null }, notes:'D1' },
+    customs_adv: { type:'customs', name:'進口稅（保稅/FTA）', input:{ mode:'forward', price_mode:'CIF', price_value:120000, freight:0, insurance:0, duty_rate:0.05, fta_rate:0, bonded:false, commodity_tax_rate:0, vat_rate:PARAMS.vat_rate, promo_fee_rate:PARAMS.promo_fee_rate, target:null }, notes:'D1-FTA/Bonded' },
+    house_tax: { type:'local', name:'房屋稅（囤房2.0簡化）', input:{ units:3, self_use:false, rented:false, builder:false, base:1000000 }, notes:'E1' },
+    land_tax: { type:'local', name:'地價稅（級距）', input:{ total_land_value:3000000, threshold:PARAMS.land_tax.threshold }, notes:'E2' },
+    deed_tax: { type:'local', name:'契稅（自訂率）', input:{ basis:2000000, rate:0.06 }, notes:'E3' },
+    futopt_tax: { type:'local', name:'期貨/選擇權交易稅', input:{ notionals:5000000, premium:12000, rf:PARAMS.futures_option.rf, ro:PARAMS.futures_option.ro }, notes:'I2' },
+    carbon_fee: { type:'local', name:'碳費（完整版）', input:{ emissions:60000, threshold:25000, adj:1, fee_rate:PARAMS.carbon_fee.base, mode:'forward', target_fee:null }, notes:'H' },
+    salary_net_gross: { type:'pay', name:'薪資（級距＋淨轉毛）', input:{ mode:'reverse', net_target:50000, gross:60000, wht_table:'2025', ins_base:30000 }, notes:'F1' },
+    ifrs16_basic: { type:'ifrs', name:'IFRS16 租賃PV/IRR', input:{ mode:'pv', P:10000, n:36, rate_annual:0.03, PV:300000 }, notes:'G1' },
+    transfer_split: { type:'tools', name:'轉帳分拆 ≤ 1,000,000', input:{ limit:1000000, lines:"7/11:132000+160500+138600+83000+65100+148500+75000+144000+129810+145000+60000+158243+158243" }, notes:'Tools-Split' }
+  };
+
+  function createModuleFromTemplate(key){
+    const tpl = MODULE_TEMPLATES[key];
+    const id = uid('m'); const vid=uid('v'); const verName='v1.0';
+    const mod = { id, type:tpl.type, name:tpl.name, year:PARAMS.year, deleted:false, currentVersionId:vid };
+    const ver = { id:vid, moduleId:id, ver:verName, status:'draft', notes:tpl.notes, input:structuredClone(tpl.input), output:null, formulaVersion:'2025.1', createdAt: nowISO() };
+    State.modules.push(mod); State.versions.push(ver);
+    DB.put('modules', mod); DB.put('versions', ver);
+    return id;
+  }
+
+  /******************* 計算引擎（正算 & 反推 & 新模組） *******************/
+  const Engine = {
+    // A1 發票含稅↔未稅
+    vat(input){
+      const r = Rounding[input.rounding||'round0']||Rounding.round0;
+      const rate = Number(input.vat_rate||PARAMS.vat_rate);
+      let net, tax, gross, formula;
+      if(input.mode==='gross_to_net'){
+        gross = Number(input.gross||0);
+        net = r( gross / (1+rate) );
+        tax = gross - net;
+        formula = `net = round(gross / (1+${rate}))\n tax = gross - net`;
+      } else {
+        net = Number(input.net||0);
+        tax = r(net*rate);
+        gross = net + tax;
+        formula = `tax = round(net * ${rate})\n gross = net + tax`;
+      }
+      return { net, tax, gross, formula };
+    },
+
+    // B2 扣繳＋二代健保（租/利/權利金/服務）
+    wht(input){
+      const rate = Number(input.wht_rate||0);
+      const nhir = PARAMS.nhi_supp_rate;
+      const mode = input.mode||'forward';
+      if(mode==='reverse'){
+        const netTarget = Number(input.net_target||0);
+        const gross = Math.round(netTarget / (1 - rate - nhir));
+        const wht = Math.round(gross*rate);
+        const nhi = Math.round(gross*nhir);
+        return { amt:gross, wht, nhi, net: gross - wht - nhi, formula:`gross = net/(1-${rate}-${nhir})` };
+      } else {
+        const amt = Number(input.amt||0);
+        const needNHI = amt >= 20000; // 單筆門檻
+        const wht = Math.round(amt*rate);
+        const nhi = needNHI ? Math.round(amt*nhir) : 0;
+        const net = amt - wht - nhi;
+        return { amt, wht, nhi, net, formula:`wht = amt*${rate}; nhi = (amt≥20000? amt*${nhir}:0)` };
+      }
+    },
+
+    // D1 進口層級稅（含反推 Landed→CIF）
+    customs(input){
+      const r = Rounding.round0;
+      let {price_mode, price_value, freight, insurance, ins_rate_hint, duty_rate, commodity_tax_rate, tobacco_tax, health_levy, vat_rate, promo_fee_rate} = input;
+      price_value=Number(price_value||0); freight=Number(freight||0);
+      let CIF = 0;
+      if(price_mode==='CIF') CIF = price_value;
+      else if(price_mode==='CFR') { CIF = price_value + (insurance ?? Math.round((price_value)* (ins_rate_hint||0.003) * 1.1)); }
+      else {
+        const insHint = ins_rate_hint||0.003;
+        const ins = (insurance!=null? Number(insurance): Math.round((price_value+freight)*insHint*1.1));
+        CIF = price_value + freight + ins;
+      }
+      const Duty = r(CIF * Number(duty_rate||0));
+      const Excise = r((CIF + Duty) * Number(commodity_tax_rate||0)) + Number(tobacco_tax||0) + Number(health_levy||0);
+      const VAT = r((CIF + Duty + Excise) * Number(vat_rate||PARAMS.vat_rate));
+      const Promo = r(CIF * Number(promo_fee_rate||PARAMS.promo_fee_rate));
+      const Total = Duty + Excise + VAT + Promo;
+      const Landed = CIF + Total;
+
+      if(input.mode==='reverse' && input.target){
+        const landedTarget = Number(input.target);
+        const f = (cif)=>{
+          const d=r(cif*Number(duty_rate||0));
+          const e=r((cif+d)*Number(commodity_tax_rate||0))+Number(tobacco_tax||0)+Number(health_levy||0);
+          const v=r((cif+d+e)*Number(vat_rate||PARAMS.vat_rate));
+          const p=r(cif*Number(promo_fee_rate||PARAMS.promo_fee_rate));
+          return cif + d + e + v + p;
+        };
+        let lo=0, hi=Math.max(landedTarget, CIF*2+1), mid;
+        for(let i=0;i<60;i++){ mid=(lo+hi)/2; const val=f(mid); if(val>landedTarget) hi=mid; else lo=mid; }
+        const CIF2 = Math.round((lo+hi)/2);
+        const d=r(CIF2*Number(duty_rate||0));
+        const e=r((CIF2+d)*Number(commodity_tax_rate||0))+Number(tobacco_tax||0)+Number(health_levy||0);
+        const v=r((CIF2+d+e)*Number(vat_rate||PARAMS.vat_rate));
+        const p=r(CIF2*Number(promo_fee_rate||PARAMS.promo_fee_rate));
+        return { mode:'reverse', CIF:CIF2, Duty:d, Excise:e, VAT:v, Promo:p, Total:d+e+v+p, Landed: CIF2+d+e+v+p,
+          formula: '用二分法解 f(CIF)=CIF+Duty+Excise+VAT+Promo - Landed=0' };
+      }
+
+      return { CIF, Duty, Excise, VAT, Promo, Total, Landed,
+        formula: 'Duty=CIF*d; Excise=(CIF+Duty)*c + 固定稅; VAT=(CIF+Duty+Excise)*v; Promo=CIF*p' };
+    },
+
+    // D1-擴充：保稅/FTA（duty 可能為0 或 fta_rate 覆蓋）
+    customsAdv(input){
+      const base = Engine.customs({ ...input, duty_rate: (input.bonded? 0 : (input.fta_rate || input.duty_rate)) });
+      base.note = input.bonded ? '保稅：關稅 0（進口後轉內銷另計）' : (input.fta_rate? 'FTA優惠關稅取代一般稅率' : '一般課稅');
+      return base;
+    },
+
+    // E1 房屋稅（簡化）
+    houseTax(input){
+      const base = Number(input.base||0);
+      const h = PARAMS.house_tax;
+      let rate = h.self_use;
+      if(!input.self_use){ if(input.rented){ rate=h.rented; } else if(input.builder){ rate=h.builder_max; } else { const u=Number(input.units||1); rate = h.progressive.find(b=>u<=b.units_max).rate; } }
+      return { rate, tax: Math.round(base*rate), formula:`tax = base * rate` };
+    },
+
+    // E2 地價稅（累進＋差額）
+    landTax(input){
+      const T = Number(input.threshold||PARAMS.land_tax.threshold);
+      const V = Number(input.total_land_value||0);
+      if(V<=T) return { tax: Math.round(V*0.010), effectiveRate:0.010, formula:'未逾起點地價：千分之10' };
+      const x = V/T; // 倍數
+      const b = PARAMS.land_tax.brackets.find(br => x<=br.upto);
+      const tax = Math.round( V * b.rate - T * b.deduct );
+      return { tax, effectiveRate:b.rate, bracket:b, formula:`tax = V*rate - T*deduct (倍數 x=${x.toFixed(2)})` };
+    },
+
+    // E3 契稅（單率）
+    deedTax(input){ const tax=Math.round(Number(input.basis||0)*Number(input.rate||0)); return { tax, formula:'tax = basis * rate' }; },
+
+    // I2 期貨/選擇權交易稅
+    futOptTax(input){
+      const rf=Number(input.rf||PARAMS.futures_option.rf), ro=Number(input.ro||PARAMS.futures_option.ro);
+      const a = Math.round(Number(input.notionals||0)*rf);
+      const o = Math.round(Number(input.premium||0)*ro);
+      return { futures_tax:a, option_tax:o, formula:`期貨稅 = 名目*${rf}; 選擇權稅 = 權利金*${ro}` };
+    },
+
+    // H 碳費（完整）
+    carbonFee(input){
+      const e=Number(input.emissions||0), th=Number(input.threshold||25000), adj=Number(input.adj||1), rate=Number(input.fee_rate||PARAMS.carbon_fee.base);
+      if(input.mode==='reverse' && input.target_fee!=null){
+        // 反推需達排放量 (假設 e>th)
+        const target=Number(input.target_fee);
+        const charge = Math.round(target/rate/adj + th);
+        return { emissions_required: charge, formula:`target = (e - th)*adj*rate → e = target/(adj*rate) + th` };
+      }
+      const chargeable = Math.max(0, e - th) * adj; const fee = Math.round(chargeable * rate);
+      return { chargeable, fee, formula:`課徵量=(e-th)*adj; 碳費=課徵量*rate` };
+    },
+
+    // F1 薪資：級距＋淨轉毛（迭代）
+    salary(input){
+      const table = PARAMS.salary_withholding_brackets;
+      function whtOf(gross){ const b = table.find(t=>gross<=t.up)||table[table.length-1]; return Math.round(gross*b.rate); }
+      function iterateNetToGross(netTarget){
+        let lo=netTarget, hi=netTarget*1.6+1000; // 粗略範圍
+        for(let i=0;i<40;i++){ const mid=Math.floor((lo+hi)/2); const net = mid - whtOf(mid); if(net>=netTarget) hi=mid; else lo=mid; }
+        const gross=Math.floor((lo+hi)/2); return { gross, wht:whtOf(gross), net: gross - whtOf(gross) };
+      }
+      if(input.mode==='reverse') return { ...iterateNetToGross(Number(input.net_target||0)), formula:'二分迭代使 (gross - WHT(gross)) → net_target' };
+      const gross = Number(input.gross||0); const wht=whtOf(gross); return { gross, wht, net: gross-wht, formula:'依級距表計 WHT，再得淨額' };
+    },
+
+    // G1 IFRS16
+    ifrs16(input){
+      const P=Number(input.P||0), n=Number(input.n||PARAMS.ifrs16_default_period_month), ra=Number(input.rate_annual||0.03); let result={};
+      if(input.mode==='pv'){
+        const r=ra/12; const PV = P * (1 - Math.pow(1+r, -n)) / r; result.PV=Math.round(PV);
+      } else { // 求 IRR，已知 PV
+        const PV=Number(input.PV||0); let i=0.01; for(let k=0;k<60;k++){ let f=0, fp=0; for(let t=1;t<=n;t++){ const d=Math.pow(1+i,t); f+=P/d; fp += -t*P/Math.pow(1+i,t+1);} f=f-PV; const step=f/fp; i=clamp(i-step,1e-6,1); if(Math.abs(step)<1e-8) break; } result.monthlyRate=i; result.annualRate=i*12;
+      }
+      // schedule（若可得 PV 與 r）
+      const r=(result.monthlyRate!=null? result.monthlyRate : ra/12); const PV0=(result.PV!=null? result.PV: Number(input.PV||0)); let bal=PV0; const rows=[]; for(let t=1;t<=n;t++){ const interest=bal*r; const principal=P-interest; const end=bal-principal; rows.push({t, begin:Math.round(bal), interest:Math.round(interest), principal:Math.round(principal), end:Math.round(end)}); bal=end; }
+      result.schedule=rows; result.formula = (input.mode==='pv')? 'PV = P * (1-(1+r)^-n)/r' : '求 i 使 PV = Σ P/(1+i)^t';
+      return result;
+    },
+
+    // Tools：轉帳分拆 ≤ limit（依序裝箱）
+    splitTransfers(input){
+      const limit=Number(input.limit||1000000);
+      const lines=(input.lines||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+      const out=[]; let grandTotal=0, grandCount=0;
+      function parseNums(s){ return s.split(/[,+\s]+/).map(x=>x.replace(/[^0-9.]/g,'')).filter(Boolean).map(Number); }
+      for(const line of lines){
+        let date=null, rest=line; const m=line.match(/^([^:]+):(.+)$/); if(m){ date=m[1].trim(); rest=m[2].trim(); }
+        const nums=parseNums(rest); let bucket=0, groups=[]; let count=0; let dayTotal=0;
+        for(const n of nums){ if(n>limit){ // 單筆大於上限→自成一組（業務約束請另議）
+            if(bucket>0){ groups.push(bucket); dayTotal+=bucket; count++; bucket=0; }
+            groups.push(n); dayTotal+=n; count++;
+          } else if(bucket + n <= limit){ bucket += n; }
+          else { groups.push(bucket); dayTotal+=bucket; count++; bucket=n; }
+        }
+        if(bucket>0){ groups.push(bucket); dayTotal+=bucket; count++; }
+        grandTotal+=dayTotal; grandCount+=count;
+        out.push({ date, groups, dayTotal, count });
+      }
+      return { limit, days: out, grandTotal, grandCount, formula:'依序累加，超過上限即開新組（穩定貪婪法）' };
+    }
+  };
+
+  /******************* UI：渲染模組清單 *******************/
+  function renderGrid(){
+    const grid = $('#module-grid'); grid.innerHTML='';
+    const kw = State.search.trim().toLowerCase();
+    const list = State.modules.filter(m=>!m.deleted && (State.filterCat==='all'||m.type===State.filterCat) && (!kw || (m.name.toLowerCase().includes(kw)||m.type.includes(kw))));
+
+    if(list.length===0){
+      const container = document.createElement('div'); container.className='card'; container.innerHTML = '<div class="muted">尚無模組。點擊上方「新增模組」建立示範。</div>';
+      grid.appendChild(container); $('#bulkbar').classList.remove('visible'); return;
+    }
+
+    for(const m of list){ const v=currentVersion(m.id); const card=document.createElement('div'); card.className='card module-card'; card.dataset.mid=m.id; card.innerHTML = `
+        <input type="checkbox" class="module-select" data-mid="${m.id}" />
+        <h3>${m.name}</h3>
+        <div class="muted">類別：${m.type} ｜ 版本：${v?.ver||'-'} ｜ 狀態：${v?.status||'-'}</div>
+        <div class="divider"></div>
+        <div class="hstack">
+          <button class="btn sm" type="button" data-act="open">開啟</button>
+          <button class="btn sm" type="button" data-act="compute">計算</button>
+          <button class="btn sm" type="button" data-act="saveNew">另存新版本</button>
+          <button class="btn sm" type="button" data-act="overwrite">儲存覆蓋</button>
+          <button class="btn sm danger" type="button" data-act="delete">移除</button>
+        </div>`; grid.appendChild(card); }
+    updateBulkBar();
+  }
+
+  function updateBulkBar(){ const count=State.selected.size; $('#bulk-count').textContent='已選 '+count; $('#bulkbar').classList.toggle('visible', count>0); }
+  on($('#module-grid'), 'change', '.module-select', (e)=>{ const mid=e.target.dataset.mid; if(e.target.checked) State.selected.add(mid); else State.selected.delete(mid); updateBulkBar(); });
+  on($('#module-grid'), 'click', '[data-act]', (e)=>{ const mid=e.target.closest('.module-card').dataset.mid; const act=e.target.dataset.act; if(act==='open') openModule(mid); if(act==='compute') computeModule(mid); if(act==='saveNew') saveNewVersion(mid); if(act==='overwrite') overwriteSave(mid); if(act==='delete') softDelete(mid); });
+
+  $('#btn-new').addEventListener('click', ()=>{ const key = prompt('輸入示範模組代碼：\nvat_calc | wh_nhi | customs_import | customs_adv | house_tax | land_tax | deed_tax | futopt_tax | carbon_fee | salary_net_gross | ifrs16_basic | transfer_split'); if(key && MODULE_TEMPLATES[key]){ createModuleFromTemplate(key); renderGrid(); toast('已新增：'+MODULE_TEMPLATES[key].name,'ok'); } });
+  $('#btn-export-all').addEventListener('click', ()=>{ exportBackup(State.modules.map(m=>m.id)); });
+  $('#btn-print-all').addEventListener('click', ()=>{ window.print(); });
+  $('#btn-import').addEventListener('click', importBackupDialog);
+  $('#btn-history').addEventListener('click', openHistoryPanel);
+  $('#btn-restore').addEventListener('click', createRestorePoint);
+
+  on($('#sidebar'), 'click', '.cat', (e)=>{ $$('.sidebar .cat').forEach(c=>c.classList.remove('active')); e.target.classList.add('active'); State.filterCat=e.target.dataset.cat; renderGrid(); });
+  $('#search-box').addEventListener('input', (e)=>{ State.search = e.target.value; renderGrid(); });
+
+  /******************* 模組細節頁（表單化輸入） *******************/
+  function openModule(mid){
+    const m = State.modules.find(x=>x.id===mid); const ver=currentVersion(mid); const sec=$('#module-detail');
+    function field(n, label, type='number', opts={}){
+      const v = ver.input[n]; const minw='';
+      if(type==='select'){ const optsHtml=opts.options.map(o=>`<option value="${o.value}" ${v==o.value?'selected':''}>${o.label}</option>`).join('');
+        return `<div class="field"><label>${label}</label><select data-bind="${n}">${optsHtml}</select></div>`;
+      }
+      if(type==='checkbox'){ return `<div class="field"><label><input type="checkbox" data-bind="${n}" ${v? 'checked':''}/> ${label}</label></div>`; }
+      if(type==='textarea'){ return `<div class="field"><label>${label}</label><textarea rows="6" data-bind="${n}">${v||''}</textarea></div>`; }return `<div class="field"><label>${label}</label><input type="${type}" data-bind="${n}" value="${v??''}" /></div>`;
+}
+
+// 每種模組表單
+function formBody(){
+  const t=m.type;
+  if(t==='vat'){
+    return `
+      <div class="hstack" style="flex-wrap:wrap; gap:12px">
+        <div class="seg" id="modeSeg">
+          <button type="button" class="${ver.input.mode==='gross_to_net'?'active':''}" data-mode="gross_to_net">含稅→未稅</button>
+          <button type="button" class="${ver.input.mode!=='gross_to_net'?'active':''}" data-mode="net_to_gross">未稅→含稅</button>
+        </div>
+        ${field('vat_rate','稅率(%)','number')}
+        ${field('rounding','四捨五入策略','select',{options:[{value:'round0',label:'四捨五入'},{value:'ceil0',label:'無條件進位'},{value:'floor0',label:'無條件捨去'}]})}
+      </div>
+      <div class="row" id="vat-rows">
+        <div data-mode="gross_to_net" class="${ver.input.mode==='gross_to_net'?'':'hidden'}">${field('gross','含稅總額','number')}</div>
+        <div data-mode="net_to_gross" class="${ver.input.mode==='net_to_gross'?'':'hidden'}">${field('net','未稅金額','number')}</div>
+      </div>`;
+  }
+  if(t==='wh'){
+    return `
+      <div class="seg" id="modeSeg"><button type="button" class="${ver.input.mode!=='reverse'?'active':''}" data-mode="forward">正算</button><button type="button" class="${ver.input.mode==='reverse'?'active':''}" data-mode="reverse">反推(到手)</button></div>
+      <div class="row">
+        ${field('kind','所得類別','select',{options:[{value:'rent',label:'租金'},{value:'interest',label:'利息'},{value:'royalty',label:'權利金'},{value:'service',label:'執行業務/服務'}]})}
+        ${field('wht_rate','扣繳率','number')}
+      </div>
+      <div class="row">
+        <div data-mode="forward" class="${ver.input.mode!=='reverse'?'':'hidden'}">${field('amt','給付額','number')}</div>
+        <div data-mode="reverse" class="${ver.input.mode==='reverse'?'':'hidden'}">${field('net_target','到手金額','number')}</div>
+      </div>`;
+  }
+  if(t==='customs'){
+    return `
+    <div class="seg" id="modeSeg"><button type="button" class="${ver.input.mode!=='reverse'?'active':''}" data-mode="forward">正算</button><button type="button" class="${ver.input.mode==='reverse'?'active':''}" data-mode="reverse">反推(Landed)</button></div>
+    <div class="row">
+      ${field('price_mode','價格條件','select',{options:[{value:'FOB',label:'FOB'},{value:'CFR',label:'CFR'},{value:'CIF',label:'CIF'}]})}
+      ${field('price_value','價格值','number')}
+      ${field('freight','運費','number')}
+      ${field('insurance','保費(空=推估)','number')}
+      ${field('ins_rate_hint','保費率hint','number')}
+    </div>
+    <div class="row">
+      ${field('duty_rate','關稅率','number')}
+      ${field('commodity_tax_rate','貨物/酒稅率','number')}
+      ${field('vat_rate','VAT(%)','number')}
+      ${field('promo_fee_rate','推廣費','number')}
+    </div>
+    <div class="row">
+      <div data-mode="reverse" class="${ver.input.mode==='reverse'?'':'hidden'}">${field('target','目標 Landed','number')}</div>
+    </div>`;
+  }
+  if(t==='local' && m.name.includes('房屋稅')){
+    return `
+      <div class="row">
+        ${field('base','房屋現值','number')}
+        ${field('units','全國持有戶數','number')}
+        ${field('self_use','自住','checkbox')}
+        ${field('rented','出租','checkbox')}
+        ${field('builder','建商','checkbox')}
+      </div>`;
+  }
+  if(t==='local' && m.name.includes('地價稅')){
+    return `
+      <div class="row">
+        ${field('total_land_value','課稅地價','number')}
+        ${field('threshold','起點地價','number')}
+      </div>`;
+  }
+  if(t==='local' && m.name.includes('契稅')){
+    return `<div class="row">${field('basis','契價','number')}${field('rate','稅率','number')}</div>`;
+  }
+  if(t==='local' && m.name.includes('期貨/選擇權')){
+    return `<div class="row">${field('notionals','期貨名目','number')}${field('premium','權利金','number')}${field('rf','期貨稅率','number')}${field('ro','選擇權稅率','number')}</div>`;
+  }
+  if(t==='local' && m.name.includes('碳費')){
+    return `
+      <div class="seg" id="modeSeg"><button type="button" class="${ver.input.mode!=='reverse'?'active':''}" data-mode="forward">正算</button><button type="button" class="${ver.input.mode==='reverse'?'active':''}" data-mode="reverse">反推(費→排放)</button></div>
+      <div class="row">${field('emissions','年度排放量(噸)','number')}${field('threshold','免額(噸)','number')}${field('adj','調整係數','number')}${field('fee_rate','費率/噸','number')}</div>
+      <div class="row"><div data-mode="reverse" class="${ver.input.mode==='reverse'?'':'hidden'}">${field('target_fee','目標碳費','number')}</div></div>`;
+  }
+  if(t==='pay'){
+    return `
+      <div class="seg" id="modeSeg"><button type="button" class="${ver.input.mode!=='reverse'?'active':''}" data-mode="forward">毛→淨</button><button type="button" class="${ver.input.mode==='reverse'?'active':''}" data-mode="reverse">淨→毛</button></div>
+      <div class="row">
+        <div data-mode="forward" class="${ver.input.mode!=='reverse'?'':'hidden'}">${field('gross','毛薪','number')}</div>
+        <div data-mode="reverse" class="${ver.input.mode==='reverse'?'':'hidden'}">${field('net_target','到手淨額','number')}</div>
+      </div>
+      <div class="muted">預扣依「級距表」試算，可於參數檔調整。</div>`;
+  }
+  if(t==='ifrs'){
+    return `
+      <div class="seg" id="modeSeg"><button type="button" class="${ver.input.mode!=='irr'?'active':''}" data-mode="pv">求PV</button><button type="button" class="${ver.input.mode==='irr'?'active':''}" data-mode="irr">求IRR</button></div>
+      <div class="row">${field('P','每期租金','number')}${field('n','期數(月)','number')}${field('rate_annual','年利率','number')}${field('PV','PV(供求IRR)','number')}</div>`;
+  }
+  if(t==='tools'){
+    return `<div class="row">${field('limit','單筆上限','number')}${field('lines','輸入資料 (支援多行 \\n，或 日期:數字+數字...)','textarea')}</div>`;
+  }
+  // customs_adv 表單沿用 customs
+  return '<div class="muted">此模組暫無表單，稍後補充</div>';
+}
+
+sec.innerHTML = `
+  <div class="hstack" style="margin-bottom:8px">
+    <button class="btn" type="button" id="btn-back">← 返回</button>
+    <h2 class="grow" style="margin:0 8px">${m.name} <span class="muted">(${m.type})</span></h2>
+    <span class="pill">版本：${ver.ver}</span>
+  </div>
+
+  <div class="row">
+    <div class="card" style="flex:1; min-width:320px">
+      <h3>輸入（表單）</h3>
+      <div id="form-area">${formBody()}</div>
+      <div class="hstack" style="margin-top:8px">
+        <button class="btn primary" type="button" id="btn-calc">計算</button>
+        <button class="btn" type="button" id="btn-save">儲存覆蓋</button>
+        <button class="btn" type="button" id="btn-save-new">另存新版本</button>
+      </div>
+    </div>
+    <div class="card" style="flex:1; min-width:320px">
+      <h3>輸出</h3>
+      <div class="results"><pre class="code" id="output-pre">${ver.output? JSON.stringify(ver.output,null,2):'尚未計算'}</pre></div>
+      <div class="hstack" style="margin-top:8px">
+        <button class="btn" type="button" id="btn-print">列印</button>
+        <button class="btn" type="button" id="btn-export">匯出此模組</button>
+      </div>
+      <div class="divider"></div>
+      <div class="muted">公式說明將出現在輸出中的 <code>formula</code> 欄位。</div>
+    </div>
+  </div>
+`;
+
+$('#module-list-section').style.display='none'; sec.style.display='block';
+
+// 事件：模式切換
+on($('#form-area'), 'click', '#modeSeg button', (ev)=>{
+  const mode = ev.target.dataset.mode; if(!mode) return; // 更新 input
+  if(m.type==='vat') ver.input.mode = (mode==='gross_to_net'? 'gross_to_net':'net_to_gross');
+  else if(m.type==='wh') ver.input.mode = mode;
+  else if(m.type==='customs' || m.name.includes('碳費') || m.type==='pay' || m.type==='ifrs') ver.input.mode = mode;
+  // 顯示控制
+  $$('#form-area [data-mode]').forEach(x=>x.classList.toggle('hidden', x.getAttribute('data-mode')!==mode));
+  // segment active
+  $$('#modeSeg button').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+});
+
+// 事件：表單資料綁定
+on($('#form-area'), 'input', 'input,select,textarea', (e)=>{
+  const key = e.target.getAttribute('data-bind'); if(!key) return;
+  const type = e.target.getAttribute('type');
+  if(type==='checkbox') ver.input[key] = e.target.checked; else if(type==='number') ver.input[key] = Number(e.target.value); else ver.input[key]=e.target.value;
+});
+
+$('#btn-back').addEventListener('click', ()=>{ sec.style.display='none'; $('#module-list-section').style.display='block'; });
+$('#btn-calc').addEventListener('click', ()=>{ try{ const out = computeCore(m, ver.input); ver.output = out; $('#output-pre').textContent = JSON.stringify(out, null, 2); historyLog('compute','module',{moduleId:mid}); toast('已計算','ok'); }catch(e){ toast('計算失敗：'+e.message,'err'); } });
+$('#btn-save').addEventListener('click', ()=>{ overwriteSave(mid); $('#output-pre').textContent = JSON.stringify(currentVersion(mid).output||{}, null, 2); });
+$('#btn-save-new').addEventListener('click', ()=>{ saveNewVersion(mid); $('#output-pre').textContent = JSON.stringify(currentVersion(mid).output||{}, null, 2); });
+$('#btn-export').addEventListener('click', ()=> exportBackup([mid]) );
+$('#btn-print').addEventListener('click', ()=> window.print());
+
+}
+
+function computeCore(m, input){ if(m.type==='vat') return Engine.vat(input); if(m.type==='wh') return Engine.wht(input); if(m.type==='customs'){ if(m.name.includes('保稅')||m.name.includes('FTA')) return Engine.customsAdv(input); return Engine.customs(input); } if(m.type==='local'){ if(m.name.includes('房屋稅')) return Engine.houseTax(input); if(m.name.includes('地價稅')) return Engine.landTax(input); if(m.name.includes('契稅')) return Engine.deedTax(input); if(m.name.includes('期貨/選擇權')) return Engine.futOptTax(input); if(m.name.includes('碳費')) return Engine.carbonFee(input); } if(m.type==='pay') return Engine.salary(input); if(m.type==='ifrs') return Engine.ifrs16(input); if(m.type==='tools') return Engine.splitTransfers(input); throw new Error('未知模組類型：'+m.type); }
+
+async function computeModule(mid){ const m=State.modules.find(x=>x.id===mid); const v=currentVersion(mid); try{ const out=computeCore(m,v.input); v.output=out; await DB.put('versions', v); historyLog('compute','module',{moduleId:mid}); toast('已計算：'+m.name, 'ok'); }catch(e){ toast('計算失敗：'+e.message, 'err'); }}
+
+async function saveNewVersion(mid){ const m=State.modules.find(x=>x.id===mid); const v=currentVersion(mid); const vid=uid('v'); const verName = nextVerName(v.ver); const newV={ id:vid, moduleId:mid, ver:verName, status:'draft', notes:v.notes||'', input:structuredClone(v.input), output:structuredClone(v.output), formulaVersion:v.formulaVersion, createdAt:nowISO() }; State.versions.push(newV); await DB.put('versions', newV); m.currentVersionId=vid; await DB.put('modules', m); historyLog('saveNew','module',{moduleId:mid, ver:verName}); toast('已另存新版本：'+m.name+' → '+verName, 'ok'); renderGrid(); } function nextVerName(v){ const m=v.match(/^v(\d+).(\d+)$/i); if(!m) return 'v1.0'; const major=m[1], minor=Number(m[2])+1; return v${major}.${minor}; }
+
+async function overwriteSave(mid){ const m=State.modules.find(x=>x.id===mid); const v=currentVersion(mid); v.output = computeCore(m, v.input); await DB.put('versions', v); historyLog('overwrite','module',{moduleId:mid, ver:v.ver}); toast('已儲存覆蓋：'+m.name, 'ok'); }
+
+async function softDelete(mid){ const m=State.modules.find(x=>x.id===mid); if(!confirm('確認移除「'+m.name+'」？（軟刪除，可之後復原）')) return; m.deleted=true; await DB.put('modules', m); historyLog('delete','module',{moduleId:mid}); toast('已移除','warn'); renderGrid(); }
+
+/******************* 批量操作 *******************/ on($('#bulkbar'), 'click', '[data-bulk]', async (e)=>{ const act = e.target.dataset.bulk; const ids = Array.from(State.selected); if(ids.length===0) return; if(['overwrite','delete','saveNew'].includes(act)) await createRestorePoint(ids); if(act==='compute'){ const t0=performance.now(); let ok=0, fail=0; for(const id of ids){ try{ await computeModule(id); ok++; }catch{ fail++; } } toast(批量計算完成：成功 ${ok}、失敗 ${fail}，耗時 ${Math.round(performance.now()-t0)}ms, ok? 'ok':'warn'); } if(act==='saveNew'){ for(const id of ids){ await saveNewVersion(id); } toast('批量另存新版本完成','ok'); } if(act==='overwrite'){ for(const id of ids){ await overwriteSave(id); } toast('批量儲存覆蓋完成','ok'); } if(act==='backup'){ exportBackup(ids); } if(act==='print'){ window.print(); } if(act==='delete'){ if(!confirm('批量移除所選模組？（軟刪除）')) return; for(const id of ids){ const m=State.modules.find(x=>x.id===id); m.deleted=true; await DB.put('modules', m); } State.selected.clear(); renderGrid(); toast('批量移除完成','warn'); } });
+
+/******************* 匯入/備份（修正：不覆蓋、本地資料不會消失） *******************/ function download(filename, text){ const a=document.createElement('a'); a.download=filename; a.href=URL.createObjectURL(new Blob([text], {type:'application/json'})); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); } async function exportBackup(ids){ const selMods=State.modules.filter(m=>ids.includes(m.id)); const vmap={}; for(const m of selMods){ vmap[m.id]=findVersionsByModule(m.id); } const hist = await DB.all('history'); const pkg={ meta:{ when:nowISO(), app:'TaxPro Suite Offline v2', year:PARAMS.year }, modules:selMods, versions:vmap, history:hist }; download('backup-'+Date.now()+'.tpsuite.json', JSON.stringify(pkg, null, 2)); toast('已匯出備份','ok'); } function importBackupDialog(){ const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,.tpsuite.json'; inp.addEventListener('change', ()=>handleImport(inp)); inp.click(); } async function handleImport(inp){ const f=inp.files[0]; if(!f) return; const txt=await f.text(); try{ const pkg=JSON.parse(txt); if(pkg.modules && pkg.versions){ await mergeImport(pkg); toast('匯入完成（合併，不覆蓋本地）','ok'); renderGrid(); } else { throw new Error('格式不符：缺 modules/versions'); } }catch(e){ toast('匯入失敗：'+e.message,'err'); } } async function mergeImport(pkg){ // 合併導入：偵測 ID 衝突→換新 ID；保持本地資料 const idMapM=new Map(), idMapV=new Map(); for(const m of pkg.modules){ let id=m.id; if(State.modules.some(x=>x.id===id)){ id=uid('m'); idMapM.set(m.id,id); } const mod={...m, id, currentVersionId:null, deleted:false}; await DB.put('modules', mod); State.modules.push(mod); } for(const [oldMid, arr] of Object.entries(pkg.versions)){ const newMid = idMapM.get(oldMid)||oldMid; const list=[]; for(const v of arr){ let vid=v.id; if(State.versions.some(x=>x.id===vid)){ vid=uid('v'); idMapV.set(v.id, vid); } const ver={...v, id:vid, moduleId:newMid}; await DB.put('versions', ver); State.versions.push(ver); list.push(ver); } // 設定當前版本（取最新 createdAt） const latest = list.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).slice(-1)[0]; const mod=State.modules.find(x=>x.id===newMid); if(mod) { mod.currentVersionId=latest.id; await DB.put('modules', mod); } } // 歷史（選擇性合併） const existingHist = await DB.all('history'); if(pkg.history){ for(const h of pkg.history){ const dup = existingHist.find(x=>x.id===h.id); const hid = dup? uid('h'):h.id; const rec={...h, id:hid}; await DB.put('history', rec); } } }
+
+/******************* 歷史/回滾 *******************/ const StateHistory=[]; // runtime cache async function historyLog(action, scope, payload){ const rec={ id:uid('h'), at:nowISO(), action, scope, modules:[...State.selected], payload }; StateHistory.push(rec); await DB.put('history', rec); } async function createRestorePoint(ids){ const sel = ids || Array.from(State.selected); if(sel.length===0){ toast('請先勾選模組','warn'); return; } const snapshot=[]; for(const id of sel){ const m=State.modules.find(x=>x.id===id); const vers=findVersionsByModule(id); snapshot.push({ module:m, versions:vers }); } const rec={ id:uid('rp'), at:nowISO(), action:'restore_point', scope:'batch', modules:sel, payload:{ snapshot } }; StateHistory.push(rec); await DB.put('history', rec); toast('已建立 Restore Point','ok'); } function openHistoryPanel(){ const panel=$('#history-panel'); panel.style.display='block'; $('#module-list-section').style.display='none'; $('#module-detail').style.display='none'; renderHistoryList(); } async function renderHistoryList(){ const panel=$('#history-panel'); const hist = await DB.all('history'); hist.sort((a,b)=>a.at.localeCompare(b.at)); const rows = hist.map(h=><tr><td>${h.at.replace('T',' ').slice(0,19)}</td><td>${h.action}</td><td>${h.scope}</td><td>${(h.modules||[]).length}</td><td><button class=\"btn sm\" type=\"button\" data-hid=\"${h.id}\" data-act=\"rollback\" ${h.action!=='restore_point'?'disabled':''}>回滾</button></td></tr>).join(''); panel.innerHTML =  <div class="hstack" style="margin-bottom:8px"><button class="btn" type="button" id="btn-hist-back">← 返回</button><h2 style="margin:0 8px">歷史/回滾</h2></div> <div class="card"> <h3>批次歷史</h3> <div class="results"> <table style="width:100%; border-collapse:collapse"> <thead><tr><th style="text-align:left">時間</th><th style="text-align:left">動作</th><th>範圍</th><th>模組數</th><th>操作</th></tr></thead> <tbody>${rows||'<tr><td colspan="5" class="muted">尚無歷史</td></tr>'}</tbody> </table> </div> </div>; $('#btn-hist-back').addEventListener('click', ()=>{ panel.style.display='none'; $('#module-list-section').style.display='block'; }); on(panel, 'click', 'button[data-act="rollback"]', async (e)=>{ const hid=e.target.dataset.hid; const rec=(await DB.all('history')).find(x=>x.id===hid); if(!rec) return; await doRollback(rec); toast('已回滾（建立新版本）','ok'); }); } async function doRollback(rec){ const snap=rec.payload.snapshot; for(const item of snap){ const m = State.modules.find(x=>x.id===item.module.id); if(!m) continue; // 以最新一個快照版本內容建立新版本 const last = item.versions.slice(-1)[0]; const vid=uid('v'); const verName=nextVerName(currentVersion(m.id).ver); const newV={...last, id:vid, ver:verName, createdAt:nowISO()}; State.versions.push(newV); await DB.put('versions', newV); m.currentVersionId=vid; await DB.put('modules', m); } renderGrid(); }
+
+/******************* 初始化：注入一些示範資料 *******************/ async function ensureSeed(){ if(State.modules.length>0) return; ['vat_calc','wh_nhi','customs_import','customs_adv','house_tax','land_tax','deed_tax','futopt_tax','carbon_fee','salary_net_gross','ifrs16_basic','transfer_split'].forEach(createModuleFromTemplate); }
+
+loadAll().then(ensureSeed);
+
+})(); </script>
+
+</body>
+</html>
