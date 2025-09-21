@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>會議記錄｜離線HTML合併列印</title>
+<style>
+  body{font:14px/1.6 system-ui, sans-serif; background:#f8f8f8; color:#111; margin:0; padding:0}
+  .wrap{max-width:1200px; margin:24px auto; padding:0 16px}
+  .grid{display:grid; grid-template-columns:420px 1fr; gap:16px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff; border:1px solid #ddd; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.05)}
+  .card>.hd{padding:12px 16px; border-bottom:1px solid #ddd; font-weight:700}
+  .card>.bd{padding:16px}
+  .row{display:grid; grid-template-columns:120px 1fr; gap:8px; align-items:center; margin:8px 0}
+  .row input,.row select,.row textarea{width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:6px}
+  .paper{background:#fff; border:1px solid #bbb; border-radius:12px; padding:28px; min-height:800px}
+  .paper h2{text-align:center; letter-spacing:.3em; margin:0 0 12px}
+  .badge{display:inline-block; border:1px solid #aaa; border-radius:12px; padding:2px 8px; font-size:12px; margin:2px}
+  .muted{color:#777}
+  .kakomi{border:1px dashed #bbb; border-radius:8px; padding:8px; margin-top:8px}
+  .hr{border-top:1px solid #e5e5e5; margin:12px 0}
+  .btn{padding:6px 10px; border:1px solid #bbb; border-radius:8px; background:#fafafa; cursor:pointer}
+  @media print{ .grid{display:block} .card:first-child{display:none} .paper{border:none; box-shadow:none; padding:0} }
+
+  /* Multi-date Picker */
+  .mdp-mask{position:fixed; inset:0; background:rgba(0,0,0,.2); display:none; align-items:center; justify-content:center; z-index:9999}
+  .mdp{background:#fff; border:1px solid #ccc; border-radius:12px; width:320px; box-shadow:0 6px 24px rgba(0,0,0,.2); overflow:hidden}
+  .mdp .hd{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #eee}
+  .mdp .hd .ttl{font-weight:700}
+  .mdp .nav{display:flex; gap:6px}
+  .mdp .nav button{padding:4px 8px}
+  .mdp .wk{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:8px 12px; font-size:12px; color:#666}
+  .mdp .grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; padding:0 12px 12px}
+  .mdp .d{padding:8px 0; text-align:center; border:1px solid transparent; border-radius:8px; cursor:pointer; user-select:none}
+  .mdp .d.dis{opacity:.35; cursor:not-allowed}
+  .mdp .d.sel{border-color:#333; background:#f2f2f2}
+  .mdp .ft{display:flex; justify-content:space-between; gap:8px; padding:10px 12px; border-top:1px solid #eee}
+  .mt8{margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>離線 HTML 合併列印：會議記錄</h1>
+  <div class="grid">
+    <!-- 左側：表單 -->
+    <section class="card">
+      <div class="hd">填寫欄位</div>
+      <div class="bd">
+        <div class="row"><label>檔案日期</label><input id="f_docdate" type="date"></div>
+        <div class="row"><label>日期顯示</label>
+          <select id="f_date_fmt">
+            <option value="greg">西元 YYYY/MM/DD</option>
+            <option value="roc">民國 YYY/MM/DD</option>
+          </select>
+        </div>
+        <!-- 經理收發票：可多選日期（用多日期選取器） -->
+        <div class="kakomi">
+          <div style="font-weight:700; margin-bottom:6px">經理收發票時間（可多筆日期）</div>
+          <div>
+            <button class="btn" data-action="inv-open-picker">選擇日期（可多選）</button>
+            <button class="btn" data-action="inv-clear">清空</button>
+          </div>
+          <div id="invBadges" class="mt8"></div>
+        </div>
+
+        <div class="row"><label>上午主題</label><input id="f_morning"></div>
+        <div class="row"><label>下午主題</label><input id="f_afternoon"></div>
+        <div class="row"><label>傳承分享-</label><select id="f_share_by" class="personSel"></select></div>
+        <div class="row"><label>前置作業</label><select id="f_prep1" class="personSel"></select></div>
+        <div class="row"><label>前置作業2</label><select id="f_prep2" class="personSel"></select></div>
+        <div class="row"><label>申報-轉檔</label><select id="f_conv" class="personSel"></select></div>
+        <div class="row"><label>申報-上傳</label><select id="f_upload" class="personSel"></select></div>
+        <div class="row"><label>上期轉檔</label><select id="f_prev_conv" class="personSel"></select></div>
+        <div class="row"><label>上期上傳</label><select id="f_prev_upload" class="personSel"></select></div>
+        <div class="row"><label>完成期限</label><input id="f_deadline" placeholder="例：__/__(__) 下班前完成"></div>
+
+        <div class="hr"></div>
+        <div class="row"><label>路線備註</label><textarea id="f_route_note" placeholder="例如：留意魚系列/桃園路線/淡水路線公告於第二辦公室"></textarea></div>
+
+        <!-- 固定地區 + 多重日期（不可增刪地區，支援多日期選取器） -->
+        <div class="kakomi"><strong>固定地區 + 多重日期</strong>
+          <div id="areasBox"></div>
+          <div class="hint muted" style="font-size:12px; margin-top:4px">每個地區都可用「選擇日期」一次勾選多日，或用「清空」移除該地區所有日期。</div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="hd">人員名單管理（唯一編輯入口）</div>
+        <div class="row"><label>姓名</label><input id="p_name"></div>
+        <div class="row"><label>備註</label><input id="p_note"></div>
+        <div class="row"><label></label>
+          <div>
+            <button class="btn" data-action="people-add">新增/覆蓋</button>
+            <button class="btn" data-action="people-clear">清空名單</button>
+          </div>
+        </div>
+        <table border="1" width="100%"><tbody id="peopleTbody"></tbody></table>
+
+        <div class="hr"></div>
+        <div class="hd">提醒同事</div>
+        <div class="row"><label></label>
+          <div>
+            <input id="rem_inp" placeholder="輸入提醒"> <button class="btn" data-action="rem-add">新增提醒</button> <button class="btn" data-action="rem-clear">清空</button>
+          </div>
+        </div>
+        <div id="reminderChips" class="kakomi"></div>
+
+        <div class="row"><label></label><button class="btn" data-action="render">套版/更新預覽</button></div>
+        <div class="row"><label></label><button class="btn" data-action="print">列印</button> <button class="btn" data-action="export-doc">輸出 Word</button> <button class="btn" data-action="export-pdf">輸出 PDF</button></div>
+
+        <div class="hr"></div>
+        <div class="hd">診斷 / 測試</div>
+        <div class="row"><label></label><button class="btn" data-action="run-tests">執行自我測試</button></div>
+        <pre id="testOut" class="kakomi">（點「執行自我測試」後顯示結果）</pre>
+      </div>
+    </section>
+
+    <!-- 右側：預覽 -->
+    <section class="card" id="previewCard">
+      <div class="hd">預覽</div>
+      <div class="bd"><div id="paper" class="paper"><div class="muted">（初始化預覽：請於左側填寫，或點「套版/更新預覽」）</div></div></div>
+    </section>
+  </div>
+</div>
+
+<!-- Multi-date Picker Modal -->
+<div id="mdpMask" class="mdp-mask">
+  <div class="mdp" role="dialog" aria-modal="true" aria-label="選擇多日期">
+    <div class="hd">
+      <div class="ttl" id="mdpTitle">選擇日期</div>
+      <div class="nav">
+        <button class="btn" data-mdp="prev">◀</button>
+        <button class="btn" data-mdp="next">▶</button>
+      </div>
+    </div>
+    <div class="wk">
+      <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+    </div>
+    <div class="grid" id="mdpGrid"></div>
+    <div class="ft">
+      <div>
+        <button class="btn" data-mdp="clear">清空選取</button>
+      </div>
+      <div>
+        <button class="btn" data-mdp="cancel">取消</button>
+        <button class="btn" data-mdp="ok">加入</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script defer>
+(function(){
+  const $=s=>document.querySelector(s);
+  const $$=s=>Array.from(document.querySelectorAll(s));
+  const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+
+  function getFmt(){ const sel=$('#f_date_fmt'); return sel&&sel.value? sel.value : 'greg'; }
+
+  const KEY_PPL='meetingPeople.v8';
+  const KEY_AREA='meetingAreas.v5';
+  const KEY_INV='invoiceDates.v4';
+
+  const AREA_LIST=[
+    '士林、北投、天母、南港','基隆、汐止','桃園、鶯歌、林口','三重、蘆洲','淡水','三峽、樹林、土城','新店、木柵','魚系列','台整系列'
+  ];
+
+  let areaDates={};
+  let invoiceDates=[];
+
+  /* ===== LocalStorage ===== */
+  function loadPeople(){try{return JSON.parse(localStorage.getItem(KEY_PPL)||'[]')}catch{return[]}}
+  function savePeople(l){localStorage.setItem(KEY_PPL,JSON.stringify(l));refreshPeopleUI();populatePersonSelects();}
+  function refreshPeopleUI(){ const list=loadPeople(); $('#peopleTbody').innerHTML=list.map((p,i)=>`<tr><td>${esc(p.name)}</td><td>${esc(p.note||'')}</td><td><button class="btn" data-action="people-del" data-i="${i}">刪除</button></td></tr>`).join(''); }
+  function populatePersonSelects(){ const list=loadPeople(); const opts='<option value="">--選擇--</option>'+list.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(''); $$('.personSel').forEach(sel=>{ const prev=sel.value; sel.innerHTML=opts; if(prev&&list.some(p=>p.name===prev)) sel.value=prev; else sel.value=''; }); }
+
+  function loadAreaDates(){ try{ const obj=JSON.parse(localStorage.getItem(KEY_AREA)||'{}'); return obj&&typeof obj==='object'? obj : {}; }catch{ return {}; } }
+  function saveAreaDates(){ localStorage.setItem(KEY_AREA, JSON.stringify(areaDates)); }
+  function loadInvoiceDates(){ try{ const arr=JSON.parse(localStorage.getItem(KEY_INV)||'[]'); return Array.isArray(arr)? arr : []; }catch{ return []; } }
+  function saveInvoiceDates(){ localStorage.setItem(KEY_INV, JSON.stringify(invoiceDates)); }
+
+  /* ===== Date Utils ===== */
+  const pad=n=>String(n).padStart(2,'0');
+  const WD=['日','一','二','三','四','五','六'];
+  function toISO(y,m,d){ return `${y}-${pad(m)}-${pad(d)}`; }
+  function fmtYMD(strISO,mode){ if(!strISO) return ''; const [y,m,d]=strISO.split('-').map(n=>+n); if(!y||!m||!d) return ''; if(mode==='roc') return (y-1911)+`/${pad(m)}/${pad(d)}`; return `${y}/${pad(m)}/${pad(d)}`; }
+  function fmtYMDW(strISO,mode){ if(!strISO) return ''; const [y,m,d]=strISO.split('-').map(n=>+n); const w=WD[new Date(y,m-1,d).getDay()]; return fmtYMD(strISO,mode)+`(${w})`; }
+  function fmtShortDate(strISO){ if(!strISO) return ''; const [y,m,d]=strISO.split('-').map(n=>+n); const wd=new Date(y,m-1,d).getDay(); const W=WD[wd]; return (m)+"/"+(d)+`(${W})`; }
+
+  /* ===== Multi-date Picker ===== */
+  const mdpMask=$('#mdpMask');
+  const mdpGrid=$('#mdpGrid');
+  const mdpTitle=$('#mdpTitle');
+  let mdpMonth=new Date();
+  mdpMonth.setDate(1);
+  let mdpSelected=new Set();
+  let mdpTarget=null; // {type:'area'|'invoice', area?:string}
+
+  function openPicker(target, seedDates){
+    mdpTarget=target; mdpSelected=new Set(seedDates||[]);
+    mdpMonth = new Date(); mdpMonth.setDate(1);
+    renderPicker(); mdpMask.style.display='flex';
+  }
+  function closePicker(){ mdpMask.style.display='none'; }
+  function renderPicker(){
+    const y=mdpMonth.getFullYear(), m=mdpMonth.getMonth()+1; mdpTitle.textContent=`${y} / ${pad(m)}`;
+    const firstDow=(new Date(y,m-1,1)).getDay();
+    const daysInMonth=new Date(y,m,0).getDate();
+    const cells=[];
+    for(let i=0;i<firstDow;i++) cells.push('<div></div>');
+    for(let d=1; d<=daysInMonth; d++){
+      const iso=toISO(y,m,d); const sel=mdpSelected.has(iso)?' sel':'';
+      cells.push(`<div class="d${sel}" data-day="${iso}">${d}</div>`);
+    }
+    mdpGrid.innerHTML=cells.join('');
+  }
+  mdpMask.addEventListener('click',e=>{
+    const t=e.target; const cmd=t.dataset.mdp;
+    if(cmd==='prev'){ mdpMonth.setMonth(mdpMonth.getMonth()-1); renderPicker(); return; }
+    if(cmd==='next'){ mdpMonth.setMonth(mdpMonth.getMonth()+1); renderPicker(); return; }
+    if(cmd==='cancel'){ closePicker(); return; }
+    if(cmd==='clear'){ mdpSelected.clear(); renderPicker(); return; }
+    if(cmd==='ok'){
+      const list=[...mdpSelected].sort();
+      if(mdpTarget?.type==='area' && mdpTarget.area){
+        areaDates[mdpTarget.area]=list; // 覆寫（非聯集）
+        saveAreaDates();
+        renderAreasBox();
+        render();
+      } else if(mdpTarget?.type==='invoice'){
+        invoiceDates=list; // 覆寫（非聯集）
+        saveInvoiceDates();
+        renderInvBadges();
+        render();
+      }
+      closePicker();
+      return;
+    }
+    if(t.classList.contains('d')){
+      const iso=t.dataset.day;
+      if(mdpSelected.has(iso)) mdpSelected.delete(iso); else mdpSelected.add(iso);
+      t.classList.toggle('sel');
+      return;
+    }
+    if(e.target===mdpMask) closePicker();
+  });
+
+  /* ===== Areas & Invoice UI ===== */
+  function renderAreasBox(){
+    const box=$('#areasBox'); if(!box) return; const fmt=getFmt();
+    box.innerHTML=AREA_LIST.map(area=>{
+      const dates=areaDates[area]||[]; const badges=dates.length? dates.map(d=>`<span class=\"badge\">${esc(fmtYMDW(d,fmt))}</span>`).join('') : '<span class="muted">（尚未新增日期）</span>';
+      return `
+      <div class=\"row\" data-area=\"${esc(area)}\">
+        <label>${esc(area)}</label>
+        <div>
+          <div>${badges}</div>
+          <div class=\"mt8\">
+            <button class=\"btn\" data-action=\"area-open-picker\" data-area=\"${esc(area)}\">選擇日期（可多選）</button>
+            <button class=\"btn\" data-action=\"area-clear\" data-area=\"${esc(area)}\">清空</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function renderInvBadges(){ const box=$('#invBadges'); if(!box) return; const fmt=getFmt(); box.innerHTML=(invoiceDates||[]).length? invoiceDates.map(d=>`<span class=\"badge\">${esc(fmtYMDW(d,fmt))}</span>`).join('') : '<span class="muted">（尚未新增發票日期）</span>'; }
+  const noteToHTML=t=>t? esc(t).split('\n').join('<br>') : '';
+
+  /* ===== Preview Render ===== */
+  function ensurePreview(){
+    // 防呆：若預覽節點被誤刪，動態補回
+    if(!document.querySelector('#paper')){
+      const previewCard=document.querySelector('#previewCard')||(()=>{ const s=document.createElement('section'); s.className='card'; s.id='previewCard'; document.querySelector('.grid').appendChild(s); return s; })();
+      previewCard.innerHTML='<div class="hd">預覽</div><div class="bd"><div id="paper" class="paper"><div class="muted">（已自動修復預覽區，請點一次「套版/更新預覽」）</div></div></div>';
+    }
+  }
+
+  function render(){
+    ensurePreview();
+    const ddate=$('#f_docdate')?.value||''; const fmt=getFmt();
+    const morning=$('#f_morning')?.value||''; const afternoon=$('#f_afternoon')?.value||''; const share=$('#f_share_by')?.value||''; const prep1=$('#f_prep1')?.value||''; const prep2=$('#f_prep2')?.value||'';
+    const conv=$('#f_conv')?.value||''; const upload=$('#f_upload')?.value||''; const prevConv=$('#f_prev_conv')?.value||''; const prevUpload=$('#f_prev_upload')?.value||''; const deadline=$('#f_deadline')?.value||''; const routeNote=$('#f_route_note')?.value||'';
+
+    const areaHTML=AREA_LIST.map(area=>{ const dates=(areaDates[area]||[]).map(x=>fmtYMDW(x,fmt)); const list=dates.length? dates.map(x=>`<span class=\"badge\">${esc(x)}</span>`).join('') : '<span class="muted">（未新增日期）</span>'; return `<div style=\"margin:6px 0\"><strong>${esc(area)}</strong>：${list}</div>`; }).join('');
+    const invHTML=(invoiceDates||[]).length? invoiceDates.map(x=>`<span class=\"badge\">${esc(fmtYMDW(x,fmt))}</span>`).join('') : '<span class="muted">（未新增）</span>';
+
+    const chips=[...document.querySelectorAll('#reminderChips .badge')].map(x=>esc(x.textContent.trim())).filter(Boolean);
+    const remHTML= chips.length? chips.map(t=>`<span class=\"badge\">${t}</span>`).join('') : '<span class="muted">（未新增）</span>';
+
+    const paper=$('#paper'); if(!paper) return;
+    paper.innerHTML=`
+      <h2>會 議 記 錄</h2>
+      <div>檔案日期：${fmtYMDW(ddate, fmt) || '____'}</div>
+      <div>1、${fmtShortDate(ddate)||'__/__( )'} 上午 : <strong>${esc(morning)||'____'}</strong>（傳承分享- <span class=\"badge\">${esc(share)||'未選'}</span>）</div>
+      <div>&emsp;&emsp;下午 : <strong>${esc(afternoon)||'____'}</strong></div>
+      <div>2、前置作業人員：<span class=\"badge\">${esc(prep1)||'未選'}</span> ＆ <span class=\"badge\">${esc(prep2)||'未選'}</span> 。【 ${esc(deadline)||'____'} 】</div>
+      <div>　　申報人員：轉檔- <span class=\"badge\">${esc(conv)||'未選'}</span> 、上傳- <span class=\"badge\">${esc(upload)||'未選'}</span> 。【上期轉檔- <span class=\"badge\">${esc(prevConv)||'未選'}</span> 、上期上傳- <span class=\"badge\">${esc(prevUpload)||'未選'}</span>】</div>
+      <div>3、經理收發票時間：${invHTML}</div>
+      <div class=\"hr\"></div>
+      <div><strong>4、路線安排</strong></div>
+      <div class=\"kakomi\">
+        <div class=\"muted\">${routeNote? noteToHTML(routeNote) : '（備註未填）'}</div>
+        <div style=\"margin-top:6px\">${areaHTML}</div>
+      </div>
+      <div class=\"hr\"></div>
+      <div><strong>5、提醒同事</strong></div>
+      <div>${remHTML}</div>`;
+  }
+
+  /* ===== Export / Print ===== */
+  function exportWord(){
+    const content=$('#paper')?.innerHTML||'';
+    const html='<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>'+content+'</body></html>';
+    const blob=new Blob([html],{type:'application/msword'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='會議記錄.doc'; a.click(); URL.revokeObjectURL(url);
+  }
+  function exportPDF(){
+    const paperEl=document.querySelector('#paper'); if(!paperEl){ alert('找不到預覽區，已為你自動修復，請再按一次輸出'); ensurePreview(); return; }
+    const content=paperEl.outerHTML;
+    const win=window.open('','_blank');
+    if(!win){ alert('請允許彈出視窗以輸出 PDF'); return; }
+    const doc=win.document;
+    doc.open();
+    var headCss='body{margin:0} .paper{padding:28px; font:14px/1.6 system-ui,sans-serif} .badge{border:1px solid #aaa; border-radius:12px; padding:2px 8px; font-size:12px; margin:2px; display:inline-block}';
+    var shell='<!DOCTYPE html><html><head><meta charset="utf-8"><title>會議記錄 PDF</title><style>'+headCss+'</style></head><body><div id="__paper_wrap"></div></body></html>';
+    doc.write(shell);
+    doc.close();
+    win.onload=function(){
+      var wrap=doc.getElementById('__paper_wrap'); if(wrap){ wrap.innerHTML=content; }
+      try{ win.focus(); win.print(); }catch(_){ }
+    };
+  }
+
+  /* ===== Events ===== */
+  document.addEventListener('click',e=>{
+    const act=e.target?.dataset?.action;
+    if(act==='print') window.print();
+    if(act==='export-doc') exportWord();
+    if(act==='export-pdf') exportPDF();
+
+    // People
+    if(act==='people-add'){ const n=$('#p_name').value.trim(); const note=$('#p_note').value.trim(); if(!n){alert('請輸入姓名');return} const l=loadPeople(); const i=l.findIndex(x=>x.name===n); if(i>=0)l[i]={name:n,note}; else l.push({name:n,note}); savePeople(l); $('#p_name').value=''; $('#p_note').value=''; }
+    if(act==='people-clear'){ if(confirm('清空名單？')) savePeople([]); }
+    if(act==='people-del'){ const i=+e.target.dataset.i; const l=loadPeople(); l.splice(i,1); savePeople(l); }
+
+    // Areas & Invoices
+    if(act==='area-open-picker'){ const area=e.target.getAttribute('data-area'); openPicker({type:'area', area}, areaDates[area]||[]); }
+    if(act==='area-clear'){ const area=e.target.getAttribute('data-area'); if(confirm(`清空「${area}」的日期？`)){ areaDates[area]=[]; saveAreaDates(); renderAreasBox(); render(); } }
+    if(act==='inv-open-picker'){ openPicker({type:'invoice'}, invoiceDates||[]); }
+    if(act==='inv-clear'){ if(confirm('清空所有發票日期？')){ invoiceDates=[]; saveInvoiceDates(); renderInvBadges(); render(); } }
+    if(act==='rem-add'){ const t=$('#rem_inp').value.trim(); if(!t) return; const span=document.createElement('span'); span.className='badge'; span.textContent=t; $('#reminderChips').appendChild(span); $('#rem_inp').value=''; }
+    if(act==='rem-clear'){ $('#reminderChips').innerHTML=''; }
+
+    if(act==='render') render();
+    if(act==='run-tests') runTests();
+  });
+
+  document.addEventListener('change',e=>{ if(e.target.id==='f_date_fmt'){ renderAreasBox(); renderInvBadges(); render(); } });
+
+  /* ===== Tests ===== */
+  function runTests(){
+    const out=[]; const ok=n=>out.push('✅ '+n), ng=(n,m)=>out.push('❌ '+n+(m?': '+m:''));
+    try{
+      (function(){ const s1=fmtYMDW('2025-09-21','greg'); const s2=fmtYMDW('2025-09-21','roc'); (s1==='2025/09/21(日)'&&s2==='114/09/21(日)')?ok('T1 date fmt + weekday'):ng('T1 date fmt + weekday', s1+' | '+s2); })();
+      (function(){ areaDates['淡水']=[]; saveAreaDates(); const before=areaDates['淡水'].length; areaDates['淡水']=['2025-09-21','2025-09-22']; saveAreaDates(); const after=areaDates['淡水'].length; areaDates['淡水']=[]; saveAreaDates(); const cleared=areaDates['淡水'].length===0; (before===0&&after===2&&cleared)?ok('T2 area add/clear'):ng('T2 area add/clear'); })();
+      (function(){ const list=['2025-09-02','2025-09-03']; mdpSelected=new Set(list); openPicker({type:'invoice'}, list); const hasMask=$('#mdpMask').style.display==='flex'; closePicker(); hasMask? ok('T3 open picker'): ng('T3 open picker'); })();
+      (function(){ invoiceDates=['2025-09-21']; saveInvoiceDates(); const sel=$('#f_date_fmt'); sel.value='roc'; renderInvBadges(); const roc=$('#invBadges').textContent.includes('114/09/21(日)'); sel.value='greg'; renderInvBadges(); const greg=$('#invBadges').textContent.includes('2025/09/21(日)'); (roc&&greg)? ok('T4 badges follow fmt+weekday'): ng('T4 badges follow fmt+weekday'); })();
+      (function(){ $('#reminderChips').innerHTML=''; const btn=document.createElement('span'); btn.className='badge'; btn.textContent='帶印章'; $('#reminderChips').appendChild(btn); render(); const has= $('#paper').textContent.includes('帶印章'); has? ok('T5 reminder rendered'): ng('T5 reminder rendered'); })();
+      (function(){ const grid = document.querySelector('#paper'); const pass = !!grid; pass? ok('T6 preview exists'): ng('T6 preview exists'); })();
+      (function(){ const got = (function(t){ return esc(t).split('\n').join('<br>'); })('a\nb'); const exp='a<br>b'; got===exp? ok('T7 noteToHTML newline'): ng('T7 noteToHTML newline', 'got='+got); })();
+      (function(){ const s=['x','y'].join('\n'); (s.indexOf('\n')>=0)? ok('T8 join \\n'): ng('T8 join \\n'); })();
+    }catch(err){ ng('UNCAUGHT', err.message); }
+    const el=$('#testOut'); if(el) el.textContent=out.join('\n');
+  }
+
+  /* ===== Init ===== */
+  try{
+    areaDates = loadAreaDates();
+    invoiceDates = loadInvoiceDates();
+    refreshPeopleUI();
+    populatePersonSelects();
+    renderAreasBox();
+    renderInvBadges();
+    render();
+  }catch(err){
+    const box=$('#paper')||(()=>{ const s=document.createElement('div'); s.id='paper'; s.className='paper'; document.querySelector('#previewCard .bd')?.appendChild(s); return s; })();
+    box.innerHTML='<div class="kakomi">初始化發生錯誤：'+esc(err.message)+'</div>';
+  }
+})();
+</script>
+</body>
+</html>
