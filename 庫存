@@ -1,0 +1,447 @@
+<!DOCTYPE html><!--
+完全離線 XLSX 解析方案（雙檔離線：HTML + 本機 xlsx 解析器）
+1) 本頁不連網、不用 CDN；所有 UI/邏輯內嵌。
+2) 首次使用，請按「載入解析器」選擇你本機的 xlsx.full.min.js（或等效）檔案，程式以 object URL 動態載入。
+3) 之後上傳《庫存狀況表.xlsx》《存貨分類帳.xlsx》直接分析（數值、日期精準）。
+4) 全域錯誤攔截、localStorage 設定記憶、CSV 匯出、事件委派，file:// 可用。
+-->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>離線 XLSX 進銷存異常分析 | 單機版</title>
+<style>
+:root{--bg:#0b0c0f;--panel:#14161b;--ink:#e8eaee;--muted:#a9afbb;--pri:#5aa8ff;--ok:#36d399;--warn:#fbbf24;--err:#ef4444;--chip:#1e2230;--bord:#232734}
+*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 system-ui,Roboto,Arial,"Noto Sans TC","PingFang TC",sans-serif}
+.container{max-width:1200px;margin:24px auto;padding:0 16px}
+h1{font-size:20px;margin:8px 0 16px}
+.card{background:var(--panel);border:1px solid var(--bord);border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 6px 30px rgba(0,0,0,.25)}
+.row{display:grid;gap:12px}
+.row.cols-2{grid-template-columns:1fr 1fr}
+.row.cols-3{grid-template-columns:repeat(3,1fr)}
+label{color:var(--muted);font-size:12px;display:block;margin-bottom:6px}
+input[type="text"],input[type="number"],textarea,select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--bord);background:#0f1218;color:var(--ink);outline:none}
+button{background:var(--pri);color:#04101f;border:none;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--bord)}
+.small{font-size:12px;color:var(--muted)}
+.drop{border:1.5px dashed var(--bord);border-radius:14px;padding:16px;text-align:center;background:#0e1117}
+.drop.drag{border-color:var(--pri);box-shadow:0 0 0 2px rgba(90,168,255,.25) inset}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{background:var(--chip);border:1px solid var(--bord);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:12px}
+.table{width:100%;border-collapse:collapse;margin-top:8px}
+.table th,.table td{border-bottom:1px solid var(--bord);padding:8px 6px;text-align:left}
+.table th{color:#ccd3e0;font-weight:600;background:#0f131a;position:sticky;top:0}
+.toast{position:fixed;right:14px;bottom:14px;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:12px;padding:10px 12px;box-shadow:0 8px 40px rgba(0,0,0,.5);max-width:340px;z-index:999}
+code.inline{background:#0e1117;border:1px solid var(--bord);padding:2px 6px;border-radius:8px}
+details{background:#0f1218;border:1px solid var(--bord);border-radius:12px;padding:10px 12px}
+summary{cursor:pointer;font-weight:600;color:#d6dbe6}
+hr.sep{border:none;border-top:1px dashed var(--bord);margin:12px 0}
+.monoinput{font-family:ui-monospace,Menlo,Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>離線 XLSX 進銷存異常分析（單機版）</h1>
+
+  <div class="card">
+    <div class="row cols-3">
+      <div>
+        <label>載入 XLSX 解析器（離線：選你的 <code class="inline">xlsx.full.min.js</code>）</label>
+        <input id="xlsxLoader" type="file" accept=".js" style="display:none" />
+        <div class="chips" id="chip-xlsx"></div>
+        <div class="small" style="margin-top:6px">說明：本頁不含解析器，請從本機挑選一份 <code class="inline">xlsx.full.min.js</code>（SheetJS 或你信任的版本）。</div>
+        <div class="small">只需本機檔案，即可完全離線運作。</div>
+        <div style="margin-top:8px"><button class="ghost" data-action="pick" data-target="#xlsxLoader">載入解析器</button></div>
+      </div>
+      <div>
+        <label>上傳《庫存狀況表.xlsx》</label>
+        <input id="file-inv" type="file" accept=".xlsx" style="display:none" />
+        <div class="drop" id="drop-inv">拖曳 XLSX 到此 或 <button class="ghost" data-action="pick" data-target="#file-inv">選擇檔案</button><div class="chips" id="chip-inv"></div></div>
+        <div class="small">需含欄位（名稱可模糊匹配）：產品代號、品名規格、進貨淨量、銷貨淨量</div>
+      </div>
+      <div>
+        <label>上傳《存貨分類帳.xlsx》（金額級分析）</label>
+        <input id="file-led" type="file" accept=".xlsx" style="display:none" />
+        <div class="drop" id="drop-led">拖曳 XLSX 到此 或 <button class="ghost" data-action="pick" data-target="#file-led">選擇檔案</button><div class="chips" id="chip-led"></div></div>
+        <div class="small">盡量含：日期、進銷單號、進貨/銷貨、數量、金額、產品代號/品名規格</div>
+      </div>
+    </div>
+
+    <div class="row cols-3" style="margin-top:10px">
+      <div>
+        <label>主分類拆詞正則</label>
+        <input id="reCat" class="monoinput" value="^([^0-9\\s\\-_/（(]+)" />
+      </div>
+      <div>
+        <label>異常門檻（z-score）</label>
+        <input id="zthr" type="number" step="0.1" value="2.5" />
+      </div>
+      <div>
+        <label>金額匹配容忍（% / 絕對上限）</label>
+        <div class="row cols-2">
+          <input id="tolPct" type="number" step="0.1" value="10" />
+          <input id="tolAbs" type="number" step="1" value="1000000" />
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div class="chips" id="chip-maps"></div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div class="toolbar">
+        <button data-action="analyze">開始分析</button>
+        <button class="ghost" data-action="export-all">匯出全部 CSV</button>
+        <button class="ghost" data-action="reset">重置</button>
+      </div>
+    </div>
+
+    <details style="margin-top:10px">
+      <summary>欄位自動對應規則</summary>
+      <div class="small">庫存狀況表：關鍵詞包含 → 產品代號/品號/料號/編號；品名規格/品名/規格；進貨淨量/進貨數量/入庫；銷貨淨量/銷貨數量/出庫。</div>
+      <div class="small">存貨分類帳：日期、進銷單號/單號/憑證；進貨/銷貨/交易類別；數量/淨量；金額/成本；產品代號/品名規格。</div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">分析總結</h2>
+    <div class="chips" id="chips-summary"></div>
+    <div id="audit-logs" class="small" style="margin-top:8px;color:#c7d2fe"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">結果清單</h2>
+    <details open><summary>只進不銷</summary><div id="tbl-onlyin"></div></details>
+    <details open><summary>只銷不進</summary><div id="tbl-onlyout"></div></details>
+    <details><summary>分類異常 (|z| ≥ 門檻)</summary><div id="tbl-outliers"></div></details>
+    <details><summary>候選交換配對（同主分類、數量近似 + 金額容忍）</summary><div id="tbl-swap"></div></details>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">稽核步驟（展開可看計算過程）</h2>
+    <details><summary>步驟 A｜讀取 XLSX、欄位對映、資料清理</summary><div id="log-A"></div></details>
+    <details><summary>步驟 B｜只進不銷／只銷不進偵測</summary><div id="log-B"></div></details>
+    <details><summary>步驟 C｜主分類與 z-score 計算</summary><div id="log-C"></div></details>
+    <details><summary>步驟 D｜交換配對（數量＋金額近似）</summary><div id="log-D"></div></details>
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+
+<script defer>
+(function(){
+'use strict';
+/* ---------- 基礎工具 ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const on=(el,ev,fn)=>el.addEventListener(ev,fn);
+const fmt=n=>(n==null||Number.isNaN(n))?"":(typeof n==="number"?n.toLocaleString():String(n));
+const toNum=v=>{const s=String(v??"").replace(/[,\\s]/g,"").trim(); if(!s) return NaN; const n=Number(s); return Number.isFinite(n)?n:NaN;}
+const toast=(m,k='info')=>{const t=$("#toast");t.style.display='block';t.style.borderColor=(k==='error'?'#ef4444':k==='warn'?'#fbbf24':'#374151');t.textContent=m;setTimeout(()=>t.style.display='none',4000);}
+const saveLS=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const loadLS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d;}catch{return d;}}
+
+/* ---------- 解析器載入（離線本機檔） ---------- */
+let XLSX=null;
+async function loadLocalXlsxLib(file){
+  return new Promise((res,rej)=>{
+    try{
+      const url=URL.createObjectURL(file);
+      const s=document.createElement('script');
+      s.onload=()=>{ URL.revokeObjectURL(url); if(window.XLSX){XLSX=window.XLSX; res(true);} else rej(new Error('解析器載入後未發現 XLSX 全域物件')); };
+      s.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('無法載入解析器檔')); };
+      s.src=url; document.head.appendChild(s);
+    }catch(e){ rej(e); }
+  });
+}
+
+/* ---------- 表格渲染/輸出 ---------- */
+function buildTable(el, rows, cols){
+  if(!rows?.length){ el.innerHTML='<div class="small" style="color:#9aa3b2">（無資料）</div>'; return; }
+  const th=cols.map(c=>`<th>${c}</th>`).join('');
+  const trs=rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]??''}</td>`).join('')}</tr>`).join('');
+  el.innerHTML=`<div style="max-height:340px;overflow:auto"><table class="table"><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table></div>`;
+}
+function toCSV(rows, cols){
+  const esc=s=>{const str=String(s??''); return /[",\\n]/.test(str)?('"'+str.replace(/"/g,'""')+'"'):str;}
+  return cols.map(esc).join(',')+'\\n'+rows.map(r=>cols.map(c=>esc(r[c])).join(',')).join('\\n');
+}
+function download(name,content){
+  const blob=new Blob([content],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+/* ---------- XLSX 讀取 ---------- */
+async function readXlsx(file){
+  if(!XLSX) throw new Error('尚未載入 XLSX 解析器，請先點「載入解析器」選擇本機 xlsx.full.min.js');
+  const data=await file.arrayBuffer();
+  const wb=XLSX.read(data,{type:'array',cellDates:true,cellNF:false,cellText:false});
+  // 自動挑第一個非空工作表
+  let first=wb.SheetNames.find(n=>{const sh=wb.Sheets[n]; const range=XLSX.utils.decode_range(sh['!ref']||'A1:A1'); return (range.e.r>0||range.e.c>0);}) || wb.SheetNames[0];
+  const sheet=wb.Sheets[first];
+  const rows=XLSX.utils.sheet_to_json(sheet,{raw:true,defval:''});
+  return {name:first,rows};
+}
+
+/* ---------- 欄位自動對應 ---------- */
+function fuzzyPick(row, keys){
+  const cols=Object.keys(row||{});
+  for(const k of keys){
+    const hit=cols.find(c=> c.includes(k) );
+    if(hit) return hit;
+  }
+  return null;
+}
+function mapInvColumns(sample){
+  return {
+    prod: fuzzyPick(sample,['產品代號','品號','料號','編號']),
+    name: fuzzyPick(sample,['品名規格','品名','規格']),
+    inQty: fuzzyPick(sample,['進貨淨量','進貨數量','入庫']),
+    outQty:fuzzyPick(sample,['銷貨淨量','銷貨數量','出庫']),
+    other: fuzzyPick(sample,['其他淨量','其他'])
+  };
+}
+function mapLedColumns(sample){
+  return {
+    date:  fuzzyPick(sample,['日期','Date']),
+    doc:   fuzzyPick(sample,['進銷單號','單號','憑證','傳票']),
+    kind:  fuzzyPick(sample,['進貨','銷貨','交易類別','類別']),
+    qty:   fuzzyPick(sample,['數量','淨量']),
+    amt:   fuzzyPick(sample,['金額','成本','未稅','含稅','Amount']),
+    prod:  fuzzyPick(sample,['產品代號','品號','料號','編號']),
+    name:  fuzzyPick(sample,['品名規格','品名','規格'])
+  };
+}
+
+/* ---------- 統計與比對 ---------- */
+function deriveCategory(name, re){
+  const s=String(name??'').trim(); const m=s.match(re); if(m&&m[1]) return m[1].trim(); return s.slice(0,2);
+}
+function zscores(arr){
+  const xs=arr.map(v=>Number.isFinite(v)?v:toNum(v)).map(v=>Number.isFinite(v)?v:0);
+  const n=xs.length; const mean=xs.reduce((a,b)=>a+b,0)/Math.max(1,n);
+  const sd=Math.sqrt(xs.reduce((a,b)=>a+(b-mean)**2,0)/Math.max(1,n))||1e-9;
+  return xs.map(v=>(v-mean)/sd);
+}
+function within(a,b,tolPct,tolAbs){
+  if(!Number.isFinite(a)||!Number.isFinite(b)) return false;
+  const diff=Math.abs(a-b), pct=diff/Math.max(1,Math.abs(a))*100;
+  return (pct<=tolPct)||(diff<=tolAbs);
+}
+
+/* ---------- 狀態 ---------- */
+const state={ xlsxLoaded:false, inv:null, led:null, maps:{}, results:{} };
+
+/* ---------- 主流程 ---------- */
+async function analyze(){
+  const reStr=$("#reCat").value||'^([^0-9\\s\\-_/（(]+)'; let re; try{ re=new RegExp(reStr);}catch{ re=/^([^0-9\s\-_/（(]+)/; }
+  const zthr=Number($("#zthr").value)||2.5;
+  const tolPct=Number($("#tolPct").value)||10;
+  const tolAbs=Number($("#tolAbs").value)||1000000;
+
+  if(!state.inv){ toast('請先上傳《庫存狀況表.xlsx》','error'); return; }
+
+  // 1) 取庫存欄位
+  const invRows=state.inv.rows; const M=state.maps.inv;
+  const inv=invRows.map(r=>({
+    產品代號: r[M.prod], 品名規格: r[M.name],
+    進貨淨量: toNum(r[M.inQty]), 銷貨淨量: toNum(r[M.outQty]),
+    其他淨量: M.other? toNum(r[M.other]): 0
+  })).filter(r=>String(r.產品代號||'').trim()&&String(r.品名規格||'').trim());
+
+  // 2) 主分類
+  inv.forEach(r=> r.主分類=deriveCategory(r.品名規格,re));
+
+  // 3) 規則偵測
+  const onlyIn = inv.filter(r=> (r.進貨淨量>0) && (!r.銷貨淨量||r.銷貨淨量===0));
+  const onlyOut= inv.filter(r=> (r.銷貨淨量>0) && (!r.進貨淨量||r.進貨淨量===0));
+
+  // 4) 分類內 z-score
+  const byCat=new Map(); inv.forEach(r=>{ if(!byCat.has(r.主分類)) byCat.set(r.主分類,[]); byCat.get(r.主分類).push(r); });
+  const outliers=[];
+  for(const [cat, arr] of byCat.entries()){
+    const zin=zscores(arr.map(r=>r.進貨淨量||0));
+    const zout=zscores(arr.map(r=>r.銷貨淨量||0));
+    arr.forEach((r,i)=>{ r.進貨z=zin[i]; r.銷貨z=zout[i];
+      if(Math.abs(r.進貨z)>=zthr || Math.abs(r.銷貨z)>=zthr){
+        outliers.push({主分類:cat,產品代號:r.產品代號,品名規格:r.品名規格,進貨淨量:r.進貨淨量,進貨z:+r.進貨z.toFixed(2),銷貨淨量:r.銷貨淨量,銷貨z:+r.銷貨z.toFixed(2)});
+      }
+    });
+  }
+
+  // 5) 交換配對（數量 + 金額容忍）
+  const swaps=[];
+  const hasLedger=!!state.led;
+  let ledByCat=null;
+  if(hasLedger){
+    const L=state.maps.led;
+    const tx=state.led.rows.map(r=>({
+      日期:r[L.date], 單號:r[L.doc], 類別:String(r[L.kind]??''),
+      數量:toNum(r[L.qty]), 金額:toNum(r[L.amt]),
+      產品代號:r[L.prod], 品名規格:r[L.name]
+    }));
+    ledByCat=new Map();
+    tx.forEach(t=>{
+      const cat=deriveCategory(t.品名規格,re)||'NA';
+      if(!ledByCat.has(cat)) ledByCat.set(cat,[]);
+      ledByCat.get(cat).push(t);
+    });
+  }
+
+  for(const [cat, arr] of byCat.entries()){
+    const posOut=arr.filter(r=> r.銷貨z>=zthr);
+    const posIn =arr.filter(r=> r.進貨z>=zthr);
+    posOut.forEach(so=>{
+      if(!posIn.length) return;
+      // 先以數量距離最近
+      let best=null,bestDiff=Infinity;
+      posIn.forEach(pi=>{
+        if(pi.產品代號===so.產品代號) return;
+        const d=Math.abs((pi.進貨淨量||0)-(so.銷貨淨量||0));
+        if(d<bestDiff){best=pi;bestDiff=d;}
+      });
+      if(!best) return;
+
+      // 若有 ledger，再做金額容忍過濾（同主分類內找對應進/銷金額近似跡象）
+      let 金額提示='(無分類帳金額，僅數量近似)';
+      if(hasLedger){
+        const pool=ledByCat.get(cat)||[];
+        // 找「進貨」金額群與「銷貨」金額群
+        const inAmts = pool.filter(t=>t.類別.includes('進貨') && Number.isFinite(t.金額)).map(t=>t.金額);
+        const outAmts= pool.filter(t=>t.類別.includes('銷貨') && Number.isFinite(t.金額)).map(t=>t.金額);
+        // 嘗試找是否存在某些金額近似（示意：取中位數比對）
+        const med=v=>{const a=[...v].sort((a,b)=>a-b); if(!a.length) return NaN; const m=Math.floor(a.length/2); return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+        const inMed=med(inAmts), outMed=med(outAmts);
+        if(Number.isFinite(inMed) && Number.isFinite(outMed)){
+          金額提示 = within(inMed,outMed,tolPct,tolAbs) ? '進/銷金額分佈接近（中位數）' : '進/銷金額分佈差異較大（中位數）';
+        }else{
+          金額提示 = '(分類帳金額不足以評估)';
+        }
+      }
+
+      swaps.push({
+        主分類:cat,
+        異常銷貨_產品代號:so.產品代號, 異常銷貨_品名規格:so.品名規格, 異常銷貨_銷貨淨量:so.銷貨淨量,
+        候選進貨_產品代號:best.產品代號, 候選進貨_品名規格:best.品名規格, 候選進貨_進貨淨量:best.進貨淨量,
+        數量差:bestDiff, 金額提示
+      });
+    });
+  }
+
+  // 6) render
+  $("#chips-summary").innerHTML=[
+    `<span class="chip">有效品項：${fmt(inv.length)}</span>`,
+    `<span class="chip">只進不銷：${fmt(onlyIn.length)}</span>`,
+    `<span class="chip">只銷不進：${fmt(onlyOut.length)}</span>`,
+    `<span class="chip">分類異常：${fmt(outliers.length)}</span>`,
+    `<span class="chip">交換配對：${fmt(swaps.length)}</span>`
+  ].join('');
+  $("#audit-logs").textContent='完成：讀檔→欄位對映→清洗→z-score→只進/只銷→交換配對（含金額容忍檢核）。';
+
+  buildTable($("#tbl-onlyin"), onlyIn, ['主分類','產品代號','品名規格','進貨淨量','銷貨淨量','其他淨量']);
+  buildTable($("#tbl-onlyout"), onlyOut, ['主分類','產品代號','品名規格','進貨淨量','銷貨淨量','其他淨量']);
+  buildTable($("#tbl-outliers"), outliers, ['主分類','產品代號','品名規格','進貨淨量','進貨z','銷貨淨量','銷貨z']);
+  buildTable($("#tbl-swap"), swaps, ['主分類','異常銷貨_產品代號','異常銷貨_品名規格','異常銷貨_銷貨淨量','候選進貨_產品代號','候選進貨_品名規格','候選進貨_進貨淨量','數量差','金額提示']);
+
+  // 對映回饋
+  $("#chip-maps").innerHTML = `
+    <span class="chip">庫存：產品代號 → ${state.maps.inv?.prod||'未匹配'}</span>
+    <span class="chip">庫存：品名規格 → ${state.maps.inv?.name||'未匹配'}</span>
+    <span class="chip">庫存：進貨淨量 → ${state.maps.inv?.inQty||'未匹配'}</span>
+    <span class="chip">庫存：銷貨淨量 → ${state.maps.inv?.outQty||'未匹配'}</span>
+    ${state.maps.inv?.other? `<span class="chip">庫存：其他淨量 → ${state.maps.inv.other}</span>`:''}
+    ${state.led? `
+      <span class="chip">分類帳：日期 → ${state.maps.led?.date||'未匹配'}</span>
+      <span class="chip">分類帳：單號 → ${state.maps.led?.doc||'未匹配'}</span>
+      <span class="chip">分類帳：類別 → ${state.maps.led?.kind||'未匹配'}</span>
+      <span class="chip">分類帳：數量 → ${state.maps.led?.qty||'未匹配'}</span>
+      <span class="chip">分類帳：金額 → ${state.maps.led?.amt||'未匹配'}</span>
+      <span class="chip">分類帳：品號 → ${state.maps.led?.prod||'未匹配'}</span>
+      <span class="chip">分類帳：品名規格 → ${state.maps.led?.name||'未匹配'}</span>
+    `:''}
+  `;
+
+  state.results={inv,onlyIn,onlyOut,outliers,swaps};
+  saveLS('xlsx_audit_settings',{reStr,zthr,tolPct,tolAbs});
+  toast('分析完成','ok');
+}
+
+/* ---------- 檔案處理 & 綁定 ---------- */
+async function handleXlsxInput(file, target){
+  const parsed=await readXlsx(file);
+  if(target==='inv'){
+    state.inv=parsed;
+    state.maps.inv=mapInvColumns(parsed.rows[0]||{});
+    $("#chip-inv").innerHTML=`<span class="chip">已載入：${file.name}（${parsed.rows.length} 列）</span>`;
+  }else{
+    state.led=parsed;
+    state.maps.led=mapLedColumns(parsed.rows[0]||{});
+    $("#chip-led").innerHTML=`<span class="chip">已載入：${file.name}（${parsed.rows.length} 列）</span>`;
+  }
+}
+function bindDrop(zone, target){
+  on(zone,'dragover',e=>{e.preventDefault(); zone.classList.add('drag');});
+  on(zone,'dragleave',()=>zone.classList.remove('drag'));
+  on(zone,'drop', async e=>{
+    e.preventDefault(); zone.classList.remove('drag');
+    const f=e.dataTransfer.files?.[0]; if(!f) return;
+    try{ await handleXlsxInput(f,target); }catch(err){ toast(err.message,'error'); }
+  });
+}
+function exportAll(){
+  if(!state.results?.inv){ toast('尚未有可匯出資料','warn'); return; }
+  const {onlyIn,onlyOut,outliers,swaps}=state.results;
+  const pack=[
+    ['only_in.csv',   onlyIn,   ['主分類','產品代號','品名規格','進貨淨量','銷貨淨量','其他淨量']],
+    ['only_out.csv',  onlyOut,  ['主分類','產品代號','品名規格','進貨淨量','銷貨淨量','其他淨量']],
+    ['outliers.csv',  outliers, ['主分類','產品代號','品名規格','進貨淨量','進貨z','銷貨淨量','銷貨z']],
+    ['swap_candidates.csv', swaps, ['主分類','異常銷貨_產品代號','異常銷貨_品名規格','異常銷貨_銷貨淨量','候選進貨_產品代號','候選進貨_品名規格','候選進貨_進貨淨量','數量差','金額提示']]
+  ];
+  for(const [name,rows,cols] of pack){ download(name,toCSV(rows,cols)); }
+  toast('已匯出 4 份 CSV','ok');
+}
+function resetAll(){
+  state.inv=state.led=null; state.maps={}; state.results={};
+  $("#chip-inv").innerHTML=''; $("#chip-led").innerHTML=''; $("#chip-maps").innerHTML='';
+  $("#tbl-onlyin").innerHTML=''; $("#tbl-onlyout").innerHTML=''; $("#tbl-outliers").innerHTML=''; $("#tbl-swap").innerHTML='';
+  $("#chips-summary").innerHTML=''; $("#audit-logs").innerHTML='';
+  toast('已重置');
+}
+
+/* ---------- 啟動 ---------- */
+on(document,'DOMContentLoaded',()=>{
+  on(document,'click', async e=>{
+    const a=e.target.closest('[data-action]'); if(!a) return;
+    const act=a.getAttribute('data-action');
+    if(act==='pick'){ const t=a.getAttribute('data-target'); $(t).click(); }
+    if(act==='analyze'){ try{ await analyze(); }catch(err){ toast(err.message,'error'); } }
+    if(act==='export-all'){ exportAll(); }
+    if(act==='reset'){ resetAll(); }
+  });
+
+  on($("#xlsxLoader"),'change', async e=>{
+    const f=e.target.files?.[0]; if(!f) return;
+    try{
+      await loadLocalXlsxLib(f);
+      state.xlsxLoaded=true;
+      $("#chip-xlsx").innerHTML=`<span class="chip">已載入解析器：${f.name}</span>`;
+      toast('XLSX 解析器載入完成','ok');
+    }catch(err){ toast('解析器載入失敗：'+err.message,'error'); }
+  });
+
+  on($("#file-inv"),'change', e=>{ const f=e.target.files?.[0]; if(f) handleXlsxInput(f,'inv'); });
+  on($("#file-led"),'change', e=>{ const f=e.target.files?.[0]; if(f) handleXlsxInput(f,'led'); });
+  bindDrop($("#drop-inv"),'inv'); bindDrop($("#drop-led"),'led');
+
+  const s=loadLS('xlsx_audit_settings',null);
+  if(s){ $("#reCat").value=s.reStr||'^([^0-9\\s\\-_/（(]+)'; $("#zthr").value=s.zthr??2.5; $("#tolPct").value=s.tolPct??10; $("#tolAbs").value=s.tolAbs??1000000; }
+});
+
+/* ---------- 全域錯誤 ---------- */
+window.addEventListener('error',e=>toast('錯誤：'+(e.message||''),'error'));
+window.addEventListener('unhandledrejection',e=>toast('未捕捉錯誤：'+(e.reason?.message||e.reason||''),'error'));
+})();
+</script>
+</body>
+</html>
