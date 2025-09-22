@@ -3,68 +3,88 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>台灣 稅法限額速算｜交際費 vs 職工福利金</title>
+<title>台灣｜交際費 / 職工福利｜建議金額區間（離線版）</title>
 <style>
-  :root { --bg:#0f1115; --fg:#e6e8ee; --mut:#9aa3b2; --card:#171923; --bd:#22263a; --ok:#10b981; --warn:#f59e0b; --err:#ef4444;}
+  :root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa3b2;--card:#171923;--bd:#22263a;--ok:#10b981;--warn:#f59e0b;--err:#ef4444}
   *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans CJK TC","PingFang TC","Microsoft JhengHei",sans-serif}
   .wrap{max-width:980px;margin:24px auto;padding:0 16px}
   h1{font-size:22px;margin:0 0 10px}
   .card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
   label{display:block;font-size:13px;color:var(--mut);margin-bottom:6px}
   input,select{width:100%;padding:10px 12px;background:#0d0f18;color:var(--fg);border:1px solid #262b40;border-radius:12px;outline:none}
-  .row{display:grid;gap:12px} @media(min-width:860px){ .row.col-2{grid-template-columns:1fr 1fr} .row.col-3{grid-template-columns:1fr 1fr 1fr}}
+  .row{display:grid;gap:12px}
+  @media(min-width:860px){.row.col-2{grid-template-columns:1fr 1fr}.row.col-3{grid-template-columns:1fr 1fr 1fr}}
   .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid #2a314d;background:#121626;color:var(--fg);border-radius:12px;cursor:pointer}
-  .btn:hover{background:#161b2d}.btn.primary{border-color:#3b82f6;background:#1a2446}.btn.warn{border-color:var(--warn);background:#2a2110}
-  .mut{color:var(--mut)} .mono{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media(max-width:680px){.grid-2{grid-template-columns:1fr}}
+  .btn:hover{background:#161b2d}.btn.primary{border-color:#3b82f6;background:#1a2446}
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a314d;background:#121626;color:var(--mut);font-size:12px}
   .kv{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #262b40;padding:6px 0}
-  .kv b{font-variant-numeric:tabular-nums}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace}
   .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
   .note{font-size:12px;color:var(--mut);margin-top:8px}
-  .hl{background:#11182e;border-radius:10px;padding:10px;margin-top:8px}
+  .hl{background:#11182e;border-radius:12px;padding:10px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a314d;background:#121626;color:var(--mut);font-size:12px}
   .toast{position:fixed;right:16px;bottom:16px;background:#111527;border:1px solid #2a314d;color:var(--fg);padding:10px 12px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:80%}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>交際費 vs 職工福利金｜台灣稅法限額速算</h1>
+  <h1>交際費 / 職工福利｜單張發票「建議金額區間」</h1>
+
   <div class="card">
     <div class="row col-3">
       <div>
         <label>年度銷貨淨額（元）</label>
-        <input id="sales" type="number" min="0" step="1" placeholder="例如 12000000" />
+        <input id="sales" type="number" min="0" step="1" placeholder="例如 12000000">
       </div>
       <div>
         <label>是否「簽證 / 藍色申報」</label>
         <select id="blue">
           <option value="0">否（普通申報）</option>
-          <option value="1">是（簽證或藍色申報）</option>
+          <option value="1">是（簽證 / 藍色申報）</option>
         </select>
       </div>
       <div>
         <label>是否有職工福利委員會</label>
         <select id="hasWelfare">
-          <option value="1">有（可按規定提撥）</option>
-          <option value="0">無（不得依福利金條例提撥）</option>
+          <option value="1">有（可依條例提撥）</option>
+          <option value="0">無（不可依條例提撥）</option>
         </select>
       </div>
     </div>
-    <div class="row col-2" style="margin-top:12px">
+
+    <details class="note" style="margin-top:8px">
+      <summary>（可選）調整「建議區間比例」</summary>
+      <div class="row col-3" style="margin-top:8px">
+        <div>
+          <label>交際：舒適上限（% / 年度交際上限）</label>
+          <input id="entComfortPct" type="number" min="0.1" step="0.1" value="0.8">
+        </div>
+        <div>
+          <label>交際：注意上限（% / 年度交際上限）</label>
+          <input id="entCautionPct" type="number" min="0.2" step="0.1" value="3">
+        </div>
+        <div>
+          <label>福利：舒適上限（% / 年度福利上限）</label>
+          <input id="welComfortPct" type="number" min="0.5" step="0.5" value="2">
+        </div>
+      </div>
+      <div class="note">說明：預設意義——交際單張「舒適 ≤ 0.8%」、注意 ≤ 3%、再上去屬偏高；福利單張「舒適 ≤ 2%（以年度福利上限為母數）」。你可依公司內規調整。</div>
+    </details>
+
+    <div class="row col-3" style="margin-top:10px">
       <div>
-        <label>（選填）外銷結匯收入（元）</label>
-        <input id="fx" type="number" min="0" step="1" placeholder="外銷特別交際費上限 = 2%（需實際結匯）">
+        <label>（選填）外銷結匯收入（元，用於 2% 外銷特別交際費上限）</label>
+        <input id="fx" type="number" min="0" step="1">
       </div>
       <div>
         <label>&nbsp;</label>
-        <button class="btn primary" id="run" type="button">計算</button>
+        <button class="btn primary" id="run" type="button">計算年度上限與建議區間</button>
       </div>
     </div>
-    <div class="note">說明：交際費限額按《查核準則》第80條級距（普通／簽證/藍色申報採不同係數）；職工福利金須依法設福利委員會，<span class="mono">每月營業收入 0.05%～0.15%</span>區間提撥（另有創立/增資/下腳等規定）。</div>
   </div>
 
-  <div class="card" id="result" hidden>
-    <div class="grid-2">
+  <div class="card" id="limitsCard" hidden>
+    <div class="row col-2">
       <div>
         <div class="badge">交際費（年度上限）</div>
         <div id="entBox" class="hl"></div>
@@ -74,10 +94,35 @@
         <div id="welBox" class="hl"></div>
       </div>
     </div>
-    <div class="note">
-      * 交際費屬「特定對象」的招待贈禮；廣告費對「不特定對象」且**無上限**（但需屬實且與業務有關）。分類錯誤可能被剔除補稅。<br>
-      * 福利性質（員工旅遊、聚餐、文康）應優先以「福利金」列支（已提撥者），不足再以其他費用列支。
+    <div class="note">交際費限額依《查核準則》第80條（普通 vs 藍色/簽證係數不同）；福利金估算以「年度營業收入 × 0.05%～0.15%」作區間（實務按月提撥）。</div>
+  </div>
+
+  <div class="card" id="bandsCard" hidden>
+    <div class="badge">每張發票 — 建議金額區間（依上方年度上限換算）</div>
+    <div class="hl" id="bandsBox"></div>
+    <div class="note">原則：對象決定科目（客戶＝交際、員工＝福利）；金額在舒適/注意/偏高區間時顯示不同提醒。</div>
+  </div>
+
+  <div class="card" id="singleCard" hidden>
+    <div class="badge">單張判斷器</div>
+    <div class="row col-3" style="margin-top:8px">
+      <div>
+        <label>對象</label>
+        <select id="party">
+          <option value="client">客戶/供應商（交際）</option>
+          <option value="employee">員工（福利）</option>
+        </select>
+      </div>
+      <div>
+        <label>單張金額（元）</label>
+        <input id="amt" type="number" min="0" step="1" placeholder="例如 12000">
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button class="btn" id="judge" type="button">判斷建議科目與訊息</button>
+      </div>
     </div>
+    <div id="judgeBox" class="hl" style="margin-top:8px"></div>
   </div>
 </div>
 
@@ -87,65 +132,148 @@
 (function(){
   'use strict';
   const $ = s => document.querySelector(s);
-  const show = (el, on=true)=>{ el.hidden = !on; };
+  const show = (el,on=true)=>{ el.hidden=!on; };
   const fmt = n => Number(n||0).toLocaleString('zh-Hant',{maximumFractionDigits:0});
-  const toast = (m)=>{ const t=$('#toast'); t.textContent=m; t.hidden=false; clearTimeout(window.__tt); window.__tt=setTimeout(()=>t.hidden=true,3600); };
+  const toast = (m)=>{ const t=$('.toast'); t.textContent=m; t.hidden=false; clearTimeout(window.__tt); window.__tt=setTimeout(()=>t.hidden=true,3600); };
 
-  // 交際費：只用「銷貨淨額」路徑（最常見）；若要進/運，可自行擴充。
-  // 依查核準則第80條常見整理（普通 vs 藍色/簽證不同係數）。
+  // ========== 程式內建公式 ==========
+  // 交際費（銷貨淨額基礎）：查核準則第80條（常用整理，普通 vs 藍色/簽證）
   function entLimitBySales(sales, isBlue){
     const s = Number(sales||0);
-    if (s <= 30000000)     return isBlue ? s*0.0060 : s*0.0045;                       // 3,000萬以下
-    if (s <= 150000000)    return isBlue ? s*0.0040 +  60000 : s*0.0030 +  45000;     // 3,000萬零1 ~ 1億5
-    if (s <= 600000000)    return isBlue ? s*0.0030 + 210000 : s*0.0020 + 195000;     // 1億5零1 ~ 6億
-    return                         isBlue ? s*0.0015 +1110000 : s*0.0010 + 795000;     // 6億零1以上
+    if (s <= 30000000)  return isBlue ? s*0.0060 : s*0.0045;                       // ≤3,000萬
+    if (s <= 150000000) return isBlue ? s*0.0040 +  60000 : s*0.0030 +  45000;     // 3,000萬~1.5億
+    if (s <= 600000000) return isBlue ? s*0.0030 + 210000 : s*0.0020 + 195000;     // 1.5億~6億
+    return                      isBlue ? s*0.0015 +1110000 : s*0.0010 + 795000;     // >6億
   }
-  // 外銷特別交際費上限（需實際結匯）：2%（藍色/普通皆同）
+  // 外銷特別交際費上限（需結匯）：2%
   function entLimitExport(fx){ return Number(fx||0) * 0.02; }
+  // 職工福利金年度估算（以營業收入×0.05%~0.15%）
+  function welfareRangeByRevenue(rev){ const r=Number(rev||0); return {min:r*0.0005, max:r*0.0015}; }
 
-  // 職工福利金（估算：以「年度營業收入」× 0.05%～0.15% 區間；實務提撥多按「每月營業收入」比例）
-  function welfareRangeByRevenue(rev){
-    const r = Number(rev||0);
-    return { min: r*0.0005, max: r*0.0015 };
-  }
-
+  // UI helpers
   function renderKV(box, list){
-    box.innerHTML = list.map(it=>`<div class="kv"><span>${it.k}</span><b class="${it.cls||''}">${it.v}</b></div>`).join('');
+    box.innerHTML = list.map(it=>`<div class="kv"><span>${it.k}</span><b class="${it.cls||''} mono">${it.v}</b></div>`).join('');
   }
 
+  // 全域狀態
+  let ENT_MAX = 0, ENT_MAX_TOTAL = 0;  // 交際：基礎 + 外銷
+  let WEL_MAX = 0;                     // 福利：年度估算上限（取 0.15%）
+  let HAS_WEL = true;
+
+  // 計算按鈕
   $('#run').addEventListener('click', ()=>{
     try{
       const sales = Number($('#sales').value||0);
-      const blue  = $('#blue').value === '1';
-      const hasWel= $('#hasWelfare').value === '1';
-      const fx    = Number($('#fx').value||0);
+      const isBlue = $('#blue').value === '1';
+      HAS_WEL = $('#hasWelfare').value === '1';
+      const fx = Number($('#fx').value||0);
 
-      if (!isFinite(sales) || sales<=0){ toast('請輸入年度「銷貨淨額」'); return; }
+      if (!isFinite(sales) || sales<=0){ toast('請輸入年度銷貨淨額'); return; }
 
-      const entBase = entLimitBySales(sales, blue);
+      const entBase = entLimitBySales(sales, isBlue);
       const entFx   = fx>0 ? entLimitExport(fx) : 0;
-      const entTot  = entBase + entFx;
+      ENT_MAX = entBase;                // 基礎交際上限（可做參考）
+      ENT_MAX_TOTAL = entBase + entFx;  // 合計交際上限（含外銷特別交際）
 
-      const entList = [
+      const kvEnt = [
         {k:'交際費上限（銷貨淨額基礎）', v:'$ '+fmt(entBase)},
-        {k:'外銷特別交際費上限（2%）',  v: (entFx>0? '$ '+fmt(entFx) : '（未填外銷結匯收入）'), cls:(entFx>0?'ok':'')},
-        {k:'合計可列報上限（交際費）',  v:'$ '+fmt(entTot), cls:'ok'}
+        {k:'外銷特別交際費上限（2%）',  v: entFx>0 ? '$ '+fmt(entFx) : '（未填外銷結匯收入）'},
+        {k:'合計可列報上限（交際）',    v:'$ '+fmt(ENT_MAX_TOTAL), cls:'ok'}
       ];
-      renderKV($('#entBox'), entList);
+      renderKV($('#entBox'), kvEnt);
 
-      const welList = [];
-      if (hasWel){
+      let welList=[];
+      if (HAS_WEL){
         const wr = welfareRangeByRevenue(sales);
-        welList.push({k:'（估）職工福利金提撥下限（0.05%）', v:'$ '+fmt(wr.min)});
-        welList.push({k:'（估）職工福利金提撥上限（0.15%）', v:'$ '+fmt(wr.max), cls:'ok'});
-        welList.push({k:'備註', v:'須依法設職工福利委員會，並依條例提撥與列支。'});
+        WEL_MAX = wr.max; // 使用 0.15% 作為「年度福利上限」基準
+        welList = [
+          {k:'（估）職工福利金下限（0.05%）', v:'$ '+fmt(wr.min)},
+          {k:'（估）職工福利金上限（0.15%）', v:'$ '+fmt(wr.max), cls:'ok'}
+        ];
       }else{
-        welList.push({k:'職工福利金提撥', v:'未設福利委員會，依法不可按條例提撥', cls:'warn'});
+        WEL_MAX = 0;
+        welList = [{k:'職工福利金', v:'未設福利委員會，依法不可依條例提撥', cls:'warn'}];
       }
       renderKV($('#welBox'), welList);
 
-      show($('#result'), true);
-      toast('已完成計算');
+      show($('#limitsCard'), true);
+
+      // 推算「每張發票建議區間」閾值
+      const entComfortPct = Number($('#entComfortPct').value||0.8)/100;   // 0.8%
+      const entCautionPct = Number($('#entCautionPct').value||3)/100;     // 3%
+      const welComfortPct = Number($('#welComfortPct').value||2)/100;     // 2%
+
+      const entComfort = ENT_MAX_TOTAL * entComfortPct;
+      const entCaution = ENT_MAX_TOTAL * entCautionPct;
+      const welComfort = (HAS_WEL ? WEL_MAX * welComfortPct : 0);
+
+      // 說明：交際單張
+      //  - 舒適：≤ ENT_MAX_TOTAL × entComfortPct（預設 0.8%）
+      //  - 注意：≤ ENT_MAX_TOTAL × entCautionPct（預設 3%）
+      //  - 偏高：> entCaution
+      // 福利單張（需有委員會）：
+      //  - 舒適：≤ WEL_MAX × welComfortPct（預設 2%）
+      //  - 注意：> 舒適（無硬上限，視公司內控）
+      const lines = [
+        `<div class="kv"><span><span class="pill">交際｜舒適</span></span><b class="mono ok">≤ $ ${fmt(entComfort)}</b></div>`,
+        `<div class="kv"><span><span class="pill">交際｜注意</span></span><b class="mono warn">≤ $ ${fmt(entCaution)}</b></div>`,
+        `<div class="kv"><span><span class="pill">交際｜偏高</span></span><b class="mono err">&gt; $ ${fmt(entCaution)}</b></div>`,
+        (HAS_WEL
+          ? `<div class="kv"><span><span class="pill">福利｜舒適</span></span><b class="mono ok">≤ $ ${fmt(welComfort)}</b></div>`
+          : `<div class="kv"><span><span class="pill">福利｜提示</span></span><b class="mono warn">未設福利委員會，福利金不得依條例提撥</b></div>`
+        )
+      ];
+      $('#bandsBox').innerHTML = lines.join('');
+      show($('#bandsCard'), true);
+      show($('#singleCard'), true);
+
+      toast('已計算年度上限與建議區間');
+    }catch(err){
+      console.error(err); toast('發生錯誤：'+(err.message||err));
+    }
+  });
+
+  // 單張判斷
+  $('#judge').addEventListener('click', ()=>{
+    try{
+      const amt = Number($('#amt').value||0);
+      const party = $('#party').value; // client / employee
+
+      if (!isFinite(amt) || amt<=0){ toast('請輸入單張金額'); return; }
+      if (ENT_MAX_TOTAL<=0){ toast('請先上方計算年度上限'); return; }
+
+      const entComfortPct = Number($('#entComfortPct').value||0.8)/100;
+      const entCautionPct = Number($('#entCautionPct').value||3)/100;
+      const welComfortPct = Number($('#welComfortPct').value||2)/100;
+
+      const entComfort = ENT_MAX_TOTAL * entComfortPct;
+      const entCaution = ENT_MAX_TOTAL * entCautionPct;
+      const welComfort = (HAS_WEL ? WEL_MAX * welComfortPct : 0);
+
+      let subject = '', band = '', tip = '', cls='';
+
+      if (party==='client'){ // 客戶/供應商 → 交際優先
+        subject = '交際費（建議）';
+        if (amt <= entComfort){ band='舒適'; cls='ok'; tip='金額落於舒適區間，憑證事由與對象須完整。'; }
+        else if (amt <= entCaution){ band='注意'; cls='warn'; tip='注意單張偏高，留意年度累計接近上限風險。'; }
+        else { band='偏高'; cls='err'; tip='金額偏高，請特別保留往來證明；年度超限將不得列報超過部分。'; }
+      } else { // 員工 → 福利優先（若無委員會，提示不可按條例提撥）
+        subject = HAS_WEL ? '職工福利金（建議）' : '職工福利（提示）';
+        if (!HAS_WEL){
+          band='提示'; cls='warn'; tip='未設福利委員會，原則不可依條例提撥；請依公司內規與會計科目另行判斷。';
+        }else{
+          if (amt <= welComfort){ band='舒適'; cls='ok'; tip='金額落於福利舒適區間，建議以福利金列支。'; }
+          else { band='注意'; cls='warn'; tip='單張偏高，請依內控決議是否拆分活動或補強核銷資料。'; }
+        }
+      }
+
+      $('#judgeBox').innerHTML = `
+        <div class="kv"><span>建議科目</span><b class="mono ${cls}">${subject}</b></div>
+        <div class="kv"><span>區間判定</span><b class="mono ${cls}">${band}</b></div>
+        <div class="kv"><span>單張金額</span><b class="mono">$ ${fmt(amt)}</b></div>
+        <div class="kv"><span>說明</span><b class="mono">${tip}</b></div>
+      `;
+      toast('已完成單張判斷');
     }catch(err){
       console.error(err); toast('發生錯誤：'+(err.message||err));
     }
