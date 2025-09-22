@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>發票證明單｜輸入＋上下預覽（對折＆Big5自動偵測）</title>
+<style>
+  body{font-family:"DFKai-SB","PMingLiU",serif;margin:0;background:#fff;color:#000}
+  header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;z-index:10}
+  .wrap{max-width:1120px;margin:0 auto;padding:10px 12px}
+  .tabs{display:flex;gap:8px;align-items:center}
+  .tab{border:1px solid #ccc;background:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
+  .tab.active{border-color:#000}
+  .btn{border:1px solid #ccc;background:#fff;padding:6px 10px;border-radius:10px;cursor:pointer}
+  .btn.primary{border-color:#000}
+  table{border-collapse:collapse;width:100%;table-layout:fixed}
+  th,td{border:1.5px solid #000;padding:6px;text-align:center;vertical-align:middle;font-size:14px;word-wrap:break-word;font-family:"DFKai-SB","PMingLiU",serif}
+  th{background:#fafafa;font-weight:700}
+  td[contenteditable]{background:#fff}
+  td[contenteditable]:focus{outline:2px solid #09f}
+  .tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+  /* 預覽頁（上下各一份；對折） */
+  .page{width:210mm;height:297mm;margin:0 auto 16px;padding:0;box-sizing:border-box;border:1.5px solid #000;display:flex;flex-direction:column;justify-content:space-between}
+  .block{border:1.5px solid #000;padding:0;margin:0;height:48%;display:flex;flex-direction:column;justify-content:flex-start}
+  .title{text-align:center;font-weight:700;font-size:16px;margin:5mm 0;font-family:"DFKai-SB","PMingLiU",serif}
+  .tbl{width:100%;border-collapse:collapse;table-layout:fixed}
+  .tbl th,.tbl td{border:1.5px solid #000;padding:4px;text-align:center;vertical-align:middle;font-size:14px;font-family:"DFKai-SB","PMingLiU",serif}
+  .note-cell{height:24mm;text-align:left;vertical-align:top;padding:4px;font-family:"DFKai-SB","PMingLiU",serif}
+  .union-row td{height:12mm}  /* 將『發票聯式』那行高度縮小 */
+
+  /* 五欄格特化樣式（更接近原紙本） */
+  .grid5 th,.grid5 td{border:1.8px solid #000;padding:6px;font-size:15px;font-family:"DFKai-SB","PMingLiU",serif;font-weight:700}
+  .grid5 .hcell{font-weight:700}
+  .grid5 colgroup col:nth-child(1){width:18%}
+  .grid5 colgroup col:nth-child(2){width:18%}
+  .grid5 colgroup col:nth-child(3){width:10%}
+  .grid5 colgroup col:nth-child(4){width:27%}
+  .grid5 colgroup col:nth-child(5){width:27%}
+  .grid5 .data-row{height:24mm} /* 將分/算那行加大（與上列對調比例） */
+
+  @media print{header,.noprint{display:none!important}.page{border:none;margin:0}}
+  #toast{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+  .toast{background:#111;color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap tabs">
+    <button class="tab active" data-tab="input">輸入頁</button>
+    <button class="tab" data-tab="preview">預覽/列印頁</button>
+    <span style="margin-left:auto;color:#666">建議匯入 CSV UTF-8；已內建 Big5 自動偵測轉碼保險</span>
+  </div>
+</header>
+<main class="wrap">
+  <!-- 輸入頁 -->
+  <section id="page-input">
+    <div class="tools noprint" style="margin:8px 0">
+      <button class="btn" data-action="add-row">新增列</button>
+      <button class="btn" data-action="del-row">刪除選取列</button>
+      <input id="csvFile" type="file" accept=".csv,.txt" style="display:none" />
+      <label for="csvFile" class="btn">匯入 CSV</label>
+      <button class="btn" data-action="download-template">下載 CSV 範本</button>
+      <button class="btn" data-action="export-csv">匯出 CSV</button>
+      <span style="margin-left:12px">日期：<input type="date" id="datePick" class="btn" style="padding:4px 6px" />
+      <button class="btn" data-action="apply-date">套用到選取列</button>
+      <button class="btn" data-action="fill-today">填入今天日期（選取列）</button></span>
+      <button class="btn" data-action="load-sample">載入示例</button>
+      <button class="btn" data-action="clear">清空</button>
+    </div>
+    <div style="overflow:auto;max-height:60vh;border:1.5px solid #000">
+      <table id="grid"><thead><tr id="hdr"></tr></thead><tbody id="body"></tbody></table>
+    </div>
+  </section>
+
+  <!-- 預覽頁 -->
+  <section id="page-preview" style="display:none">
+    <div class="noprint" style="margin:8px 0">
+      <button class="btn primary" data-action="render-preview">重新產生預覽</button>
+      <button class="btn" data-action="print">列印 / PDF</button>
+    </div>
+    <div id="preview"></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+  const toast=(m)=>{const d=document.createElement('div');d.className='toast';d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),2400)}
+
+  const COLS=[
+    {key:'roc_year',name:'年度'},
+    {key:'month_span',name:'月份'},
+    {key:'short_name',name:'公司簡稱'},
+    {key:'company_code',name:'公司代號'},
+    {key:'tax_id',name:'統一編號'},
+    {key:'union_type',name:'發票聯式'},
+    {key:'series',name:'字軌'},
+    {key:'used_range',name:'使用發票起訖號'},
+    {key:'blank_range',name:'空白發票起訖號'},
+    {key:'note',name:'備註'},
+    {key:'sales',name:'銷售額'},
+    {key:'tax',name:'稅額'},
+    {key:'total',name:'總額'},
+    {key:'date',name:'日期(M/D)'}
+  ];
+
+  let rows=JSON.parse(localStorage.getItem('inv_rows')||'[]');
+
+  function buildHeader(){
+    const tr=$('#hdr'); tr.innerHTML='<th>選</th>';
+    COLS.forEach(c=>{const th=document.createElement('th');th.textContent=c.name;tr.appendChild(th)});
+  }
+  function makeRow(d={}){
+    const tr=document.createElement('tr');
+    const tdSel=document.createElement('td');tdSel.innerHTML='<input type="checkbox" class="rowSel">';tr.appendChild(tdSel);
+    COLS.forEach(c=>{const td=document.createElement('td');td.contentEditable='true';td.dataset.key=c.key;td.textContent=d[c.key]||'';tr.appendChild(td)});
+    return tr;
+  }
+  function renderBody(){const tb=$('#body');tb.innerHTML='';if(rows.length==0) rows=[{}];rows.forEach(r=>tb.appendChild(makeRow(r)));}
+  function sync(){const arr=[];$('#body').querySelectorAll('tr').forEach(tr=>{const o={};tr.querySelectorAll('td[data-key]').forEach(td=>{o[td.dataset.key]=td.textContent.trim()});arr.push(o)});rows=arr;localStorage.setItem('inv_rows',JSON.stringify(rows));}
+
+  document.addEventListener('input',e=>{if(e.target.matches('#body td[contenteditable]')) sync()});
+  document.addEventListener('click',e=>{
+    const act=e.target.closest('[data-action]')?.dataset.action;
+    if(act==='add-row'){ $('#body').appendChild(makeRow({}));sync(); }
+    if(act==='del-row'){ $$('#body .rowSel:checked').forEach(chk=>chk.closest('tr').remove());sync(); }
+    if(act==='download-template') exportCSV([],true);
+    if(act==='export-csv') exportCSV(rows);
+    if(act==='apply-date') applyDate($('#datePick').value);
+    if(act==='fill-today') applyDate(todayStrISO());
+    if(act==='load-sample'){
+      rows=[
+        {roc_year:'114',month_span:'05-06',short_name:'煜明',company_code:'#2401',tax_id:'21226187',union_type:'三聯',series:'AB',used_range:'AB12345678~AB12345777',blank_range:'AB12345778~AB12345999',note:'測試',sales:'150000',tax:'7500',total:'157500',date:''},
+        {roc_year:'114',month_span:'05-06',short_name:'煜鑫',company_code:'#2402',tax_id:'20731551',union_type:'電子',series:'AB',used_range:'AB12340000~AB12340555',blank_range:'AB12340556~AB12340999',note:'示例第二列',sales:'98000',tax:'4900',total:'102900',date:''}
+      ];
+      localStorage.setItem('inv_rows',JSON.stringify(rows));renderBody();
+    }
+    if(act==='clear'){rows=[];localStorage.setItem('inv_rows','[]');renderBody();}
+    if(act==='render-preview') renderPreview();
+    if(act==='print') window.print();
+  });
+
+  function exportCSV(data,templateOnly=false){
+    const headers=COLS.map(c=>c.key).join(',');
+    const rowsStr=templateOnly?[]:data.map(r=>COLS.map(c=>csvEsc(r[c.key]||'')).join(','));
+    const csv=[headers,...rowsStr].join('\n');
+    const blob=new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=templateOnly?'template.csv':'invoice-data.csv';a.click();}
+  function csvEsc(v){v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+
+  $('#csvFile').addEventListener('change', async (e)=>{
+    const f=e.target.files?.[0]; if(!f) return;
+    try{
+      const buf = await f.arrayBuffer();
+      const txt = decodePreferUTF8(buf);
+      const {data} = parseCSV(txt);
+      if(!data.length){ toast('檔內沒有資料'); return; }
+      const norm = data.map(normalizeKeys);
+      rows = norm.map(o=> COLS.reduce((acc,c)=>{acc[c.key]=o[c.key]??''; return acc;}, {}));
+      localStorage.setItem('inv_rows',JSON.stringify(rows)); renderBody(); toast(`已匯入 ${rows.length} 列`);
+    }catch(err){ toast('匯入失敗：'+(err.message||err)); }
+  });
+
+  function decodePreferUTF8(buf){
+    let dec = new TextDecoder('utf-8',{fatal:false});
+    let s = dec.decode(new Uint8Array(buf));
+    const bad = (s.match(/\uFFFD/g)||[]).length;
+    if(bad>0){
+      try{ const dec5 = new TextDecoder('big5',{fatal:false}); const s5 = dec5.decode(new Uint8Array(buf)); return s5; }catch(e){}
+    }
+    return s;
+  }
+
+  function parseCSV(text){
+    const delim = text.indexOf('\t')>-1 ? '\t' : (text.indexOf(';')>-1?';':',');
+    const rows=[]; let field=''; let line=[]; let inQ=false; const s=String(text); const N=s.length;
+    const pushF=()=>{line.push(field);field=''}; const pushL=()=>{rows.push(line);line=[]};
+    for(let i=0;i<N;i++){
+      const c=s[i], n=s[i+1];
+      if(inQ){ if(c==='"'){ if(n==='"'){field+='"';i++;} else inQ=false; } else field+=c; }
+      else{ if(c==='"') inQ=true; else if(c==='\n'){pushF();pushL();} else if(c==='\r'){} else if(c===delim){pushF()} else field+=c; }
+    }
+    if(field!==''||line.length){pushF();pushL();}
+    if(!rows.length) return {head:[],data:[]};
+    const head=rows[0].map(h=>h.trim());
+    const data=rows.slice(1).filter(r=> r.some(x=> (x||'').trim()!=='')).map(r=>{const o={}; head.forEach((h,i)=>o[h]= (r[i]||'').trim()); return o;});
+    return {head,data};
+  }
+
+  function normalizeKeys(obj){
+    const map={
+      'roc_year':['roc_year','年','年度','民國','year_roc'],
+      'month_span':['month_span','月份','月份區間','月區間','span','mmspan'],
+      'short_name':['short_name','公司','公司簡稱','簡稱','name_short'],
+      'company_code':['company_code','公司代號','代號','code'],
+      'tax_id':['tax_id','統一編號','統編','vat','ban'],
+      'union_type':['union_type','發票聯式','聯式','type'],
+      'series':['series','字軌','字軌別'],
+      'used_range':['used_range','使用發票起訖號','使用起訖','used'],
+      'blank_range':['blank_range','空白發票起訖號','空白起訖','blank'],
+      'note':['note','備註','註記'],
+      'sales':['sales','銷售額','未稅','sales_amount'],
+      'tax':['tax','稅額','tax_amount'],
+      'total':['total','總額','total_amount'],
+      'date':['date','日期','開立日期']
+    };
+    const out={};
+    for(const std in map){
+      const aliases=map[std];
+      let key=Object.keys(obj).find(k=> aliases.includes(k.trim()));
+      if(!key) key=Object.keys(obj).find(k=> aliases.includes(k.trim().replace(/\s+/g,'')) );
+      if(key) out[std]= obj[key];
+    }
+    return out;
+  }
+
+  // === 預覽：兩筆一頁，依序塞入（不重複） ===
+  function renderPreview(){
+    sync(); const prev=$('#preview'); prev.innerHTML=''; if(rows.length==0){ prev.innerHTML='<div class=noprint>無資料</div>'; return; }
+    for(let i=0;i<rows.length;i+=2){
+      const page=document.createElement('div'); page.className='page';
+      const r1=rows[i]; const r2=rows[i+1];
+      const blk1=document.createElement('div'); blk1.className='block'; blk1.innerHTML=buildBlock(r1); page.appendChild(blk1);
+      const blk2=document.createElement('div'); blk2.className='block'; blk2.innerHTML= r2 ? buildBlock(r2) : ''; page.appendChild(blk2);
+      prev.appendChild(page);
+    }
+  }
+
+  // === 單份版面 ===
+  function buildBlock(r){
+    const title=`<div class=title>${esc(r.roc_year||'')} 年 ${esc(r.month_span||'')} 月份統一發票證明單</div>`;
+    const top=`<table class=tbl>
+      <tr><td colspan=6 style="text-align:left;font-weight:700;font-size:15px">${esc(r.short_name||'')} ${esc(r.company_code||'')}</td></tr>
+      <tr><td colspan=6 style="text-align:left">統一編號：${esc(r.tax_id||'')}</td></tr>
+      <tr><th>發票聯式</th><th>字軌</th><th>使用發票起訖號</th><th>空白發票起訖號</th><th>備註</th><th>金額</th></tr>
+      <tr class="union-row">
+        <td>${esc(r.union_type||'')}</td>
+        <td>${esc(r.series||'')}</td>
+        <td>${esc(r.used_range||'')}</td>
+        <td>${esc(r.blank_range||'')}</td>
+        <td class=note-cell>${esc(r.note||'')}&nbsp;</td>
+        <td class=note-cell>銷售額：${fmt(r.sales)}<br>稅額：${fmt(r.tax)}<br>總額：${fmt(r.total)}</td>
+      </tr>
+    </table>`;
+
+    const grid5=`<table class="tbl grid5" style="margin-top:4mm">
+      <colgroup><col><col><col><col><col></colgroup>
+      <tr>
+        <td class="hcell">分</td>
+        <td class="hcell">算</td>
+        <td class="hcell">客<br>自</td>
+        <td class="hcell">登錄</td>
+        <td class="hcell">登進</td>
+      </tr>
+      <tr class="data-row">
+        <td>${esc(dateDisplay(r.date))}&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+    </table>`;
+
+    return title + top + grid5;
+  }
+
+  function fmt(v){if(!v)return'';const n=+String(v).replace(/,/g,'');return isFinite(n)?n.toLocaleString('zh-TW'):v}
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+
+  function dateDisplay(d){
+    let dt; if(d){ const [y,m,dd]=d.split('-').map(x=>+x); if(y && m && dd){ dt=new Date(y,m-1,dd); } }
+    if(!dt) dt=new Date();
+    const m=dt.getMonth()+1, da=dt.getDate();
+    const w=['日','一','二','三','四','五','六'][dt.getDay()];
+    return `${m}/${da}(${w})`;
+  }
+  function todayStrISO(){ const d=new Date(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${m}-${day}`; }
+  function applyDate(val){ const marked=$$('#body .rowSel:checked'); if(marked.length===0){ toast('請先勾選要套用的列'); return; } marked.forEach(chk=>{ const tr=chk.closest('tr'); const cell=tr.querySelector('td[data-key="date"]'); if(cell){ cell.textContent=val; } }); sync(); toast('已套用日期'); }
+
+  document.addEventListener('click',e=>{const t=e.target.closest('.tab');if(!t)return;$$('.tab').forEach(b=>b.classList.remove('active'));t.classList.add('active');$('#page-input').style.display=(t.dataset.tab==='input')?'block':'none';$('#page-preview').style.display=(t.dataset.tab==='preview')?'block':'none';if(t.dataset.tab==='preview')renderPreview();});
+
+  buildHeader();
+  renderBody();
+})();
+</script>
+</body>
+</html>
