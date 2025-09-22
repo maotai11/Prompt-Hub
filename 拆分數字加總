@@ -1,0 +1,464 @@
+<!DOCTYPE html><!-- Offline, single-file, no CDN -->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>離線銷貨分單工具｜單日/10天加總、自動拆分</title>
+<style>
+  :root { --bg:#0f1115; --fg:#e6e8ee; --muted:#9aa3b2; --accent:#ef4444; --card:#171923; --ok:#10b981; --warn:#f59e0b; }
+  *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans CJK TC","PingFang TC","Microsoft JhengHei",sans-serif}
+  .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+  h1{font-size:22px;margin:0 0 12px}
+  .card{background:var(--card);border:1px solid #22263a; border-radius:16px; padding:16px; margin:12px 0; box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input[type="number"],input[type="text"],select,textarea{
+    width:100%; padding:10px 12px; background:#0d0f18; color:var(--fg); border:1px solid #262b40; border-radius:12px; outline:none;
+  }
+  textarea{min-height:120px; resize:vertical; font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace}
+  .row{display:grid; gap:12px}
+  @media(min-width:860px){ .row.col-2{grid-template-columns:1fr 1fr} .row.col-3{grid-template-columns:1fr 1fr 1fr} }
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid #2a314d;background:#121626;color:var(--fg);border-radius:12px;cursor:pointer}
+  .btn:hover{background:#161b2d}
+  .btn.primary{border-color:#3b82f6;background:#1a2446}
+  .btn.warn{border-color:var(--warn);background:#2a2110}
+  .btn.ok{border-color:var(--ok);background:#0f2a22}
+  .hint{font-size:12px;color:var(--muted)}
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  th,td{border-bottom:1px solid #23283c; padding:8px 10px; vertical-align:top}
+  th{position:sticky; top:0; background:#111527; z-index:1}
+  .num{text-align:right; font-variant-numeric:tabular-nums}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #2a314d;background:#121626;color:var(--muted)}
+  .toast{position:fixed;right:16px;bottom:16px;background:#111527;border:1px solid #2a314d;color:var(--fg);padding:10px 12px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:70%}
+  .flex{display:flex; gap:8px; flex-wrap:wrap}
+  .grow{flex:1 1 auto}
+  .nowrap{white-space:nowrap}
+  .muted{color:var(--muted)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace}
+  .danger{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>離線銷貨分單工具</h1>
+  <div class="card">
+    <div class="row col-2">
+      <div>
+        <label>上傳檔案（CSV；或先把 XLSX 另存為 CSV）</label>
+        <input id="file" type="file" accept=".csv,text/csv,application/vnd.ms-excel" />
+        <div class="hint">提示：Excel ➜ 另存新檔 ➜ CSV UTF-8；也可用下方「貼上整表」</div>
+      </div>
+      <div>
+        <label>或直接貼上表格（包含標題列）</label>
+        <textarea id="paste" placeholder="貼上含標題列的資料，欄位用逗號或TAB分隔；系統會自動偵測"></textarea>
+      </div>
+    </div>
+
+    <div class="row col-3" style="margin-top:12px">
+      <div>
+        <label>日期欄</label>
+        <select id="dateCol"></select>
+      </div>
+      <div>
+        <label>金額欄（總計）</label>
+        <select id="amtCol"></select>
+      </div>
+      <div>
+        <label>分組模式</label>
+        <select id="mode">
+          <option value="daily">單日加總（每天重置上限）</option>
+          <option value="10day">10 天加總（連續 10 天一組）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row col-3" style="margin-top:12px">
+      <div>
+        <label>上限閾值（例如：1000000）</label>
+        <input id="cap" type="number" value="1000000" min="1" step="1" />
+      </div>
+      <div>
+        <label>最小拆分單位（例如：1 或 1000）</label>
+        <input id="gran" type="number" value="1" min="1" step="1" />
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <div class="flex">
+          <button class="btn primary" data-action="run">執行拆分</button>
+          <button class="btn" data-action="sample">載入範例</button>
+          <button class="btn warn" data-action="reset">清空</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="sourceCard" hidden>
+    <div class="flex" style="align-items:center;justify-content:space-between">
+      <div><span class="badge">來源資料</span></div>
+      <div class="muted">共 <span id="srcRows">0</span> 筆</div>
+    </div>
+    <div id="srcTable" style="overflow:auto; max-height:300px; margin-top:8px"></div>
+  </div>
+
+  <div class="card" id="resultCard" hidden>
+    <div class="flex" style="align-items:center;justify-content:space-between">
+      <div class="flex" style="align-items:center;gap:8px">
+        <span class="badge">拆分結果</span>
+        <span class="muted mono" id="resultSummary"></span>
+      </div>
+      <div class="flex">
+        <button class="btn ok" data-action="download">下載 CSV</button>
+        <button class="btn" data-action="expandSteps">展開步驟</button>
+      </div>
+    </div>
+    <div id="resTable" style="overflow:auto; max-height:420px; margin-top:8px"></div>
+    <details id="stepsBox" style="margin-top:10px">
+      <summary>演算法與每步收斂（稽核用）</summary>
+      <pre id="steps" class="mono" style="white-space:pre-wrap"></pre>
+    </details>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script defer>
+(() => {
+  'use strict';
+
+  // ====== Utils ======
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const show = (el, on=true) => { el.hidden = !on; };
+  const toast = (msg, kind='info') => {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.style.borderColor = kind==='error' ? '#ef4444' : (kind==='warn' ? '#f59e0b' : '#2a314d');
+    show(t,true);
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => show(t,false), 3800);
+  };
+  const parseNumber = (s) => {
+    if (typeof s === 'number') return s;
+    if (!s) return 0;
+    // 去逗號、空白、貨幣符號
+    s = String(s).replace(/[,\s\$￥元']/g,'');
+    const v = Number(s);
+    return isFinite(v) ? v : 0;
+  };
+  const fmtInt = (n) => n.toLocaleString('zh-Hant', { maximumFractionDigits: 0 });
+  const toCSV = (rows) => {
+    if (!rows.length) return '';
+    const headers = Object.keys(rows[0]);
+    const esc = (v) => {
+      v = v==null ? '' : String(v);
+      return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+    };
+    const lines = [headers.join(',')];
+    for (const r of rows) lines.push(headers.map(h => esc(r[h])).join(','));
+    return lines.join('\n');
+  };
+  const download = (filename, text) => {
+    const blob = new Blob([text], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+  const guessColumns = (headers) => {
+    const h = headers.map(x => x.trim());
+    // 中文常見關鍵字
+    let dateIdx = h.findIndex(x => /日期|開立日|單據日|date/i.test(x));
+    if (dateIdx < 0) dateIdx = 0;
+    let amtIdx = h.findIndex(x => /總計|金額|合計|總額|total|amount/i.test(x));
+    if (amtIdx < 0) amtIdx = Math.max(1, h.length-1);
+    return { dateIdx, amtIdx };
+  };
+  const renderTable = (el, rows, limit=200) => {
+    if (!rows.length) { el.innerHTML = '<div class="muted">（無資料）</div>'; return; }
+    const headers = Object.keys(rows[0]);
+    const upto = Math.min(rows.length, limit);
+    let html = '<table><thead><tr>';
+    for (const h of headers) html += `<th>${h}</th>`;
+    html += '</tr></thead><tbody>';
+    for (let i=0;i<upto;i++){
+      const r = rows[i];
+      html += '<tr>';
+      for (const h of headers){
+        const v = r[h];
+        const cls = typeof v === 'number' ? 'num' : '';
+        html += `<td class="${cls}">${(v??'')}</td>`;
+      }
+      html += '</tr>';
+    }
+    if (rows.length>upto){
+      html += `<tr><td colspan="${headers.length}" class="muted">…… 只顯示前 ${upto} 筆 / 共 ${rows.length} 筆</td></tr>`;
+    }
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  };
+
+  // ====== CSV / Paste Parser ======
+  const parseDelimited = (text) => {
+    // 支援逗號或TAB；簡易 CSV 解析（引號轉義）
+    const lines = text.trim().split(/\r?\n/);
+    if (!lines.length) return [];
+    const isTab = (text.match(/\t/g)||[]).length > (text.match(/,/g)||[]).length;
+    const sep = isTab ? '\t' : ',';
+    const parseLine = (line) => {
+      const out = []; let cur = ''; let q = false;
+      for (let i=0;i<line.length;i++){
+        const c = line[i];
+        if (q){
+          if (c === '"'){
+            if (line[i+1] === '"'){ cur+='"'; i++; }
+            else q = false;
+          } else cur += c;
+        } else {
+          if (c === '"') q = true;
+          else if (c === sep) { out.push(cur); cur=''; }
+          else cur += c;
+        }
+      }
+      out.push(cur);
+      return out;
+    };
+    const header = parseLine(lines[0]);
+    const rows = [];
+    for (let i=1;i<lines.length;i++){
+      if (!lines[i].trim()) continue;
+      const cells = parseLine(lines[i]);
+      const obj = {};
+      for (let j=0;j<header.length;j++){
+        obj[header[j] || `col${j+1}`] = cells[j] ?? '';
+      }
+      rows.push(obj);
+    }
+    return { header, rows };
+  };
+
+  // ====== Grouping & Splitting ======
+  // 演算法：保序裝箱（按日期排序 -> 模式決定分組邊界 -> 逐筆把金額切成多段，讓「目前組」不超上限，滿了就開新組）
+  function splitOrders(rows, dateKey, amtKey, cap, gran, mode){
+    // 正規化：日期 -> Date，金額 -> number
+    const norm = rows.map((r,idx) => {
+      const d = new Date(r[dateKey]);
+      const a = parseNumber(r[amtKey]);
+      return { idx, raw: r, date: d, amt: a };
+    }).filter(x => x.date.toString() !== 'Invalid Date' && isFinite(x.amt));
+
+    norm.sort((a,b) => a.date - b.date || a.idx - b.idx);
+
+    const res = [];
+    const steps = [];
+    const startNewBin = (d) => ({ startDate: d, endDate: new Date(d), sum: 0, items: [] });
+    let bin = startNewBin(norm[0]?.date || new Date());
+
+    const pushChunk = (src, chunk, partSeq, binId) => {
+      const o = Object.assign({}, src.raw);
+      o.__date = src.date.toISOString().slice(0,10);
+      o.__bin_id = binId;
+      o.__part = partSeq;
+      o.__chunk_amount = chunk;
+      res.push(o);
+    };
+
+    let binId = 1;
+    let partCounter = 1;
+
+    for (const item of norm){
+      // 決定是否需要換組（模式：daily / 10day）
+      if (mode === 'daily'){
+        const isSameDay = bin.startDate.toDateString() === item.date.toDateString();
+        if (!isSameDay || bin.sum >= cap){
+          steps.push(`→ 開新組 #${++binId}（單日模式或前組已滿）`);
+          bin = startNewBin(item.date);
+          partCounter = 1;
+        }
+      } else { // 10day
+        const days = Math.floor((item.date - bin.startDate) / 86400000);
+        if (days > 9 || bin.sum >= cap){
+          steps.push(`→ 開新組 #${++binId}（10天模式或前組已滿）`);
+          bin = startNewBin(item.date);
+          partCounter = 1;
+        }
+      }
+
+      // 依序裝箱 + 拆分
+      let remain = item.amt;
+      steps.push(`處理來源#${item.idx+1} 日期=${item.date.toISOString().slice(0,10)} 金額=${remain}`);
+
+      while (remain > 0){
+        const room = cap - bin.sum;
+        if (room <= 0){
+          steps.push(`  組#${binId} 已滿 ${bin.sum}/${cap}，開新組`);
+          bin = startNewBin(item.date);
+          binId++; partCounter = 1;
+        }
+        const maxChunk = Math.min(remain, cap - bin.sum);
+        // 依「最小拆分單位」與「等比分割」策略：盡量把單筆拆成接近均分，但仍以不超 cap 為主。
+        let chunk = maxChunk;
+
+        // 若「整筆金額本身」大於 cap，嘗試均分為 2 段不超 cap（讓 1,980,000 ⇒ 990k+990k）
+        if (item.amt > cap && remain === item.amt){
+          const half = Math.floor(item.amt / 2);
+          const halfRounded = Math.floor(half / gran) * gran;
+          if (halfRounded > 0 && halfRounded <= cap){
+            chunk = Math.min(halfRounded, maxChunk);
+          }
+        }
+
+        // 套用最小粒度
+        chunk = Math.floor(chunk / gran) * gran;
+        if (chunk <= 0) chunk = Math.min(remain, cap - bin.sum);
+
+        // 最末段把零頭吃掉（避免長期殘留 < gran）
+        if (remain - chunk < gran && remain - chunk > 0 && (bin.sum + chunk + (remain - chunk)) <= cap){
+          chunk = chunk + (remain - chunk);
+        }
+
+        pushChunk(item, chunk, partCounter++, binId);
+        bin.sum += chunk; remain -= chunk;
+
+        steps.push(`  → 分段 chunk=${chunk}；組#${binId} 累計=${bin.sum}/${cap}；剩餘=${remain}`);
+        if (bin.sum >= cap && remain > 0){
+          steps.push(`  → 組#${binId} 已達上限，為剩餘開新組`);
+          bin = startNewBin(item.date);
+          binId++; partCounter = 1;
+        }
+      }
+    }
+
+    return { rows: res, steps };
+  }
+
+  // ====== State ======
+  let headers = [];
+  let dataRows = [];
+
+  const fillColumnSelectors = () => {
+    const dateSel = $('#dateCol'), amtSel = $('#amtCol');
+    dateSel.innerHTML = ''; amtSel.innerHTML = '';
+    headers.forEach((h, i) => {
+      const opt1 = document.createElement('option'); opt1.value = h; opt1.textContent = `${i+1}. ${h}`;
+      const opt2 = document.createElement('option'); opt2.value = h; opt2.textContent = `${i+1}. ${h}`;
+      dateSel.appendChild(opt1); amtSel.appendChild(opt2);
+    });
+    const g = guessColumns(headers);
+    dateSel.selectedIndex = g.dateIdx;
+    amtSel.selectedIndex  = g.amtIdx;
+  };
+
+  const loadFromText = (text) => {
+    const parsed = parseDelimited(text);
+    if (!parsed || !parsed.header || !parsed.rows || !parsed.rows.length) {
+      toast('無法解析資料，請確認是否含標題列且以逗號或TAB分隔','error'); return;
+    }
+    headers = parsed.header;
+    dataRows = parsed.rows;
+    fillColumnSelectors();
+    $('#srcRows').textContent = dataRows.length;
+    renderTable($('#srcTable'), dataRows);
+    show($('#sourceCard'), true);
+    toast('資料已載入，可選欄位並執行拆分');
+  };
+
+  // ====== Event Delegation ======
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-action]');
+    if (!a) return;
+    const act = a.getAttribute('data-action');
+    try {
+      if (act === 'run'){
+        if (!headers.length || !dataRows.length){
+          const pasted = $('#paste').value.trim();
+          if (pasted) loadFromText(pasted); else { toast('請先上傳或貼上資料','warn'); return; }
+        }
+        const dateKey = $('#dateCol').value;
+        const amtKey  = $('#amtCol').value;
+        const cap     = Math.max(1, parseInt($('#cap').value||'1000000',10));
+        const gran    = Math.max(1, parseInt($('#gran').value||'1',10));
+        const mode    = $('#mode').value;
+
+        const { rows, steps } = splitOrders(dataRows, dateKey, amtKey, cap, gran, mode);
+
+        // 美化結果：數字欄位右對齊
+        const pretty = rows.map((r,i) => {
+          const o = {
+            批次ID: r.__bin_id,
+            分段序: r.__part,
+            日期: r.__date,
+            原始序號: i+1,
+            金額分段: r.__chunk_amount
+          };
+          // 其他欄位保留
+          for (const k of Object.keys(r)){
+            if (!k.startsWith('__')) o[k] = r[k];
+          }
+          return o;
+        });
+
+        $('#resultSummary').textContent = `筆數=${pretty.length}，總額=${fmtInt(pretty.reduce((s,x)=>s+parseNumber(x['金額分段']),0))}`;
+        renderTable($('#resTable'), pretty);
+        $('#steps').textContent = steps.join('\n');
+        show($('#resultCard'), true);
+        toast('拆分完成！');
+
+      } else if (act === 'download'){
+        const resBox = $('#resTable');
+        if (!resBox.innerHTML.trim()){ toast('尚無結果','warn'); return; }
+        // 取用渲染表格對應的資料來源：簡化做法 -> 重新走 DOM 不是最佳；此處直接從 steps & table重建
+        // 這裡直接從表格 DOM 讀出（已保證 header + rows）
+        const rows = [];
+        const ths = Array.from(resBox.querySelectorAll('thead th')).map(th=>th.textContent);
+        resBox.querySelectorAll('tbody tr').forEach(tr => {
+          const tds = Array.from(tr.querySelectorAll('td'));
+          if (!tds.length) return;
+          const obj = {};
+          for (let i=0;i<ths.length && i<tds.length;i++) obj[ths[i]] = tds[i].textContent;
+          rows.push(obj);
+        });
+        const csv = toCSV(rows);
+        download(`split_result_${Date.now()}.csv`, csv);
+      } else if (act === 'expandSteps'){
+        $('#stepsBox').open = !$('#stepsBox').open;
+      } else if (act === 'reset'){
+        headers = []; dataRows = [];
+        $('#file').value = ''; $('#paste').value = '';
+        $('#srcTable').innerHTML = ''; $('#resTable').innerHTML = '';
+        show($('#sourceCard'), false); show($('#resultCard'), false);
+        toast('已清空');
+      } else if (act === 'sample'){
+        // 提供小範例
+        const sample = `日期,單號,客戶,總計
+2025-09-01,S001,A公司,320000
+2025-09-01,S002,B公司,850000
+2025-09-02,S003,C公司,1980000
+2025-09-11,S004,D公司,450000
+2025-09-15,S005,E公司,620000`;
+        $('#paste').value = sample;
+        loadFromText(sample);
+      }
+    } catch(err){
+      console.error(err);
+      toast('發生錯誤：'+(err.message||err),'error');
+    }
+  });
+
+  // 檔案載入（CSV）
+  $('#file').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const name = (f.name||'').toLowerCase();
+    if (!/\.csv$/.test(name)) {
+      toast('目前此離線版僅支援 CSV；請在 Excel 另存為 CSV (UTF-8) 後再上傳','warn');
+    }
+    const text = await f.text();
+    loadFromText(text);
+  });
+
+  // 例外攔截（全域）
+  window.addEventListener('error', (ev) => { toast('程式錯誤：'+ev.message,'error'); });
+  window.addEventListener('unhandledrejection', (ev) => { toast('非預期錯誤：'+(ev.reason?.message||ev.reason),'error'); });
+})();
+</script>
+</body>
+</html>
