@@ -1,1691 +1,767 @@
 <!DOCTYPE html>
-<html lang="zh-Hant-TW">
+<!--
+單檔 / 離線可執行 / 無任何外部依賴
+「台灣 各類所得源泉扣繳 + 二代健保補充保費」計算器（114年度參數預設；可覆寫）
+更新日：2025-09-23
+
+=== 年度參數（每年更新） 快速說明 ===
+1) 只要改動 <script> 內的 CONFIG_YYYY 區塊（或用頁面的「年度參數面板」覆寫），就能換年。
+2) 每年建議檢查：
+   - MIN_WAGE_MONTHLY（基本工資月薪）
+   - BONUS_THRESHOLD（變動薪資每次起扣標準）
+   - NHI_SUPP_RATE / NHI_SINGLE_MIN_GENERAL / NHI_SINGLE_CAP（補充保費費率、單次門檻、單次上限）
+   - 稅率（非居薪資 6%/18%、利息 15%/20%、股利非居 21%、退職 6%/18% 等）
+3) 若機關版本對「格式代號」或「名目」有在地差異，請在 FORMAT_CODE_DICT 與 NHI 名目列舉處覆寫。
+
+參考依據（節選）：
+- 財政部稅務入口網：114年起扣金額 88,501、非居 6%/18%、各類扣繳率、退職6%/18% 等（114-01-09）。 
+- 健保署：補充保費費率 2.11%、六項名目單次達 20,000（兼職薪資門檻＝基本工資）、單次上限 10,000,000、雇主月差額×2.11%。
+- 114 年基本工資：月薪 28,590；時薪 190。
+- 股利（居住者）：8.5% 抵減上限 80,000 或 28% 分離課稅。
+-->
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣稅務/海關/薪資 單檔離線工具</title>
-    <style>
-        /* --- 全域與基本樣式 --- */
-        :root {
-            --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --bg-color: #f8f9fa;
-            --text-color: #212529;
-            --card-bg: #ffffff;
-            --border-color: #dee2e6;
-            --header-bg: #343a40;
-            --header-text: #ffffff;
-            --tab-active-bg: var(--primary-color);
-            --tab-inactive-bg: #e9ecef;
-            --tab-inactive-text: #495057;
-            --button-bg: var(--primary-color);
-            --button-hover-bg: #0056b3;
-            --danger-bg: #dc3545;
-            --danger-hover-bg: #c82333;
-            --success-bg: #28a745;
-            --code-bg: #e8eaed;
-            --shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 1rem auto;
-            padding: 0 1rem;
-            flex-grow: 1;
-        }
-
-        /* --- 標頭與工具列 --- */
-        .app-header {
-            background-color: var(--header-bg);
-            color: var(--header-text);
-            padding: 0.5rem 1rem;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.5rem;
-        }
-        .app-header h1 {
-            font-size: 1.2rem;
-            margin: 0;
-            white-space: nowrap;
-        }
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .toolbar button, .toolbar .file-input-wrapper {
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        .toolbar button:hover {
-            opacity: 0.85;
-        }
-        .file-input-wrapper input[type="file"] {
-            display: none;
-        }
-
-        /* --- 分頁導覽 --- */
-        .tabs {
-            display: flex;
-            flex-wrap: wrap;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 1rem;
-        }
-        .tabs button {
-            padding: 0.8rem 1rem;
-            border: none;
-            background-color: var(--tab-inactive-bg);
-            color: var(--tab-inactive-text);
-            cursor: pointer;
-            font-size: 0.9rem;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-        }
-        .tabs button.active {
-            background-color: var(--card-bg);
-            color: var(--primary-color);
-            border: 2px solid var(--border-color);
-            border-bottom: 2px solid var(--card-bg);
-            font-weight: bold;
-        }
-
-        /* --- 內容區塊 --- */
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.5s;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 1.5rem;
-        }
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            padding: 1.5rem;
-        }
-        .card h3 {
-            margin-top: 0;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.5rem;
-        }
-
-        /* --- 表單元件 --- */
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        .form-group label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        .form-group small {
-            font-weight: normal;
-            color: var(--secondary-color);
-        }
-        input[type="text"], input[type="number"], select, textarea {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 1rem;
-        }
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-        .main-action {
-            width: 100%;
-            padding: 0.8rem;
-            background-color: var(--button-bg);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 1.1rem;
-            cursor: pointer;
-        }
-        .main-action:hover {
-            background-color: var(--button-hover-bg);
-        }
-
-        /* --- 結果顯示區 --- */
-        #result-display {
-            position: sticky;
-            top: 1rem;
-        }
-        #result-display h3 {
-            color: var(--primary-color);
-        }
-        .result-block {
-            margin-top: 1rem;
-            padding: 1rem;
-            background-color: #eef7ff;
-            border-left: 5px solid var(--primary-color);
-            border-radius: 4px;
-        }
-        .result-final {
-            font-size: 1.5rem;
-            font-weight: bold;
-            word-wrap: break-word;
-        }
-        .result-final span {
-            font-size: 1rem;
-            font-weight: normal;
-            color: var(--secondary-color);
-        }
-        details {
-            margin-top: 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-        }
-        summary {
-            font-weight: bold;
-            padding: 0.5rem;
-            cursor: pointer;
-            background-color: #f1f1f1;
-        }
-        .steps, .iteration-table {
-            padding: 1rem;
-            background-color: var(--card-bg);
-            font-family: "Courier New", Courier, monospace;
-            white-space: pre-wrap;
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
-        .iteration-table table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 0.5rem;
-        }
-        .iteration-table th, .iteration-table td {
-            border: 1px solid var(--border-color);
-            padding: 0.4rem;
-            text-align: right;
-        }
-
-        /* --- 頁尾 --- */
-        .app-footer {
-            text-align: center;
-            padding: 1rem;
-            background-color: var(--header-bg);
-            color: var(--header-text);
-            margin-top: 2rem;
-        }
-        .rounding-control label {
-            margin: 0 0.5rem;
-        }
-
-        /* --- Toast 通知 --- */
-        #toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-        .toast {
-            background-color: var(--danger-bg);
-            color: white;
-            padding: 1rem;
-            border-radius: 5px;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            opacity: 0;
-            transition: opacity 0.5s, transform 0.5s;
-            transform: translateY(-20px);
-        }
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        /* --- 參數級距表 --- */
-        #params-tab .card table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #params-tab .card th, #params-tab .card td {
-            border: 1px solid var(--border-color);
-            padding: 0.5rem;
-            text-align: left;
-        }
-        #params-tab .card th {
-            background-color: #f1f1f1;
-        }
-        #params-tab .card td input {
-            width: 95%;
-            border: none;
-            background: transparent;
-        }
-        #params-tab .card .action-cell { text-align: center; }
-
-        /* --- 列印樣式 --- */
-        @media print {
-            body {
-                font-size: 10pt;
-                color: #000;
-                background-color: #fff;
-            }
-            .app-header, .tabs, .app-footer, .no-print {
-                display: none !important;
-            }
-            .container {
-                max-width: 100%;
-                margin: 0;
-                padding: 0;
-            }
-            .tab-content.active {
-                display: block !important;
-            }
-            .module-grid {
-                grid-template-columns: 1fr;
-                gap: 0;
-            }
-            .card {
-                box-shadow: none;
-                border: 1px solid #ccc;
-                border-radius: 0;
-                padding: 1rem;
-                page-break-inside: avoid;
-            }
-            h3 {
-                font-size: 1.2rem;
-            }
-            input, select, textarea {
-                border: 1px solid #ccc;
-            }
-            details {
-                page-break-inside: avoid;
-            }
-            details[open] summary {
-                background-color: #eee;
-            }
-            details[open] {
-                border-color: #999;
-            }
-            .iteration-table td, .iteration-table th {
-                padding: 2px 4px;
-            }
-            /* 確保計算結果區與輸入區都在同一頁 */
-            #calculator-column, #result-column {
-                 width: 100% !important;
-            }
-            .module-grid {
-                display: block;
-            }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=480, initial-scale=1">
+<title>台灣源泉扣繳＋二代健保補充保費 計算器（離線版）</title>
+<style>
+:root{
+  --w: 440px; --bg:#f6f6f6; --ink:#111; --muted:#6b6b6b;
+  --red:#c1121f; --blk:#0b0b0b; --accent:#1f4e79; --paper:#fff;
+  --gap:14px; --line:1.5; --shadow:0 8px 28px rgba(0,0,0,.08);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+.wrapper{width:var(--w);max-width:calc(100vw - 24px);margin:20px auto}
+.card{
+  background:var(--paper); border:6px solid var(--blk); outline:12px solid #fff;
+  box-shadow:var(--shadow); overflow:clip;
+}
+.bar-top{display:grid;grid-template-columns:1fr 120px;height:48px;border-bottom:6px solid var(--blk)}
+.bar-top .l{background:linear-gradient(90deg,var(--red) 0 60%, #fff 60%)}
+.bar-top .r{background:var(--accent);border-left:6px solid var(--blk)}
+.head{padding:16px 18px 8px 18px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.title{font-weight:800;font-size:20px;letter-spacing:.3px}
+.tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;padding:2px 8px;background:#000;color:#fff}
+.meta{padding:0 18px 12px;border-bottom:6px solid var(--blk);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.badge{font:12px var(--mono);border:2px solid #000;padding:3px 8px;background:#fff}
+.content{padding:16px 18px 18px;display:grid;gap:var(--gap)}
+.block{border-left:10px solid var(--red);padding-left:12px}
+.block h3{margin:0 0 8px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase}
+.block .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type="number"],select,textarea{
+  width:100%;font:14px/1.4 var(--sans);padding:8px;border:2px solid #222;background:#fff
+}
+textarea{min-height:120px;resize:vertical}
+.btn{
+  appearance:none;border:0;background:#000;color:#fff;padding:10px 12px;font-weight:700;cursor:pointer
+}
+.btn.ghost{background:#fff;color:#000;border:2px solid #000}
+.btn.small{padding:7px 10px;font-size:12px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:8px}
+pre{
+  overflow:auto; background:#111; color:#f0f0f0; padding:12px; font:12px/1.5 var(--mono);
+  max-height:320px
+}
+.note{font-size:12px;color:var(--muted)}
+.footer{padding:10px 18px 18px;font-size:12px;color:#444}
+hr{border:0;border-top:2px solid #000;margin:0}
+.flex{display:flex;gap:8px;flex-wrap:wrap}
+.summary{background:#fef3f2;border:2px dashed #d00;padding:10px;font:12px/1.5 var(--mono)}
+details summary{cursor:pointer}
+.stamp{position:absolute;right:-36px;top:110px;transform:rotate(-16deg);
+  padding:6px 12px;background:var(--red);color:#fff;border:4px solid #000;font:800 12px var(--sans);letter-spacing:1.8px}
+.card{position:relative;opacity:0;transform:translateY(6px)}
+.card.ready{opacity:1;transform:none;transition:opacity .5s ease, transform .5s ease}
+</style>
 </head>
 <body>
+<main class="wrapper">
+  <article class="card ready" aria-labelledby="ttl">
+    <div class="bar-top"><div class="l" aria-hidden="true"></div><div class="r" aria-hidden="true"></div></div>
+    <div class="stamp" aria-hidden="true">TAX / NHI</div>
 
-    <header class="app-header">
-        <h1>🇹🇼 稅務離線工具</h1>
-        <div class="toolbar no-print">
-            <button type="button" data-action="createRestorePoint">建立還原點</button>
-            <button type="button" data-action="exportBackup">匯出備份 (JSON)</button>
-            <label class="file-input-wrapper">
-                匯入備份
-                <input type="file" id="import-file-input" accept=".json" data-action="importBackup">
-            </label>
-            <button type="button" data-action="runTests">執行內建測試</button>
-            <button type="button" data-action="print">列印</button>
-            <button type="button" data-action="resetApp" style="background-color: var(--danger-bg);">重置 App</button>
-        </div>
+    <header class="head">
+      <h1 id="ttl" class="title">各類所得源泉扣繳＋二代健保補充保費 · 計算器</h1>
+      <span class="tag">Offline</span>
     </header>
 
-    <div class="container">
-        <nav class="tabs no-print">
-            <button type="button" class="tab-link active" data-tab="vat">VAT/發票 (F1)</button>
-            <button type="button" class="tab-link" data-tab="withholding">扣繳/二代健保 (F2)</button>
-            <button type="button" class="tab-link" data-tab="customs">海關/進口 (F3-F6)</button>
-            <button type="button" class="tab-link" data-tab="local-tax">地方/特種稅 (F7-F11)</button>
-            <button type="button" class="tab-link" data-tab="salary">薪資預扣 (F12)</button>
-            <button type="button" class="tab-link" data-tab="ifrs16">IFRS 16 (F13-F14)</button>
-            <button type="button" class="tab-link" data-tab="splitter">轉帳分拆 (F15)</button>
-            <button type="button" class="tab-link" data-tab="params">⚙️ 參數/級距表</button>
-            <button type="button" class="tab-link" data-tab="history">🔄 歷史/回滾</button>
-        </nav>
+    <section class="meta">
+      <span class="badge">更新日：2025-09-23</span>
+      <span id="paramYear" class="badge">年度參數：<b>2025</b></span>
+      <span class="badge">NHI補充：<b id="nhiRateBadg">2.11%</b></span>
+      <span class="badge">變動薪資起扣：<b id="bonusThBadg">88,501</b></span>
+      <span class="badge">基本工資(月)：<b id="minWageBadg">28,590</b></span>
+    </section>
 
-        <main id="main-content">
+    <section class="content">
 
-            <div id="vat-tab" class="tab-content active">
-                <div class="module-grid">
-                    <div id="calculator-column" class="card">
-                        <h3>營業稅 (VAT) 計算</h3>
-                        <div class="form-group">
-                            <label for="vat-mode">計算模式</label>
-                            <select id="vat-mode">
-                                <option value="NtoG">未稅 (N) → 含稅 (G)</option>
-                                <option value="GtoN">含稅 (G) → 未稅 (N)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="vat-amount">金額</label>
-                            <input type="number" id="vat-amount" placeholder="輸入未稅或含稅金額">
-                        </div>
-                        <div class="form-group">
-                            <label for="vat-rate">稅率 <small>(例如: 0.05 或 5%)</small></label>
-                            <input type="text" id="vat-rate" value="5%">
-                        </div>
-                        <button type="button" class="main-action" data-action="calculateVat">計算</button>
-                        <h3 style="margin-top: 2rem;">批量 CSV 計算</h3>
-                        <div class="form-group">
-                            <label for="vat-csv">貼上 CSV 資料 <small>(首欄為標題，次欄為金額)</small></label>
-                            <textarea id="vat-csv" placeholder="例如：&#10;ID,Amount&#10;A01,1000&#10;A02,2500"></textarea>
-                        </div>
-                        <button type="button" class="main-action" data-action="calculateVatCsv">批量計算並下載</button>
-                    </div>
-                    <div id="result-column" class="card">
-                        <h3>計算結果</h3>
-                        <div id="vat-result" class="result-block-container">請填寫左側欄位並按計算。</div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="withholding-tab" class="tab-content">
-                 <div class="module-grid">
-                    <div class="card">
-                        <h3>扣繳及二代健保補充保費</h3>
-                         <div class="form-group">
-                            <label for="wh-mode">計算模式</label>
-                            <select id="wh-mode">
-                                <option value="AtoN">給付總額 (A) → 實付淨額 (N)</option>
-                                <option value="NtoA">實付淨額 (N) → 給付總額 (A) [反推]</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="wh-amount">金額</label>
-                            <input type="number" id="wh-amount" placeholder="輸入總額或淨額">
-                        </div>
-                        <div class="form-group">
-                            <label for="wh-tax-rate">扣繳率 (r_w)</label>
-                            <input type="text" id="wh-tax-rate" placeholder="例如: 0.1 或 10%">
-                        </div>
-                        <div class="form-group">
-                            <label for="wh-nhi-rate">二代健保補充保費率 (r_h)</label>
-                            <input type="text" id="wh-nhi-rate" placeholder="使用參數區設定">
-                        </div>
-                         <div class="form-group">
-                            <label for="wh-nhi-threshold">二代健保門檻 (H)</label>
-                            <input type="number" id="wh-nhi-threshold" placeholder="使用參數區設定">
-                        </div>
-                        <button type="button" class="main-action" data-action="calculateWithholding">計算</button>
-                    </div>
-                    <div class="card">
-                        <h3>計算結果</h3>
-                        <div id="wh-result" class="result-block-container"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="customs-tab" class="tab-content">
-                <div class="module-grid">
-                    <div class="card">
-                       <h3>(F3) 完稅價格 (CIF) 計算</h3>
-                        <div class="form-group">
-                            <label for="cif-base-price">離岸價格 (FOB)</label>
-                            <input type="number" id="cif-fob" placeholder="貨物本身價格">
-                        </div>
-                         <div class="form-group">
-                            <label for="cif-freight">運費 (F)</label>
-                            <input type="number" id="cif-freight" placeholder="到進口港之運費">
-                        </div>
-                        <div class="form-group">
-                            <label for="cif-insurance">保險費 (I)</label>
-                            <input type="number" id="cif-insurance" placeholder="若無則依提示率估算">
-                        </div>
-                        <button type="button" class="main-action" data-action="calculateCif">計算 CIF</button>
-                        <hr style="margin: 2rem 0;">
-                        <h3>(F5) 反推 CIF from 總成本</h3>
-                        <div class="form-group">
-                            <label for="rev-landed-cost">目標進口總成本 (Landed Cost)</label>
-                            <input type="number" id="rev-landed-cost" placeholder="輸入最終目標成本">
-                        </div>
-                        <p><small>請先在右側填寫 F4 的各項稅率參數。</small></p>
-                        <button type="button" class="main-action" data-action="reverseCalculateLandedCost">反推 CIF</button>
-                    </div>
-                    <div class="card">
-                        <h3>(F4) 進口總成本 (Landed Cost) 計算</h3>
-                        <div class="form-group">
-                            <label for="lc-cif">完稅價格 (CIF)</label>
-                            <input type="number" id="lc-cif" placeholder="從 F3 計算或手動輸入">
-                        </div>
-                        <div class="form-group"><label for="lc-duty-rate">關稅 (d)</label><input type="text" id="lc-duty-rate" value="10%"></div>
-                        <div class="form-group"><label for="lc-excise-rate">貨物/酒稅 (c)</label><input type="text" id="lc-excise-rate" value="15%"></div>
-                        <div class="form-group"><label for="lc-vat-rate">營業稅 (t_v)</label><input type="text" id="lc-vat-rate" value="5%"></div>
-                        <div class="form-group"><label for="lc-fixed-tax">固定稅 (τ)</label><input type="number" id="lc-fixed-tax" value="0"></div>
-                        <div class="form-group"><label for="lc-health-surcharge">健康捐 (h)</label><input type="number" id="lc-health-surcharge" value="0"></div>
-                        <div class="form-group"><label for="lc-promotion-fee">推廣費 (p)</label><input type="text" id="lc-promotion-fee" value="0.04%"></div>
-                        <div class="form-group">
-                            <input type="checkbox" id="lc-bonded" style="width: auto;">
-                            <label for="lc-bonded" style="display: inline;">保稅/FTA (關稅為0)</label>
-                        </div>
-                        <button type="button" class="main-action" data-action="calculateLandedCost">計算總成本</button>
-                    </div>
-                </div>
-                 <div class="card" style="margin-top: 1.5rem;">
-                    <h3>計算結果</h3>
-                    <div id="customs-result" class="result-block-container"></div>
-                </div>
-            </div>
-
-            <div id="local-tax-tab" class="tab-content">
-                <p>此功能正在建構中...</p>
-            </div>
-            
-            <div id="salary-tab" class="tab-content">
-                <div class="module-grid">
-                    <div class="card">
-                        <h3>薪資所得稅預扣</h3>
-                         <div class="form-group">
-                            <label for="salary-mode">計算模式</label>
-                            <select id="salary-mode">
-                                <option value="GtoN">毛薪 (G) → 實領淨薪 (N)</option>
-                                <option value="NtoG">實領淨薪 (N) → 毛薪 (G) [反推]</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="salary-amount">薪資金額</label>
-                            <input type="number" id="salary-amount" placeholder="輸入毛薪或淨薪">
-                        </div>
-                        <p><small>將使用「參數/級距表」分頁中設定的薪資級距表進行計算。</small></p>
-                        <button type="button" class="main-action" data-action="calculateSalary">計算</button>
-                        <h3 style="margin-top: 2rem;">批量 CSV 計算</h3>
-                        <div class="form-group">
-                            <label for="salary-csv">貼上 CSV 資料 <small>(首欄為標題，次欄為毛薪)</small></label>
-                            <textarea id="salary-csv" placeholder="例如：&#10;Employee,GrossSalary&#10;E01,50000&#10;E02,85000"></textarea>
-                        </div>
-                        <button type="button" class="main-action" data-action="calculateSalaryCsv">批量計算並下載</button>
-                    </div>
-                    <div class="card">
-                        <h3>計算結果</h3>
-                        <div id="salary-result" class="result-block-container"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="ifrs16-tab" class="tab-content">
-                <div class="module-grid">
-                    <div class="card">
-                       <h3>(F13) 年金現值 (PV)</h3>
-                        <div class="form-group">
-                            <label for="pv-payment">每期付款 (P)</label>
-                            <input type="number" id="pv-payment">
-                        </div>
-                         <div class="form-group">
-                            <label for="pv-periods">期數 (n)</label>
-                            <input type="number" id="pv-periods">
-                        </div>
-                        <div class="form-group">
-                            <label for="pv-rate">月利率 (r_m) <small>例如: 0.005 (0.5%)</small></label>
-                            <input type="number" id="pv-rate" step="0.0001">
-                        </div>
-                        <button type="button" class="main-action" data-action="calculatePV">計算現值</button>
-                    </div>
-                    <div class="card">
-                        <h3>(F14) 內部報酬率 (IRR) 反推</h3>
-                        <div class="form-group">
-                            <label for="irr-pv">現值 (PV)</label>
-                            <input type="number" id="irr-pv">
-                        </div>
-                        <div class="form-group">
-                            <label for="irr-payment">每期付款 (P)</label>
-                            <input type="number" id="irr-payment">
-                        </div>
-                        <div class="form-group">
-                            <label for="irr-periods">期數 (n)</label>
-                            <input type="number" id="irr-periods">
-                        </div>
-                        <p><small>將使用牛頓法/二分法反推月利率。</small></p>
-                        <button type="button" class="main-action" data-action="calculateIRR">計算 IRR</button>
-                    </div>
-                </div>
-                 <div class="card" style="margin-top: 1.5rem;">
-                    <h3>計算結果</h3>
-                    <div id="ifrs16-result" class="result-block-container"></div>
-                </div>
-            </div>
-
-            <div id="splitter-tab" class="tab-content">
-                 <div class="module-grid">
-                    <div class="card">
-                        <h3>轉帳金額分拆</h3>
-                        <div class="form-group">
-                            <label for="split-limit">單筆轉帳上限</label>
-                            <input type="number" id="split-limit" placeholder="例如: 50000">
-                        </div>
-                        <div class="form-group">
-                            <label for="split-amounts">當日金額序列 <small>(以逗號或換行分隔)</small></label>
-                            <textarea id="split-amounts" placeholder="例如:&#10;20000, 35000, 48000, 15000, 51000"></textarea>
-                        </div>
-                        <button type="button" class="main-action" data-action="calculateSplit">執行分拆</button>
-                    </div>
-                    <div class="card">
-                        <h3>計算結果</h3>
-                        <div id="split-result" class="result-block-container"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="params-tab" class="tab-content">
-                <div class="module-grid">
-                    <div class="card">
-                        <h3>系統參數</h3>
-                        <div class="form-group">
-                            <label for="param-vat-rate">營業稅率 (VAT)</label>
-                            <input type="text" id="param-vat-rate">
-                        </div>
-                         <div class="form-group">
-                            <label for="param-nhi-rate">二代健保補充保費率</label>
-                            <input type="text" id="param-nhi-rate">
-                        </div>
-                        <div class="form-group">
-                            <label for="param-nhi-threshold">二代健保起扣門檻</label>
-                            <input type="number" id="param-nhi-threshold">
-                        </div>
-                         <button type="button" class="main-action" data-action="saveParams">儲存參數</button>
-                    </div>
-                    <div class="card">
-                        <h3>薪資所得稅級距表</h3>
-                        <table id="salary-brackets-table">
-                            <thead>
-                                <tr><th>級距上限 (月)</th><th>稅率 (%)</th><th>速算扣除數</th><th>操作</th></tr>
-                            </thead>
-                            <tbody>
-                                </tbody>
-                        </table>
-                        <button type="button" data-action="addSalaryBracket" style="margin-top: 1rem;">新增一列</button>
-                        <button type="button" data-action="saveSalaryBrackets" class="main-action" style="margin-top: 1rem;">儲存級距表</button>
-                    </div>
-                </div>
-                <div class="card" style="margin-top: 1.5rem;">
-                     <h3>CSV 對應精靈 (匯入薪資級距)</h3>
-                     <div class="form-group">
-                         <label for="csv-paste-area">1. 貼上官方或自備的級距 CSV</label>
-                         <textarea id="csv-paste-area" placeholder="貼上 CSV 內容，首列應為標題"></textarea>
-                     </div>
-                     <div id="csv-mapping-ui" style="display:none;">
-                         <p>2. 指定對應欄位</p>
-                         <div style="display:flex; gap: 1rem;">
-                             <div class="form-group"><label for="csv-col-upper">級距上限 (upper)</label><select id="csv-col-upper"></select></div>
-                             <div class="form-group"><label for="csv-col-rate">稅率 (rate)</label><select id="csv-col-rate"></select></div>
-                             <div class="form-group"><label for="csv-col-qd">速算扣除數 (qd)</label><select id="csv-col-qd"></select></div>
-                         </div>
-                         <div class="form-group">
-                             <input type="checkbox" id="csv-rate-is-percent" checked style="width: auto;">
-                             <label for="csv-rate-is-percent" style="display: inline;">稅率欄位是百分比 (例如: 5 代表 5%)</label>
-                         </div>
-                         <button type="button" class="main-action" data-action="previewCsvBrackets">3. 解析並預覽</button>
-                     </div>
-                     <div id="csv-preview-area" style="margin-top: 1rem;"></div>
-                </div>
-            </div>
-
-            <div id="history-tab" class="tab-content">
-                <div class="module-grid">
-                    <div class="card">
-                        <h3>版本快照 (Versions)</h3>
-                        <p>手動儲存的參數設定集，可用於不同年度或情境切換。</p>
-                        <div id="versions-list"></div>
-                        <div class="form-group" style="margin-top: 1rem;">
-                            <input type="text" id="new-version-name" placeholder="輸入新版本名稱">
-                            <button type="button" class="main-action" data-action="saveVersion" style="margin-top: 0.5rem;">儲存當前設定為新版本</button>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <h3>還原點 (Restore Points)</h3>
-                        <p>操作前的自動或手動快照，用於快速復原錯誤操作。</p>
-                        <div id="restore-points-list"></div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <footer class="app-footer no-print">
-        <div class="rounding-control">
-            <strong>計算規則：</strong>
-            <label><input type="radio" name="rounding" value="round" checked> 四捨五入</label>
-            <label><input type="radio" name="rounding" value="ceil"> 無條件進位</label>
-            <label><input type="radio" name="rounding" value="floor"> 無條件捨去</label>
-            <small>(所有稅額計算到整數位)</small>
+      <!-- 年度參數（可視化覆寫） -->
+      <section class="block">
+        <h3>年度參數面板（每年更新）</h3>
+        <div class="summary">
+          <!-- === 年度參數（每年更新） ===
+               若要換年，優先更新下方 JSON（或修改程式內 CONFIG_2025 區塊） -->
+          <textarea id="paramEditor" spellcheck="false"></textarea>
+          <div class="flex" style="margin-top:8px">
+            <button class="btn small" id="applyParams">套用參數</button>
+            <button class="btn small ghost" id="resetParams">還原預設(2025)</button>
+          </div>
+          <div class="note">提示：改這裡即可換年（基本工資、起扣、補充保費率…）。</div>
         </div>
-    </footer>
+      </section>
 
-    <div id="toast-container"></div>
-    
-    <script type="application/json" id="initial-data">
-    {
-        "params": {
-            "vatRate": 0.05,
-            "nhiRate": 0.0211,
-            "nhiThreshold": 20000,
-            "salaryBrackets": [
-                {"upper": 45000, "rate": 0.06, "qd": 0},
-                {"upper": 50000, "rate": 0.06, "qd": 0},
-                {"upper": 60000, "rate": 0.06, "qd": 0},
-                {"upper": Infinity, "rate": 0.18, "qd": 8400} 
-            ]
-        },
-        "versions": [],
-        "restorePoints": []
+      <!-- 輸入區 -->
+      <section class="block">
+        <h3>輸入</h3>
+        <div class="row">
+          <div>
+            <label>居住身分</label>
+            <select id="resident_status">
+              <option value="resident">resident（居住者）</option>
+              <option value="nonresident">nonresident（非居）</option>
+            </select>
+          </div>
+          <div>
+            <label>所得類別</label>
+            <select id="income_type">
+              <option value="salary_fixed">salary_fixed（固定月薪）</option>
+              <option value="salary_variable">salary_variable（變動薪資/年終/兼職）</option>
+              <option value="professional">professional（執行業務）</option>
+              <option value="rent">rent（租金）</option>
+              <option value="royalty">royalty（權利金）</option>
+              <option value="prize">prize（競技/中獎）</option>
+              <option value="interest">interest（利息）</option>
+              <option value="dividend">dividend（股利）</option>
+              <option value="retirement">retirement（退職/退休）</option>
+              <option value="other">other（其他）</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>本次給付金額（payment_amount）</label>
+            <input id="payment_amount" type="number" min="0" step="1" value="60000">
+          </div>
+          <div>
+            <label>當月薪資總額（monthly_total_salary_for_month）</label>
+            <input id="monthly_total_salary_for_month" type="number" min="0" step="1" value="0">
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>薪資表列或 5%（apply_salary_table_or_5pct）</label>
+            <select id="apply_salary_table_or_5pct">
+              <option value="5pct">5pct</option>
+              <option value="table">table（需自備稅額表函式）</option>
+            </select>
+          </div>
+          <div>
+            <label>利息細類（interest_subtype）</label>
+            <select id="interest_subtype">
+              <option value="other">other</option>
+              <option value="gov_bond">gov_bond（公債/金資券等）</option>
+              <option value="corp_bond">corp_bond（公司債/金融債/短票等）</option>
+              <option value="deposit">deposit（存款息）</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>股利結算選擇（居民）</label>
+            <select id="dividend_resident_election_note">
+              <option value="none">none</option>
+              <option value="28pct_separate">28% 分離課稅</option>
+              <option value="combine_with_8p5pct_credit">併入＋8.5% 抵減(上限8萬)</option>
+            </select>
+          </div>
+          <div>
+            <label>NHI 投保金額（員工本人，年終超額判斷用）</label>
+            <input id="nhi_employee_monthly_insured_wage" type="number" min="0" step="1" value="45000">
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>雇主月薪資總額</label>
+            <input id="employer_month_total_salary_paid" type="number" min="0" step="1" value="0">
+          </div>
+          <div>
+            <label>雇主當月投保金額總額</label>
+            <input id="employer_month_total_insured_wage_sum" type="number" min="0" step="1" value="0">
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>NHI 名目（六項）</label>
+            <select id="nhi_item_tag">
+              <option value="none">none（不課）</option>
+              <option value="side_salary">side_salary（兼職/非經常薪資）</option>
+              <option value="executive_income">executive_income（執行業務）</option>
+              <option value="dividend">dividend（股利）</option>
+              <option value="interest">interest（利息）</option>
+              <option value="rent">rent（租金）</option>
+              <option value="year_end_excess">year_end_excess（年終超過4×投保）</option>
+            </select>
+          </div>
+          <div>
+            <label>啟用 NHI 單筆檢核</label>
+            <select id="nhi_single_payment_check">
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex">
+          <button class="btn" id="runBtn">計算</button>
+          <button class="btn ghost" id="copyBtn">複製結果 JSON</button>
+          <select id="casePick" class="btn small" style="background:#fff;color:#000;border:2px solid #000">
+            <option value="">載入測試案例…</option>
+            <option value="A">A 居住者 年終 60,000</option>
+            <option value="B">B 非居 月薪 40,000（6%）</option>
+            <option value="C">C 居住者 執行業務 30,000</option>
+            <option value="D">D 居住者 股利 200,000</option>
+            <option value="E">E 居住者 退職 800,000（免稅額外部）</option>
+            <option value="F">F 非居 利息 公司債 100,000（15%）</option>
+            <option value="G">G 雇主月差額 1,500,000 - 1,200,000</option>
+          </select>
+          <button class="btn small" id="runAll">全部測試</button>
+        </div>
+      </section>
+
+      <!-- 輸出區 -->
+      <section class="block">
+        <h3>輸出</h3>
+        <pre id="outJSON" aria-label="result json"></pre>
+        <div class="note">含：withholding_tax_amount、rate、tax_base_used、exemption_trigger、nhi_surcharge_amount、nhi_basis_reason、log、law_notes、slip_info。</div>
+      </section>
+
+      <!-- 法規備註（靜態） -->
+      <section class="block">
+        <h3>法規備註（摘要）</h3>
+        <ul class="note">
+          <li>居住者認定：年度境內居留 ≥183 天。</li>
+          <li>居住者薪資：表或 5%；月薪「每月 ≤2,000 免扣」。變動薪資每次起扣：114 年度 88,501。</li>
+          <li>非居薪資：18%；但全月 ≤ 1.5×基本工資者 6%。114 年基本工資（月）：28,590。</li>
+          <li>10% 類（執行業務、租金、權利金、競技/中獎）：居 10%（≤2,000 免扣），非居 20%。</li>
+          <li>利息：居 10%；非居：債券/短票等 15%，其餘 20%（可覆寫品項）。</li>
+          <li>股利：居 0% 源扣；結算擇一（28% 分離 或 併入＋8.5% 抵減上限 80,000）；非居 21%。</li>
+          <li>退職：扣除免稅額後，居 6%，非居 18% 源扣。</li>
+          <li>二代健保補充保費：費率 2.11%；六項名目單次達 20,000（兼職薪資門檻＝基本工資）；單次上限 10,000,000；另有雇主月差額×2.11%。</li>
+        </ul>
+      </section>
+    </section>
+
+    <div class="footer">
+      介面代碼採用單檔模式；計算核心純函式，易於抽出到任意前端框架。若需接入「薪資稅額表」或「退職免稅額」請見下列程式中的 hook。
+    </div>
+  </article>
+</main>
+
+<script>
+/* ===============================
+   === 年度參數（每年更新） ===
+   將本區塊視為「官方數值」快取（114年度/2025）。
+   換年時優先改這裡，或用上方 UI 面板覆寫。
+   =============================== */
+const CONFIG_2025 = {
+  TAX_YEAR: 2025,
+  MIN_WAGE_MONTHLY: 28590,          // 114年基本工資（月）
+  LOW_BRACKET_MULTIPLIER: 1.5,
+  BONUS_THRESHOLD: 88501,           // 114年 變動薪資每次起扣
+  RESIDENT_SMALL_TAX_EXEMPT: 2000,  // 月薪「每月 ≤ 2,000 免扣」
+
+  RATE_SALARY_RESIDENT_5PCT: 0.05,
+  RATE_SALARY_NONRES_LOW: 0.06,
+  RATE_SALARY_NONRES_HIGH: 0.18,
+
+  RATE_COMMON_RESIDENT_10PCT: 0.10, // 執行業務/租/權/獎（居）
+  RATE_COMMON_NONRES_20PCT: 0.20,   // 同（非居）
+
+  RATE_INTEREST_RESIDENT: 0.10,     // 居：多數 10%
+  RATE_INTEREST_NONRES_DEFAULT: 0.20,
+  RATE_INTEREST_NONRES_BONDLIKE: 0.15, // 非居：債券/短票等 15%
+
+  RATE_DIVIDEND_RESIDENT_WITHHOLDING: 0.0,
+  DIVIDEND_RESIDENT_ELECTION: ["28pct_separate","combine_with_8p5pct_credit_max80000"],
+  RATE_DIVIDEND_NONRES_WITHHOLDING: 0.21,
+
+  RATE_RETIREMENT_RESIDENT: 0.06,
+  RATE_RETIREMENT_NONRES: 0.18,
+
+  NHI_SUPP_RATE: 0.0211,           // 二代健保補充保費 費率
+  NHI_SINGLE_MIN_GENERAL: 20000,   // 六項名目一般單次門檻
+  NHI_SINGLE_MIN_SIDE_SALARY_EQ_MIN_WAGE: true, // 兼職薪資門檻 = 基本工資
+  NHI_SINGLE_CAP: 10000000,        // 單次上限
+
+  TREATY_OVERRIDE_ENABLED: false
+};
+/* =============================== */
+
+/* —— UI 初始化 —— */
+const $ = (q)=>document.querySelector(q);
+const out = $("#outJSON");
+const editor = $("#paramEditor");
+const badges = {
+  year: $("#paramYear"),
+  nhi: $("#nhiRateBadg"),
+  bonus: $("#bonusThBadg"),
+  wage: $("#minWageBadg")
+};
+
+function loadParamsToEditor(obj){
+  editor.value = JSON.stringify(obj, null, 2);
+  badges.year.innerHTML = `年度參數：<b>${obj.TAX_YEAR}</b>`;
+  badges.nhi.textContent = (obj.NHI_SUPP_RATE*100).toFixed(2)+"%";
+  badges.bonus.textContent = obj.BONUS_THRESHOLD.toLocaleString();
+  badges.wage.textContent = obj.MIN_WAGE_MONTHLY.toLocaleString();
+}
+loadParamsToEditor(CONFIG_2025);
+
+$("#applyParams").onclick = ()=>{
+  try{
+    const obj = JSON.parse(editor.value);
+    window.RUNTIME_PARAMS = Object.assign({}, CONFIG_2025, obj);
+    loadParamsToEditor(window.RUNTIME_PARAMS);
+    toast("已套用自訂年度參數");
+    saveLocal();
+  }catch(e){ toast("參數 JSON 格式錯誤："+e.message, true); }
+};
+$("#resetParams").onclick = ()=>{
+  window.RUNTIME_PARAMS = Object.assign({}, CONFIG_2025);
+  loadParamsToEditor(window.RUNTIME_PARAMS);
+  toast("已還原 2025 預設參數");
+  saveLocal();
+};
+
+/* —— 計算核心（純函式） —— */
+const DEFAULTS = Object.assign({}, CONFIG_2025);
+function pct(n){ return (n*100).toFixed((n*100)%1===0?0:2) + "%"; }
+function money(n){ return Math.round(Number(n)||0); }
+function params(){ return Object.assign({}, DEFAULTS, window.RUNTIME_PARAMS||{}); }
+function appendTrig(s, t){ return s ? (s + "; " + t) : t; }
+
+function lawNotesBase(){
+  return [
+   "所得稅法§7、§88；114年度各類扣繳率與起扣標準（薪資/變動薪資/非居6%/18%）",
+   "變動薪資每次起扣：114年 88,501；居住者月薪『每月≤2,000免扣』",
+   "非居薪資：全月≤1.5×基本工資時 6%，否則 18%；114年基本工資（月）28,590",
+   "10% 類（居）稅額≤2,000免扣；（非居）20%",
+   "利息：居 10%；非居債券/短票 15%，其他 20%（可覆寫）",
+   "股利（居）：源扣0%；結算擇一：28%分離 或 併入＋8.5%抵減（上限8萬）；非居 21%",
+   "退職：扣免稅額後 居6%／非居18%",
+   "二代健保補充保費：費率2.11%；六項單次達20,000（兼職薪資門檻=基本工資）；單次上限1,000萬；雇主月差額×2.11%"
+  ];
+}
+
+function mapFormatCode(income_type){
+  const dict = {
+    salary_fixed:   {code:"50 / 79A / 79B", label:"薪資所得"},
+    salary_variable:{code:"50 / 79A / 79B", label:"薪資所得（非每月）"},
+    professional:   {code:"9A",             label:"執行業務"},
+    rent:           {code:"51",             label:"租賃"},
+    royalty:        {code:"53",             label:"權利金"},
+    prize:          {code:"5H",             label:"競技/競賽/中獎"},
+    interest:       {code:"52 / 5A / 5B / 5C", label:"利息"},
+    dividend:       {code:"54 / 71G",       label:"股利"},
+    retirement:     {code:"57",             label:"退職"},
+    other:          {code:"99",             label:"其他"}
+  };
+  return dict[income_type] || dict.other;
+}
+
+function computeWithholding(payload){
+  const p = Object.assign({}, params(), payload.override_params||{});
+  const log = [];
+  const law_notes = lawNotesBase();
+  const res = {
+    withholding_tax_amount: 0,
+    withholding_tax_rate: "0%",
+    tax_base_used: payload.income_type,
+    exemption_trigger: "",
+    nhi_surcharge_amount: 0,
+    nhi_basis_reason: "none",
+    log,
+    law_notes,
+    slip_info: mapFormatCode(payload.income_type)
+  };
+
+  const resident = payload.resident_status === "resident";
+  log.push(`Step1: resident=${resident}`);
+
+  const amt = Number(payload.payment_amount)||0;
+
+  function applyTax(rate, opts={}){
+    const taxRaw = amt * rate;
+    let tax = money(taxRaw);
+    res.withholding_tax_rate = pct(rate);
+    if(opts.smallExemptCheck && resident && tax <= p.RESIDENT_SMALL_TAX_EXEMPT){
+      res.exemption_trigger = appendTrig(res.exemption_trigger, "resident_small_tax=true");
+      tax = 0;
     }
-    </script>
+    res.withholding_tax_amount = tax;
+    log.push(`Tax=${amt}×${pct(rate)}=${money(taxRaw)} → ${tax}`);
+  }
 
-    <script defer>
-    // --- 全域錯誤攔截，避免「看似沒反應」 ---
-    // 註解：此處攔截全域錯誤，並以 Toast 訊息顯示，方便離線偵錯。
-    window.onerror = function (message, source, lineno, colno, error) {
-        TaxApp.ui.showToast(`JavaScript 錯誤: ${message} at ${lineno}:${colno}`);
-        console.error({ message, source, lineno, colno, error });
-        return true;
-    };
-    window.addEventListener('unhandledrejection', function (event) {
-        TaxApp.ui.showToast(`非同步錯誤: ${event.reason}`);
-        console.error(event);
-    });
+  switch(payload.income_type){
 
-    // --- 主應用程式命名空間 ---
-    const TaxApp = {
-        state: {
-            params: {},
-            versions: [],
-            restorePoints: []
-        },
-
-        // --- 初始化 ---
-        init() {
-            this.loadState();
-            this.events.setup();
-            this.ui.renderInitialView();
-            console.log("稅務工具初始化完成。");
-        },
-
-        // --- 狀態管理 ---
-        loadState() {
-            try {
-                const storedState = localStorage.getItem('taxApp_state');
-                if (storedState) {
-                    this.state = JSON.parse(storedState);
-                } else {
-                    const initialState = JSON.parse(document.getElementById('initial-data').textContent);
-                    this.state = initialState;
-                    this.saveState();
-                    this.ui.showToast("偵測到首次使用，已載入預設資料。");
-                }
-            } catch (e) {
-                console.error("讀取 localStorage 失敗:", e);
-                this.ui.showToast("讀取本地資料失敗，將使用預設值。");
-                const initialState = JSON.parse(document.getElementById('initial-data').textContent);
-                this.state = initialState;
-            }
-        },
-
-        saveState() {
-            try {
-                localStorage.setItem('taxApp_state', JSON.stringify(this.state));
-            } catch (e) {
-                console.error("儲存 localStorage 失敗:", e);
-                this.ui.showToast("儲存設定到本地失敗，可能已滿或瀏覽器不支援。");
-            }
-        },
-        
-        createRestorePoint(name) {
-            const point = {
-                id: `rp_${new Date().getTime()}`,
-                name: name || `還原點 @ ${new Date().toLocaleString()}`,
-                timestamp: new Date().toISOString(),
-                state: JSON.parse(JSON.stringify(this.state)) // Deep copy
-            };
-            this.state.restorePoints.unshift(point);
-            if (this.state.restorePoints.length > 20) { // Keep last 20
-                this.state.restorePoints.pop();
-            }
-            this.saveState();
-            this.ui.renderHistory();
-            this.ui.showToast(`已建立還原點: ${point.name}`, 'success');
-        },
-
-        // --- 核心計算邏輯 ---
-        calculations: {
-            // ... (計算函式將在此處定義)
-        },
-
-        // --- UI 更新邏輯 ---
-        ui: {
-            // ... (UI 相關函式將在此處定義)
-        },
-
-        // --- 事件處理 ---
-        events: {
-            // ... (事件監聽器將在此處定義)
-        },
-
-        // --- 工具函式 ---
-        utils: {
-            // ... (共用函式將在此處定義)
+    case "salary_fixed": {
+      if(!resident){
+        const low = (Number(payload.monthly_total_salary_for_month)||0) <= p.MIN_WAGE_MONTHLY*p.LOW_BRACKET_MULTIPLIER;
+        const rate = low ? p.RATE_SALARY_NONRES_LOW : p.RATE_SALARY_NONRES_HIGH;
+        log.push(`Step2: nonresident salary, monthly_total=${payload.monthly_total_salary_for_month} vs 1.5×min=${p.MIN_WAGE_MONTHLY*p.LOW_BRACKET_MULTIPLIER} → rate=${pct(rate)}`);
+        applyTax(rate);
+      }else{
+        if(payload.apply_salary_table_or_5pct === "table" && typeof window.salary_table_calc === "function"){
+          const t = money(window.salary_table_calc(payload));
+          res.withholding_tax_amount = t;
+          res.withholding_tax_rate = "table";
+          log.push("Step2: resident salary by TAX TABLE → "+t);
+        }else{
+          log.push("Step2: resident salary 5%");
+          applyTax(p.RATE_SALARY_RESIDENT_5PCT);
         }
-    };
-    
-    // --- 實作各模組 ---
-    
-    // =============================
-    //      UTILITIES (TaxApp.utils)
-    // =============================
-    TaxApp.utils = {
-        // 解析輸入的百分比或小數
-        parseRate(input) {
-            if (typeof input !== 'string') input = String(input);
-            input = input.trim();
-            if (input.endsWith('%')) {
-                return parseFloat(input.slice(0, -1)) / 100;
-            }
-            return parseFloat(input);
-        },
-
-        // 根據使用者選擇的規則進行四捨五入
-        round(value) {
-            const rule = document.querySelector('input[name="rounding"]:checked').value;
-            if (rule === 'ceil') return Math.ceil(value);
-            if (rule === 'floor') return Math.floor(value);
-            return Math.round(value); // 'round'
-        },
-        
-        // 格式化數字為千分位
-        formatNumber(num) {
-            if (num === null || num === undefined) return '';
-            return num.toLocaleString('en-US');
-        },
-
-        // 簡單的 CSV 解析器，支援引號
-        parseCSV(text) {
-            // 註解：此解析器為簡化版，適用於離線工具。
-            // 若要處理複雜轉義，建議使用更強健的函式庫。
-            const lines = text.trim().split(/\r?\n/);
-            if (lines.length < 2) return [];
-            
-            const header = lines[0].split(',').map(h => h.trim());
-            const data = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                const row = {};
-                const values = lines[i].split(','); // 簡化版分割
-                header.forEach((key, index) => {
-                    row[key] = values[index] ? values[index].trim() : '';
-                });
-                data.push(row);
-            }
-            return data;
-        },
-
-        // 產生 CSV 內容並觸發下載
-        downloadCSV(filename, csvContent) {
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", filename);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        // 月薪：每月 ≤ 2,000 免扣
+        if(res.withholding_tax_amount <= p.RESIDENT_SMALL_TAX_EXEMPT){
+          res.exemption_trigger = appendTrig(res.exemption_trigger, "resident_monthly_small_tax=true");
+          res.withholding_tax_amount = 0;
+          log.push("Apply monthly small-tax exemption → 0");
         }
-    };
+      }
+      break;
+    }
 
-    // =============================
-    //      UI (TaxApp.ui)
-    // =============================
-    TaxApp.ui = {
-        showToast(message, type = 'error') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            if (type === 'success') {
-                toast.style.backgroundColor = 'var(--success-bg)';
-            }
-            toast.textContent = message;
-            container.appendChild(toast);
-
-            // Trigger animation
-            setTimeout(() => {
-                toast.classList.add('show');
-            }, 10);
-
-            // Auto hide
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => {
-                    container.removeChild(toast);
-                }, 500);
-            }, 5000);
-        },
-        
-        renderResult(containerId, result) {
-            const container = document.getElementById(containerId);
-            if (!result) {
-                container.innerHTML = '<p>計算出錯或無結果。</p>';
-                return;
-            }
-
-            let html = `
-                <div class="result-block">
-                    <div class="result-final">${result.final.label}: ${TaxApp.utils.formatNumber(result.final.value)}</div>
-                    ${result.final.sub ? `<p>${result.final.sub}</p>` : ''}
-                </div>
-            `;
-
-            if (result.steps) {
-                html += `
-                    <details open>
-                        <summary>展開計算步驟</summary>
-                        <div class="steps">${result.steps}</div>
-                    </details>
-                `;
-            }
-
-            if (result.iterationTable) {
-                 html += `
-                    <details open>
-                        <summary>迭代收斂表</summary>
-                        <div class="iteration-table">
-                            <table>
-                                <thead><tr>${result.iterationTable.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-                                <tbody>
-                                    ${result.iterationTable.rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </details>
-                `;
-            }
-            container.innerHTML = html;
-        },
-        
-        renderInitialView() {
-            // 載入參數到 UI
-            document.getElementById('param-vat-rate').value = TaxApp.state.params.vatRate * 100 + '%';
-            document.getElementById('param-nhi-rate').value = TaxApp.state.params.nhiRate * 100 + '%';
-            document.getElementById('param-nhi-threshold').value = TaxApp.state.params.nhiThreshold;
-            
-            // 預填部分欄位
-            document.getElementById('wh-nhi-rate').value = TaxApp.state.params.nhiRate * 100 + '%';
-            document.getElementById('wh-nhi-threshold').value = TaxApp.state.params.nhiThreshold;
-
-            this.renderSalaryBrackets();
-            this.renderHistory();
-        },
-        
-        renderSalaryBrackets() {
-            const tbody = document.querySelector('#salary-brackets-table tbody');
-            tbody.innerHTML = '';
-            TaxApp.state.params.salaryBrackets.forEach((bracket, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><input type="number" value="${isFinite(bracket.upper) ? bracket.upper : ''}" placeholder="Infinity" data-index="${index}" data-field="upper"></td>
-                    <td><input type="number" value="${bracket.rate * 100}" data-index="${index}" data-field="rate"></td>
-                    <td><input type="number" value="${bracket.qd}" data-index="${index}" data-field="qd"></td>
-                    <td class="action-cell"><button type="button" data-action="removeSalaryBracket" data-index="${index}">-</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        },
-        
-        renderHistory() {
-            const versionsList = document.getElementById('versions-list');
-            versionsList.innerHTML = '<h4>可用版本</h4>';
-            if (TaxApp.state.versions.length === 0) {
-                versionsList.innerHTML += '<p>尚無已儲存的版本。</p>';
-            } else {
-                TaxApp.state.versions.forEach(v => {
-                    versionsList.innerHTML += `
-                        <div style="border-bottom: 1px solid #eee; padding: 0.5rem 0;">
-                            <strong>${v.name}</strong> <small>(${new Date(v.timestamp).toLocaleString()})</small>
-                            <button type="button" data-action="loadVersion" data-id="${v.id}">載入</button>
-                            <button type="button" data-action="deleteVersion" data-id="${v.id}">刪除</button>
-                        </div>
-                    `;
-                });
-            }
-
-            const rpList = document.getElementById('restore-points-list');
-            rpList.innerHTML = '<h4>還原點列表 (最新 20 筆)</h4>';
-             if (TaxApp.state.restorePoints.length === 0) {
-                rpList.innerHTML += '<p>尚無還原點。</p>';
-            } else {
-                TaxApp.state.restorePoints.forEach(rp => {
-                    rpList.innerHTML += `
-                        <div style="border-bottom: 1px solid #eee; padding: 0.5rem 0;">
-                            ${rp.name}
-                            <button type="button" data-action="rollback" data-id="${rp.id}">回滾至此</button>
-                        </div>
-                    `;
-                });
-            }
+    case "salary_variable": {
+      if(resident){
+        if(amt < p.BONUS_THRESHOLD){
+          res.exemption_trigger = appendTrig(res.exemption_trigger, `bonus_single_payment_below_threshold=true (${amt} < ${p.BONUS_THRESHOLD})`);
+          res.withholding_tax_rate = pct(p.RATE_SALARY_RESIDENT_5PCT);
+          res.withholding_tax_amount = 0;
+          log.push("Step2: resident variable salary < threshold → 免扣");
+        }else{
+          log.push("Step2: resident variable salary ≥ threshold → 5%");
+          // 非每月給付不適用 2,000 小額免扣
+          applyTax(p.RATE_SALARY_RESIDENT_5PCT, {smallExemptCheck:false});
         }
-    };
-    
-    // ==================================
-    // CALCULATIONS (TaxApp.calculations)
-    // ==================================
-    TaxApp.calculations = {
-        vat({ mode, amount, rate }) {
-            let n, g, t;
-            let steps = `使用參數:\n  模式 = ${mode}\n  金額 = ${amount}\n  稅率 = ${rate * 100}%\n`;
+      }else{
+        const low = (Number(payload.monthly_total_salary_for_month)||0) <= p.MIN_WAGE_MONTHLY*p.LOW_BRACKET_MULTIPLIER;
+        const rate = low ? p.RATE_SALARY_NONRES_LOW : p.RATE_SALARY_NONRES_HIGH;
+        log.push(`Step2: nonresident variable salary uses salary rule → rate=${pct(rate)}`);
+        applyTax(rate);
+      }
+      break;
+    }
 
-            if (mode === 'NtoG') {
-                n = amount;
-                t = TaxApp.utils.round(n * rate);
-                g = n + t;
-                steps += `1. 計算稅額 (T): ${n} * ${rate} = ${n * rate} → (取整) → ${t}\n`;
-                steps += `2. 計算含稅額 (G): ${n} + ${t} = ${g}`;
-                return { final: { label: '含稅額 (G)', value: g, sub: `未稅額 (N) = ${n}, 稅額 (T) = ${t}` }, steps };
-            } else { // GtoN
-                g = amount;
-                // G = N + round(N * r)  =>  G approx N * (1+r)  => N approx G / (1+r)
-                n = TaxApp.utils.round(g / (1 + rate));
-                t = g - n;
-                steps += `1. 推算未稅額 (N): ${g} / (1 + ${rate}) = ${g / (1 + rate)} → (取整) → ${n}\n`;
-                steps += `2. 計算稅額 (T): ${g} - ${n} = ${t}\n`;
-                steps += `3. 驗證: ${n} + round(${n}*${rate}) = ${n} + ${TaxApp.utils.round(n*rate)} = ${n + TaxApp.utils.round(n*rate)} (應接近 ${g})`;
-                return { final: { label: '未稅額 (N)', value: n, sub: `含稅額 (G) = ${g}, 稅額 (T) = ${t}` }, steps };
-            }
-        },
+    case "professional":
+    case "rent":
+    case "royalty":
+    case "prize": {
+      const rate = resident ? p.RATE_COMMON_RESIDENT_10PCT : p.RATE_COMMON_NONRES_20PCT;
+      log.push(`Step2: ${payload.income_type} → rate=${pct(rate)}`);
+      applyTax(rate, {smallExemptCheck: resident});
+      break;
+    }
 
-        withholding({ mode, amount, r_w, r_h, H }) {
-            let a, n, t, h;
-            let steps = `使用參數:\n  扣繳率 r_w = ${r_w*100}%\n  健保率 r_h = ${r_h*100}%\n  門檻 H = ${H}\n`;
-            
-            if (mode === 'AtoN') {
-                a = amount;
-                t = TaxApp.utils.round(a * r_w);
-                h = a > H ? TaxApp.utils.round(a * r_h) : 0;
-                n = a - t - h;
-                steps += `1. 計算扣繳稅額 (T): ${a} * ${r_w} = ${a*r_w} → ${t}\n`;
-                steps += `2. 判斷健保補充保費: ${a} ${a > H ? '>' : '<='} ${H}\n`;
-                steps += `3. 計算健保補充保費 (H_fee): ${a > H ? `${a} * ${r_h} = ${a*r_h} → ${h}` : '0'}\n`;
-                steps += `4. 計算淨額 (N): ${a} - ${t} - ${h} = ${n}`;
-                return { final: { label: '實付淨額 (N)', value: n }, steps };
-            } else { // NtoA
-                n = amount;
-                // N = A - round(A*r_w) - (A > H ? round(A*r_h) : 0)
-                // 這是反推，需要解方程。我們先假設一個解
-                // Case 1: A <= H (無健保費)
-                // N approx A * (1 - r_w) => A approx N / (1 - r_w)
-                let a_candidate1 = n / (1 - r_w);
-                steps += `反推計算 (N → A):\n`;
-                steps += `情況 1: 假設給付總額 A ≤ ${H} (無補充保費)\n`;
-                steps += `  A ≈ N / (1 - r_w) = ${n} / (1 - ${r_w}) = ${a_candidate1.toFixed(2)}\n`;
-                if (a_candidate1 <= H) {
-                    a = TaxApp.utils.round(n / (1 - r_w));
-                    t = TaxApp.utils.round(a * r_w);
-                    h = 0;
-                    steps += `  候選解 A = ${a_candidate1.toFixed(2)} ≤ ${H}，假設成立。\n`;
-                    steps += `  重新計算 A = round(N / (1-r_w)) = ${a}\n`;
-                    steps += `  驗證: A - round(A*r_w) = ${a} - ${t} = ${a-t} (應接近 ${n})`;
-                    return { final: { label: '給付總額 (A)', value: a }, steps };
-                }
-                
-                // Case 2: A > H (有健保費)
-                steps += `  候選解 A = ${a_candidate1.toFixed(2)} > ${H}，假設不成立。\n`;
-                steps += `情況 2: 假設給付總額 A > ${H} (有補充保費)\n`;
-                 // N approx A * (1 - r_w - r_h) => A approx N / (1 - r_w - r_h)
-                let a_candidate2 = n / (1 - r_w - r_h);
-                steps += `  A ≈ N / (1 - r_w - r_h) = ${n} / (1 - ${r_w} - ${r_h}) = ${a_candidate2.toFixed(2)}\n`;
-                 if (a_candidate2 <= H) {
-                    steps += `  候選解 A = ${a_candidate2.toFixed(2)} ≤ ${H}，與假設矛盾。可能無解或在邊界。\n`;
-                    return { final: { label: '計算矛盾', value: 'N/A' }, steps };
-                 }
-                 a = TaxApp.utils.round(n / (1 - r_w - r_h));
-                 t = TaxApp.utils.round(a * r_w);
-                 h = TaxApp.utils.round(a * r_h);
-                 steps += `  重新計算 A = round(N / (1-r_w-r_h)) = ${a}\n`;
-                 steps += `  驗證: A - round(A*r_w) - round(A*r_h) = ${a} - ${t} - ${h} = ${a-t-h} (應接近 ${n})`;
-                 return { final: { label: '給付總額 (A)', value: a }, steps };
-            }
-        },
-        
-        landedCost({ cif, rates, isBonded }) {
-            let steps = `完稅價格 (CIF) = ${TaxApp.utils.formatNumber(cif)}\n\n`;
-            let current_base = cif;
-            
-            let duty = isBonded ? 0 : TaxApp.utils.round(current_base * rates.duty);
-            steps += `1. 關稅 (Duty) = ${isBonded ? '0 (保稅/FTA)' : `${cif} * ${rates.duty*100}% = ${TaxApp.utils.formatNumber(duty)}`}\n`;
-            current_base += duty;
-            
-            let excise = TaxApp.utils.round(current_base * rates.excise);
-            steps += `2. 貨物稅 (Excise) = (${cif} + ${duty}) * ${rates.excise*100}% = ${TaxApp.utils.formatNumber(excise)}\n`;
-            current_base += excise;
-            
-            let vat = TaxApp.utils.round(current_base * rates.vat);
-            steps += `3. 營業稅 (VAT) = (${cif} + ${duty} + ${excise}) * ${rates.vat*100}% = ${TaxApp.utils.formatNumber(vat)}\n`;
-            current_base += vat;
-            
-            steps += `4. 固定稅 (Fixed) = ${TaxApp.utils.formatNumber(rates.fixed)}\n`;
-            current_base += rates.fixed;
-            
-            steps += `5. 健康捐 (Health) = ${TaxApp.utils.formatNumber(rates.health)}\n`;
-            current_base += rates.health;
+    case "interest": {
+      let rate;
+      if(resident){
+        rate = p.RATE_INTEREST_RESIDENT;
+      }else{
+        rate = (payload.interest_subtype==="gov_bond" || payload.interest_subtype==="corp_bond") ?
+          p.RATE_INTEREST_NONRES_BONDLIKE : p.RATE_INTEREST_NONRES_DEFAULT;
+      }
+      log.push(`Step2: interest subtype=${payload.interest_subtype||"other"} → rate=${pct(rate)}`);
+      applyTax(rate);
+      break;
+    }
 
-            //推廣費以 CIF 為基礎
-            let promotion = TaxApp.utils.round(cif * rates.promotion);
-            steps += `6. 推廣費 (Promotion) = ${cif} * ${rates.promotion*100}% = ${TaxApp.utils.formatNumber(promotion)}\n`;
-            current_base += promotion;
+    case "dividend": {
+      if(resident){
+        res.withholding_tax_amount = 0;
+        res.withholding_tax_rate = pct(p.RATE_DIVIDEND_RESIDENT_WITHHOLDING);
+        res.exemption_trigger = appendTrig(res.exemption_trigger, "resident_dividend_withholding=0; settle_election=" + (payload.dividend_resident_election_note||"none"));
+        log.push("Step2: resident dividend → 源扣0%，結算擇一（28%分離 或 併入＋8.5%抵減上限8萬）");
+      }else{
+        applyTax(p.RATE_DIVIDEND_NONRES_WITHHOLDING);
+      }
+      break;
+    }
 
-            const landed = cif + duty + excise + vat + rates.fixed + rates.health + promotion;
-            steps += `\n總成本 (Landed Cost) = CIF + 各項稅費 = ${TaxApp.utils.formatNumber(landed)}`;
+    case "retirement": {
+      const rate = resident ? p.RATE_RETIREMENT_RESIDENT : p.RATE_RETIREMENT_NONRES;
+      let ex = 0;
+      if(typeof payload.retirement_exemption_value === "number"){
+        ex = payload.retirement_exemption_value;
+      }else if(payload.retirement_exemption_fn_name && typeof window[payload.retirement_exemption_fn_name]==="function"){
+        try{ ex = Number(window[payload.retirement_exemption_fn_name](amt, payload.retirement_years))||0; }catch(e){ ex=0; }
+      }
+      const base = Math.max(0, amt - ex);
+      const taxRaw = base * rate;
+      res.withholding_tax_rate = pct(rate);
+      res.withholding_tax_amount = money(taxRaw);
+      res.exemption_trigger = appendTrig(res.exemption_trigger, `retirement_exemption=${ex}`);
+      log.push(`Step2: retirement base=(amount ${amt} - exemption ${ex})=${base} → ×${pct(rate)} → ${res.withholding_tax_amount}`);
+      break;
+    }
 
-            return {
-                final: { label: '進口總成本', value: landed },
-                steps
-            };
-        },
-        
-        reverseLandedCost({ targetLanded, rates, isBonded }) {
-            const f = (cif) => this.landedCost({ cif, rates, isBonded }).final.value;
-            let low = 0;
-            let high = targetLanded; // CIF 不會比總成本高
-            let steps = `目標總成本 L = ${TaxApp.utils.formatNumber(targetLanded)}\n採用二分法求解 CIF...\n`;
-            const iterationTable = { headers: ['次數', 'Low CIF', 'High CIF', 'Mid CIF', '計算成本', '差異'], rows: [] };
-            
-            for (let i=0; i < 100; i++) {
-                let mid = (low + high) / 2;
-                if (mid <= 0) break;
-                let calculatedLanded = f(mid);
-                let diff = calculatedLanded - targetLanded;
-                
-                iterationTable.rows.push([
-                    i + 1, 
-                    mid === 0 ? '0' : TaxApp.utils.formatNumber(low.toFixed(4)),
-                    TaxApp.utils.formatNumber(high.toFixed(4)),
-                    TaxApp.utils.formatNumber(mid.toFixed(4)),
-                    TaxApp.utils.formatNumber(calculatedLanded.toFixed(4)),
-                    diff.toFixed(4)
-                ]);
+    default: {
+      if(resident){
+        res.withholding_tax_amount = 0;
+        res.withholding_tax_rate = "rule_based (resident other: default no withhold)";
+        log.push("Step2: resident other → 預設不源扣（可透過規則表覆寫）");
+      }else{
+        log.push("Step2: nonresident other → 20%");
+        applyTax(p.RATE_COMMON_NONRES_20PCT);
+      }
+    }
+  }
 
-                if (Math.abs(diff) < 0.01) {
-                    steps += `\n收斂成功！`;
-                    return {
-                        final: { label: '反推 CIF', value: mid },
-                        steps,
-                        iterationTable
-                    };
-                }
-                
-                if (diff > 0) {
-                    high = mid;
-                } else {
-                    low = mid;
-                }
-            }
-            steps += `\n計算超過 100 次迭代仍未收斂，可能無解。`;
-            return {
-                final: { label: '無法收斂', value: 'N/A' },
-                steps,
-                iterationTable
-            };
-        },
-        
-        salaryTax({ mode, amount, brackets }) {
-            const sortedBrackets = [...brackets].sort((a,b) => a.upper - b.upper);
-            
-            const calculateTax = (gross) => {
-                const bracket = sortedBrackets.find(b => gross <= b.upper);
-                if (!bracket) return { tax: -1, net: -1 }; // Should not happen with Infinity
-                
-                const tax = TaxApp.utils.round(gross * bracket.rate) - bracket.qd;
-                const net = gross - tax;
-                return { gross, tax, net, bracket };
-            };
-            
-            if (mode === 'GtoN') {
-                const result = calculateTax(amount);
-                let steps = `毛薪 (G) = ${TaxApp.utils.formatNumber(amount)}\n`;
-                steps += `1. 查找適用級距: ${amount} <= ${result.bracket.upper}, 適用稅率 ${result.bracket.rate*100}%, 速算扣除數 ${result.bracket.qd}\n`;
-                steps += `2. 計算預扣稅額 (T): ${amount} * ${result.bracket.rate} - ${result.bracket.qd} = ${amount * result.bracket.rate - result.bracket.qd} → ${result.tax}\n`;
-                steps += `3. 計算淨薪 (N): ${amount} - ${result.tax} = ${result.net}`;
-                return { final: { label: '實領淨薪 (N)', value: result.net }, steps };
-            } else { // NtoG
-                const targetNet = amount;
-                // 使用二分法反推
-                let low = targetNet; // 毛薪至少是淨薪
-                let high = targetNet * 2; // 初始猜測上限
-                const iterationTable = { headers: ['次數', 'Low G', 'High G', 'Mid G', '計算淨薪 N', '差異'], rows: [] };
-                let finalGross = -1;
-                
-                for(let i=0; i < 100; i++) {
-                    let midGross = (low + high) / 2;
-                    let { net: calculatedNet } = calculateTax(midGross);
-                    let diff = calculatedNet - targetNet;
+  // NHI 補充保費計算
+  const nhi = computeNHI(payload, p, log);
+  res.nhi_surcharge_amount = nhi.amount;
+  res.nhi_basis_reason = nhi.reason;
 
-                    iterationTable.rows.push([
-                        i + 1,
-                        TaxApp.utils.formatNumber(low.toFixed(2)),
-                        TaxApp.utils.formatNumber(high.toFixed(2)),
-                        TaxApp.utils.formatNumber(midGross.toFixed(2)),
-                        TaxApp.utils.formatNumber(calculatedNet.toFixed(2)),
-                        diff.toFixed(2)
-                    ]);
-                    
-                    if (Math.abs(diff) < 0.5) { // 允許 0.5 元誤差
-                        finalGross = midGross;
-                        break;
-                    }
-                    
-                    if (diff > 0) {
-                        high = midGross;
-                    } else {
-                        low = midGross;
-                    }
-                     // 如果 G > N 關係不成立，擴大搜索範圍
-                    if (low >= high) {
-                        high *= 2;
-                    }
-                }
-                
-                if (finalGross !== -1) {
-                    return {
-                        final: { label: '反推毛薪 (G)', value: finalGross },
-                        steps: `從目標淨薪 ${TaxApp.utils.formatNumber(targetNet)} 反推毛薪。`,
-                        iterationTable
-                    };
-                } else {
-                    return {
-                        final: { label: '無法收斂', value: 'N/A' },
-                        steps: `無法從目標淨薪 ${TaxApp.utils.formatNumber(targetNet)} 反推毛薪。`,
-                        iterationTable
-                    }
-                }
-            }
-        },
+  return res;
+}
 
-        presentValue({ payment, periods, rate }) {
-            if (rate <= 0) return { final: { label: '錯誤', value: '利率需>0'}, steps: '月利率不可為0或負數'};
-            const pv = payment * (1 - Math.pow(1 + rate, -periods)) / rate;
-            let steps = `年金現值公式: PV = P * [1 - (1 + r)^-n] / r\n`;
-            steps += `PV = ${payment} * [1 - (1 + ${rate})^-${periods}] / ${rate}\n`;
-            steps += `PV = ${payment} * [1 - ${Math.pow(1 + rate, -periods).toFixed(6)}] / ${rate}\n`;
-            steps += `PV = ${pv.toFixed(2)}`;
-            return { final: { label: '年金現值 (PV)', value: pv }, steps };
-        },
-        
-        irr({ pv, payment, periods }) {
-            // IRR: P * [1 - (1 + r)^-n] / r - PV = 0
-            const f = (r) => payment * (1 - Math.pow(1 + r, -periods)) / r - pv;
-            
-            let low = 0.00001;
-            let high = 1.0;
-            const iterationTable = { headers: ['次數', 'Rate (r)', 'f(r)'], rows: [] };
-            
-            for (let i=0; i < 100; i++) {
-                let mid = (low + high) / 2;
-                let f_mid = f(mid);
-                
-                iterationTable.rows.push([ i+1, mid.toFixed(6), f_mid.toFixed(4) ]);
-                
-                if (Math.abs(f_mid) < 0.01) {
-                    const annualIRR = (Math.pow(1 + mid, 12) - 1) * 100;
-                    return {
-                        final: { label: '月利率 (r_m)', value: mid * 100, sub: `年化 IRR: ${annualIRR.toFixed(4)}%` },
-                        steps: '使用二分法求解內部報酬率 (月)。',
-                        iterationTable
-                    };
-                }
-                
-                if (f(low) * f_mid < 0) {
-                    high = mid;
-                } else {
-                    low = mid;
-                }
-            }
-            return { final: { label: '無法收斂', value: 'N/A' }, steps: 'IRR 計算未能在 100 次迭代內收斂。' };
-        },
+function computeNHI(payload, p, log){
+  let reason = "none";
+  let total = 0;
 
-        splitTransactions({ limit, amounts }) {
-            let groups = [];
-            let currentGroup = { items: [], sum: 0 };
-            let steps = `轉帳上限: ${TaxApp.utils.formatNumber(limit)}\n\n`;
-
-            amounts.forEach((amount, index) => {
-                steps += `處理第 ${index + 1} 筆金額: ${TaxApp.utils.formatNumber(amount)}\n`;
-                if (amount > limit) {
-                    steps += `  - 金額 ${TaxApp.utils.formatNumber(amount)} 超過上限，獨立成組 (警告)\n`;
-                    if (currentGroup.sum > 0) groups.push(currentGroup);
-                    groups.push({ items: [amount], sum: amount });
-                    currentGroup = { items: [], sum: 0 };
-                } else if (currentGroup.sum + amount > limit) {
-                    steps += `  - 目前組總和 ${TaxApp.utils.formatNumber(currentGroup.sum)} + ${TaxApp.utils.formatNumber(amount)} > ${TaxApp.utils.formatNumber(limit)}，結束此組\n`;
-                    groups.push(currentGroup);
-                    steps += `  - 建立新組，放入 ${TaxApp.utils.formatNumber(amount)}\n`;
-                    currentGroup = { items: [amount], sum: amount };
-                } else {
-                    currentGroup.items.push(amount);
-                    currentGroup.sum += amount;
-                    steps += `  - 加入目前組，新總和為 ${TaxApp.utils.formatNumber(currentGroup.sum)}\n`;
-                }
-            });
-            
-            if (currentGroup.sum > 0) {
-                groups.push(currentGroup);
-            }
-            steps += `\n處理完畢。`;
-
-            let summary = groups.map((g, i) => `第 ${i+1} 組: [${g.items.map(TaxApp.utils.formatNumber).join(', ')}]，總計: ${TaxApp.utils.formatNumber(g.sum)}`).join('\n');
-            
-            return {
-                final: { label: '分拆結果', value: `${groups.length} 組`, sub: summary },
-                steps
-            };
+  if(String(payload.nhi_single_payment_check)!=="false"){
+    const tag = payload.nhi_item_tag||"none";
+    const amt = Number(payload.payment_amount)||0;
+    let threshold = p.NHI_SINGLE_MIN_GENERAL;
+    if(tag === "side_salary" && p.NHI_SINGLE_MIN_SIDE_SALARY_EQ_MIN_WAGE){
+      threshold = p.MIN_WAGE_MONTHLY; // 兼職薪資門檻：當年基本工資
+    }
+    if(["executive_income","dividend","interest","rent","side_salary","year_end_excess"].includes(tag)){
+      if(tag==="year_end_excess"){
+        const ins = Number(payload.nhi_employee_monthly_insured_wage)||0;
+        const cumulative = Number((payload.override_params && payload.override_params.NHI_YEARLY_BONUS_TO_DATE)||0);
+        const over = Math.max(0, (cumulative + amt) - 4*ins);
+        const basis = Math.min(amt, over);
+        if(basis>0){
+          const capped = Math.min(basis, p.NHI_SINGLE_CAP);
+          total += money(capped * p.NHI_SUPP_RATE);
+          reason = `year_end_excess_basis=${basis}→capped=${capped}`;
+          log.push(`NHI: year_end_excess cumulative=${cumulative}, ins=${ins} → basis=${basis}`);
+        }else{
+          log.push("NHI: year_end_excess basis=0（尚未超過4×投保金額或缺少累計）");
         }
-    };
-    
-    // =============================
-    //      EVENTS (TaxApp.events)
-    // =============================
-    TaxApp.events = {
-        setup() {
-            // 註解：使用事件委派，將監聽器綁定在父容器，處理動態新增元素的事件。
-            const mainContent = document.getElementById('main-content');
-            
-            document.querySelector('.tabs').addEventListener('click', this.handleTabClick);
-            document.querySelector('.toolbar').addEventListener('click', this.handleToolbarClick);
-            document.getElementById('import-file-input').addEventListener('change', this.handleImportFile);
-            mainContent.addEventListener('click', this.handleMainContentClick);
-            mainContent.addEventListener('change', this.handleMainContentChange);
-            document.getElementById('csv-paste-area').addEventListener('paste', this.handleCsvPaste);
-        },
-
-        handleTabClick(e) {
-            if (!e.target.matches('.tab-link')) return;
-            document.querySelectorAll('.tab-link').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-            e.target.classList.add('active');
-            document.getElementById(e.target.dataset.tab + '-tab').classList.add('active');
-        },
-        
-        handleToolbarClick(e) {
-            const action = e.target.dataset.action;
-            if (!action) return;
-
-            switch (action) {
-                case 'createRestorePoint':
-                    TaxApp.createRestorePoint(prompt("請輸入還原點名稱（可選）"));
-                    break;
-                case 'exportBackup':
-                    const json = JSON.stringify(TaxApp.state, null, 2);
-                    const blob = new Blob([json], {type: 'application/json'});
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `tax-tool-backup-${new Date().toISOString().slice(0,10)}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    TaxApp.ui.showToast('備份已匯出', 'success');
-                    break;
-                case 'runTests':
-                    alert("內建測試功能待實現。");
-                    break;
-                case 'print':
-                    window.print();
-                    break;
-                case 'resetApp':
-                    if (confirm("警告：這將清除所有本地儲存的資料，包括參數、版本和還原點。確定要重置嗎？")) {
-                        localStorage.removeItem('taxApp_state');
-                        window.location.reload();
-                    }
-                    break;
-            }
-        },
-        
-        handleImportFile(e) {
-             const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const importedState = JSON.parse(event.target.result);
-                    // 簡單合併邏輯：不覆蓋，只新增
-                    // 這裡可以設計更複雜的合併策略
-                    if (importedState.params) TaxApp.state.params = importedState.params;
-                    if (importedState.versions) TaxApp.state.versions = [...TaxApp.state.versions, ...importedState.versions];
-                    
-                    TaxApp.saveState();
-                    TaxApp.ui.renderInitialView();
-                    TaxApp.ui.showToast("備份匯入成功！", "success");
-                } catch (err) {
-                    TaxApp.ui.showToast("匯入失敗：無效的 JSON 檔案。");
-                    console.error(err);
-                }
-            };
-            reader.readAsText(file);
-        },
-
-        handleMainContentClick(e) {
-            const target = e.target.closest('[data-action]');
-            if (!target) return;
-
-            const { action, id, index } = target.dataset;
-            TaxApp.createRestorePoint(`執行操作 [${action}] 之前`);
-
-            try {
-                switch(action) {
-                    case 'calculateVat':
-                        {
-                            const mode = document.getElementById('vat-mode').value;
-                            const amount = parseFloat(document.getElementById('vat-amount').value);
-                            const rate = TaxApp.utils.parseRate(document.getElementById('vat-rate').value);
-                            if (isNaN(amount) || isNaN(rate)) throw new Error("請輸入有效的金額和稅率。");
-                            const result = TaxApp.calculations.vat({ mode, amount, rate });
-                            TaxApp.ui.renderResult('vat-result', result);
-                        }
-                        break;
-                    case 'calculateVatCsv':
-                        {
-                            const csvText = document.getElementById('vat-csv').value;
-                            const data = TaxApp.utils.parseCSV(csvText);
-                            const rate = TaxApp.utils.parseRate(document.getElementById('vat-rate').value);
-                            if (data.length === 0) throw new Error("無效的 CSV 資料。");
-                            
-                            const amountKey = Object.keys(data[0])[1]; // Assume second column is amount
-                            let resultCsv = "ID,OriginalAmount,Mode,CalculatedAmount,Tax,TotalAmount\n";
-                            data.forEach(row => {
-                                const amount = parseFloat(row[amountKey]);
-                                if(isNaN(amount)) return;
-                                const result = TaxApp.calculations.vat({ mode: 'NtoG', amount, rate });
-                                resultCsv += `${row[Object.keys(row)[0]]},${amount},NtoG,${result.final.value},${result.final.value - amount},${result.final.value}\n`;
-                            });
-                            TaxApp.utils.downloadCSV('vat_batch_result.csv', resultCsv);
-                        }
-                        break;
-                    case 'calculateWithholding':
-                        {
-                            const mode = document.getElementById('wh-mode').value;
-                            const amount = parseFloat(document.getElementById('wh-amount').value);
-                            const r_w = TaxApp.utils.parseRate(document.getElementById('wh-tax-rate').value);
-                            const r_h = TaxApp.utils.parseRate(document.getElementById('wh-nhi-rate').value);
-                            const H = parseFloat(document.getElementById('wh-nhi-threshold').value);
-                            if (isNaN(amount) || isNaN(r_w)) throw new Error("請輸入有效的金額和扣繳率。");
-                            
-                            const result = TaxApp.calculations.withholding({ mode, amount, r_w, r_h, H });
-                            TaxApp.ui.renderResult('wh-result', result);
-                        }
-                        break;
-                    case 'calculateCif':
-                        {
-                           const fob = parseFloat(document.getElementById('cif-fob').value) || 0;
-                           const freight = parseFloat(document.getElementById('cif-freight').value) || 0;
-                           let insurance = parseFloat(document.getElementById('cif-insurance').value);
-                           let steps = `FOB = ${fob}, Freight = ${freight}\n`;
-                           if (isNaN(insurance)) {
-                               // 依提示率估算保費，此處簡化
-                               insurance = TaxApp.utils.round((fob + freight) * 0.005); // 假設
-                               steps += `保險費 (I) 未填，估算為 (FOB+F)*0.5% = ${insurance}\n`
-                           }
-                           const cif = fob + freight + insurance;
-                           steps += `CIF = FOB + F + I = ${fob} + ${freight} + ${insurance} = ${cif}`;
-                           const result = { final: { label: '完稅價格 (CIF)', value: cif}, steps };
-                           TaxApp.ui.renderResult('customs-result', result);
-                           document.getElementById('lc-cif').value = cif;
-                        }
-                        break;
-                    case 'calculateLandedCost':
-                        {
-                            const cif = parseFloat(document.getElementById('lc-cif').value);
-                             if (isNaN(cif)) throw new Error("請先計算或輸入有效的 CIF。");
-                            const rates = {
-                                duty: TaxApp.utils.parseRate(document.getElementById('lc-duty-rate').value),
-                                excise: TaxApp.utils.parseRate(document.getElementById('lc-excise-rate').value),
-                                vat: TaxApp.utils.parseRate(document.getElementById('lc-vat-rate').value),
-                                fixed: parseFloat(document.getElementById('lc-fixed-tax').value) || 0,
-                                health: parseFloat(document.getElementById('lc-health-surcharge').value) || 0,
-                                promotion: TaxApp.utils.parseRate(document.getElementById('lc-promotion-fee').value)
-                            };
-                            const isBonded = document.getElementById('lc-bonded').checked;
-                            const result = TaxApp.calculations.landedCost({ cif, rates, isBonded });
-                            TaxApp.ui.renderResult('customs-result', result);
-                        }
-                        break;
-                     case 'reverseCalculateLandedCost':
-                        {
-                            const targetLanded = parseFloat(document.getElementById('rev-landed-cost').value);
-                             if (isNaN(targetLanded)) throw new Error("請輸入目標總成本。");
-                             const rates = {
-                                duty: TaxApp.utils.parseRate(document.getElementById('lc-duty-rate').value),
-                                excise: TaxApp.utils.parseRate(document.getElementById('lc-excise-rate').value),
-                                vat: TaxApp.utils.parseRate(document.getElementById('lc-vat-rate').value),
-                                fixed: parseFloat(document.getElementById('lc-fixed-tax').value) || 0,
-                                health: parseFloat(document.getElementById('lc-health-surcharge').value) || 0,
-                                promotion: TaxApp.utils.parseRate(document.getElementById('lc-promotion-fee').value)
-                            };
-                            const isBonded = document.getElementById('lc-bonded').checked;
-                            const result = TaxApp.calculations.reverseLandedCost({ targetLanded, rates, isBonded });
-                            TaxApp.ui.renderResult('customs-result', result);
-                        }
-                        break;
-                    case 'calculateSalary':
-                        {
-                            const mode = document.getElementById('salary-mode').value;
-                            const amount = parseFloat(document.getElementById('salary-amount').value);
-                            if (isNaN(amount)) throw new Error("請輸入有效的薪資金額。");
-                            const result = TaxApp.calculations.salaryTax({ mode, amount, brackets: TaxApp.state.params.salaryBrackets });
-                            TaxApp.ui.renderResult('salary-result', result);
-                        }
-                        break;
-                     case 'calculatePV':
-                        {
-                            const payment = parseFloat(document.getElementById('pv-payment').value);
-                            const periods = parseInt(document.getElementById('pv-periods').value);
-                            const rate = parseFloat(document.getElementById('pv-rate').value);
-                            if (isNaN(payment) || isNaN(periods) || isNaN(rate)) throw new Error("請輸入有效的數值。");
-                            const result = TaxApp.calculations.presentValue({ payment, periods, rate });
-                            TaxApp.ui.renderResult('ifrs16-result', result);
-                        }
-                        break;
-                     case 'calculateIRR':
-                        {
-                            const pv = parseFloat(document.getElementById('irr-pv').value);
-                            const payment = parseFloat(document.getElementById('irr-payment').value);
-                            const periods = parseInt(document.getElementById('irr-periods').value);
-                            if (isNaN(pv) || isNaN(payment) || isNaN(periods)) throw new Error("請輸入有效的數值。");
-                            const result = TaxApp.calculations.irr({ pv, payment, periods });
-                            TaxApp.ui.renderResult('ifrs16-result', result);
-                        }
-                        break;
-                     case 'calculateSplit':
-                        {
-                            const limit = parseFloat(document.getElementById('split-limit').value);
-                            const amountsStr = document.getElementById('split-amounts').value;
-                            if (isNaN(limit)) throw new Error("請輸入有效的上限金額。");
-                            const amounts = amountsStr.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
-                             if (amounts.length === 0) throw new Error("請輸入有效的金額序列。");
-                            const result = TaxApp.calculations.splitTransactions({ limit, amounts });
-                            TaxApp.ui.renderResult('split-result', result);
-                        }
-                        break;
-                    case 'saveParams':
-                        TaxApp.state.params.vatRate = TaxApp.utils.parseRate(document.getElementById('param-vat-rate').value);
-                        TaxApp.state.params.nhiRate = TaxApp.utils.parseRate(document.getElementById('param-nhi-rate').value);
-                        TaxApp.state.params.nhiThreshold = parseFloat(document.getElementById('param-nhi-threshold').value);
-                        TaxApp.saveState();
-                        TaxApp.ui.showToast('系統參數已儲存。', 'success');
-                        TaxApp.ui.renderInitialView(); // re-sync other tabs
-                        break;
-                    case 'addSalaryBracket':
-                        TaxApp.state.params.salaryBrackets.push({ upper: '', rate: 0, qd: 0 });
-                        TaxApp.ui.renderSalaryBrackets();
-                        break;
-                    case 'removeSalaryBracket':
-                        TaxApp.state.params.salaryBrackets.splice(parseInt(index), 1);
-                        TaxApp.ui.renderSalaryBrackets();
-                        break;
-                    case 'saveSalaryBrackets':
-                        const inputs = document.querySelectorAll('#salary-brackets-table tbody input');
-                        inputs.forEach(input => {
-                            const { index, field } = input.dataset;
-                            let value = (field === 'upper' && input.value === '') ? Infinity : parseFloat(input.value);
-                            if (field === 'rate') value /= 100;
-                            TaxApp.state.params.salaryBrackets[index][field] = value;
-                        });
-                        TaxApp.saveState();
-                        TaxApp.ui.showToast('薪資級距表已儲存。', 'success');
-                        break;
-                    case 'previewCsvBrackets':
-                        {
-                            const text = document.getElementById('csv-paste-area').value;
-                            const data = TaxApp.utils.parseCSV(text);
-                            const map = {
-                                upper: document.getElementById('csv-col-upper').value,
-                                rate: document.getElementById('csv-col-rate').value,
-                                qd: document.getElementById('csv-col-qd').value,
-                            };
-                            const rateIsPercent = document.getElementById('csv-rate-is-percent').checked;
-
-                            const newBrackets = data.map(row => ({
-                                upper: parseFloat(row[map.upper]) || Infinity,
-                                rate: parseFloat(row[map.rate]) / (rateIsPercent ? 100 : 1),
-                                qd: parseFloat(row[map.qd]) || 0
-                            }));
-
-                            // Display preview
-                            const previewArea = document.getElementById('csv-preview-area');
-                            previewArea.innerHTML = `<h4>預覽</h4><pre>${JSON.stringify(newBrackets, null, 2)}</pre>
-                            <button type="button" class="main-action" data-action="importCsvBrackets">確認匯入</button>`;
-                            // Store in a temp place for import
-                            previewArea.dataset.brackets = JSON.stringify(newBrackets);
-                        }
-                        break;
-                    case 'importCsvBrackets':
-                        {
-                           const bracketsJSON = document.getElementById('csv-preview-area').dataset.brackets;
-                           TaxApp.state.params.salaryBrackets = JSON.parse(bracketsJSON);
-                           TaxApp.saveState();
-                           TaxApp.ui.renderSalaryBrackets();
-                           TaxApp.ui.showToast('薪資級距已從 CSV 匯入。', 'success');
-                           document.getElementById('csv-preview-area').innerHTML = '';
-                        }
-                        break;
-                    case 'saveVersion':
-                        {
-                            const name = document.getElementById('new-version-name').value.trim();
-                            if (!name) throw new Error("請輸入版本名稱。");
-                            const version = {
-                                id: `v_${new Date().getTime()}`,
-                                name: name,
-                                timestamp: new Date().toISOString(),
-                                params: JSON.parse(JSON.stringify(TaxApp.state.params))
-                            };
-                            TaxApp.state.versions.push(version);
-                            TaxApp.saveState();
-                            TaxApp.ui.renderHistory();
-                            document.getElementById('new-version-name').value = '';
-                        }
-                        break;
-                    case 'loadVersion':
-                        {
-                            const version = TaxApp.state.versions.find(v => v.id === id);
-                            if (version && confirm(`確定要載入版本 "${version.name}" 嗎？當前參數將被覆蓋。`)) {
-                                TaxApp.state.params = JSON.parse(JSON.stringify(version.params)); // deep copy
-                                TaxApp.saveState();
-                                TaxApp.ui.renderInitialView();
-                                TaxApp.ui.showToast(`已載入版本: ${version.name}`, 'success');
-                            }
-                        }
-                        break;
-                    case 'deleteVersion':
-                        {
-                           const version = TaxApp.state.versions.find(v => v.id === id);
-                           if (version && confirm(`確定要刪除版本 "${version.name}" 嗎？`)) {
-                               TaxApp.state.versions = TaxApp.state.versions.filter(v => v.id !== id);
-                               TaxApp.saveState();
-                               TaxApp.ui.renderHistory();
-                           }
-                        }
-                        break;
-                    case 'rollback':
-                        {
-                            const rp = TaxApp.state.restorePoints.find(r => r.id === id);
-                            if (rp && confirm(`確定要回滾到 "${rp.name}" 嗎？所有之後的變更將會遺失。`)) {
-                                TaxApp.state = JSON.parse(JSON.stringify(rp.state)); // deep copy
-                                TaxApp.saveState();
-                                TaxApp.ui.renderInitialView();
-                                TaxApp.ui.showToast('已成功回滾。', 'success');
-                            }
-                        }
-                        break;
-                }
-            } catch (err) {
-                TaxApp.ui.showToast(err.message);
-                console.error(err);
-            }
-        },
-        
-        handleMainContentChange(e) {
-            // Placeholder for potential future use
-        },
-
-        handleCsvPaste(e) {
-            // Delay to allow textarea to populate
-            setTimeout(() => {
-                const text = e.target.value;
-                const lines = text.trim().split(/\r?\n/);
-                if (lines.length < 1) return;
-                
-                const headers = lines[0].split(',').map(h => h.trim());
-                const mappingUI = document.getElementById('csv-mapping-ui');
-                const selects = mappingUI.querySelectorAll('select');
-                
-                selects.forEach(select => {
-                    select.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
-                });
-                mappingUI.style.display = 'block';
-            }, 10);
+      }else{
+        if(amt >= threshold){
+          const capped = Math.min(amt, p.NHI_SINGLE_CAP);
+          total += money(capped * p.NHI_SUPP_RATE);
+          reason = `${tag}_single_payment≥${threshold}`;
+          log.push(`NHI: tag=${tag} threshold=${threshold} → basis=${capped}`);
+        }else{
+          log.push(`NHI: tag=${tag} < threshold(${threshold}) → 0`);
         }
-    };
-    
-    // --- 程式進入點 ---
-    // 註解：使用 DOMContentLoaded 確保 DOM 結構完全載入後再執行腳本。
-    document.addEventListener('DOMContentLoaded', () => {
-        TaxApp.init();
+      }
+    }
+  }
 
-        // 列印事件處理
-        window.onbeforeprint = () => {
-            document.querySelectorAll('details').forEach(d => d.open = true);
-        };
-        // 註解：列印後恢復折疊狀態的功能在此版本中省略，
-        // 因為無法簡單追蹤原始狀態，但 onbeforeprint 確保列印時內容完整。
-    });
+  // 雇主月差額
+  const A = Number(payload.employer_month_total_salary_paid)||0;
+  const B = Number(payload.employer_month_total_insured_wage_sum)||0;
+  if(A > B){
+    const diff = A - B;
+    const part = money(diff * p.NHI_SUPP_RATE);
+    total += part;
+    const r2 = `employer_month_diff=${diff}`;
+    reason = reason==="none" ? r2 : (reason + "; " + r2);
+    log.push(`NHI: employer monthly diff (${A}-${B})=${diff} → +${part}`);
+  }
 
-    </script>
+  return {amount: total, reason};
+}
+
+/* —— 可選 Hook：薪資稅額表 & 退職免稅額 —— */
+/* 
+window.salary_table_calc = function(payload){
+  // TODO: 於此接入「薪資扣繳稅額表」月薪演算法（若使用表列）
+  // 回傳「當月應扣金額（整數）」；若不提供，系統自動用 5% 。
+  return 0;
+};
+window.retire_ex_rule = function(amount, years){
+  // TODO: 退職所得定額免稅額計算（依當年度公告表）
+  return 0;
+};
+*/
+
+/* —— 操作邏輯 —— */
+function gatherInput(){
+  return {
+    tax_year: (window.RUNTIME_PARAMS||DEFAULTS).TAX_YEAR,
+    resident_status: $("#resident_status").value,
+    income_type: $("#income_type").value,
+    payment_amount: Number($("#payment_amount").value||0),
+    monthly_total_salary_for_month: Number($("#monthly_total_salary_for_month").value||0),
+    apply_salary_table_or_5pct: $("#apply_salary_table_or_5pct").value,
+    interest_subtype: $("#interest_subtype").value,
+    dividend_resident_election_note: $("#dividend_resident_election_note").value,
+    nhi_employee_monthly_insured_wage: Number($("#nhi_employee_monthly_insured_wage").value||0),
+    employer_month_total_salary_paid: Number($("#employer_month_total_salary_paid").value||0),
+    employer_month_total_insured_wage_sum: Number($("#employer_month_total_insured_wage_sum").value||0),
+    nhi_item_tag: $("#nhi_item_tag").value,
+    nhi_single_payment_check: $("#nhi_single_payment_check").value,
+    override_params: (window.RUNTIME_PARAMS||{})
+  };
+}
+
+function renderResult(r){
+  out.textContent = JSON.stringify({result:r}, null, 2);
+}
+
+$("#runBtn").onclick = ()=>{
+  const r = computeWithholding(gatherInput());
+  renderResult(r);
+  saveLocal();
+};
+$("#copyBtn").onclick = ()=>{
+  navigator.clipboard?.writeText(out.textContent).then(()=>toast("已複製 JSON")).catch(()=>toast("無法複製（環境不支援）",true));
+};
+
+$("#casePick").onchange = (e)=>{
+  const v = e.target.value;
+  const set = (id,val)=>{ const el=$(id); if(el.tagName==="SELECT") el.value=val; else el.value=val; };
+  // 預載參數
+  window.RUNTIME_PARAMS = Object.assign({}, params());
+  switch(v){
+    case "A": // 居住者 年終 60,000 → 源扣0；NHI：若為六項且達門檻 → 60,000 × 2.11% = 1,266
+      set("#resident_status","resident");
+      set("#income_type","salary_variable");
+      set("#payment_amount",60000);
+      set("#monthly_total_salary_for_month",0);
+      set("#apply_salary_table_or_5pct","5pct");
+      set("#nhi_item_tag","side_salary");
+      set("#nhi_single_payment_check","true");
+      break;
+    case "B": // 非居 月薪 40,000 → 全月 ≤ 42,885 → 6%
+      set("#resident_status","nonresident");
+      set("#income_type","salary_fixed");
+      set("#payment_amount",40000);
+      set("#monthly_total_salary_for_month",40000);
+      set("#nhi_item_tag","none");
+      set("#nhi_single_payment_check","false");
+      break;
+    case "C": // 居住者 執行業務 30,000 → 3,000；NHI：30000 × 2.11% = 633
+      set("#resident_status","resident");
+      set("#income_type","professional");
+      set("#payment_amount",30000);
+      set("#nhi_item_tag","executive_income");
+      set("#nhi_single_payment_check","true");
+      break;
+    case "D": // 居住者 股利 200,000 → 源扣0；NHI：200000 × 2.11% = 4,220
+      set("#resident_status","resident");
+      set("#income_type","dividend");
+      set("#payment_amount",200000);
+      set("#dividend_resident_election_note","combine_with_8p5pct_credit");
+      set("#nhi_item_tag","dividend");
+      set("#nhi_single_payment_check","true");
+      break;
+    case "E": // 居住者 退職 800,000；假設免稅額400,000 → 餘額×6% = 24,000；NHI：不課
+      window.retire_ex_rule = (_amt,_yrs)=>400000;
+      set("#resident_status","resident");
+      set("#income_type","retirement");
+      set("#payment_amount",800000);
+      set("#nhi_item_tag","none");
+      set("#nhi_single_payment_check","false");
+      break;
+    case "F": // 非居 利息（公司債） 100,000 → 15%
+      set("#resident_status","nonresident");
+      set("#income_type","interest");
+      set("#interest_subtype","corp_bond");
+      set("#payment_amount",100000);
+      set("#nhi_item_tag","interest");
+      set("#nhi_single_payment_check","true");
+      break;
+    case "G": // 雇主月差額 1,500,000 - 1,200,000 → 差額×2.11%
+      set("#resident_status","resident");
+      set("#income_type","salary_fixed");
+      set("#payment_amount",50000);
+      set("#monthly_total_salary_for_month",50000);
+      set("#employer_month_total_salary_paid",1500000);
+      set("#employer_month_total_insured_wage_sum",1200000);
+      set("#nhi_item_tag","none");
+      set("#nhi_single_payment_check","false");
+      break;
+  }
+  if(v){ $("#runBtn").click(); }
+};
+
+$("#runAll").onclick = ()=>{
+  const results = [];
+  const orig = JSON.stringify(gatherInput());
+  const order = ["A","B","C","D","E","F","G"];
+  for(const k of order){
+    $("#casePick").value = k;
+    $("#casePick").dispatchEvent(new Event("change"));
+    const r = JSON.parse(out.textContent||"{}");
+    results.push({case:k, result:r.result});
+  }
+  out.textContent = JSON.stringify({batch:results}, null, 2);
+  // 還原
+  try{
+    const back = JSON.parse(orig);
+    // 簡化還原
+    $("#resident_status").value = back.resident_status;
+    $("#income_type").value = back.income_type;
+    $("#payment_amount").value = back.payment_amount;
+  }catch(_){}
+};
+
+function toast(msg, err=false){
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
+    background:${err?'#b00020':'#111'};color:#fff;padding:8px 12px;font:12px var(--sans);z-index:9999`;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 1800);
+}
+
+/* —— 本地儲存 —— */
+function saveLocal(){
+  try{
+    localStorage.setItem("tw_wht_nhi_params", editor.value);
+    const input = gatherInput();
+    delete input.override_params;
+    localStorage.setItem("tw_wht_nhi_lastinput", JSON.stringify(input));
+  }catch(_){}
+}
+(function restore(){
+  try{
+    const s = localStorage.getItem("tw_wht_nhi_params");
+    if(s){ window.RUNTIME_PARAMS = JSON.parse(s); loadParamsToEditor(window.RUNTIME_PARAMS); }
+    const i = localStorage.getItem("tw_wht_nhi_lastinput");
+    if(i){
+      const o = JSON.parse(i);
+      $("#resident_status").value = o.resident_status;
+      $("#income_type").value = o.income_type;
+      $("#payment_amount").value = o.payment_amount;
+      $("#monthly_total_salary_for_month").value = o.monthly_total_salary_for_month;
+      $("#apply_salary_table_or_5pct").value = o.apply_salary_table_or_5pct;
+      $("#interest_subtype").value = o.interest_subtype||"other";
+      $("#dividend_resident_election_note").value = o.dividend_resident_election_note||"none";
+      $("#nhi_employee_monthly_insured_wage").value = o.nhi_employee_monthly_insured_wage||0;
+      $("#employer_month_total_salary_paid").value = o.employer_month_total_salary_paid||0;
+      $("#employer_month_total_insured_wage_sum").value = o.employer_month_total_insured_wage_sum||0;
+      $("#nhi_item_tag").value = o.nhi_item_tag||"none";
+      $("#nhi_single_payment_check").value = String(o.nhi_single_payment_check)!=="false"?"true":"false";
+    }
+  }catch(_){}
+})();
+
+/* —— 預設先算一次 —— */
+$("#runBtn").click();
+</script>
 </body>
 </html>
