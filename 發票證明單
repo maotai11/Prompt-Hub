@@ -1,9 +1,8 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
+<!DOCTYPE html><html lang="zh-Hant">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>發票證明單｜輸入＋上下預覽（對折＆Big5自動偵測）</title>
+<title>發票證明單</title>
 <style>
   body{font-family:"DFKai-SB","PMingLiU",serif;margin:0;background:#fff;color:#000}
   header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;z-index:10}
@@ -18,32 +17,27 @@
   th{background:#fafafa;font-weight:700}
   td[contenteditable]{background:#fff}
   td[contenteditable]:focus{outline:2px solid #09f}
-  .tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}/* 預覽頁（上下各一份；對折） / .page{width:210mm;height:297mm;margin:0 auto 16px;padding:0;box-sizing:border-box;border:1.5px solid #000;display:flex;flex-direction:column;justify-content:space-between} .block{border:1.5px solid #000;padding:0;margin:0;height:48%;display:flex;flex-direction:column;justify-content:flex-start} .title{text-align:center;font-weight:700;font-size:16px;margin:5mm 0;font-family:"DFKai-SB","PMingLiU",serif} .tbl{width:100%;border-collapse:collapse;table-layout:fixed} .tbl th,.tbl td{border:1.5px solid #000;padding:4px;text-align:center;vertical-align:middle;font-size:14px;font-family:"DFKai-SB","PMingLiU",serif} .note-cell{height:24mm;text-align:left;vertical-align:top;padding:4px;font-family:"DFKai-SB","PMingLiU",serif} .union-row td{height:12mm}  / 將『發票聯式』那行高度縮小 */
 
-  /* 預覽頁（上下各一份；對折） */
-  .page{width:210mm;height:297mm;margin:0 auto 16px;padding:0;box-sizing:border-box;border:1.5px solid #000;display:flex;flex-direction:column;justify-content:space-between}
-  .block{border:1.5px solid #000;padding:0;margin:0;height:48%;display:flex;flex-direction:column;justify-content:flex-start}
-  .title{text-align:center;font-weight:700;font-size:16px;margin:5mm 0;font-family:"DFKai-SB","PMingLiU",serif}
-  .tbl{width:100%;border-collapse:collapse;table-layout:fixed}
-  .tbl th,.tbl td{border:1.5px solid #000;padding:4px;text-align:center;vertical-align:middle;font-size:14px;font-family:"DFKai-SB","PMingLiU",serif}
-  .note-cell{height:24mm;text-align:left;vertical-align:top;padding:4px;font-family:"DFKai-SB","PMingLiU",serif}
-  .union-row td{height:12mm}  /* 將『發票聯式』那行高度縮小 */
+/* 五欄格特化樣式（更接近原紙本） / .grid5 th,.grid5 td{border:1.8px solid #000;padding:6px;font-size:15px;font-family:"DFKai-SB","PMingLiU",serif;font-weight:700} .grid5 .hcell{font-weight:700} .grid5 colgroup col:nth-child(1){width:18%} .grid5 colgroup col:nth-child(2){width:18%} .grid5 colgroup col:nth-child(3){width:10%} .grid5 colgroup col:nth-child(4){width:27%} .grid5 colgroup col:nth-child(5){width:27%} .grid5 .data-row{height:24mm} / 將分/算那行加大（與上列對調比例） */
 
-  /* 五欄格特化樣式（更接近原紙本） */
-  .grid5 th,.grid5 td{border:1.8px solid #000;padding:6px;font-size:15px;font-family:"DFKai-SB","PMingLiU",serif;font-weight:700}
-  .grid5 .hcell{font-weight:700}
-  .grid5 colgroup col:nth-child(1){width:18%}
-  .grid5 colgroup col:nth-child(2){width:18%}
-  .grid5 colgroup col:nth-child(3){width:10%}
-  .grid5 colgroup col:nth-child(4){width:27%}
-  .grid5 colgroup col:nth-child(5){width:27%}
-  .grid5 .data-row{height:24mm} /* 將分/算那行加大（與上列對調比例） */
+@media print{header,.noprint{display:none!important}.page{border:none;margin:0}} #toast{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;z-index:9999} .toast{background:#111;color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)} </style>
 
-  @media print{header,.noprint{display:none!important}.page{border:none;margin:0}}
-  #toast{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;z-index:9999}
-  .toast{background:#111;color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
-</style>
-</head>
+<!-- Print fit-to-A4 patch --><style>
+  @page { size: A4 portrait; margin: 8mm; }
+  @media print{
+    body{margin:0}
+    .wrap{max-width:none !important; padding:0 !important; margin:0 !important}
+    header,.noprint{display:none !important}
+    /* 直接顯示預覽頁，避免列印到輸入頁 */
+    #page-input{display:none !important}
+    #page-preview{display:block !important}
+    /* 使每一頁內容剛好填滿 A4 的可列印區域（扣除 @page 的上下左右邊界各 8mm） */
+    .page{width:100% !important; height:calc(297mm - 16mm) !important; margin:0 auto !important; border:none !important; padding:0 !important; break-after:page}
+    /* 上下各半：剛好 1/2 的可列印高度 */
+    .block{height:calc((297mm - 16mm) / 2) !important; margin:0 !important}
+  }
+</style></head>
 <body>
 <header>
   <div class="wrap tabs">
@@ -71,10 +65,7 @@
     <div style="overflow:auto;max-height:60vh;border:1.5px solid #000">
       <table id="grid"><thead><tr id="hdr"></tr></thead><tbody id="body"></tbody></table>
     </div>
-  </section>
-
-  <!-- 預覽頁 -->
-  <section id="page-preview" style="display:none">
+  </section>  <!-- 預覽頁 -->  <section id="page-preview" style="display:none">
     <div class="noprint" style="margin:8px 0">
       <button class="btn primary" data-action="render-preview">重新產生預覽</button>
       <button class="btn" data-action="print">列印 / PDF</button>
@@ -82,9 +73,7 @@
     <div id="preview"></div>
   </section>
 </main>
-<div id="toast"></div>
-
-<script>
+<div id="toast"></div><script>
 (function(){
   const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
   const toast=(m)=>{const d=document.createElement('div');d.className='toast';d.textContent=m;$('#toast').appendChild(d);setTimeout(()=>d.remove(),2400)}
@@ -284,6 +273,5 @@
   buildHeader();
   renderBody();
 })();
-</script>
-</body>
+</script></body>
 </html>
