@@ -2,7 +2,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>發票證明單</title>
+<title>發票證明單｜輸入＋上下預覽（對折＆Big5自動偵測）</title>
 <style>
   body{font-family:"DFKai-SB","PMingLiU",serif;margin:0;background:#fff;color:#000}
   header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;z-index:10}
@@ -29,13 +29,10 @@
     body{margin:0}
     .wrap{max-width:none !important; padding:0 !important; margin:0 !important}
     header,.noprint{display:none !important}
-    /* 直接顯示預覽頁，避免列印到輸入頁 */
     #page-input{display:none !important}
     #page-preview{display:block !important}
-    /* 使每一頁內容剛好填滿 A4 的可列印區域（扣除 @page 的上下左右邊界各 8mm） */
-    .page{width:100% !important; height:calc(297mm - 16mm) !important; margin:0 auto !important; border:none !important; padding:0 !important; break-after:page}
-    /* 上下各半：剛好 1/2 的可列印高度 */
-    .block{height:calc((297mm - 16mm) / 2) !important; margin:0 !important}
+    .page{width:calc(210mm - 16mm) !important; height:calc(297mm - 16mm) !important; margin:0 auto !important; border:none !important; padding:0 !important; break-after:page; box-sizing:border-box}
+    .block{height:calc((297mm - 16mm)/2) !important; width:100% !important; margin:0 !important; box-sizing:border-box}
   }
 </style></head>
 <body>
