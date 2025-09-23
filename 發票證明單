@@ -221,21 +221,23 @@
   function buildBlock(r){
     const title=`<div class=title>${esc(r.roc_year||'')} 年 ${esc(r.month_span||'')} 月份統一發票證明單</div>`;
 
-    // 第一區：公司資訊（左）＋ 備註/金額（右，上下兩行）
+    // 第一區：公司資訊（左）＋ 備註（中）＋ 金額（右） → 同一行三欄；恢復較高行高
     const head=`<table class=tbl style="margin-bottom:4mm">
-      <colgroup><col style="width:66%"><col style="width:34%"></colgroup>
-      <tr>
+      <colgroup>
+        <col style="width:50%"><col style="width:30%"><col style="width:20%">
+      </colgroup>
+      <tr style="height:22mm">
         <td style="text-align:left;vertical-align:top">
           <div style="font-weight:700;font-size:15px">${esc(r.short_name||'')} ${esc(r.company_code||'')}</div>
           <div>統一編號：${esc(r.tax_id||'')}</div>
         </td>
-        <td style="padding:0">
-          <table class=tbl style="width:100%;height:100%;table-layout:fixed">
-            <tr><th>備註</th></tr>
-            <tr><td class=note-cell style="height:16mm;text-align:left">${esc(r.note||'')}&nbsp;</td></tr>
-            <tr><th>金額</th></tr>
-            <tr><td class=note-cell style="height:16mm;text-align:left">銷售額：${fmt(r.sales)}　稅額：${fmt(r.tax)}　總額：${fmt(r.total)}</td></tr>
-          </table>
+        <td style="text-align:left;vertical-align:top">
+          <div style="font-weight:700;border-bottom:1.5px solid #000;margin-bottom:2px;text-align:center">備註</div>
+          <div style="min-height:16mm">${esc(r.note||'')}&nbsp;</div>
+        </td>
+        <td style="text-align:left;vertical-align:top">
+          <div style="font-weight:700;border-bottom:1.5px solid #000;margin-bottom:2px;text-align:center">金額</div>
+          <div style="min-height:16mm">銷售額：${fmt(r.sales)}<br>稅額：${fmt(r.tax)}<br>總額：${fmt(r.total)}</div>
         </td>
       </tr>
     </table>`;
@@ -252,9 +254,11 @@
       </tr>
     </table>`;
 
-    // 第三區：五欄格（分｜算｜客自｜登銷｜登進）
+    // 第三區：五欄格（分｜算｜客自｜登銷｜登進）— 調整欄寬與行高；分欄置中且縮窄
     const grid5=`<table class="tbl grid5" style="margin-top:4mm">
-      <colgroup><col style="width:22%"><col style="width:22%"><col style="width:10%"><col style="width:23%"><col style="width:23%"></colgroup>
+      <colgroup>
+        <col style="width:18%"><col style="width:18%"><col style="width:12%"><col style="width:26%"><col style="width:26%">
+      </colgroup>
       <tr>
         <td class="hcell">分</td>
         <td class="hcell">算</td>
@@ -262,8 +266,8 @@
         <td class="hcell">登銷</td>
         <td class="hcell">登進</td>
       </tr>
-      <tr class="data-row">
-        <td>${esc(dateDisplay(r.date))}&nbsp;</td>
+      <tr class="data-row" style="height:24mm">
+        <td style="text-align:center;vertical-align:middle">${esc(dateDisplay(r.date))}&nbsp;</td>
         <td>&nbsp;</td>
         <td>&nbsp;</td>
         <td>&nbsp;</td>
