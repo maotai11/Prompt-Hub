@@ -2,8 +2,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>發票證明單｜輸入＋上下預覽（對折＆Big5自動偵測）</title>
+<title>發票證明單｜輸入＋上下預覽（A4對分＆Big5偵測）</title>
 <style>
+  :root{ --inner-scale:0.90; --info-fs:14px; --note-fs:12px }
   body{font-family:"DFKai-SB","PMingLiU",serif;margin:0;background:#fff;color:#000}
   header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;z-index:10}
   .wrap{max-width:1120px;margin:0 auto;padding:10px 12px}
@@ -17,27 +18,13 @@
   th{background:#fafafa;font-weight:700}
   td[contenteditable]{background:#fff}
   td[contenteditable]:focus{outline:2px solid #09f}
-  .tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}/* 預覽頁（上下各一份；對折） / .page{width:210mm;height:297mm;margin:0 auto 16px;padding:0;box-sizing:border-box;border:1.5px solid #000;display:flex;flex-direction:column;justify-content:space-between} .block{border:1.5px solid #000;padding:0;margin:0;height:48%;display:flex;flex-direction:column;justify-content:flex-start} .title{text-align:center;font-weight:700;font-size:16px;margin:5mm 0;font-family:"DFKai-SB","PMingLiU",serif} .tbl{width:100%;border-collapse:collapse;table-layout:fixed} .tbl th,.tbl td{border:1.5px solid #000;padding:4px;text-align:center;vertical-align:middle;font-size:14px;font-family:"DFKai-SB","PMingLiU",serif} .note-cell{height:24mm;text-align:left;vertical-align:top;padding:4px;font-family:"DFKai-SB","PMingLiU",serif} .union-row td{height:12mm}  / 將『發票聯式』那行高度縮小 */
+  .tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}/* 預覽頁（A4對分，內縮置中） */ .page{width:210mm;height:297mm;margin:0 auto 16px;padding:0;box-sizing:border-box;border:1.5px solid #000;display:flex;flex-direction:column;justify-content:space-between} .page-inner{width:calc(100% * var(--inner-scale)); margin:0 auto; height:100%; display:flex; flex-direction:column; justify-content:space-between} .block{border:1.5px solid #000;padding:0;margin:0;display:flex;flex-direction:column;justify-content:flex-start} .title{text-align:center;font-weight:700;font-size:16px;margin:5mm 0;font-family:"DFKai-SB","PMingLiU",serif;width:100%} .tbl{width:100%;border-collapse:collapse;table-layout:fixed} .tbl th,.tbl td{border:1.5px solid #000;padding:4px;text-align:center;vertical-align:middle;font-size:14px;font-family:"DFKai-SB","PMingLiU",serif} .note-cell{height:auto;text-align:left;vertical-align:top;padding:4px;font-family:"DFKai-SB","PMingLiU",serif} .info-cell{font-size:var(--info-fs)} .note-text{font-size:var(--note-fs)} .union-row td{height:12mm}
 
-/* 五欄格特化樣式（更接近原紙本） / .grid5 th,.grid5 td{border:1.8px solid #000;padding:6px;font-size:15px;font-family:"DFKai-SB","PMingLiU",serif;font-weight:700} .grid5 .hcell{font-weight:700} .grid5 colgroup col:nth-child(1){width:18%} .grid5 colgroup col:nth-child(2){width:18%} .grid5 colgroup col:nth-child(3){width:10%} .grid5 colgroup col:nth-child(4){width:27%} .grid5 colgroup col:nth-child(5){width:27%} .grid5 .data-row{height:24mm} / 將分/算那行加大（與上列對調比例） */
+/* 五欄格樣式 */ .grid5 th,.grid5 td{border:1.8px solid #000;padding:6px;font-size:15px;font-family:"DFKai-SB","PMingLiU",serif;font-weight:700} .grid5 .hcell{font-weight:700} .grid5 .data-row{height:24mm}
 
-@media print{header,.noprint{display:none!important}.page{border:none;margin:0}} #toast{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;z-index:9999} .toast{background:#111;color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)} </style>
+/* 列印 A4 對分與每頁份數 */ @page { size: A4 portrait; margin: 8mm; } @media print{ body{margin:0} .wrap{max-width:none !important; padding:0 !important; margin:0 !important} header,.noprint{display:none !important} #page-input{display:none !important} #page-preview{display:block !important} .page{width:calc(210mm - 16mm) !important; height:calc(297mm - 16mm) !important; margin:0 auto !important; border:none !important; padding:0 !important; break-after:page; box-sizing:border-box; display:block} .page-inner{width:calc((210mm - 16mm) * var(--inner-scale)); height:100%; margin:0 auto; display:flex; flex-direction:column; justify-content:space-between} .page[data-count="2"] .block{height:calc((297mm - 16mm)/2) !important} .page[data-count="3"] .block{height:calc((297mm - 16mm)/3) !important} .page[data-count="4"] .block{height:calc((297mm - 16mm)/4) !important} } </style>
 
-<!-- Print fit-to-A4 patch with per-page option --><style>
-  @page { size: A4 portrait; margin: 8mm; }
-  @media print{
-    body{margin:0}
-    .wrap{max-width:none !important; padding:0 !important; margin:0 !important}
-    header,.noprint{display:none !important}
-    #page-input{display:none !important}
-    #page-preview{display:block !important}
-    .page{width:calc(210mm - 16mm) !important; height:calc(297mm - 16mm) !important; margin:0 auto !important; border:none !important; padding:0 !important; break-after:page; box-sizing:border-box; display:flex; flex-direction:column}
-    .page[data-count="2"] .block{height:calc((297mm - 16mm)/2) !important}
-    .page[data-count="3"] .block{height:calc((297mm - 16mm)/3) !important}
-    .page[data-count="4"] .block{height:calc((297mm - 16mm)/4) !important}
-    .block{width:100% !important; margin:0 !important; box-sizing:border-box}
-  }
-</style></head>
+</head>
 <body>
 <header>
   <div class="wrap tabs">
@@ -66,7 +53,20 @@
       <table id="grid"><thead><tr id="hdr"></tr></thead><tbody id="body"></tbody></table>
     </div>
   </section>  <!-- 預覽頁 -->  <section id="page-preview" style="display:none">
-    <div class="noprint" style="margin:8px 0">
+    <div class="noprint" style="margin:8px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+      <label>每頁份數
+        <select id="perPageSelect" class="btn">
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </label>
+      <label>公司資訊字體(px)
+        <input type="number" id="infoFont" class="btn" value="14" min="10" max="20" step="1" style="width:80px" />
+      </label>
+      <label>備註字體(px)
+        <input type="number" id="noteFont" class="btn" value="12" min="10" max="20" step="1" style="width:80px" />
+      </label>
       <button class="btn primary" data-action="render-preview">重新產生預覽</button>
       <button class="btn" data-action="print">列印 / PDF</button>
     </div>
@@ -205,15 +205,21 @@
     return out;
   }
 
-  // === 預覽：兩筆一頁，依序塞入（不重複） ===
+  // === 預覽產生：依每頁份數分頁 ===
   function renderPreview(){
     sync(); const prev=$('#preview'); prev.innerHTML=''; if(rows.length==0){ prev.innerHTML='<div class=noprint>無資料</div>'; return; }
-    for(let i=0;i<rows.length;i+=2){
-      const page=document.createElement('div'); page.className='page';
-      const r1=rows[i]; const r2=rows[i+1];
-      const blk1=document.createElement('div'); blk1.className='block'; blk1.innerHTML=buildBlock(r1); page.appendChild(blk1);
-      const blk2=document.createElement('div'); blk2.className='block'; blk2.innerHTML= r2 ? buildBlock(r2) : ''; page.appendChild(blk2);
-      prev.appendChild(page);
+    const per = parseInt($('#perPageSelect')?.value||'2',10);
+    // 設定字體大小變數
+    const infoFS = parseInt($('#infoFont')?.value||'14',10);
+    const noteFS = parseInt($('#noteFont')?.value||'12',10);
+    document.documentElement.style.setProperty('--info-fs', infoFS+'px');
+    document.documentElement.style.setProperty('--note-fs', noteFS+'px');
+
+    for(let i=0;i<rows.length;i+=per){
+      const page=document.createElement('div'); page.className='page'; page.dataset.count=String(per);
+      const inner=document.createElement('div'); inner.className='page-inner';
+      rows.slice(i,i+per).forEach(r=>{ const blk=document.createElement('div'); blk.className='block'; blk.innerHTML=buildBlock(r); inner.appendChild(blk); });
+      page.appendChild(inner); prev.appendChild(page);
     }
   }
 
@@ -221,24 +227,18 @@
   function buildBlock(r){
     const title=`<div class=title>${esc(r.roc_year||'')} 年 ${esc(r.month_span||'')} 月份統一發票證明單</div>`;
 
-    // 第一區：公司資訊（左）＋ 備註（中）＋ 金額（右） → 同一行三欄；恢復較高行高
+    // 第一區：公司資訊（左）＋ 備註（中）＋ 金額（右）
     const head=`<table class=tbl style="margin-bottom:4mm">
       <colgroup>
         <col style="width:50%"><col style="width:30%"><col style="width:20%">
       </colgroup>
       <tr style="height:22mm">
-        <td style="text-align:left;vertical-align:top">
+        <td class="info-cell" style="text-align:left;vertical-align:top">
           <div style="font-weight:700;font-size:15px">${esc(r.short_name||'')} ${esc(r.company_code||'')}</div>
           <div>統一編號：${esc(r.tax_id||'')}</div>
         </td>
-        <td style="text-align:left;vertical-align:top">
-          <div style="font-weight:700;border-bottom:1.5px solid #000;margin-bottom:2px;text-align:center">備註</div>
-          <div style="min-height:16mm">${esc(r.note||'')}&nbsp;</div>
-        </td>
-        <td style="text-align:left;vertical-align:top">
-          <div style="font-weight:700;border-bottom:1.5px solid #000;margin-bottom:2px;text-align:center">金額</div>
-          <div style="min-height:16mm">銷售額：${fmt(r.sales)}<br>稅額：${fmt(r.tax)}<br>總額：${fmt(r.total)}</div>
-        </td>
+        <td class="note-cell"><div class="note-text">${esc(r.note||'')}&nbsp;</div></td>
+        <td class="note-cell"><div class="note-text">銷售額：${fmt(r.sales)}<br>稅額：${fmt(r.tax)}<br>總額：${fmt(r.total)}</div></td>
       </tr>
     </table>`;
 
@@ -254,7 +254,7 @@
       </tr>
     </table>`;
 
-    // 第三區：五欄格（分｜算｜客自｜登銷｜登進）— 調整欄寬與行高；分欄置中且縮窄
+    // 第三區：五欄格（分｜算｜客自｜登銷｜登進）
     const grid5=`<table class="tbl grid5" style="margin-top:4mm">
       <colgroup>
         <col style="width:18%"><col style="width:18%"><col style="width:12%"><col style="width:26%"><col style="width:26%">
@@ -266,7 +266,7 @@
         <td class="hcell">登銷</td>
         <td class="hcell">登進</td>
       </tr>
-      <tr class="data-row" style="height:24mm">
+      <tr class="data-row">
         <td style="text-align:center;vertical-align:middle">${esc(dateDisplay(r.date))}&nbsp;</td>
         <td>&nbsp;</td>
         <td>&nbsp;</td>
@@ -292,6 +292,12 @@
   function applyDate(val){ const marked=$$('#body .rowSel:checked'); if(marked.length===0){ toast('請先勾選要套用的列'); return; } marked.forEach(chk=>{ const tr=chk.closest('tr'); const cell=tr.querySelector('td[data-key="date"]'); if(cell){ cell.textContent=val; } }); sync(); toast('已套用日期'); }
 
   document.addEventListener('click',e=>{const t=e.target.closest('.tab');if(!t)return;$$('.tab').forEach(b=>b.classList.remove('active'));t.classList.add('active');$('#page-input').style.display=(t.dataset.tab==='input')?'block':'none';$('#page-preview').style.display=(t.dataset.tab==='preview')?'block':'none';if(t.dataset.tab==='preview')renderPreview();});
+
+  // 即時預覽：字體大小變更 & 份數切換
+  ['perPageSelect','infoFont','noteFont'].forEach(id=>{
+    document.addEventListener('input', (e)=>{ if(e.target && e.target.id===id){ renderPreview(); }});
+    document.addEventListener('change', (e)=>{ if(e.target && e.target.id===id){ renderPreview(); }});
+  });
 
   buildHeader();
   renderBody();
