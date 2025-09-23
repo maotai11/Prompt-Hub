@@ -23,7 +23,7 @@
 
 @media print{header,.noprint{display:none!important}.page{border:none;margin:0}} #toast{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px;z-index:9999} .toast{background:#111;color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2)} </style>
 
-<!-- Print fit-to-A4 patch --><style>
+<!-- Print fit-to-A4 patch with per-page option --><style>
   @page { size: A4 portrait; margin: 8mm; }
   @media print{
     body{margin:0}
@@ -31,8 +31,11 @@
     header,.noprint{display:none !important}
     #page-input{display:none !important}
     #page-preview{display:block !important}
-    .page{width:calc(210mm - 16mm) !important; height:calc(297mm - 16mm) !important; margin:0 auto !important; border:none !important; padding:0 !important; break-after:page; box-sizing:border-box}
-    .block{height:calc((297mm - 16mm)/2) !important; width:100% !important; margin:0 !important; box-sizing:border-box}
+    .page{width:calc(210mm - 16mm) !important; height:calc(297mm - 16mm) !important; margin:0 auto !important; border:none !important; padding:0 !important; break-after:page; box-sizing:border-box; display:flex; flex-direction:column}
+    .page[data-count="2"] .block{height:calc((297mm - 16mm)/2) !important}
+    .page[data-count="3"] .block{height:calc((297mm - 16mm)/3) !important}
+    .page[data-count="4"] .block{height:calc((297mm - 16mm)/4) !important}
+    .block{width:100% !important; margin:0 !important; box-sizing:border-box}
   }
 </style></head>
 <body>
@@ -217,27 +220,46 @@
   // === 單份版面 ===
   function buildBlock(r){
     const title=`<div class=title>${esc(r.roc_year||'')} 年 ${esc(r.month_span||'')} 月份統一發票證明單</div>`;
+
+    // 第一區：公司資訊（左）＋ 備註/金額（右，上下兩行）
+    const head=`<table class=tbl style="margin-bottom:4mm">
+      <colgroup><col style="width:66%"><col style="width:34%"></colgroup>
+      <tr>
+        <td style="text-align:left;vertical-align:top">
+          <div style="font-weight:700;font-size:15px">${esc(r.short_name||'')} ${esc(r.company_code||'')}</div>
+          <div>統一編號：${esc(r.tax_id||'')}</div>
+        </td>
+        <td style="padding:0">
+          <table class=tbl style="width:100%;height:100%;table-layout:fixed">
+            <tr><th>備註</th></tr>
+            <tr><td class=note-cell style="height:16mm;text-align:left">${esc(r.note||'')}&nbsp;</td></tr>
+            <tr><th>金額</th></tr>
+            <tr><td class=note-cell style="height:16mm;text-align:left">銷售額：${fmt(r.sales)}　稅額：${fmt(r.tax)}　總額：${fmt(r.total)}</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>`;
+
+    // 第二區：聯式/字軌/起訖（4 欄）
     const top=`<table class=tbl>
-      <tr><td colspan=6 style="text-align:left;font-weight:700;font-size:15px">${esc(r.short_name||'')} ${esc(r.company_code||'')}</td></tr>
-      <tr><td colspan=6 style="text-align:left">統一編號：${esc(r.tax_id||'')}</td></tr>
-      <tr><th>發票聯式</th><th>字軌</th><th>使用發票起訖號</th><th>空白發票起訖號</th><th>備註</th><th>金額</th></tr>
+      <colgroup><col style="width:12%"><col style="width:12%"><col style="width:38%"><col style="width:38%"></colgroup>
+      <tr><th>發票聯式</th><th>字軌</th><th>使用發票起訖號</th><th>空白發票起訖號</th></tr>
       <tr class="union-row">
         <td>${esc(r.union_type||'')}</td>
         <td>${esc(r.series||'')}</td>
         <td>${esc(r.used_range||'')}</td>
         <td>${esc(r.blank_range||'')}</td>
-        <td class=note-cell>${esc(r.note||'')}&nbsp;</td>
-        <td class=note-cell>銷售額：${fmt(r.sales)}<br>稅額：${fmt(r.tax)}<br>總額：${fmt(r.total)}</td>
       </tr>
     </table>`;
 
+    // 第三區：五欄格（分｜算｜客自｜登銷｜登進）
     const grid5=`<table class="tbl grid5" style="margin-top:4mm">
-      <colgroup><col><col><col><col><col></colgroup>
+      <colgroup><col style="width:22%"><col style="width:22%"><col style="width:10%"><col style="width:23%"><col style="width:23%"></colgroup>
       <tr>
         <td class="hcell">分</td>
         <td class="hcell">算</td>
         <td class="hcell">客<br>自</td>
-        <td class="hcell">登錄</td>
+        <td class="hcell">登銷</td>
         <td class="hcell">登進</td>
       </tr>
       <tr class="data-row">
@@ -249,7 +271,7 @@
       </tr>
     </table>`;
 
-    return title + top + grid5;
+    return title + head + top + grid5;
   }
 
   function fmt(v){if(!v)return'';const n=+String(v).replace(/,/g,'');return isFinite(n)?n.toLocaleString('zh-TW'):v}
