@@ -5,76 +5,78 @@
 更新日：2025-09-23
 
 === 年度參數（每年更新） 快速說明 ===
-1) 只要改動 <script> 內的 CONFIG_YYYY 區塊（或用頁面的「年度參數面板」覆寫），就能換年。
+1) 只要改動 <script> 內的 CONFIG_YYYY 區塊（或用頁面的「年度參數面板」覆寫）就能換年。
 2) 每年建議檢查：
    - MIN_WAGE_MONTHLY（基本工資月薪）
    - BONUS_THRESHOLD（變動薪資每次起扣標準）
    - NHI_SUPP_RATE / NHI_SINGLE_MIN_GENERAL / NHI_SINGLE_CAP（補充保費費率、單次門檻、單次上限）
-   - 稅率（非居薪資 6%/18%、利息 15%/20%、股利非居 21%、退職 6%/18% 等）
-3) 若機關版本對「格式代號」或「名目」有在地差異，請在 FORMAT_CODE_DICT 與 NHI 名目列舉處覆寫。
-
-參考依據（節選）：
-- 財政部稅務入口網：114年起扣金額 88,501、非居 6%/18%、各類扣繳率、退職6%/18% 等（114-01-09）。 
-- 健保署：補充保費費率 2.11%、六項名目單次達 20,000（兼職薪資門檻＝基本工資）、單次上限 10,000,000、雇主月差額×2.11%。
-- 114 年基本工資：月薪 28,590；時薪 190。
-- 股利（居住者）：8.5% 抵減上限 80,000 或 28% 分離課稅。
+   - 各類扣繳稅率（非居薪資 6%/18%、利息 15%/20%、股利非居 21%、退職 6%/18% …）
 -->
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=480, initial-scale=1">
-<title>台灣源泉扣繳＋二代健保補充保費 計算器（離線版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台灣源泉扣繳＋二代健保補充保費 計算器（桌面版・離線）</title>
 <style>
 :root{
-  --w: 440px; --bg:#f6f6f6; --ink:#111; --muted:#6b6b6b;
+  /* 桌面優先：最大 1200px；行動裝置縮到視窗寬 */
+  --page-w: min(1200px, calc(100vw - 48px));
+  --bg:#f6f6f6; --ink:#111; --muted:#6b6b6b;
   --red:#c1121f; --blk:#0b0b0b; --accent:#1f4e79; --paper:#fff;
-  --gap:14px; --line:1.5; --shadow:0 8px 28px rgba(0,0,0,.08);
+  --gap:16px; --line:1.5; --shadow:0 8px 28px rgba(0,0,0,.08);
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}
-.wrapper{width:var(--w);max-width:calc(100vw - 24px);margin:20px auto}
+.wrapper{width:var(--page-w);margin:20px auto}
 .card{
+  width:100%;
   background:var(--paper); border:6px solid var(--blk); outline:12px solid #fff;
-  box-shadow:var(--shadow); overflow:clip;
+  box-shadow:var(--shadow); overflow:clip; position:relative;
+  opacity:0; transform:translateY(6px)
 }
-.bar-top{display:grid;grid-template-columns:1fr 120px;height:48px;border-bottom:6px solid var(--blk)}
+.card.ready{opacity:1; transform:none; transition:opacity .5s ease, transform .5s ease}
+.bar-top{display:grid;grid-template-columns:1fr 160px;height:52px;border-bottom:6px solid var(--blk)}
 .bar-top .l{background:linear-gradient(90deg,var(--red) 0 60%, #fff 60%)}
 .bar-top .r{background:var(--accent);border-left:6px solid var(--blk)}
 .head{padding:16px 18px 8px 18px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
-.title{font-weight:800;font-size:20px;letter-spacing:.3px}
+.title{font-weight:800;font-size:22px;letter-spacing:.3px}
 .tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;padding:2px 8px;background:#000;color:#fff}
 .meta{padding:0 18px 12px;border-bottom:6px solid var(--blk);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .badge{font:12px var(--mono);border:2px solid #000;padding:3px 8px;background:#fff}
-.content{padding:16px 18px 18px;display:grid;gap:var(--gap)}
-.block{border-left:10px solid var(--red);padding-left:12px}
-.block h3{margin:0 0 8px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase}
+.stamp{position:absolute;right:-36px;top:88px;transform:rotate(-16deg);
+  padding:6px 12px;background:var(--red);color:#fff;border:4px solid #000;font:800 12px var(--sans);letter-spacing:1.8px}
+
+/* 主要內容：桌面雙欄；小螢幕單欄 */
+.content{padding:16px 18px 18px}
+.grid2{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+@media (min-width: 960px){
+  .grid2{grid-template-columns:1.1fr .9fr}
+}
+.block{border-left:10px solid var(--red);padding-left:12px;margin-bottom:var(--gap)}
+.block h3{margin:0 0 10px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase}
 .block .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:720px){ .block .row{grid-template-columns:1fr} }
+
 input[type="number"],select,textarea{
   width:100%;font:14px/1.4 var(--sans);padding:8px;border:2px solid #222;background:#fff
 }
 textarea{min-height:120px;resize:vertical}
-.btn{
-  appearance:none;border:0;background:#000;color:#fff;padding:10px 12px;font-weight:700;cursor:pointer
-}
+.btn{appearance:none;border:0;background:#000;color:#fff;padding:10px 12px;font-weight:700;cursor:pointer}
 .btn.ghost{background:#fff;color:#000;border:2px solid #000}
 .btn.small{padding:7px 10px;font-size:12px}
-.kv{display:grid;grid-template-columns:1fr auto;gap:8px}
+.flex{display:flex;gap:8px;flex-wrap:wrap}
+.note{font-size:12px;color:var(--muted)}
 pre{
   overflow:auto; background:#111; color:#f0f0f0; padding:12px; font:12px/1.5 var(--mono);
-  max-height:320px
+  max-height:560px; /* 桌面拉高顯示區 */
+  white-space:pre; word-break:break-word;
 }
-.note{font-size:12px;color:var(--muted)}
-.footer{padding:10px 18px 18px;font-size:12px;color:#444}
+.footer{padding:6px 18px 18px;font-size:12px;color:#444}
 hr{border:0;border-top:2px solid #000;margin:0}
-.flex{display:flex;gap:8px;flex-wrap:wrap}
 .summary{background:#fef3f2;border:2px dashed #d00;padding:10px;font:12px/1.5 var(--mono)}
 details summary{cursor:pointer}
-.stamp{position:absolute;right:-36px;top:110px;transform:rotate(-16deg);
-  padding:6px 12px;background:var(--red);color:#fff;border:4px solid #000;font:800 12px var(--sans);letter-spacing:1.8px}
-.card{position:relative;opacity:0;transform:translateY(6px)}
-.card.ready{opacity:1;transform:none;transition:opacity .5s ease, transform .5s ease}
 </style>
 </head>
 <body>
@@ -84,7 +86,7 @@ details summary{cursor:pointer}
     <div class="stamp" aria-hidden="true">TAX / NHI</div>
 
     <header class="head">
-      <h1 id="ttl" class="title">各類所得源泉扣繳＋二代健保補充保費 · 計算器</h1>
+      <h1 id="ttl" class="title">各類所得源泉扣繳＋二代健保補充保費 · 計算器（桌面版）</h1>
       <span class="tag">Offline</span>
     </header>
 
@@ -97,171 +99,176 @@ details summary{cursor:pointer}
     </section>
 
     <section class="content">
+      <div class="grid2">
+        <!-- 左欄：年度參數＋輸入 -->
+        <div>
+          <!-- 年度參數（可視化覆寫） -->
+          <section class="block">
+            <h3>年度參數面板（每年更新）</h3>
+            <div class="summary">
+              <!-- === 年度參數（每年更新） ===
+                   若要換年，優先更新下方 JSON（或修改程式內 CONFIG_2025 區塊） -->
+              <textarea id="paramEditor" spellcheck="false"></textarea>
+              <div class="flex" style="margin-top:8px">
+                <button class="btn small" id="applyParams">套用參數</button>
+                <button class="btn small ghost" id="resetParams">還原預設(2025)</button>
+              </div>
+              <div class="note">提示：改這裡即可換年（基本工資、起扣、補充保費率…）。</div>
+            </div>
+          </section>
 
-      <!-- 年度參數（可視化覆寫） -->
-      <section class="block">
-        <h3>年度參數面板（每年更新）</h3>
-        <div class="summary">
-          <!-- === 年度參數（每年更新） ===
-               若要換年，優先更新下方 JSON（或修改程式內 CONFIG_2025 區塊） -->
-          <textarea id="paramEditor" spellcheck="false"></textarea>
-          <div class="flex" style="margin-top:8px">
-            <button class="btn small" id="applyParams">套用參數</button>
-            <button class="btn small ghost" id="resetParams">還原預設(2025)</button>
-          </div>
-          <div class="note">提示：改這裡即可換年（基本工資、起扣、補充保費率…）。</div>
+          <!-- 輸入區 -->
+          <section class="block">
+            <h3>輸入</h3>
+            <div class="row">
+              <div>
+                <label>居住身分</label>
+                <select id="resident_status">
+                  <option value="resident">resident（居住者）</option>
+                  <option value="nonresident">nonresident（非居）</option>
+                </select>
+              </div>
+              <div>
+                <label>所得類別</label>
+                <select id="income_type">
+                  <option value="salary_fixed">salary_fixed（固定月薪）</option>
+                  <option value="salary_variable">salary_variable（變動薪資/年終/兼職）</option>
+                  <option value="professional">professional（執行業務）</option>
+                  <option value="rent">rent（租金）</option>
+                  <option value="royalty">royalty（權利金）</option>
+                  <option value="prize">prize（競技/中獎）</option>
+                  <option value="interest">interest（利息）</option>
+                  <option value="dividend">dividend（股利）</option>
+                  <option value="retirement">retirement（退職/退休）</option>
+                  <option value="other">other（其他）</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>本次給付金額（payment_amount）</label>
+                <input id="payment_amount" type="number" min="0" step="1" value="60000">
+              </div>
+              <div>
+                <label>當月薪資總額（monthly_total_salary_for_month）</label>
+                <input id="monthly_total_salary_for_month" type="number" min="0" step="1" value="0">
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>薪資表列或 5%（apply_salary_table_or_5pct）</label>
+                <select id="apply_salary_table_or_5pct">
+                  <option value="5pct">5pct</option>
+                  <option value="table">table（需自備稅額表函式）</option>
+                </select>
+              </div>
+              <div>
+                <label>利息細類（interest_subtype）</label>
+                <select id="interest_subtype">
+                  <option value="other">other</option>
+                  <option value="gov_bond">gov_bond（公債/金資券等）</option>
+                  <option value="corp_bond">corp_bond（公司債/金融債/短票等）</option>
+                  <option value="deposit">deposit（存款息）</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>股利結算選擇（居民）</label>
+                <select id="dividend_resident_election_note">
+                  <option value="none">none</option>
+                  <option value="28pct_separate">28% 分離課稅</option>
+                  <option value="combine_with_8p5pct_credit">併入＋8.5% 抵減(上限8萬)</option>
+                </select>
+              </div>
+              <div>
+                <label>NHI 投保金額（員工本人，年終超額判斷用）</label>
+                <input id="nhi_employee_monthly_insured_wage" type="number" min="0" step="1" value="45000">
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>雇主月薪資總額</label>
+                <input id="employer_month_total_salary_paid" type="number" min="0" step="1" value="0">
+              </div>
+              <div>
+                <label>雇主當月投保金額總額</label>
+                <input id="employer_month_total_insured_wage_sum" type="number" min="0" step="1" value="0">
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>NHI 名目（六項）</label>
+                <select id="nhi_item_tag">
+                  <option value="none">none（不課）</option>
+                  <option value="side_salary">side_salary（兼職/非經常薪資）</option>
+                  <option value="executive_income">executive_income（執行業務）</option>
+                  <option value="dividend">dividend（股利）</option>
+                  <option value="interest">interest（利息）</option>
+                  <option value="rent">rent（租金）</option>
+                  <option value="year_end_excess">year_end_excess（年終超過4×投保）</option>
+                </select>
+              </div>
+              <div>
+                <label>啟用 NHI 單筆檢核</label>
+                <select id="nhi_single_payment_check">
+                  <option value="true">true</option>
+                  <option value="false">false</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex">
+              <button class="btn" id="runBtn">計算</button>
+              <button class="btn ghost" id="copyBtn">複製結果 JSON</button>
+              <select id="casePick" class="btn small" style="background:#fff;color:#000;border:2px solid #000">
+                <option value="">載入測試案例…</option>
+                <option value="A">A 居住者 年終 60,000</option>
+                <option value="B">B 非居 月薪 40,000（6%）</option>
+                <option value="C">C 居住者 執行業務 30,000</option>
+                <option value="D">D 居住者 股利 200,000</option>
+                <option value="E">E 居住者 退職 800,000（免稅額外部）</option>
+                <option value="F">F 非居 利息 公司債 100,000（15%）</option>
+                <option value="G">G 雇主月差額 1,500,000 - 1,200,000</option>
+              </select>
+              <button class="btn small" id="runAll">全部測試</button>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <!-- 輸入區 -->
-      <section class="block">
-        <h3>輸入</h3>
-        <div class="row">
-          <div>
-            <label>居住身分</label>
-            <select id="resident_status">
-              <option value="resident">resident（居住者）</option>
-              <option value="nonresident">nonresident（非居）</option>
-            </select>
-          </div>
-          <div>
-            <label>所得類別</label>
-            <select id="income_type">
-              <option value="salary_fixed">salary_fixed（固定月薪）</option>
-              <option value="salary_variable">salary_variable（變動薪資/年終/兼職）</option>
-              <option value="professional">professional（執行業務）</option>
-              <option value="rent">rent（租金）</option>
-              <option value="royalty">royalty（權利金）</option>
-              <option value="prize">prize（競技/中獎）</option>
-              <option value="interest">interest（利息）</option>
-              <option value="dividend">dividend（股利）</option>
-              <option value="retirement">retirement（退職/退休）</option>
-              <option value="other">other（其他）</option>
-            </select>
+        <!-- 右欄：輸出＋法規 -->
+        <div>
+          <section class="block">
+            <h3>輸出</h3>
+            <pre id="outJSON" aria-label="result json"></pre>
+            <div class="note">含：withholding_tax_amount、rate、tax_base_used、exemption_trigger、nhi_surcharge_amount、nhi_basis_reason、log、law_notes、slip_info。</div>
+          </section>
+
+          <section class="block">
+            <h3>法規備註（摘要）</h3>
+            <ul class="note" style="margin-left:14px">
+              <li>居住者認定：年度境內居留 ≥183 天。</li>
+              <li>居住者薪資：表或 5%；月薪「每月 ≤2,000 免扣」。變動薪資每次起扣：114 年度 88,501。</li>
+              <li>非居薪資：18%；但全月 ≤ 1.5×基本工資者 6%。114 年基本工資（月）：28,590。</li>
+              <li>10% 類（執行業務、租金、權利金、競技/中獎）：居 10%（≤2,000 免扣），非居 20%。</li>
+              <li>利息：居 10%；非居：債券/短票等 15%，其餘 20%（可覆寫品項）。</li>
+              <li>股利：居 0% 源扣；結算擇一（28% 分離 或 併入＋8.5% 抵減上限 80,000）；非居 21%。</li>
+              <li>退職：扣除免稅額後，居 6%，非居 18% 源扣。</li>
+              <li>二代健保補充保費：費率 2.11%；六項名目單次達 20,000（兼職薪資門檻＝基本工資）；單次上限 10,000,000；另有雇主月差額×2.11%。</li>
+            </ul>
+          </section>
+
+          <div class="footer">
+            桌面版：雙欄寬版顯示；行動裝置自動轉單欄。計算核心純函式，仍可抽出到任何前端框架。
           </div>
         </div>
-
-        <div class="row">
-          <div>
-            <label>本次給付金額（payment_amount）</label>
-            <input id="payment_amount" type="number" min="0" step="1" value="60000">
-          </div>
-          <div>
-            <label>當月薪資總額（monthly_total_salary_for_month）</label>
-            <input id="monthly_total_salary_for_month" type="number" min="0" step="1" value="0">
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label>薪資表列或 5%（apply_salary_table_or_5pct）</label>
-            <select id="apply_salary_table_or_5pct">
-              <option value="5pct">5pct</option>
-              <option value="table">table（需自備稅額表函式）</option>
-            </select>
-          </div>
-          <div>
-            <label>利息細類（interest_subtype）</label>
-            <select id="interest_subtype">
-              <option value="other">other</option>
-              <option value="gov_bond">gov_bond（公債/金資券等）</option>
-              <option value="corp_bond">corp_bond（公司債/金融債/短票等）</option>
-              <option value="deposit">deposit（存款息）</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label>股利結算選擇（居民）</label>
-            <select id="dividend_resident_election_note">
-              <option value="none">none</option>
-              <option value="28pct_separate">28% 分離課稅</option>
-              <option value="combine_with_8p5pct_credit">併入＋8.5% 抵減(上限8萬)</option>
-            </select>
-          </div>
-          <div>
-            <label>NHI 投保金額（員工本人，年終超額判斷用）</label>
-            <input id="nhi_employee_monthly_insured_wage" type="number" min="0" step="1" value="45000">
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label>雇主月薪資總額</label>
-            <input id="employer_month_total_salary_paid" type="number" min="0" step="1" value="0">
-          </div>
-          <div>
-            <label>雇主當月投保金額總額</label>
-            <input id="employer_month_total_insured_wage_sum" type="number" min="0" step="1" value="0">
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label>NHI 名目（六項）</label>
-            <select id="nhi_item_tag">
-              <option value="none">none（不課）</option>
-              <option value="side_salary">side_salary（兼職/非經常薪資）</option>
-              <option value="executive_income">executive_income（執行業務）</option>
-              <option value="dividend">dividend（股利）</option>
-              <option value="interest">interest（利息）</option>
-              <option value="rent">rent（租金）</option>
-              <option value="year_end_excess">year_end_excess（年終超過4×投保）</option>
-            </select>
-          </div>
-          <div>
-            <label>啟用 NHI 單筆檢核</label>
-            <select id="nhi_single_payment_check">
-              <option value="true">true</option>
-              <option value="false">false</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex">
-          <button class="btn" id="runBtn">計算</button>
-          <button class="btn ghost" id="copyBtn">複製結果 JSON</button>
-          <select id="casePick" class="btn small" style="background:#fff;color:#000;border:2px solid #000">
-            <option value="">載入測試案例…</option>
-            <option value="A">A 居住者 年終 60,000</option>
-            <option value="B">B 非居 月薪 40,000（6%）</option>
-            <option value="C">C 居住者 執行業務 30,000</option>
-            <option value="D">D 居住者 股利 200,000</option>
-            <option value="E">E 居住者 退職 800,000（免稅額外部）</option>
-            <option value="F">F 非居 利息 公司債 100,000（15%）</option>
-            <option value="G">G 雇主月差額 1,500,000 - 1,200,000</option>
-          </select>
-          <button class="btn small" id="runAll">全部測試</button>
-        </div>
-      </section>
-
-      <!-- 輸出區 -->
-      <section class="block">
-        <h3>輸出</h3>
-        <pre id="outJSON" aria-label="result json"></pre>
-        <div class="note">含：withholding_tax_amount、rate、tax_base_used、exemption_trigger、nhi_surcharge_amount、nhi_basis_reason、log、law_notes、slip_info。</div>
-      </section>
-
-      <!-- 法規備註（靜態） -->
-      <section class="block">
-        <h3>法規備註（摘要）</h3>
-        <ul class="note">
-          <li>居住者認定：年度境內居留 ≥183 天。</li>
-          <li>居住者薪資：表或 5%；月薪「每月 ≤2,000 免扣」。變動薪資每次起扣：114 年度 88,501。</li>
-          <li>非居薪資：18%；但全月 ≤ 1.5×基本工資者 6%。114 年基本工資（月）：28,590。</li>
-          <li>10% 類（執行業務、租金、權利金、競技/中獎）：居 10%（≤2,000 免扣），非居 20%。</li>
-          <li>利息：居 10%；非居：債券/短票等 15%，其餘 20%（可覆寫品項）。</li>
-          <li>股利：居 0% 源扣；結算擇一（28% 分離 或 併入＋8.5% 抵減上限 80,000）；非居 21%。</li>
-          <li>退職：扣除免稅額後，居 6%，非居 18% 源扣。</li>
-          <li>二代健保補充保費：費率 2.11%；六項名目單次達 20,000（兼職薪資門檻＝基本工資）；單次上限 10,000,000；另有雇主月差額×2.11%。</li>
-        </ul>
-      </section>
+      </div>
     </section>
-
-    <div class="footer">
-      介面代碼採用單檔模式；計算核心純函式，易於抽出到任意前端框架。若需接入「薪資稅額表」或「退職免稅額」請見下列程式中的 hook。
-    </div>
   </article>
 </main>
 
@@ -305,7 +312,6 @@ const CONFIG_2025 = {
 };
 /* =============================== */
 
-/* —— UI 初始化 —— */
 const $ = (q)=>document.querySelector(q);
 const out = $("#outJSON");
 const editor = $("#paramEditor");
@@ -428,7 +434,6 @@ function computeWithholding(payload){
           log.push("Step2: resident salary 5%");
           applyTax(p.RATE_SALARY_RESIDENT_5PCT);
         }
-        // 月薪：每月 ≤ 2,000 免扣
         if(res.withholding_tax_amount <= p.RESIDENT_SMALL_TAX_EXEMPT){
           res.exemption_trigger = appendTrig(res.exemption_trigger, "resident_monthly_small_tax=true");
           res.withholding_tax_amount = 0;
@@ -447,7 +452,6 @@ function computeWithholding(payload){
           log.push("Step2: resident variable salary < threshold → 免扣");
         }else{
           log.push("Step2: resident variable salary ≥ threshold → 5%");
-          // 非每月給付不適用 2,000 小額免扣
           applyTax(p.RATE_SALARY_RESIDENT_5PCT, {smallExemptCheck:false});
         }
       }else{
@@ -523,7 +527,6 @@ function computeWithholding(payload){
     }
   }
 
-  // NHI 補充保費計算
   const nhi = computeNHI(payload, p, log);
   res.nhi_surcharge_amount = nhi.amount;
   res.nhi_basis_reason = nhi.reason;
@@ -569,7 +572,6 @@ function computeNHI(payload, p, log){
     }
   }
 
-  // 雇主月差額
   const A = Number(payload.employer_month_total_salary_paid)||0;
   const B = Number(payload.employer_month_total_insured_wage_sum)||0;
   if(A > B){
@@ -580,27 +582,18 @@ function computeNHI(payload, p, log){
     reason = reason==="none" ? r2 : (reason + "; " + r2);
     log.push(`NHI: employer monthly diff (${A}-${B})=${diff} → +${part}`);
   }
-
   return {amount: total, reason};
 }
 
-/* —— 可選 Hook：薪資稅額表 & 退職免稅額 —— */
-/* 
-window.salary_table_calc = function(payload){
-  // TODO: 於此接入「薪資扣繳稅額表」月薪演算法（若使用表列）
-  // 回傳「當月應扣金額（整數）」；若不提供，系統自動用 5% 。
-  return 0;
-};
-window.retire_ex_rule = function(amount, years){
-  // TODO: 退職所得定額免稅額計算（依當年度公告表）
-  return 0;
-};
+/* 可選 Hook：薪資稅額表 & 退職免稅額
+window.salary_table_calc = function(payload){ return 0; };
+window.retire_ex_rule = function(amount, years){ return 0; };
 */
 
 /* —— 操作邏輯 —— */
 function gatherInput(){
   return {
-    tax_year: (window.RUNTIME_PARAMS||DEFAULTS).TAX_YEAR,
+    tax_year: (window.RUNTIME_PARAMS||CONFIG_2025).TAX_YEAR,
     resident_status: $("#resident_status").value,
     income_type: $("#income_type").value,
     payment_amount: Number($("#payment_amount").value||0),
@@ -616,10 +609,7 @@ function gatherInput(){
     override_params: (window.RUNTIME_PARAMS||{})
   };
 }
-
-function renderResult(r){
-  out.textContent = JSON.stringify({result:r}, null, 2);
-}
+function renderResult(r){ out.textContent = JSON.stringify({result:r}, null, 2); }
 
 $("#runBtn").onclick = ()=>{
   const r = computeWithholding(gatherInput());
@@ -629,14 +619,12 @@ $("#runBtn").onclick = ()=>{
 $("#copyBtn").onclick = ()=>{
   navigator.clipboard?.writeText(out.textContent).then(()=>toast("已複製 JSON")).catch(()=>toast("無法複製（環境不支援）",true));
 };
-
 $("#casePick").onchange = (e)=>{
   const v = e.target.value;
   const set = (id,val)=>{ const el=$(id); if(el.tagName==="SELECT") el.value=val; else el.value=val; };
-  // 預載參數
   window.RUNTIME_PARAMS = Object.assign({}, params());
   switch(v){
-    case "A": // 居住者 年終 60,000 → 源扣0；NHI：若為六項且達門檻 → 60,000 × 2.11% = 1,266
+    case "A":
       set("#resident_status","resident");
       set("#income_type","salary_variable");
       set("#payment_amount",60000);
@@ -645,7 +633,7 @@ $("#casePick").onchange = (e)=>{
       set("#nhi_item_tag","side_salary");
       set("#nhi_single_payment_check","true");
       break;
-    case "B": // 非居 月薪 40,000 → 全月 ≤ 42,885 → 6%
+    case "B":
       set("#resident_status","nonresident");
       set("#income_type","salary_fixed");
       set("#payment_amount",40000);
@@ -653,14 +641,14 @@ $("#casePick").onchange = (e)=>{
       set("#nhi_item_tag","none");
       set("#nhi_single_payment_check","false");
       break;
-    case "C": // 居住者 執行業務 30,000 → 3,000；NHI：30000 × 2.11% = 633
+    case "C":
       set("#resident_status","resident");
       set("#income_type","professional");
       set("#payment_amount",30000);
       set("#nhi_item_tag","executive_income");
       set("#nhi_single_payment_check","true");
       break;
-    case "D": // 居住者 股利 200,000 → 源扣0；NHI：200000 × 2.11% = 4,220
+    case "D":
       set("#resident_status","resident");
       set("#income_type","dividend");
       set("#payment_amount",200000);
@@ -668,7 +656,7 @@ $("#casePick").onchange = (e)=>{
       set("#nhi_item_tag","dividend");
       set("#nhi_single_payment_check","true");
       break;
-    case "E": // 居住者 退職 800,000；假設免稅額400,000 → 餘額×6% = 24,000；NHI：不課
+    case "E":
       window.retire_ex_rule = (_amt,_yrs)=>400000;
       set("#resident_status","resident");
       set("#income_type","retirement");
@@ -676,7 +664,7 @@ $("#casePick").onchange = (e)=>{
       set("#nhi_item_tag","none");
       set("#nhi_single_payment_check","false");
       break;
-    case "F": // 非居 利息（公司債） 100,000 → 15%
+    case "F":
       set("#resident_status","nonresident");
       set("#income_type","interest");
       set("#interest_subtype","corp_bond");
@@ -684,7 +672,7 @@ $("#casePick").onchange = (e)=>{
       set("#nhi_item_tag","interest");
       set("#nhi_single_payment_check","true");
       break;
-    case "G": // 雇主月差額 1,500,000 - 1,200,000 → 差額×2.11%
+    case "G":
       set("#resident_status","resident");
       set("#income_type","salary_fixed");
       set("#payment_amount",50000);
@@ -697,7 +685,6 @@ $("#casePick").onchange = (e)=>{
   }
   if(v){ $("#runBtn").click(); }
 };
-
 $("#runAll").onclick = ()=>{
   const results = [];
   const orig = JSON.stringify(gatherInput());
@@ -709,24 +696,13 @@ $("#runAll").onclick = ()=>{
     results.push({case:k, result:r.result});
   }
   out.textContent = JSON.stringify({batch:results}, null, 2);
-  // 還原
   try{
     const back = JSON.parse(orig);
-    // 簡化還原
     $("#resident_status").value = back.resident_status;
     $("#income_type").value = back.income_type;
     $("#payment_amount").value = back.payment_amount;
   }catch(_){}
 };
-
-function toast(msg, err=false){
-  const t = document.createElement("div");
-  t.textContent = msg;
-  t.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
-    background:${err?'#b00020':'#111'};color:#fff;padding:8px 12px;font:12px var(--sans);z-index:9999`;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 1800);
-}
 
 /* —— 本地儲存 —— */
 function saveLocal(){
@@ -762,6 +738,15 @@ function saveLocal(){
 
 /* —— 預設先算一次 —— */
 $("#runBtn").click();
+
+function toast(msg, err=false){
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
+    background:${err?'#b00020':'#111'};color:#fff;padding:8px 12px;font:12px var(--sans);z-index:9999`;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 1800);
+}
 </script>
 </body>
 </html>
