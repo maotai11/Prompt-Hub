@@ -70,9 +70,14 @@
         <div class="grid">
           <div>
             <label for="incoterm">國際貿易條件 (Incoterms)</label>
-            <select id="incoterm">
-              <option value="FOB">FOB (Free On Board)</option>
-              <option value="CIF">CIF (Cost, Insurance &amp; Freight)</option>
+            <select id=\"incoterm\">
+              <option value=\"EXW\">EXW（Ex Works 出廠）</option>
+              <option value=\"FAS\">FAS（Free Alongside Ship 船邊）</option>
+              <option value=\"FOB\" selected>FOB（Free On Board 船上）</option>
+              <option value=\"CFR\">CFR（Cost & Freight 含運費）</option>
+              <option value=\"CIF\">CIF（Cost, Insurance & Freight 含運保）</option>
+              <option value=\"C&I\">C&I（Cost & Insurance 含保險）</option>
+              <option value=\"DPU\">DPU（Delivered at Place Unloaded 卸貨地交貨）</option>
             </select>
           </div>
           <div>
@@ -120,30 +125,44 @@
 </section>
 
 <!-- 分頁二：說明文件 -->
-<section id="tab-doc" class="section prose" aria-hidden="true">
+<section id=\"tab-doc\" class=\"section prose\" aria-hidden=\"true\">
   <h2>分頁二：詳細頁面說明解釋</h2>
-  <h3>貿易條件與成本結構</h3>
-  <p>FOB 價格僅含貨物成本；進口商另付之運費與保險費應併入存貨成本。CIF 價格已包含運保，會計處理不再重複計入。存貨認列時點：FOB 以裝運日；CIF 以到港日。</p>
-  <h3>發票認列與報關處理</h3>
-  <p>入帳以未稅金額為基礎。海關代徵 5% 營業稅屬進項稅額，供扣抵，不屬成本。分錄：借「進貨」與「進項稅額」，貸「應付帳款」。進貨科目金額＝貨價＋運保＋關稅＋其他進口費用。</p>
-  <h3>稅費計算公式</h3>
+  <h3>交貨條件對進口成本認列的影響</h3>
   <ul>
-    <li>完稅價格（DPV）＝ FOB 價格＋運費＋保險費；若為 CIF，DPV ＝ CIF 金額。</li>
-    <li>關稅 ＝ DPV × 關稅稅率。</li>
-    <li>貨物稅 ＝（DPV＋關稅）× 貨物稅率（無則 0）。</li>
-    <li>推廣貿易服務費 ＝ DPV × 0.04%（不足新臺幣 100 元免徵）。</li>
-    <li>營業稅基 ＝ DPV＋關稅＋貨物稅＋推廣貿易服務費；營業稅 ＝ 上述稅基 × 5%。</li>
+    <li><strong>EXW（出廠交貨）</strong>：賣方僅交貨於廠區；買方負擔內陸運、出口報關、海運、保險等。進口商成本＝貨價＋買方實付之運保與報關等必要費用。</li>
+    <li><strong>FAS（船邊交貨）</strong>：賣方交貨至出口港船邊；其後費用與風險轉由買方。進口商成本含發票價款＋後續海運、保險、卸貨、拖櫃等買方自付費用。</li>
+    <li><strong>FOB（船上交貨）</strong>：賣方裝船後責任了結；買方負擔海運與保險。買方若實際支付運/保，可併入進貨成本。</li>
+    <li><strong>CFR（含運費）</strong>：價格含海運、不含保險。進口商將發票價入帳，另把買方自付保險與目的港後續費用列入成本；運費不再另列。</li>
+    <li><strong>CIF（含運費保險）</strong>：價格含運保；進口商成本以發票價為準，不再另外計列運/保。若取得運費單據，僅供出口商列帳，進口商不得再列成本。</li>
+    <li><strong>C&amp;I（含保險）</strong>：等同 FOB + 保險；價格含保險，不含運費。進口商另計買方支付之海運費入成本。</li>
+    <li><strong>DPU（卸貨地交貨）</strong>：賣方負責運至約定地並卸貨；契約價通常含運保與卸貨。入帳以發票總價為貨物成本；完稅時目的港卸貨後費用不入 DPV。</li>
   </ul>
-  <h3>營利事業所得稅處理</h3>
-  <p>關稅、運輸保險與其他合理必要費用，屬取得成本並併入「進貨」或「製造成本」。若為固定資產，應資本化並折舊。可扣抵之進項稅額不得列為成本或費用；不可扣抵者得依性質列為成本或費用。</p>
-  <h3>實務準則與常見錯誤</h3>
+
+  <h3>發票金額、報關金額與進項稅憑證</h3>
+  <p>商業發票為契約價；關稅完稅價格（DPV）依報關條件與實際費用調整。FOB 需加買方運保；CIF 可採發票價作 DPV。若使用 FCA、DAT/DPU 等，報關應選擇相近條件並於「應加費用」補列差額。進口營業稅以海關代徵，須以「海關進口貨物稅費繳納證明」作為進項憑證；報關義務人須為公司，方得扣抵。</p>
+
+  <h3>完稅價格與各稅計算（提要）</h3>
   <ul>
-    <li>核心準則：營業稅非成本；進口相關費用才是成本。</li>
-    <li>憑證要求：須保存國外發票、海關稅單、運保費收據等，作為成本認列依據。</li>
-    <li>常見錯誤：FOB/CIF 成本拆分不當、遺漏關稅與推廣貿易服務費、誤將海關營業稅計入成本、將報關單 DPV/稅基誤當進貨成本。</li>
+    <li>DPV = FOB + 國外運費 + 國外保險費（CIF 約當已含運保；EXW 需加買方承擔之運險）。</li>
+    <li>關稅 = DPV × 關稅稅率。</li>
+    <li>貨物稅 = (DPV + 關稅) × 貨物稅率；菸酒稅多為定額。</li>
+    <li>推廣貿易服務費 = DPV × 0.04%（不足 NT$100 免徵）。</li>
+    <li>營業稅基 = DPV + 關稅 + 貨物稅 + 推廣貿易服務費；營業稅 = 稅基 × 5%。</li>
   </ul>
+
+  <h3>會計入帳時點與金額判斷</h3>
+  <p>存貨以實際成本計量，包含貨價與一切必要費用（運、保、報關、關稅等）。通常到港通關或驗收入庫時入帳；匯差另列兌換損益。入帳須備齊發票、海關完稅單據、運保費憑證與結匯文件。</p>
+
+  <h3>實務常見錯誤與建議</h3>
+  <ul>
+    <li>勿將 CIF 的運保重複列入成本；FOB/EXW 下，記得把買方自付運保併入成本。</li>
+    <li>報關價值不得低報或遺漏附加費；完整申報可獲正確進項稅扣抵。</li>
+    <li>報關義務人須為公司統編；憑證不全無法扣抵。</li>
+    <li>正確匯率換算並分攤運保關稅至庫存單位成本，避免成本失真。</li>
+  </ul>
+
   <h3>入帳摘要</h3>
-  <p>總存貨成本 ＝ DPV（新臺幣）＋關稅＋貨物稅＋推廣貿易服務費。海關應付總額 ＝ 關稅＋貨物稅＋推廣貿易服務費＋營業稅。</p>
+  <p>總存貨成本 = DPV（新台幣） + 關稅 + 貨物稅 + 推廣貿易服務費。海關應付總額 = 關稅 + 貨物稅 + 推廣貿易服務費 + 營業稅（5%）。營業稅屬進項稅額，可供抵扣，不入成本。</p>
 </section>
 
   </main>  <div id="toast" class="toast" role="alert"></div><script defer>
@@ -165,14 +184,23 @@
     const freight = $('#freight');
     const ins = $('#ins');
     const priceLabel = $('#priceLabel');
-    if(inc==='CIF'){
-      freight.disabled = true; freight.value = '';
-      ins.disabled = true; ins.value = '';
-      priceLabel.textContent = '到岸價格 (CIF) ‧ 外幣金額';
-    }else{
-      freight.disabled = false; ins.disabled = false;
-      priceLabel.textContent = '離岸價格 (FOB) ‧ 外幣金額';
-    }
+
+    // 映射：各交貨條件何者已含於價格
+    const includes = {
+      EXW:{F:false,I:false,label:'出廠價 (EXW) ‧ 外幣金額'},
+      FAS:{F:false,I:false,label:'船邊價 (FAS) ‧ 外幣金額'},
+      FOB:{F:false,I:false,label:'離岸價格 (FOB) ‧ 外幣金額'},
+      CFR:{F:true, I:false,label:'含運費價格 (CFR) ‧ 外幣金額'},
+      CIF:{F:true, I:true ,label:'到岸價格 (CIF) ‧ 外幣金額'},
+      'C&I':{F:false,I:true,label:'含保險價格 (C&I) ‧ 外幣金額'},
+      DPU:{F:true, I:true ,label:'卸貨地交貨價 (DPU) ‧ 外幣金額'}
+    }[inc];
+
+    // 欄位啟用規則：未含者→啟用輸入；已含者→反灰鎖定
+    if(includes.F){ freight.disabled = true; freight.value = ''; } else { freight.disabled = false; }
+    if(includes.I){ ins.disabled = true; ins.value = ''; } else { ins.disabled = false; }
+    priceLabel.textContent = includes.label;
+  }
   }
 
   function fmt(n){
@@ -197,18 +225,27 @@
       const fx = valNum('#fx');
       const price = valNum('#price');
       let freight = 0, ins = 0;
-      if(inc==='FOB'){
+      // 依條件決定哪些成本需自填併入 DPV
+      if(inc==='EXW' || inc==='FAS' || inc==='FOB'){
         freight = valNum('#freight');
         ins = valNum('#ins');
+      }else if(inc==='CFR'){
+        // 價格含運費，不含保險
+        ins = valNum('#ins');
+      }else if(inc==='C&I'){
+        // 價格含保險，不含運費
+        freight = valNum('#freight');
+      }else if(inc==='CIF' || inc==='DPU'){
+        // 價格已含運保（DPU 另含目的地卸貨，但卸貨後費用不入 DPV）
       }
-      const dutyRate = valNum('#dutyRate');
-      const goodTaxRate = valNum('#goodTaxRate', false) || 0;
 
       // 1) DPV 外幣
-      const dpvFx = (inc==='FOB') ? (price + freight + ins) : price;
+      const dpvFx = price + freight + ins; // 價格內含部分自動為 0
       // 2) DPV 新台幣
       const dpv = dpvFx * fx;
       // 3) 稅費（新台幣）
+      const dutyRate = valNum('#dutyRate');
+      const goodTaxRate = valNum('#goodTaxRate', false) || 0;
       const duty = dpv * (dutyRate/100);
       const goodsTax = (dpv + duty) * (goodTaxRate/100);
       let promoFee = dpv * 0.0004; // 0.04%
@@ -236,11 +273,16 @@
       // 步驟
       const s = [];
       s.push('<h4>確認完稅價格 (DPV)</h4>');
-      if(inc==='FOB'){
-        s.push('<p>依條件為 FOB：DPV（外幣）＝離岸價格＋運費＋保險費＝'+fnum(price)+'＋'+fnum(freight)+'＋'+fnum(ins)+'＝<strong>'+fnum(dpvFx)+'</strong>（外幣）。</p>');
-      }else{
-        s.push('<p>依條件為 CIF：DPV（外幣）＝到岸價格＝<strong>'+fnum(dpvFx)+'</strong>（外幣）。</p>');
-      }
+      const incDesc = {
+        EXW:'EXW：出廠價不含運保，DPV（外幣）＝出廠價＋海運費＋保險費',
+        FAS:'FAS：船邊價不含運保，DPV（外幣）＝船邊價＋海運費＋保險費',
+        FOB:'FOB：離岸價不含運保，DPV（外幣）＝FOB＋海運費＋保險費',
+        CFR:'CFR：價格含運費不含保險，DPV（外幣）＝CFR＋保險費',
+        CIF:'CIF：價格含運保，DPV（外幣）＝CIF',
+        'C&I':'C&I：價格含保險不含運費，DPV（外幣）＝C&I＋海運費',
+        DPU:'DPU：價格通常已含運保暨卸貨；DPV以到岸（CIF 等效）估算，卸貨後費用不入 DPV'
+      }[inc];
+      s.push('<p>'+incDesc+'。帶入：<strong>'+fnum(price)+'</strong>（主價）'+(freight? ' ＋ '+fnum(freight)+'（運）':'' )+(ins? ' ＋ '+fnum(ins)+'（保）':'' )+' ＝ <strong>'+fnum(dpvFx)+'</strong>（外幣）。</p>');
       s.push('<p>DPV（新台幣）＝DPV（外幣）×新台幣匯率＝'+fnum(dpvFx)+' × '+fnum(fx)+' ＝ <strong>'+fmt(dpv)+'</strong>。</p>');
 
       s.push('<h4>計算各項稅費（新台幣）</h4>');
@@ -255,7 +297,8 @@
       s.push('<p>海關應付總額＝關稅＋貨物稅＋推廣貿易服務費＋營業稅＝'+fmt(duty)+'＋'+fmt(goodsTax)+'＋'+fmt(promoFee)+'＋'+fmt(vat)+' ＝ <strong>'+fmt(totalToCustoms)+'</strong>。</p>');
 
       const stepsBody = $('#steps-body');
-      stepsBody.innerHTML = s.join('\n');
+      stepsBody.innerHTML = s.join('
+');
       $('#steps').hidden = false;
     }catch(err){
       status.textContent = err.message || String(err);
