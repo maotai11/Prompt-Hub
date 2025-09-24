@@ -1,0 +1,299 @@
+<!DOCTYPE html><html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>進口成本暨稅務解析｜台灣進口稅務會計儀表板</title>
+<style>
+  :root{
+    --bg:#ffffff;--fg:#333333;--muted:#8a8a8a;--line:#e6e6e6;--accent:#007AFF;
+  }
+  html,body{background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans TC", "PingFang TC", Arial, system-ui, sans-serif;}
+  *{box-sizing:border-box}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  /* 顶端儀表板 */
+  .topbar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);}
+  .topbar-inner{display:flex;gap:16px;align-items:center;justify-content:space-between;max-width:980px;margin:0 auto;padding:12px 16px}
+  .brand{font-weight:600;letter-spacing:.02em}
+  .title{font-size:20px}
+  .tabs{display:flex;gap:8px}
+  .tab{appearance:none;background:transparent;border:0;border-bottom:2px solid transparent;padding:6px 10px;cursor:pointer;color:var(--fg)}
+  .tab[aria-selected="true"]{border-bottom-color:var(--fg)}
+  .tab:hover{color:var(--accent);border-bottom-color:var(--accent)} /* 強調色只在 hover */
+  /* 內容區 */
+  .section{display:none;padding:16px 0}
+  .section[aria-hidden="false"]{display:block}
+  h2{font-size:18px;margin:0 0 8px}
+  h3{font-size:16px;margin:16px 0 8px}
+  p{margin:8px 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:720px){.grid{grid-template-columns:1fr}}
+  label{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
+  input,select{width:100%;height:38px;border:1px solid #ccc;padding:6px 8px;border-radius:0;background:#fff;color:var(--fg)}
+  input:focus,select:focus{outline:none;border-color:#999}
+  input[disabled]{background:#f6f6f6;color:#9a9a9a}
+  .btn{appearance:none;border:1px solid #ccc;background:#fff;padding:8px 12px;height:40px;cursor:pointer}
+  .btn:hover{color:var(--accent);border-color:var(--accent)} /* 強調色只在 hover */
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .status{min-height:20px;color:#c40000;font-size:14px;margin-top:8px}
+  .card{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+  .kvs{display:grid;grid-template-columns:1.6fr 1fr;gap:6px 12px;align-items:baseline}
+  .kvs div.k{color:#666}
+  .kvs div.v{text-align:right}
+  .note{font-size:14px;color:#666;margin-top:6px}
+  .hr{border-top:1px solid var(--line);margin:12px 0}
+  .toggle{appearance:none;border:0;background:transparent;padding:0;color:var(--fg);text-decoration:underline;cursor:pointer}
+  .toggle:hover{color:var(--accent)}
+  .mono{font-variant-numeric: tabular-nums}
+  /* 極簡排版（詳細頁） */
+  .prose h3{margin-top:20px}
+  .prose ul{margin:8px 0 8px 18px}
+  .prose li{margin:4px 0}
+  /* 全域錯誤 Toast */
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;border:1px solid #d33;padding:8px 12px;background:#fff;color:#d33;display:none}
+</style>
+</head>
+<body>
+  <header class="topbar" role="banner">
+    <div class="topbar-inner">
+      <div class="brand title">進口成本暨稅務解析 (Import Cost & Tax Analysis)</div>
+      <nav class="tabs" role="tablist" aria-label="分頁切換">
+        <button class="tab" role="tab" aria-selected="true" data-action="tab" data-target="#tab-calc">輸入數值頁面</button>
+        <button class="tab" role="tab" aria-selected="false" data-action="tab" data-target="#tab-doc">詳細頁面說明解釋</button>
+      </nav>
+    </div>
+  </header>  <main class="wrap" role="main">
+    <!-- 分頁一：計算器 -->
+    <section id="tab-calc" class="section" aria-hidden="false">
+      <h2>分頁一：輸入數值頁面</h2>
+      <div class="card">
+        <h3>A. 參數輸入區</h3>
+        <div class="grid">
+          <div>
+            <label for="incoterm">國際貿易條件 (Incoterms)</label>
+            <select id="incoterm">
+              <option value="FOB">FOB (Free On Board)</option>
+              <option value="CIF">CIF (Cost, Insurance &amp; Freight)</option>
+            </select>
+          </div>
+          <div>
+            <label for="fx">新台幣匯率</label>
+            <input id="fx" type="number" inputmode="decimal" step="0.0001" placeholder="請輸入如 32.1500" />
+          </div>
+          <div>
+            <label id="priceLabel" for="price">離岸價格 (FOB) ‧ 外幣金額</label>
+            <input id="price" type="number" inputmode="decimal" step="0.01" placeholder="外幣金額" />
+          </div>
+          <div>
+            <label for="freight">運費 (Freight) ‧ 外幣金額</label>
+            <input id="freight" type="number" inputmode="decimal" step="0.01" placeholder="FOB 模式啟用" />
+          </div>
+          <div>
+            <label for="ins">保險費 (Insurance) ‧ 外幣金額</label>
+            <input id="ins" type="number" inputmode="decimal" step="0.01" placeholder="FOB 模式啟用" />
+          </div>
+          <div>
+            <label for="dutyRate">關稅稅率 (%)</label>
+            <input id="dutyRate" type="number" inputmode="decimal" step="0.0001" placeholder="如 10 表示 10%" />
+          </div>
+          <div>
+            <label for="goodTaxRate">貨物稅率 (%)</label>
+            <input id="goodTaxRate" type="number" inputmode="decimal" step="0.0001" placeholder="無則輸入 0" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" data-action="calc">計算成本結構</button>
+        </div>
+        <div class="status" id="status"></div>
+      </div><div class="card" id="out" hidden>
+    <h3>B. 計算結果輸出區（新台幣 NTD）</h3>
+    <div class="kvs mono" id="kv"></div>
+    <p class="note">註：營業稅（5%）屬進項稅額，可供未來銷項稅額扣抵，<strong>不計入存貨成本</strong>。</p>
+  </div>
+
+  <div class="card" id="steps" hidden>
+    <h3>C. 計算邏輯解析（Step-by-Step Explanation）</h3>
+    <p>
+      <button class="toggle" data-action="toggle-steps" aria-expanded="false" aria-controls="steps-body">展開步驟</button>
+    </p>
+    <div id="steps-body" hidden></div>
+  </div>
+</section>
+
+<!-- 分頁二：說明文件 -->
+<section id="tab-doc" class="section prose" aria-hidden="true">
+  <h2>分頁二：詳細頁面說明解釋</h2>
+  <h3>貿易條件與成本結構</h3>
+  <p>FOB 價格僅含貨物成本；進口商另付之運費與保險費應併入存貨成本。CIF 價格已包含運保，會計處理不再重複計入。存貨認列時點：FOB 以裝運日；CIF 以到港日。</p>
+  <h3>發票認列與報關處理</h3>
+  <p>入帳以未稅金額為基礎。海關代徵 5% 營業稅屬進項稅額，供扣抵，不屬成本。分錄：借「進貨」與「進項稅額」，貸「應付帳款」。進貨科目金額＝貨價＋運保＋關稅＋其他進口費用。</p>
+  <h3>稅費計算公式</h3>
+  <ul>
+    <li>完稅價格（DPV）＝ FOB 價格＋運費＋保險費；若為 CIF，DPV ＝ CIF 金額。</li>
+    <li>關稅 ＝ DPV × 關稅稅率。</li>
+    <li>貨物稅 ＝（DPV＋關稅）× 貨物稅率（無則 0）。</li>
+    <li>推廣貿易服務費 ＝ DPV × 0.04%（不足新臺幣 100 元免徵）。</li>
+    <li>營業稅基 ＝ DPV＋關稅＋貨物稅＋推廣貿易服務費；營業稅 ＝ 上述稅基 × 5%。</li>
+  </ul>
+  <h3>營利事業所得稅處理</h3>
+  <p>關稅、運輸保險與其他合理必要費用，屬取得成本並併入「進貨」或「製造成本」。若為固定資產，應資本化並折舊。可扣抵之進項稅額不得列為成本或費用；不可扣抵者得依性質列為成本或費用。</p>
+  <h3>實務準則與常見錯誤</h3>
+  <ul>
+    <li>核心準則：營業稅非成本；進口相關費用才是成本。</li>
+    <li>憑證要求：須保存國外發票、海關稅單、運保費收據等，作為成本認列依據。</li>
+    <li>常見錯誤：FOB/CIF 成本拆分不當、遺漏關稅與推廣貿易服務費、誤將海關營業稅計入成本、將報關單 DPV/稅基誤當進貨成本。</li>
+  </ul>
+  <h3>入帳摘要</h3>
+  <p>總存貨成本 ＝ DPV（新臺幣）＋關稅＋貨物稅＋推廣貿易服務費。海關應付總額 ＝ 關稅＋貨物稅＋推廣貿易服務費＋營業稅。</p>
+</section>
+
+  </main>  <div id="toast" class="toast" role="alert"></div><script defer>
+(function(){
+  const $ = (q,root=document)=>root.querySelector(q);
+  const $$ = (q,root=document)=>[...root.querySelectorAll(q)];
+  const state = {incoterm:'FOB'};
+
+  function setTab(targetSel){
+    const target = $(targetSel);
+    $$('.section').forEach(s=>s.setAttribute('aria-hidden','true'));
+    target.setAttribute('aria-hidden','false');
+    $$('.tab').forEach(b=>b.setAttribute('aria-selected', String('#'+$(b).dataset?.target?.slice?.(1)===targetSel)));
+  }
+
+  function updateIncotermUI(){
+    const inc = $('#incoterm').value;
+    state.incoterm = inc;
+    const freight = $('#freight');
+    const ins = $('#ins');
+    const priceLabel = $('#priceLabel');
+    if(inc==='CIF'){
+      freight.disabled = true; freight.value = '';
+      ins.disabled = true; ins.value = '';
+      priceLabel.textContent = '到岸價格 (CIF) ‧ 外幣金額';
+    }else{
+      freight.disabled = false; ins.disabled = false;
+      priceLabel.textContent = '離岸價格 (FOB) ‧ 外幣金額';
+    }
+  }
+
+  function fmt(n){
+    return new Intl.NumberFormat('zh-Hant-TW',{style:'currency',currency:'TWD',minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+  }
+  function fnum(n){
+    return new Intl.NumberFormat('zh-Hant-TW',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+  }
+
+  function valNum(id, required=true){
+    const v = parseFloat($(id).value);
+    if(Number.isFinite(v)) return v;
+    if(required) throw new Error('請正確輸入「'+$(id).previousElementSibling.textContent.replace(/\s+/g,' ').trim()+'」。');
+    return 0;
+  }
+
+  function calc(){
+    const status = $('#status');
+    status.textContent = '';
+    try{
+      const inc = $('#incoterm').value;
+      const fx = valNum('#fx');
+      const price = valNum('#price');
+      let freight = 0, ins = 0;
+      if(inc==='FOB'){
+        freight = valNum('#freight');
+        ins = valNum('#ins');
+      }
+      const dutyRate = valNum('#dutyRate');
+      const goodTaxRate = valNum('#goodTaxRate', false) || 0;
+
+      // 1) DPV 外幣
+      const dpvFx = (inc==='FOB') ? (price + freight + ins) : price;
+      // 2) DPV 新台幣
+      const dpv = dpvFx * fx;
+      // 3) 稅費（新台幣）
+      const duty = dpv * (dutyRate/100);
+      const goodsTax = (dpv + duty) * (goodTaxRate/100);
+      let promoFee = dpv * 0.0004; // 0.04%
+      if(promoFee < 100) promoFee = 0; // 不足 100 元免徵
+      const vatBase = dpv + duty + goodsTax + promoFee;
+      const vat = vatBase * 0.05;
+      // 4) 成本與應付
+      const totalInvCost = dpv + duty + goodsTax + promoFee; // 不含 VAT
+      const totalToCustoms = duty + goodsTax + promoFee + vat;
+
+      // 輸出
+      const kv = $('#kv');
+      kv.innerHTML = ''
+        + row('完稅價格 (DPV)', fmt(dpv))
+        + row('進口關稅', fmt(duty))
+        + row('貨物稅', fmt(goodsTax))
+        + row('推廣貿易服務費', fmt(promoFee))
+        + row('營業稅稅基', fmt(vatBase))
+        + row('營業稅 (VAT 5%)', fmt(vat))
+        + '<div class="hr"></div>'
+        + row('總存貨成本 (Total Inventory Cost)', '<strong>'+fmt(totalInvCost)+'</strong>')
+        + row('海關應付總額 (Total Payable to Customs)', '<strong>'+fmt(totalToCustoms)+'</strong>');
+      $('#out').hidden = false;
+
+      // 步驟
+      const s = [];
+      s.push('<h4>確認完稅價格 (DPV)</h4>');
+      if(inc==='FOB'){
+        s.push('<p>依條件為 FOB：DPV（外幣）＝離岸價格＋運費＋保險費＝'+fnum(price)+'＋'+fnum(freight)+'＋'+fnum(ins)+'＝<strong>'+fnum(dpvFx)+'</strong>（外幣）。</p>');
+      }else{
+        s.push('<p>依條件為 CIF：DPV（外幣）＝到岸價格＝<strong>'+fnum(dpvFx)+'</strong>（外幣）。</p>');
+      }
+      s.push('<p>DPV（新台幣）＝DPV（外幣）×新台幣匯率＝'+fnum(dpvFx)+' × '+fnum(fx)+' ＝ <strong>'+fmt(dpv)+'</strong>。</p>');
+
+      s.push('<h4>計算各項稅費（新台幣）</h4>');
+      s.push('<p>推廣貿易服務費＝DPV × 0.04%＝'+fmt(dpv)+' × 0.0004 ＝ '+fmt(dpv*0.0004)+'；不足新臺幣 100 元則免徵，故本案為 <strong>'+fmt(promoFee)+'</strong>。</p>');
+      s.push('<p>進口關稅＝DPV × 關稅稅率＝'+fmt(dpv)+' × '+fnum(dutyRate)+'% ＝ <strong>'+fmt(duty)+'</strong>。</p>');
+      s.push('<p>貨物稅＝(DPV＋關稅) × 貨物稅率＝('+fmt(dpv)+'＋'+fmt(duty)+') × '+fnum(goodTaxRate)+'% ＝ <strong>'+fmt(goodsTax)+'</strong>。</p>');
+      s.push('<p>營業稅稅基＝DPV＋關稅＋貨物稅＋推廣貿易服務費＝'+fmt(dpv)+'＋'+fmt(duty)+'＋'+fmt(goodsTax)+'＋'+fmt(promoFee)+' ＝ <strong>'+fmt(vatBase)+'</strong>。</p>');
+      s.push('<p>營業稅（進項）＝營業稅稅基 × 5% ＝ '+fmt(vatBase)+' × 5% ＝ <strong>'+fmt(vat)+'</strong>。</p>');
+
+      s.push('<h4>釐清最終成本與支付款</h4>');
+      s.push('<p>總存貨成本＝DPV＋關稅＋貨物稅＋推廣貿易服務費＝'+fmt(dpv)+'＋'+fmt(duty)+'＋'+fmt(goodsTax)+'＋'+fmt(promoFee)+' ＝ <strong>'+fmt(totalInvCost)+'</strong>（營業稅為進項稅額，不列入成本）。</p>');
+      s.push('<p>海關應付總額＝關稅＋貨物稅＋推廣貿易服務費＋營業稅＝'+fmt(duty)+'＋'+fmt(goodsTax)+'＋'+fmt(promoFee)+'＋'+fmt(vat)+' ＝ <strong>'+fmt(totalToCustoms)+'</strong>。</p>');
+
+      const stepsBody = $('#steps-body');
+      stepsBody.innerHTML = s.join('\n');
+      $('#steps').hidden = false;
+    }catch(err){
+      status.textContent = err.message || String(err);
+      $('#out').hidden = true; $('#steps').hidden = true;
+    }
+  }
+
+  function row(k,v){
+    return '<div class="k">'+k+'</div><div class="v">'+v+'</div>';
+  }
+
+  // 事件委派
+  document.addEventListener('click', (ev)=>{
+    const el = ev.target.closest('[data-action]');
+    if(!el) return;
+    const act = el.dataset.action;
+    if(act==='tab'){
+      const target = el.dataset.target; setTab(target);
+      $$('.tab').forEach(b=>b.setAttribute('aria-selected', String(b===el)));
+    }
+    if(act==='calc') calc();
+    if(act==='toggle-steps'){
+      const body = $('#steps-body');
+      const open = body.hasAttribute('hidden')?false:true;
+      if(open){ body.setAttribute('hidden',''); el.setAttribute('aria-expanded','false'); el.textContent='展開步驟'; }
+      else{ body.removeAttribute('hidden'); el.setAttribute('aria-expanded','true'); el.textContent='收合步驟'; }
+    }
+  });
+
+  // 下拉互動
+  $('#incoterm').addEventListener('change', updateIncotermUI);
+  updateIncotermUI();
+
+  // 全域錯誤提示（極簡）
+  const toast = $('#toast');
+  function showToast(msg){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', 4000); }
+  window.addEventListener('error', e=>{ showToast('執行時錯誤：'+(e.message||'未知錯誤')); });
+  window.addEventListener('unhandledrejection', e=>{ showToast('執行時錯誤：'+(e.reason&&e.reason.message)||'未知錯誤'); });
+})();
+</script></body>
+</html>
