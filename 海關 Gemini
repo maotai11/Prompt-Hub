@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣進口稅務與會計處理報告</title>
+    <style>
+        :root {
+            --primary-text-color: #333333;
+            --background-color: #ffffff;
+            --accent-color: #007AFF;
+            --border-color: #dddddd;
+            --disabled-color: #f4f4f4;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang TC", "Heiti TC", "Microsoft JhengHei", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--primary-text-color);
+            line-height: 1.7;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        header {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0;
+            color: #000;
+        }
+
+        .tabs {
+            margin-top: 1rem;
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background-color: transparent;
+            font-size: 1rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            color: var(--primary-text-color);
+        }
+
+        .tab-button.active {
+            border-bottom-color: var(--accent-color);
+            font-weight: 600;
+            color: #000;
+        }
+
+        .tab-content {
+            display: none;
+            padding-top: 1.5rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #000;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem 3rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .input-group input, .input-group select {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: #fff;
+        }
+        
+        .input-group input:disabled {
+            background-color: var(--disabled-color);
+            cursor: not-allowed;
+        }
+        
+        #calc-button {
+            grid-column: 1 / -1;
+            padding: 0.8rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        #calc-button:hover {
+            background-color: #005bb5;
+        }
+
+        .results-section {
+            margin-top: 2rem;
+            background-color: #f9f9f9;
+            padding: 2rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item .label {
+            font-weight: 500;
+        }
+        
+        .result-item .value {
+            font-weight: 600;
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+        
+        .total-item .label {
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .total-item .value {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .explanation p, .explanation li {
+            text-align: justify;
+        }
+
+        .explanation ul {
+            padding-left: 20px;
+        }
+        
+        .explanation strong {
+            font-weight: 600;
+            color: #000;
+        }
+        
+        .explanation .code {
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .helper-text {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .calculator-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            #calc-button {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>進口成本暨稅務解析</h1>
+            <div class="tabs">
+                <button class="tab-button active" data-tab="calculator">輸入數值頁面</button>
+                <button class="tab-button" data-tab="explanation">詳細頁面說明解釋</button>
+            </div>
+        </header>
+
+        <main>
+            <div id="calculator" class="tab-content active">
+                <h2>成本暨稅務試算</h2>
+                <div class="calculator-grid">
+                    <div class="input-group">
+                        <label for="incoterm">國際貿易條件 (Incoterms)</label>
+                        <select id="incoterm">
+                            <option value="FOB">FOB (船上交貨)</option>
+                            <option value="CIF">CIF (含運費、保險)</option>
+                            <option value="CFR">CFR (含運費價格)</option>
+                            <option value="EXW">EXW (出廠交貨)</option>
+                            <option value="FAS">FAS (船邊交貨)</option>
+                            <option value="C&I">C&I (含保險費價格)</option>
+                            <option value="DPU">DPU (卸貨地交貨)</option>
+                        </select>
+                        <p class="helper-text" id="incoterm-helper">此條件決定下方哪些費用由買方負擔並計入成本。</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="price" id="price-label">商品價格 (FOB Price)</label>
+                        <input type="number" id="price" placeholder="輸入外幣金額">
+                        <p class="helper-text" id="price-helper">請依貿易條件輸入對應的貨物價格。</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="freight">國際運費 (Freight)</label>
+                        <input type="number" id="freight" placeholder="買方支付的運費 (外幣)">
+                    </div>
+                    <div class="input-group">
+                        <label for="insurance">保險費 (Insurance)</label>
+                        <input type="number" id="insurance" placeholder="買方支付的保險費 (外幣)">
+                    </div>
+                    <div class="input-group">
+                        <label for="duty-rate">關稅稅率 (%)</label>
+                        <input type="number" id="duty-rate" placeholder="例如: 10">
+                    </div>
+                    <div class="input-group">
+                        <label for="commodity-tax-rate">貨物稅率 (%)</label>
+                        <input type="number" id="commodity-tax-rate" placeholder="若無請填 0">
+                    </div>
+                    <div class="input-group">
+                        <label for="exchange-rate">新台幣匯率</label>
+                        <input type="number" id="exchange-rate" placeholder="例如: 31.5">
+                    </div>
+                    <button id="calc-button">計算成本結構</button>
+                </div>
+
+                <div class="results-section" id="results-container" style="display: none;">
+                    <h3>計算結果 (新台幣 NTD)</h3>
+                    <div class="result-item">
+                        <span class="label">完稅價格 (DPV)</span>
+                        <span class="value" id="result-dpv"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">進口關稅</span>
+                        <span class="value" id="result-duty"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">貨物稅</span>
+                        <span class="value" id="result-commodity-tax"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">推廣貿易服務費 (0.04%)</span>
+                        <span class="value" id="result-promo-fee"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">營業稅稅基</span>
+                        <span class="value" id="result-vat-base"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">營業稅 (VAT 5%)</span>
+                        <span class="value" id="result-vat"></span>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;">
+                    <div class="result-item total-item">
+                        <span class="label">總存貨成本</span>
+                        <span class="value" id="result-total-cost"></span>
+                    </div>
+                    <div class="result-item total-item">
+                        <span class="label">海關應付總額</span>
+                        <span class="value" id="result-total-payable"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="explanation" class="tab-content explanation">
+                <h2>交貨條件對進口成本認列的影響</h2>
+                
+                <h3>EXW (出廠交貨)</h3>
+                <p>賣方僅負責將貨物交到廠區，其他所有成本（內陸運費、倉儲、出口報關、海運運費等）均由買方負擔。因此，進口商應將貨價加上實際支付的國際運費、保險、報關費等所有必要費用，一併列入進貨成本。</p>
+
+                <h3>FAS (船邊交貨)</h3>
+                <p>賣方負責將貨物交到出口港指定船邊，之後所有風險與費用由買方承擔。進口商成本包括發票價款，以及買方實際支付的後續海運費、保險費、卸貨費、拖櫃費等。</p>
+
+                <h3>FOB (船上交貨)</h3>
+                <p>賣方將貨物裝上指定船舶後責任解除。買方自此負擔海運與保險等費用。因此，若買方實際支付運費或保險費，可將該等費用憑證併入進貨成本。進口商於入帳時，貨物成本可計入買方支付的海運費與保險費。</p>
+
+                <h3>CFR (含運費價格)</h3>
+                <p>賣方負責支付貨物到達進口港的國際運費，不含保險。買方負擔保險與其他卸貨費用。故進口商以CFR條件進口時，可將商業發票上之貨價入帳，同時將買方自行安排的保險費計入成本；船運費因已包含在賣方報價中，無須另列。</p>
+
+                <h3>CIF (含運費、保險)</h3>
+                <p>賣方負責支付海運費及運輸保險至目的港。買方成本只包括發票上的貨物價值，不另計運費和保險費。若進口商取得運費單據，僅供出口商列帳之用，進口商不得再將其列為成本，否則將不予認列。</p>
+
+                <h3>C&I (含保險費價格)</h3>
+                <p>賣方負擔出口港 FOB 價格及運輸保險（但運費不含）。等同於「FOB 加保險費」的組合。進口商成本包括發票上的離岸價款及保險費，另將由買方支付的海運費計入成本。</p>
+
+                <h3>DPU (卸貨地交貨)</h3>
+                <p>賣方負責將貨物運至約定進口地並卸貨。契約價款通常已包含運費及卸貨費。會計上，進口商可將發票上全部價款視為貨物成本。但在完稅時，依關務規定，可將進口港卸貨後之費用自完稅價格中扣除。</p>
+
+                <h2>發票金額、報關金額與進項稅憑證</h2>
+
+                <h3>發票與報關價金關係</h3>
+                <p>商業發票是契約價款，但關稅完稅價格則依申報條件及實際費用計算。例如，FOB條件下，報關時須加計買方支付的海運費、保險費；而CIF條件下，報關價即可採發票價。海關依關稅法第29條將運費、保險等計入完稅價格。</p>
+
+                <h3>進項稅憑證的使用</h3>
+                <p>進口貨物所繳納之營業稅，需取得「海關進口貨物稅費繳納證明」作為進項稅額憑證。此憑證可用於營業稅申報扣抵。若報關時納稅義務人填報錯誤（如非公司統編），即使已繳稅也無法作為公司進項憑證抵扣。必須以公司名義辦理報關，並妥善保存報單與繳款書。</p>
+
+                <h2>完稅價格與關稅、營業稅計算</h2>
+                
+                <h3>完稅價格 (DPV)</h3>
+                <p>依照關稅法第29條，完稅價格為「貨物由出口國銷售至台灣買方之實付或應付價格」。公式為：<span class="code">完稅價格 = 離岸價 (FOB) + 國外運費 + 國外保險費</span>。即使交易條件非FOB，也須折算為等效的FOB加運費保險。</p>
+
+                <h3>關稅</h3>
+                <p>一般多按完稅價格乘以稅率計算。公式：<span class="code">進口稅 = 完稅價格 × 關稅稅率</span>。同時須繳交推廣貿易服務費，即 <span class="code">完稅價格 × 0.04%</span>。</p>
+
+                <h3>貨物稅與菸酒稅</h3>
+                <p>在完稅價格加計關稅後，再乘以相應稅率計算。公式：<span class="code">貨物稅 = (完稅價格 + 關稅) × 貨物稅率</span>。</p>
+                
+                <h3>營業稅 (5%)</h3>
+                <p>按完稅價格加總其他進口稅費後計算。公式：<span class="code">營業稅 = (完稅價格 + 關稅 + 貨物稅/菸酒稅) × 5%</span>。</p>
+
+                <h2>會計入帳時點與金額判斷</h2>
+                <p>進口存貨以實際成本計量，並在取得貨物所有權或控制權時入帳。進口成本應包含貨價及一切必要費用（如運費、保險費、報關費、關稅等）。一般企業在貨物到港並完成報關後認列存貨成本。採FOB條件進口時，貨物一上船風險即移轉，但會計上通常等到貨物抵達並通關才認列存貨。</p>
+
+                <h2>實務常見錯誤與建議</h2>
+                <ul>
+                    <li><strong>錯誤：認列條件錯置。</strong>例如將CIF條件下的海運費誤列為成本，或FOB條件下未將支付的運保費入帳。建議務必依實際交貨條件認列成本。</li>
+                    <li><strong>錯誤：報關價值低報或遺漏費用。</strong>為減少關稅而低報，會導致可抵扣的進項稅額減少，且易遭查核。建議誠實申報完整價格。</li>
+                    <li><strong>錯誤：憑證不全或未按規定認列進項稅。</strong>未取得海關稅費繳納證明，或報關人非公司名義，會失去抵扣資格。建議備齊所有單據並確保報關資料正確。</li>
+                    <li><strong>錯誤：會計處理忽略匯率與成本分攤。</strong>錯誤匯率導致成本不準，未將費用分攤至各單位存貨亦然。建議依銀行匯率換算，並編製成本分攤表。</li>
+                </ul>
+                <p><strong>總建議：</strong>制定明確的進口報關與記帳流程，隨時留意財政部及海關最新訊息，並與會計師或報關行保持溝通，可有效降低查核風險並確保稅務合規。</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching logic
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === button.dataset.tab) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // Calculator logic
+            const incotermSelect = document.getElementById('incoterm');
+            const priceInput = document.getElementById('price');
+            const priceLabel = document.getElementById('price-label');
+            const priceHelper = document.getElementById('price-helper');
+            const freightInput = document.getElementById('freight');
+            const insuranceInput = document.getElementById('insurance');
+            const calcButton = document.getElementById('calc-button');
+            const resultsContainer = document.getElementById('results-container');
+
+            function updateInputStates() {
+                const term = incotermSelect.value;
+                freightInput.disabled = false;
+                insuranceInput.disabled = false;
+                
+                let labelText = '';
+                let helperText = '';
+
+                switch (term) {
+                    case 'CIF':
+                    case 'DPU':
+                        freightInput.disabled = true;
+                        insuranceInput.disabled = true;
+                        freightInput.value = '';
+                        insuranceInput.value = '';
+                        labelText = `商品價格 (${term} Price)`;
+                        helperText = '請輸入包含運費及保險費的總價。';
+                        break;
+                    case 'CFR':
+                        freightInput.disabled = true;
+                        freightInput.value = '';
+                        labelText = `商品價格 (${term} Price)`;
+                        helperText = '請輸入包含運費的價格，保險費由買方另付。';
+                        break;
+                    case 'C&I':
+                        insuranceInput.disabled = true;
+                        insuranceInput.value = '';
+                        labelText = `商品價格 (${term} Price)`;
+                        helperText = '請輸入包含保險費的價格，運費由買方另付。';
+                        break;
+                    case 'FOB':
+                    case 'EXW':
+                    case 'FAS':
+                        labelText = `商品價格 (${term} Price)`;
+                        helperText = `請輸入 ${term} 價格，並在下方欄位填寫買方支付的運費與保險費。`;
+                        break;
+                }
+                priceLabel.textContent = labelText;
+                priceHelper.textContent = helperText;
+            }
+
+            incotermSelect.addEventListener('change', updateInputStates);
+
+            calcButton.addEventListener('click', () => {
+                const term = incotermSelect.value;
+                const price = parseFloat(priceInput.value) || 0;
+                const freight = parseFloat(freightInput.value) || 0;
+                const insurance = parseFloat(insuranceInput.value) || 0;
+                const dutyRate = (parseFloat(document.getElementById('duty-rate').value) || 0) / 100;
+                const commodityTaxRate = (parseFloat(document.getElementById('commodity-tax-rate').value) || 0) / 100;
+                const exchangeRate = parseFloat(document.getElementById('exchange-rate').value) || 1;
+
+                if (exchangeRate === 0) {
+                    alert('匯率不能為 0');
+                    return;
+                }
+
+                let dpv_foreign = 0;
+                switch (term) {
+                    case 'CIF':
+                    case 'DPU':
+                        dpv_foreign = price;
+                        break;
+                    case 'CFR':
+                        dpv_foreign = price + insurance;
+                        break;
+                    case 'C&I':
+                        dpv_foreign = price + freight;
+                        break;
+                    case 'FOB':
+                    case 'EXW':
+                    case 'FAS':
+                        dpv_foreign = price + freight + insurance;
+                        break;
+                }
+
+                const dpv = dpv_foreign * exchangeRate;
+                const duty = dpv * dutyRate;
+                const commodityTax = (dpv + duty) * commodityTaxRate;
+                let promoFee = dpv * 0.0004;
+                if (promoFee < 100) {
+                    promoFee = 0;
+                }
+
+                const vatBase = dpv + duty + commodityTax + promoFee;
+                const vat = vatBase * 0.05;
+
+                let totalCost = 0;
+                // Total cost is the sum of all expenses to get the goods, excluding deductible VAT.
+                totalCost = dpv + duty + commodityTax + promoFee;
+
+                const totalPayable = duty + commodityTax + promoFee + vat;
+                
+                const formatter = new Intl.NumberFormat('zh-TW', {
+                    maximumFractionDigits: 0
+                });
+
+                document.getElementById('result-dpv').textContent = formatter.format(dpv);
+                document.getElementById('result-duty').textContent = formatter.format(duty);
+                document.getElementById('result-commodity-tax').textContent = formatter.format(commodityTax);
+                document.getElementById('result-promo-fee').textContent = formatter.format(promoFee);
+                document.getElementById('result-vat-base').textContent = formatter.format(vatBase);
+                document.getElementById('result-vat').textContent = formatter.format(vat);
+                document.getElementById('result-total-cost').textContent = 'NT$ ' + formatter.format(totalCost);
+                document.getElementById('result-total-payable').textContent = 'NT$ ' + formatter.format(totalPayable);
+
+                resultsContainer.style.display = 'block';
+            });
+
+            // Initial state setup
+            updateInputStates();
+        });
+    </script>
+</body>
+</html>
