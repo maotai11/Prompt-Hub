@@ -16,7 +16,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>台灣源泉扣繳＋二代健保補充保費 計算器（桌面版・離線）</title>
+<title>台灣源泉扣繳＋二代健保補充保費 計算器（桌面版・離線・自然語言輸出）</title>
 <style>
 :root{
   /* 桌面優先：最大 1200px；行動裝置縮到視窗寬 */
@@ -77,6 +77,16 @@ pre{
 hr{border:0;border-top:2px solid #000;margin:0}
 .summary{background:#fef3f2;border:2px dashed #d00;padding:10px;font:12px/1.5 var(--mono)}
 details summary{cursor:pointer}
+
+/* 自然語言輸出樣式 */
+.nl{
+  background:#fff; border:2px solid #000; padding:12px;
+  font-size:14px; line-height:1.8;
+}
+.nl .k{font-weight:700}
+.nl details{margin-top:8px}
+.nl ol{margin:8px 0 0 18px}
+.nl ul{margin:8px 0 0 18px}
 </style>
 </head>
 <body>
@@ -244,9 +254,15 @@ details summary{cursor:pointer}
         <!-- 右欄：輸出＋法規 -->
         <div>
           <section class="block">
-            <h3>輸出</h3>
-            <pre id="outJSON" aria-label="result json"></pre>
-            <div class="note">含：withholding_tax_amount、rate、tax_base_used、exemption_trigger、nhi_surcharge_amount、nhi_basis_reason、log、law_notes、slip_info。</div>
+            <h3>輸出（自然語言）</h3>
+            <div id="outNL" class="nl" aria-live="polite"></div>
+
+            <details>
+              <summary>查看原始 JSON（稽核用）</summary>
+              <pre id="outJSON" aria-label="result json"></pre>
+            </details>
+
+            <div class="note">上方為可讀敘述；需要系統串接時可展開 JSON。</div>
           </section>
 
           <section class="block">
@@ -313,7 +329,8 @@ const CONFIG_2025 = {
 /* =============================== */
 
 const $ = (q)=>document.querySelector(q);
-const out = $("#outJSON");
+const outJSONEl = $("#outJSON");
+const outNLEl = $("#outNL");
 const editor = $("#paramEditor");
 const badges = {
   year: $("#paramYear"),
@@ -383,6 +400,62 @@ function mapFormatCode(income_type){
   return dict[income_type] || dict.other;
 }
 
+/* 人性化的所得類別名稱（輸出用） */
+function humanIncomeType(key){
+  const m = {
+    salary_fixed: "薪資（固定月薪）",
+    salary_variable: "薪資（變動／年終／兼職）",
+    professional: "執行業務所得",
+    rent: "租賃所得",
+    royalty: "權利金所得",
+    prize: "競技／競賽／中獎",
+    interest: "利息所得",
+    dividend: "股利所得",
+    retirement: "退職／退休給付",
+    other: "其他所得"
+  };
+  return m[key] || key;
+}
+
+/* 自然語言輸出（繁中） */
+function renderNL(r, payload){
+  const intl = (v)=> (Math.round(Number(v)||0)).toLocaleString("zh-Hant-TW");
+  const rate = r.withholding_tax_rate; // 可能是 "5%" 或 "table"
+  const wht = Number(r.withholding_tax_amount)||0;
+  const exempt = r.exemption_trigger && r.exemption_trigger.trim() ? r.exemption_trigger : "無";
+  const nhiAmt = Number(r.nhi_surcharge_amount)||0;
+  const nhiReason = r.nhi_basis_reason && r.nhi_basis_reason!=="none" ? r.nhi_basis_reason : "不達門檻或不屬課徵項目";
+  const slip = r.slip_info ? `${r.slip_info.code}｜${r.slip_info.label}` : "—";
+  const who = payload.resident_status==="resident" ? "居住者" : "非居住者";
+  const incomeZh = humanIncomeType(r.tax_base_used);
+
+  let headline = "";
+  if(wht === 0){
+    headline = `本次${who}之「${incomeZh}」源泉扣繳稅額為 <b>0 元（免扣）</b>。`;
+    if(exempt !== "無"){ headline += `免扣原因：${exempt}。`; }
+  }else{
+    headline = `本次${who}之「${incomeZh}」，以稅率 <b>${rate}</b> 計算，應扣繳稅額為 <b>${intl(wht)} 元</b>。`;
+  }
+  const nhiLine = nhiAmt>0
+    ? `二代健保補充保費：<b>${intl(nhiAmt)} 元</b>（理由：${nhiReason}）。`
+    : `二代健保補充保費：<b>0 元</b>（${nhiReason}）。`;
+
+  const steps = (r.log||[]).map(s=>`<li>${s}</li>`).join("");
+  const notes = (r.law_notes||[]).map(s=>`<li>${s}</li>`).join("");
+
+  outNLEl.innerHTML = `
+    <p><span class="k">所得別：</span>${incomeZh}　
+       <span class="k">扣繳稅率：</span>${rate}　
+       <span class="k">建議申報憑單：</span>${slip}</p>
+    <p>${headline}</p>
+    <p>${nhiLine}</p>
+
+    <details><summary>計算步驟（展開）</summary><ol>${steps}</ol></details>
+    <details><summary>法規註記（展開）</summary><ul>${notes}</ul></details>
+  `;
+}
+
+/* —— 主計算 —— */
 function computeWithholding(payload){
   const p = Object.assign({}, params(), payload.override_params||{});
   const log = [];
@@ -609,15 +682,22 @@ function gatherInput(){
     override_params: (window.RUNTIME_PARAMS||{})
   };
 }
-function renderResult(r){ out.textContent = JSON.stringify({result:r}, null, 2); }
+
+function renderResult(r, payload){
+  // JSON（稽核用）
+  outJSONEl.textContent = JSON.stringify({result:r}, null, 2);
+  // 自然語言（可讀）
+  renderNL(r, payload);
+}
 
 $("#runBtn").onclick = ()=>{
-  const r = computeWithholding(gatherInput());
-  renderResult(r);
+  const p = gatherInput();
+  const r = computeWithholding(p);
+  renderResult(r, p);
   saveLocal();
 };
 $("#copyBtn").onclick = ()=>{
-  navigator.clipboard?.writeText(out.textContent).then(()=>toast("已複製 JSON")).catch(()=>toast("無法複製（環境不支援）",true));
+  navigator.clipboard?.writeText(outJSONEl.textContent).then(()=>toast("已複製 JSON")).catch(()=>toast("無法複製（環境不支援）",true));
 };
 $("#casePick").onchange = (e)=>{
   const v = e.target.value;
@@ -683,8 +763,13 @@ $("#casePick").onchange = (e)=>{
       set("#nhi_single_payment_check","false");
       break;
   }
-  if(v){ $("#runBtn").click(); }
+  if(v){
+    const p = gatherInput();
+    const r = computeWithholding(p);
+    renderResult(r, p);
+  }
 };
+
 $("#runAll").onclick = ()=>{
   const results = [];
   const orig = JSON.stringify(gatherInput());
@@ -692,10 +777,11 @@ $("#runAll").onclick = ()=>{
   for(const k of order){
     $("#casePick").value = k;
     $("#casePick").dispatchEvent(new Event("change"));
-    const r = JSON.parse(out.textContent||"{}");
+    const r = JSON.parse(outJSONEl.textContent||"{}");
     results.push({case:k, result:r.result});
   }
-  out.textContent = JSON.stringify({batch:results}, null, 2);
+  outJSONEl.textContent = JSON.stringify({batch:results}, null, 2);
+  outNLEl.innerHTML = `<p><b>已完成批次測試</b>，請展開下方 JSON 檢視各案例輸出。</p>`;
   try{
     const back = JSON.parse(orig);
     $("#resident_status").value = back.resident_status;
@@ -737,7 +823,11 @@ function saveLocal(){
 })();
 
 /* —— 預設先算一次 —— */
-$("#runBtn").click();
+(function firstRun(){
+  const p = gatherInput();
+  const r = computeWithholding(p);
+  renderResult(r, p);
+})();
 
 function toast(msg, err=false){
   const t = document.createElement("div");
