@@ -1,103 +1,97 @@
 <!DOCTYPE html>
 <!--
-單一檔案規範（離線 file:// 友善）
-1) 無外部資源/CDN，所有 CSS/JS 皆內嵌。
-2) 使用系統字型；UI 採純 CSS。
-3) 互動按鈕均設 type="button"，避免 submit 觸發重整。
-4) 事件委派（data-action）處理動態元素。
-5) 資料僅使用 localStorage 與 <input type="file"> 匯入，不使用 fetch。
-6) 已加上 window.onerror 與 unhandledrejection 的全域錯誤攔截 + Toast。
+單一檔案（file:// 離線可用）
+- 無外部資源/CDN；純原生 HTML/CSS/JS。
+- 所有按鈕 type="button"，避免表單重整。
+- 動態元素以事件委派處理（data-action / data-k）。
+- 僅使用 localStorage 與 <input type="file"> 進行持久化/匯入。
+- 全域錯誤攔截 + Toast。
+變更摘要（2025-09-25）
+- 歷史紀錄點選即可載入主單（單選圓鈕或雙擊項目）。
+- 「新增」：保存當筆→加入歷史→顯示於「當日清單」；保留當天日期並清空其他欄位以便連續輸入。
+- 新增「清空」按鈕：建立今日空白表單。
+- 明細新增「性質（進項/銷項）」欄位；Schema 升級至 v1.1.0（相容 v1.0.0）。
 -->
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>發票折讓紀錄儀表板（離線）</title>
-  <style>
-    :root{
-      --bg:#0f1115; --fg:#e8eaf0; --muted:#a9b0c3; --accent:#6ec1ff;
-      --ok:#27ae60; --warn:#f39c12; --err:#e74c3c; --card:#171a21; --line:#232736;
-      --chip:#1e2430; --focus:#3b82f6; --hl:#263248;
-      --red:#ff6b6b; --green:#51cf66; --yellow:#ffd43b;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Helvetica Neue", Arial;
-    }
-    header.toolbar{
-      position:sticky; top:0; z-index:9; background:linear-gradient(180deg,#11141b,#0f1115);
-      border-bottom:1px solid var(--line); padding:10px;
-    }
-    .toolbar .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-    .toolbar h1{font-size:16px; margin:0 12px 0 0; color:#fff}
-    button, .btn {
-      background:var(--chip); color:var(--fg); border:1px solid var(--line);
-      padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s;
-    }
-    button:hover{background:#242b3a}
-    button[disabled]{opacity:.5; cursor:not-allowed}
-    .btn-warn{border-color:var(--warn); color:var(--warn)}
-    .btn-err{border-color:var(--err); color:var(--err)}
-    .btn-ok{border-color:var(--ok); color:var(--ok)}
-    .layout{display:grid; grid-template-columns: 1fr 420px; gap:12px; padding:12px; max-width:1400px; margin:0 auto}
-    @media (max-width:1100px){ .layout{grid-template-columns:1fr} }
-    .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px}
-    .grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
-    .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
-    .field{display:flex; flex-direction:column; gap:6px}
-    .field label{font-size:12px; color:var(--muted)}
-    input[type="text"], input[type="number"], input[type="date"]{
-      background:#0c0f14; border:1px solid var(--line); color:var(--fg);
-      border-radius:8px; padding:8px 10px; width:100%;
-    }
-    input:focus{outline:2px solid var(--focus); border-color:transparent}
-    .hint{font-size:12px; color:var(--muted)}
-    .error{font-size:12px; color:var(--err)}
-    .success{font-size:12px; color:var(--ok)}
-    .muted{color:var(--muted)}
-    table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums lining-nums}
-    th, td{border-bottom:1px dashed #252a39; padding:8px; text-align:left}
-    thead th{position:sticky; top:0; background:var(--card); z-index:1}
-    tbody tr.selected{background:var(--hl)}
-    .controls{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0}
-    .rightcol{display:flex; flex-direction:column; gap:12px}
-    .list{max-height:560px; overflow:auto; border-radius:10px}
-    .item{display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; padding:10px; border-bottom:1px solid var(--line)}
-    .item:hover{background:#161b25}
-    .badge{background:#21283a; color:#c9d4ff; padding:2px 6px; border-radius:6px; font-size:12px}
-    .pill{background:#1d2a21; color:#8dffaa; padding:2px 6px; border-radius:6px; font-size:12px}
-    .danger{color:var(--err)}
-    .ok{color:var(--ok)}
-    .diff-add{outline:2px solid var(--green)}
-    .diff-del{outline:2px solid var(--red)}
-    .diff-chg{outline:2px solid var(--yellow)}
-    .flex{display:flex; gap:10px; align-items:center}
-    .space{flex:1}
-    .totalbar{display:flex; gap:12px; flex-wrap:wrap; align-items:center; padding:8px; border:1px dashed var(--line); border-radius:10px; background:#111521}
-    .toast{
-      position:fixed; right:16px; bottom:16px; min-width:220px; max-width:340px;
-      background:#141a26; border:1px solid var(--line); color:var(--fg); padding:12px 14px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.35);
-      opacity:0; transform:translateY(8px); pointer-events:none; transition:.2s
-    }
-    .toast.show{opacity:1; transform:none; pointer-events:auto}
-    .hl-badge{background:#282f44; color:#9ecbff; padding:2px 6px; border-radius:8px; font-size:12px}
-    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#11161f; border:1px solid #2a3144; padding:1px 6px; border-radius:6px}
-    .sticky-sub{position:sticky; top:54px; background:var(--card); z-index:1; padding:8px 0}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>發票折讓紀錄儀表板（離線）</title>
+<style>
+  :root{
+    --bg:#0f1115; --fg:#e8eaf0; --muted:#a9b0c3; --accent:#6ec1ff;
+    --ok:#27ae60; --warn:#f39c12; --err:#e74c3c; --card:#171a21; --line:#232736;
+    --chip:#1e2430; --focus:#3b82f6; --hl:#263248;
+    --red:#ff6b6b; --green:#51cf66; --yellow:#ffd43b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0; background:var(--bg); color:var(--fg);
+       font:14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC","PingFang TC","Microsoft JhengHei","Helvetica Neue", Arial;}
+  header.toolbar{position:sticky; top:0; z-index:9; background:linear-gradient(180deg,#11141b,#0f1115);
+                 border-bottom:1px solid var(--line); padding:10px;}
+  .toolbar .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .toolbar h1{font-size:16px; margin:0 12px 0 0; color:#fff}
+  button{background:var(--chip); color:var(--fg); border:1px solid var(--line);
+         padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s}
+  button:hover{background:#242b3a} button[disabled]{opacity:.5; cursor:not-allowed}
+  .btn-warn{border-color:var(--warn); color:var(--warn)}
+  .btn-err{border-color:var(--err); color:var(--err)}
+  .btn-ok{border-color:var(--ok); color:var(--ok)}
+  .layout{display:grid; grid-template-columns: 1fr 420px; gap:12px; padding:12px; max-width:1400px; margin:0 auto}
+  @media (max-width:1100px){ .layout{grid-template-columns:1fr} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px}
+  .grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+  .field{display:flex; flex-direction:column; gap:6px}
+  .field label{font-size:12px; color:var(--muted)}
+  input[type="text"], input[type="number"], input[type="date"], select{
+    background:#0c0f14; border:1px solid var(--line); color:var(--fg);
+    border-radius:8px; padding:8px 10px; width:100%;
+  }
+  input:focus, select:focus{outline:2px solid var(--focus); border-color:transparent}
+  .hint{font-size:12px; color:var(--muted)} .error{font-size:12px; color:var(--err)}
+  table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums lining-nums}
+  th, td{border-bottom:1px dashed #252a39; padding:8px; text-align:left}
+  thead th{position:sticky; top:0; background:var(--card); z-index:1}
+  tbody tr.selected{background:var(--hl)}
+  .controls{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0}
+  .rightcol{display:flex; flex-direction:column; gap:12px}
+  .list{max-height:560px; overflow:auto; border-radius:10px}
+  .item{display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; padding:10px; border-bottom:1px solid var(--line)}
+  .item:hover{background:#161b25}
+  .badge{background:#21283a; color:#c9d4ff; padding:2px 6px; border-radius:6px; font-size:12px}
+  .pill{background:#1d2a21; color:#8dffaa; padding:2px 6px; border-radius:6px; font-size:12px}
+  .muted{color:var(--muted)} .ok{color:var(--ok)} .warn{color:var(--warn)}
+  .diff-add{outline:2px solid var(--green)} .diff-del{outline:2px solid var(--red)} .diff-chg{outline:2px solid var(--yellow)}
+  .flex{display:flex; gap:10px; align-items:center}
+  .space{flex:1}
+  .totalbar{display:flex; gap:12px; flex-wrap:wrap; align-items:center; padding:8px; border:1px dashed var(--line); border-radius:10px; background:#111521}
+  .toast{position:fixed; right:16px; bottom:16px; min-width:220px; max-width:340px;
+         background:#141a26; border:1px solid var(--line); color:var(--fg); padding:12px 14px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+         opacity:0; transform:translateY(8px); pointer-events:none; transition:.2s}
+  .toast.show{opacity:1; transform:none; pointer-events:auto}
+  .hl-badge{background:#282f44; color:#9ecbff; padding:2px 6px; border-radius:8px; font-size:12px}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:#11161f; border:1px solid #2a3144; padding:1px 6px; border-radius:6px}
+  .sticky-sub{position:sticky; top:54px; background:var(--card); z-index:1; padding:8px 0}
+  /* 當日清單 */
+  .today-box{margin-top:12px; border:1px solid var(--line); border-radius:10px; max-height:220px; overflow:auto}
+  .today-item{display:flex; gap:8px; align-items:center; padding:8px 10px; border-bottom:1px dashed #252a39; cursor:pointer}
+  .today-item:hover{background:#161b25}
+</style>
 </head>
 <body>
-
 <header class="toolbar">
   <div class="row">
     <h1>發票折讓紀錄儀表板</h1>
-    <button type="button" data-action="newDoc">新增</button>
-    <button type="button" data-action="saveAs" class="btn-ok">儲存</button>
-    <button type="button" data-action="overwrite" title="覆蓋選取的歷史">覆蓋</button>
-    <button type="button" data-action="deleteHistory" class="btn-err">刪除</button>
+    <button type="button" data-action="addCurrentAsNew" class="btn-ok" title="保存當筆→加入歷史→顯示於當日清單">新增</button>
+    <button type="button" data-action="saveAs" title="命名保存為歷史快照">儲存</button>
+    <button type="button" data-action="overwrite" title="以目前表單覆蓋選取的歷史" disabled>覆蓋</button>
+    <button type="button" data-action="deleteHistory" class="btn-err" disabled>刪除</button>
     <button type="button" data-action="bulkDeleteHistory" class="btn-warn">批量刪除</button>
-    <button type="button" data-action="exportJson">匯出</button>
+    <button type="button" data-action="exportJson" disabled>匯出</button>
     <button type="button" data-action="importJson">匯入</button>
+    <button type="button" data-action="newDoc" title="建立今日空白表單">清空</button>
     <span class="space"></span>
     <span class="hint">鍵盤：<span class="kbd">Enter</span> 新增明細、<span class="kbd">Del</span> 刪除、<span class="kbd">Ctrl+D</span> 複製、<span class="kbd">Ctrl+Enter</span> 儲存</span>
     <input type="file" id="fileInp" accept="application/json" hidden />
@@ -105,23 +99,23 @@
 </header>
 
 <div class="layout">
-  <!-- 左側：主單 + 明細 -->
+  <!-- 左側：主單 + 明細 + 當日清單 -->
   <section class="card">
     <h2 style="margin:4px 0 10px">主單</h2>
     <div class="grid3">
       <div class="field">
         <label>發票年（民國）<span class="hl-badge">自動轉西元</span></label>
-        <input id="rocYear" type="number" min="1" step="1" placeholder="例如 114" />
+        <input id="rocYear" type="number" min="1" step="1" />
         <div class="error" data-err="rocYear"></div>
       </div>
       <div class="field">
         <label>月</label>
-        <input id="month" type="number" min="1" max="12" step="1" placeholder="1-12" />
+        <input id="month" type="number" min="1" max="12" step="1" />
         <div class="error" data-err="month"></div>
       </div>
       <div class="field">
         <label>日</label>
-        <input id="day" type="number" min="1" max="31" step="1" placeholder="1-31" />
+        <input id="day" type="number" min="1" max="31" step="1" />
         <div class="error" data-err="day"></div>
       </div>
     </div>
@@ -139,7 +133,7 @@
       </div>
     </div>
 
-    <div class="hint" id="dateHint">西元日期：<span data-bind="greg"></span></div>
+    <div class="hint">西元日期：<span data-bind="greg">—</span></div>
 
     <div class="sticky-sub">
       <div class="controls">
@@ -147,18 +141,19 @@
         <button type="button" data-action="addRow">新增明細</button>
         <button type="button" data-action="dupRows">複製所選</button>
         <button type="button" data-action="delRows" class="btn-err">刪除所選</button>
-        <button type="button" data-action="fixDelta" class="btn-warn" title="以『最大餘數法』微調到總和=中標">修正差額</button>
+        <button type="button" data-action="fixDelta" class="btn-warn" title="最大餘數法微調至總和=中標">修正差額</button>
         <span class="space"></span>
         <span class="hint">行選取：點勾選或 Shift 連選</span>
       </div>
     </div>
 
-    <div style="max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px">
+    <div style="max-height:320px; overflow:auto; border:1px solid var(--line); border-radius:10px">
       <table id="detailTable">
         <thead>
           <tr>
             <th style="width:34px"><input type="checkbox" id="chkAll"></th>
             <th style="width:120px">商品代號</th>
+            <th style="width:92px">性質</th>
             <th style="width:90px">數量</th>
             <th style="width:120px">金額</th>
             <th style="width:140px">應回填金額（唯讀）</th>
@@ -181,11 +176,19 @@
       <summary>使用說明 / 公式</summary>
       <ul class="hint">
         <li>公式：每筆明細 <code>i</code> 的 <strong>應回填金額</strong> = <code>中標金額 × (明細金額_i ÷ Σ明細金額)</code>，並四捨五入至小數第 2 位。</li>
-        <li>若四捨五入造成總額與中標不相等，將顯示差額，您可按「修正差額」以最大餘數法逐分（0.01）調整，使總和恰等於中標。</li>
-        <li>歷史紀錄保存的是「運算後完整快照」（含版本與 schema），可命名保存、讀取覆寫、差異高亮比較。</li>
-        <li>鍵盤：Enter 新增明細、Delete 刪除選取、Ctrl+D 複製選取、Ctrl+Enter 儲存。</li>
+        <li>若四捨五入造成總額與中標不相等，顯示差額，可按「修正差額」逐分調整至完全相等。</li>
+        <li>「新增」：以目前主單日期保存當筆→加入歷史→留存在下方「當日清單」。主單將保留當天日期並清空其他欄位，方便連續輸入。</li>
       </ul>
     </details>
+
+    <section class="today" style="margin-top:14px">
+      <div class="flex">
+        <h3 style="margin:0">當日清單（依目前主單日期）</h3>
+        <span class="space"></span>
+        <span class="hint">點擊可載入回主單</span>
+      </div>
+      <div class="today-box" id="todayList"><!-- 動態插入 --></div>
+    </section>
   </section>
 
   <!-- 右側：歷史 + 篩選 + 差異 -->
@@ -218,7 +221,7 @@
         <div class="field">
           <label>狀態</label>
           <div class="flex">
-            <span class="badge">v<span id="schemaVer"></span></span>
+            <span class="badge">schema v<span id="schemaVer"></span></span>
             <span class="muted">共 <span id="histCount">0</span> 筆</span>
           </div>
         </div>
@@ -228,7 +231,7 @@
 
     <section class="card" id="diffPanel">
       <h3 style="margin:4px 0 8px">差異比較（目前表單 vs. 選取紀錄）</h3>
-      <div class="hint">切換右上方列表的單選圓鈕，即可即時比較差異；不同欄位會出現外框高亮。</div>
+      <div class="hint">切換列表單選即時比較；不同欄位將外框高亮。</div>
       <div id="diffMsg" class="muted" style="margin-top:8px">尚未選取紀錄。</div>
     </section>
   </aside>
@@ -237,143 +240,114 @@
 <div id="toast" class="toast"></div>
 
 <script>
-/* ===========================
-   公用工具模組（格式/取整/ID）
-   =========================== */
+/* =============== 工具 =============== */
 const Util = (() => {
-  const numberFmt = new Intl.NumberFormat('zh-Hant-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const rnd2 = (v) => Math.round((+v + 0) * 100) / 100;
-  const fmtTWD = (v) => isFinite(v) ? numberFmt.format(rnd2(v)) : '—';
-  const uuid = () => 'xxxxxxxx'.replace(/x/g, () => (Math.random()*16|0).toString(16)) + Date.now().toString(36);
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-  return { rnd2, fmtTWD, uuid, clamp };
+  const nf = new Intl.NumberFormat('zh-Hant-TW', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const rnd2 = v => Math.round((+v)*100)/100;
+  const fmtTWD = v => Number.isFinite(+v) ? nf.format(rnd2(v)) : '—';
+  const uuid = () => 'xxxxxxxx'.replace(/x/g,()=> (Math.random()*16|0).toString(16)) + Date.now().toString(36);
+  return { rnd2, fmtTWD, uuid };
 })();
 
-/* ===========================
-   民國/西元轉換
-   =========================== */
+/* =============== 日期換算 =============== */
 const ROCDate = (() => {
   const toAD = (rocYear, m, d) => {
     if(!rocYear || !m || !d) return null;
     const y = 1911 + parseInt(rocYear,10);
-    try{
-      const iso = new Date(Date.UTC(y, m-1, d)).toISOString().substring(0,10);
-      return { y, m, d, iso };
-    }catch(e){ return null; }
+    const dt = new Date(Date.UTC(y, m-1, d));
+    if(isNaN(dt.getTime())) return null;
+    const iso = dt.toISOString().slice(0,10);
+    return { y, m, d, iso };
   };
-  return { toAD };
+  const todayROC = () => {
+    const now = new Date();
+    const y = now.getFullYear() - 1911;
+    return { rocYear:y, month: now.getMonth()+1, day: now.getDate(), iso: new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())).toISOString().slice(0,10) };
+  };
+  return { toAD, todayROC };
 })();
 
-/* ===========================
-   輸入驗證
-   =========================== */
+/* =============== 驗證 =============== */
 const Validator = (() => {
   const invRegex = /^(?:[A-Z]{2}\d{8}|\d{10})$/;
-  function validMain(model){
-    const err = {};
-    if(!model.rocYear || +model.rocYear <= 0) err.rocYear = '請輸入有效的民國年';
-    if(!model.month || +model.month < 1 || +model.month > 12) err.month = '月份需介於 1–12';
-    if(!model.day || +model.day < 1 || +model.day > 31) err.day = '日期日需介於 1–31';
-    if(!model.invNo || !invRegex.test(String(model.invNo).toUpperCase())) err.invNo = '發票號碼格式不符（AA12345678 或 10 碼數字）';
-    if(model.total == null || +model.total <= 0) err.total = '中標金額需 > 0';
-    return err;
+  function validMain(m){
+    const e={};
+    if(!m.rocYear || +m.rocYear<=0) e.rocYear='請輸入有效的民國年';
+    if(!m.month || +m.month<1 || +m.month>12) e.month='月份需介於 1–12';
+    if(!m.day || +m.day<1 || +m.day>31) e.day='日期日需介於 1–31';
+    if(!m.invNo || !invRegex.test(String(m.invNo).toUpperCase())) e.invNo='發票號碼格式不符（AA12345678 或 10 碼數字）';
+    if(m.total==null || +m.total<=0) e.total='中標金額需 > 0';
+    return e;
   }
   function validRows(rows){
-    const rowErr = {};
-    rows.forEach((r, idx) => {
-      if(r.lineAmount == null || +r.lineAmount <= 0) rowErr[idx] = '明細金額需 > 0';
-      if(r.qty != null && +r.qty < 0) rowErr[idx] = (rowErr[idx] ? rowErr[idx]+'；' : '') + '數量不可為負';
+    const re={};
+    rows.forEach((r,i)=>{
+      if(r.lineAmount==null || +r.lineAmount<=0) re[i]='明細金額需 > 0';
+      if(r.qty!=null && +r.qty<0) re[i]=(re[i]?re[i]+'；':'')+'數量不可為負';
     });
-    return rowErr;
+    return re;
   }
   return { validMain, validRows };
 })();
 
-/* ===========================
-   差異比較
-   =========================== */
+/* =============== 差異 =============== */
 const DiffUtil = (() => {
-  function diffDoc(a, b){
-    const chg = { main: {}, rows: [] };
-    if(!a || !b) return chg;
-    const mainKeys = ['gregISO','rocYear','month','day','invNo','total'];
-    mainKeys.forEach(k => { if(String(a[k]) !== String(b[k])) chg.main[k] = [a[k], b[k]]; });
-
-    const len = Math.max(a.rows.length, b.rows.length);
+  function diffDoc(a,b){
+    const chg={ main:{}, rows:[] };
+    if(!a||!b) return chg;
+    ['gregISO','rocYear','month','day','invNo','total'].forEach(k=>{
+      if(String(a[k])!==String(b[k])) chg.main[k]=[a[k],b[k]];
+    });
+    const len=Math.max(a.rows.length,b.rows.length);
     for(let i=0;i<len;i++){
-      const ra = a.rows[i], rb = b.rows[i];
-      if(!ra && rb){ chg.rows.push({ idx:i, type:'add' }); continue; }
-      if(ra && !rb){ chg.rows.push({ idx:i, type:'del' }); continue; }
-      const keys = ['itemCode','qty','lineAmount','backfill'];
-      const diffk = keys.filter(k => String(ra[k] ?? '') !== String(rb[k] ?? ''));
-      if(diffk.length) chg.rows.push({ idx:i, type:'chg', keys:diffk });
+      const ra=a.rows[i], rb=b.rows[i];
+      if(!ra && rb){ chg.rows.push({idx:i,type:'add'}); continue; }
+      if(ra && !rb){ chg.rows.push({idx:i,type:'del'}); continue; }
+      const keys=['itemCode','ioType','qty','lineAmount','backfill'];
+      const diffk=keys.filter(k=> String(ra[k]??'')!==String(rb[k]??''));
+      if(diffk.length) chg.rows.push({idx:i,type:'chg',keys:diffk});
     }
     return chg;
   }
   return { diffDoc };
 })();
 
-/* ===========================
-   本地儲存（歷史）
-   =========================== */
+/* =============== 儲存 =============== */
 const Storage = (() => {
-  const NS = 'INV_CREDIT_V1';
-  function list(){
-    const keys = Object.keys(localStorage).filter(k => k.startsWith(NS+':'));
-    const arr = keys.map(k => {
-      try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; }
-    }).filter(Boolean).sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
-    return arr;
-  }
-  function save(doc, overwriteId){
-    const id = overwriteId || Util.uuid();
-    const key = NS + ':' + id;
-    const now = Date.now();
-    const obj = { ...doc, id, createdAt: doc.createdAt || now, updatedAt: now };
-    localStorage.setItem(key, JSON.stringify(obj));
-    return obj;
-  }
-  function get(id){
-    const key = NS + ':' + id;
-    const s = localStorage.getItem(key);
-    return s ? JSON.parse(s) : null;
-  }
-  function remove(id){
-    localStorage.removeItem(NS + ':' + id);
-  }
-  function bulkRemove(ids){ ids.forEach(remove); }
+  const NS='INV_CREDIT_V1';
+  const list=()=> Object.keys(localStorage).filter(k=>k.startsWith(NS+':'))
+    .map(k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}})
+    .filter(Boolean).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const save=(doc,overwriteId)=>{
+    const id=overwriteId||Util.uuid(), key=NS+':'+id, now=Date.now();
+    const obj={...doc,id,createdAt:doc.createdAt||now,updatedAt:now};
+    localStorage.setItem(key, JSON.stringify(obj)); return obj;
+  };
+  const get=id=>{const s=localStorage.getItem(NS+':'+id); return s?JSON.parse(s):null;};
+  const remove=id=> localStorage.removeItem(NS+':'+id);
+  const bulkRemove=ids=> ids.forEach(remove);
   return { list, save, get, remove, bulkRemove, NS };
 })();
 
-/* ===========================
-   Schema 校驗
-   =========================== */
+/* =============== Schema =============== */
 const Schema = (() => {
-  const VERSION = '1.0.0';
-  const SCHEMA_ID = '折讓儀表板/v1';
-  function wrap(doc){
-    return {
-      schemaId: SCHEMA_ID,
-      version: VERSION,
-      payload: doc
-    };
-  }
+  const VERSION='1.1.0';
+  const SCHEMA_ID='折讓儀表板/v1';
+  const wrap=(doc)=>({ schemaId:SCHEMA_ID, version:VERSION, payload:doc });
   function unwrap(obj){
-    if(!obj || obj.schemaId !== SCHEMA_ID) throw new Error('不支援的 schemaId');
-    if(!obj.version) throw new Error('缺少版本資訊');
-    return obj.payload;
+    if(!obj || obj.schemaId!==SCHEMA_ID) throw new Error('不支援的 schemaId');
+    // 版本相容：接收 1.0.0/1.1.0，缺欄位給預設
+    const payload=obj.payload||{};
+    (payload.rows||[]).forEach(r=>{ if(!('ioType' in r)) r.ioType='進項'; });
+    return payload;
   }
-  return { wrap, unwrap, VERSION, SCHEMA_ID };
+  return { wrap, unwrap, VERSION };
 })();
 
-/* ===========================
-   應用程式
-   =========================== */
+/* =============== 應用 =============== */
 const App = (() => {
-  const els = {};
-  let selectedHistId = null;       // 用於覆蓋/刪除/匯出
-  let selectedForBulk = new Set(); // 批量刪除勾選
-  let shiftAnchor = null;          // 明細 Shift 連選
+  const els={};
+  let selectedHistId=null, selectedForBulk=new Set(), shiftAnchor=null;
 
   function initRefs(){
     els.rocYear = document.getElementById('rocYear');
@@ -385,393 +359,295 @@ const App = (() => {
     els.tbody   = document.querySelector('#detailTable tbody');
     els.chkAll  = document.getElementById('chkAll');
 
-    els.lblTotal = document.getElementById('lblTotal');
-    els.lblSumLine = document.getElementById('lblSumLine');
-    els.lblSumBack = document.getElementById('lblSumBack');
-    els.lblDelta = document.getElementById('lblDelta');
-    els.deltaMsg = document.getElementById('deltaMsg');
+    els.lblTotal=document.getElementById('lblTotal');
+    els.lblSumLine=document.getElementById('lblSumLine');
+    els.lblSumBack=document.getElementById('lblSumBack');
+    els.lblDelta=document.getElementById('lblDelta');
+    els.deltaMsg=document.getElementById('deltaMsg');
 
-    els.histList = document.getElementById('histList');
-    els.schemaVer = document.getElementById('schemaVer');
-    els.histCount = document.getElementById('histCount');
-    els.diffMsg = document.getElementById('diffMsg');
+    els.todayList=document.getElementById('todayList');
 
-    els.q = document.getElementById('q');
-    els.amtMin = document.getElementById('amtMin');
-    els.amtMax = document.getElementById('amtMax');
-    els.dateFrom = document.getElementById('dateFrom');
-    els.dateTo = document.getElementById('dateTo');
+    els.histList=document.getElementById('histList');
+    els.schemaVer=document.getElementById('schemaVer');
+    els.histCount=document.getElementById('histCount');
+    els.diffMsg=document.getElementById('diffMsg');
 
-    els.fileInp = document.getElementById('fileInp');
+    els.q=document.getElementById('q');
+    els.amtMin=document.getElementById('amtMin');
+    els.amtMax=document.getElementById('amtMax');
+    els.dateFrom=document.getElementById('dateFrom');
+    els.dateTo=document.getElementById('dateTo');
 
-    els.err = {
-      rocYear: document.querySelector('[data-err="rocYear"]'),
-      month: document.querySelector('[data-err="month"]'),
-      day: document.querySelector('[data-err="day"]'),
-      invNo: document.querySelector('[data-err="invNo"]'),
-      total: document.querySelector('[data-err="total"]')
+    els.fileInp=document.getElementById('fileInp');
+
+    els.err={
+      rocYear:document.querySelector('[data-err="rocYear"]'),
+      month:document.querySelector('[data-err="month"]'),
+      day:document.querySelector('[data-err="day"]'),
+      invNo:document.querySelector('[data-err="invNo"]'),
+      total:document.querySelector('[data-err="total"]')
     };
   }
 
   function bindGlobal(){
-    // 工具列事件（事件委派）
-    document.body.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if(!btn) return;
-      const act = btn.getAttribute('data-action');
-      if(actions[act]) actions[act](e);
+    document.body.addEventListener('click', (e)=>{
+      const btn=e.target.closest('[data-action]'); if(!btn) return;
+      const act=btn.getAttribute('data-action'); if(actions[act]) actions[act](e);
     });
 
-    // 明細表：點選、輸入、鍵盤
+    // 日期改變 → 重新計算與當日清單過濾
+    ['rocYear','month','day'].forEach(id=>{
+      document.getElementById(id).addEventListener('input', ()=>{ recalc(); renderTodayList(); });
+    });
+
+    // 明細表
     els.tbody.addEventListener('input', onTableInput);
     els.tbody.addEventListener('click', onTableClick);
-    els.chkAll.addEventListener('change', () => setAllRowChecked(els.chkAll.checked));
+    els.chkAll.addEventListener('change', ()=> setAllRowChecked(els.chkAll.checked));
 
-    // 鍵盤快捷
-    document.addEventListener('keydown', (e) => {
-      if(e.key === 'Enter' && !e.ctrlKey && !e.metaKey){
-        e.preventDefault(); actions.addRow(); return;
-      }
-      if((e.ctrlKey || e.metaKey) && e.key === 'd'){ e.preventDefault(); actions.dupRows(); }
-      if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); actions.saveAs(); }
-      if(e.key === 'Delete'){ e.preventDefault(); actions.delRows(); }
+    // 鍵盤
+    document.addEventListener('keydown',(e)=>{
+      if(e.key==='Enter' && !e.ctrlKey && !e.metaKey){ e.preventDefault(); actions.addRow(); }
+      if((e.ctrlKey||e.metaKey) && e.key==='d'){ e.preventDefault(); actions.dupRows(); }
+      if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); actions.saveAs(); }
+      if(e.key==='Delete'){ e.preventDefault(); actions.delRows(); }
     });
 
-    // 右列篩選
-    ['q','amtMin','amtMax','dateFrom','dateTo'].forEach(id => {
+    // 右側篩選
+    ['q','amtMin','amtMax','dateFrom','dateTo'].forEach(id=>{
       document.getElementById(id).addEventListener('input', renderHistList);
     });
 
     // 匯入
-    els.fileInp.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if(!file) return;
+    els.fileInp.addEventListener('change', async (e)=>{
+      const f=e.target.files[0]; if(!f) return;
       try{
-        const text = await file.text();
-        const js = JSON.parse(text);
-        let docs = [];
-        if(Array.isArray(js)) docs = js; else docs = [js];
-        let ok = 0;
-        docs.forEach(obj => {
-          let doc;
-          try{ doc = Schema.unwrap(obj); }
-          catch(err){ throw new Error('schema/版本不符或格式錯誤：' + err.message); }
-          Storage.save(doc);
-          ok++;
-        });
-        toast(`匯入完成，共 ${ok} 筆`);
-        renderHistList();
-      }catch(err){
-        toast('匯入失敗：' + err.message, 'err');
-      }finally{
-        els.fileInp.value = '';
-      }
+        const txt=await f.text(); const js=JSON.parse(txt);
+        const arr=Array.isArray(js)?js:[js]; let ok=0;
+        arr.forEach(o=>{ const doc=Schema.unwrap(o); Storage.save(doc); ok++; });
+        toast(`匯入完成，共 ${ok} 筆`); renderHistList(); renderTodayList();
+      }catch(err){ toast('匯入失敗：'+(err.message||err),'err'); }
+      finally{ els.fileInp.value=''; }
     });
 
-    // 全域錯誤
-    window.addEventListener('error', (e)=> toast('錯誤：' + (e.message||'未知'), 'err'));
-    window.addEventListener('unhandledrejection', (e)=> toast('非同步錯誤：' + (e.reason?.message||e.reason||'未知'), 'err'));
+    window.addEventListener('error', e=> toast('錯誤：'+(e.message||'未知'),'err'));
+    window.addEventListener('unhandledrejection', e=> toast('非同步錯誤：'+(e.reason?.message||e.reason||'未知'),'err'));
   }
 
-  function toast(msg, type){
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.borderColor = type==='err'? 'var(--err)' : (type==='warn'?'var(--warn)':'var(--line)');
-    t.classList.add('show');
-    setTimeout(()=> t.classList.remove('show'), 2600);
+  function toast(msg,type){
+    const t=document.getElementById('toast');
+    t.textContent=msg;
+    t.style.borderColor= type==='err'?'var(--err)':(type==='warn'?'var(--warn)':'var(--line)');
+    t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 2400);
   }
 
-  /* --------- 明細表操作 ---------- */
+  /* ---- 明細表 ---- */
   function rowTpl(r){
     return `<tr data-id="${r.id}">
       <td><input type="checkbox" class="rowchk"></td>
-      <td><input data-k="itemCode" type="text" value="${escapeHtml(r.itemCode||'')}" placeholder="商品代號"></td>
+      <td><input data-k="itemCode" type="text" value="${esc(r.itemCode||'')}" placeholder="商品代號"></td>
+      <td>
+        <select data-k="ioType">
+          <option value="進項" ${r.ioType==='進項'?'selected':''}>進項</option>
+          <option value="銷項" ${r.ioType==='銷項'?'selected':''}>銷項</option>
+        </select>
+      </td>
       <td><input data-k="qty" type="number" step="1" min="0" value="${r.qty ?? ''}" placeholder="數量"></td>
       <td><input data-k="lineAmount" type="number" step="0.01" min="0" value="${r.lineAmount ?? ''}" placeholder="金額"></td>
       <td class="muted"><span data-k="backfill">${Util.fmtTWD(r.backfill ?? 0)}</span></td>
       <td><span class="badge">${r._status||'—'}</span></td>
     </tr>`;
   }
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   function addRow(initial={}){
-    const r = {
-      id: Util.uuid(),
-      itemCode: initial.itemCode||'',
-      qty: initial.qty ?? 1,
-      lineAmount: initial.lineAmount ?? 0,
-      backfill: 0,
-      _status: 'new'
-    };
-    els.tbody.insertAdjacentHTML('beforeend', rowTpl(r));
-    recalc();
+    const r={ id:Util.uuid(), itemCode:initial.itemCode||'', ioType:initial.ioType||'進項',
+              qty: initial.qty ?? 1, lineAmount: initial.lineAmount ?? 0, backfill:0, _status:'new' };
+    els.tbody.insertAdjacentHTML('beforeend', rowTpl(r)); recalc();
   }
-  function selectedRowEls(){
-    return Array.from(els.tbody.querySelectorAll('tr')).filter(tr => tr.querySelector('.rowchk')?.checked);
-  }
-  function setAllRowChecked(v){
-    els.tbody.querySelectorAll('.rowchk').forEach(chk => chk.checked = v);
-    renderRowSelection();
-  }
-  function renderRowSelection(){
-    els.tbody.querySelectorAll('tr').forEach(tr => {
-      const sel = tr.querySelector('.rowchk')?.checked;
-      tr.classList.toggle('selected', !!sel);
-    });
-  }
+  const selectedRowEls = () => Array.from(els.tbody.querySelectorAll('tr')).filter(tr => tr.querySelector('.rowchk')?.checked);
+  const setAllRowChecked = v => { els.tbody.querySelectorAll('.rowchk').forEach(chk=> chk.checked=v); renderRowSelection(); };
+  function renderRowSelection(){ els.tbody.querySelectorAll('tr').forEach(tr=> tr.classList.toggle('selected', !!tr.querySelector('.rowchk')?.checked)); }
   function onTableClick(e){
-    const chk = e.target.closest('.rowchk');
+    const chk=e.target.closest('.rowchk');
     if(chk){
-      const rows = Array.from(els.tbody.querySelectorAll('tr'));
-      const idx = rows.indexOf(chk.closest('tr'));
-      if(e.shiftKey && shiftAnchor != null){
-        const [a,b] = [shiftAnchor, idx].sort((x,y)=>x-y);
-        for(let i=a;i<=b;i++){ rows[i].querySelector('.rowchk').checked = true; }
+      const rows=Array.from(els.tbody.querySelectorAll('tr'));
+      const idx=rows.indexOf(chk.closest('tr'));
+      if(e.shiftKey && shiftAnchor!=null){
+        const [a,b]=[shiftAnchor,idx].sort((x,y)=>x-y);
+        for(let i=a;i<=b;i++) rows[i].querySelector('.rowchk').checked=true;
       }
-      shiftAnchor = idx;
-      renderRowSelection();
-      return;
+      shiftAnchor=idx; renderRowSelection();
     }
   }
   function onTableInput(e){
-    const inp = e.target.closest('input[data-k]');
-    if(!inp) return;
-    const tr = inp.closest('tr');
-    tr.dataset.dirty = '1';
-    tr.querySelector('td:last-child .badge').textContent = 'edit';
+    const inp=e.target.closest('[data-k]'); if(!inp) return;
+    const tr=inp.closest('tr'); tr.dataset.dirty='1';
+    tr.querySelector('td:last-child .badge').textContent='edit';
     recalc();
   }
   function delRows(){
-    const sel = selectedRowEls();
-    if(sel.length===0){ toast('請先勾選要刪除的明細','warn'); return; }
-    sel.forEach(tr => tr.remove());
-    els.chkAll.checked = false;
-    recalc();
+    const sel=selectedRowEls(); if(sel.length===0){ toast('請先勾選要刪除的明細','warn'); return; }
+    sel.forEach(tr=> tr.remove()); els.chkAll.checked=false; recalc();
   }
   function dupRows(){
-    const sel = selectedRowEls();
-    if(sel.length===0){ toast('請先勾選要複製的明細','warn'); return; }
-    sel.forEach(tr => {
-      const obj = rowToObj(tr);
-      addRow({ itemCode: obj.itemCode, qty: obj.qty, lineAmount: obj.lineAmount });
+    const sel=selectedRowEls(); if(sel.length===0){ toast('請先勾選要複製的明細','warn'); return; }
+    sel.forEach(tr=>{
+      const o=rowToObj(tr);
+      addRow({ itemCode:o.itemCode, ioType:o.ioType, qty:o.qty, lineAmount:o.lineAmount });
     });
   }
-
   function rowToObj(tr){
-    const get = (k) => {
-      const el = tr.querySelector(`[data-k="${k}"]`);
-      if(!el) return null;
-      if(el.tagName === 'INPUT'){
-        const v = el.value;
-        if(el.type === 'number') return v === '' ? null : +v;
-        return v;
-      }else{
-        return el.textContent;
-      }
+    const val = k => {
+      const el=tr.querySelector(`[data-k="${k}"]`); if(!el) return null;
+      if(el.tagName==='INPUT'){ return el.type==='number' ? (el.value===''?null:+el.value) : el.value; }
+      if(el.tagName==='SELECT'){ return el.value; }
+      return el.textContent;
     };
     return {
-      id: tr.dataset.id,
-      itemCode: get('itemCode'),
-      qty: get('qty'),
-      lineAmount: get('lineAmount'),
-      backfill: parseFloat((get('backfill')||'0').toString().replace(/,/g,''))||0
+      id:tr.dataset.id,
+      itemCode:val('itemCode'),
+      ioType:val('ioType')||'進項',
+      qty:val('qty'),
+      lineAmount:val('lineAmount'),
+      backfill: parseFloat(String(val('backfill')||'0').replace(/,/g,''))||0
     };
   }
-  function tableToRows(){
-    return Array.from(els.tbody.querySelectorAll('tr')).map(rowToObj);
-  }
+  const tableToRows = () => Array.from(els.tbody.querySelectorAll('tr')).map(rowToObj);
 
-  /* --------- 計算（回填/差額） ---------- */
+  /* ---- 計算 ---- */
   function computeBackfill(total, rows){
-    const valid = rows.filter(r => +r.lineAmount > 0);
-    const sumLine = Util.rnd2(valid.reduce((a,b)=> a + (+b.lineAmount||0), 0));
-    const result = [];
-    if(sumLine <= 0) return { rows: rows.map(r => ({...r, backfill:0})), sumLine:0, sumBack:0, delta: Util.rnd2(total - 0) };
-
-    // 先四捨五入
-    let tmp = valid.map(r => {
-      const share = (+r.lineAmount)/sumLine;
-      const raw = total * share;
-      const rounded = Util.rnd2(raw);
-      const frac = raw - Math.floor(raw*100)/100; // 小數餘數
-      return { r, backfill: rounded, frac };
+    const valid=rows.filter(r=> +r.lineAmount>0);
+    const sumLine=Util.rnd2(valid.reduce((a,b)=> a+(+b.lineAmount||0),0));
+    if(sumLine<=0){
+      return { rows: rows.map(r=>({...r, backfill:0})), sumLine:0, sumBack:0, delta:Util.rnd2(total-0) };
+    }
+    const tmp=valid.map(r=>{
+      const share=(+r.lineAmount)/sumLine;
+      const raw=total*share, rounded=Util.rnd2(raw);
+      return { r, raw, rounded };
     });
-
-    let others = rows.filter(r => +r.lineAmount <= 0).map(r => ({ r, backfill:0, frac:0 }));
-
-    const sumBack = Util.rnd2(tmp.reduce((a,b)=> a + b.backfill, 0));
-    const delta = Util.rnd2(total - sumBack);
-
-    // 直接回寫
-    const map = new Map();
-    tmp.forEach(x => map.set(x.r.id, x.backfill));
-    others.forEach(x => map.set(x.r.id, 0));
-
-    const outRows = rows.map(r => ({ ...r, backfill: map.get(r.id) ?? 0 }));
-
-    return { rows: outRows, sumLine, sumBack, delta };
+    const map=new Map(tmp.map(x=>[x.r.id, x.rounded]));
+    rows.forEach(r=>{ if(!map.has(r.id)) map.set(r.id,0); });
+    const out=rows.map(r=>({...r, backfill: map.get(r.id)||0 }));
+    const sumBack=Util.rnd2(out.reduce((a,b)=> a+(+b.backfill||0),0));
+    const delta=Util.rnd2(total - sumBack);
+    return { rows:out, sumLine, sumBack, delta };
   }
-
   function fixDelta(total, rows){
-    // 最大餘數法逐分調整
-    const valid = rows.filter(r => +r.lineAmount > 0);
-    const sumLine = Util.rnd2(valid.reduce((a,b)=> a + (+b.lineAmount||0), 0));
-    if(sumLine <= 0) return { rows, sumLine:0, sumBack:0, delta: total };
-
-    const tmp = valid.map(r => {
-      const share = (+r.lineAmount)/sumLine;
-      const raw = total * share;
-      const rounded = Util.rnd2(raw);
-      const frac = raw - rounded; // 正/負餘數
-      return { r, raw, rounded, frac };
+    const valid=rows.filter(r=> +r.lineAmount>0);
+    const sumLine=Util.rnd2(valid.reduce((a,b)=> a+(+b.lineAmount||0),0));
+    if(sumLine<=0) return { rows, sumLine:0, sumBack:0, delta:total };
+    const tmp=valid.map(r=>{
+      const raw=total*((+r.lineAmount)/sumLine);
+      return { r, raw, rounded: Util.rnd2(raw) };
     });
-
-    let sumBack = Util.rnd2(tmp.reduce((a,b)=> a + b.rounded, 0));
-    let delta = Util.rnd2(total - sumBack);
-    if(delta === 0){
-      const map = new Map(tmp.map(x=>[x.r.id, x.rounded]));
-      const out = rows.map(r => ({...r, backfill: map.get(r.id)||0}));
-      return { rows: out, sumLine, sumBack, delta };
-    }
-
-    // 依餘數排序
-    if(delta > 0){
-      tmp.sort((a,b)=> (b.raw - b.rounded) - (a.raw - a.rounded)); // 剩餘最多者先+0.01
-      let cents = Math.round(delta * 100);
-      for(let i=0;cents>0 && i<tmp.length;i++){
-        tmp[i].rounded = Util.rnd2(tmp[i].rounded + 0.01);
-        cents--;
-        if(i===tmp.length-1 && cents>0) i=-1; // 繞圈
+    let sumBack=Util.rnd2(tmp.reduce((a,b)=> a+b.rounded,0));
+    let delta=Util.rnd2(total - sumBack);
+    if(delta!==0){
+      if(delta>0){
+        tmp.sort((a,b)=> (b.raw-b.rounded)-(a.raw-a.rounded));
+        let cents=Math.round(delta*100);
+        for(let i=0;cents>0;i=(i+1)%tmp.length){ tmp[i].rounded=Util.rnd2(tmp[i].rounded+0.01); cents--; }
+      }else{
+        tmp.sort((a,b)=> (a.rounded-a.raw)-(b.rounded-b.raw));
+        let cents=Math.round(Math.abs(delta)*100);
+        for(let i=0;cents>0;i=(i+1)%tmp.length){
+          const next=Util.rnd2(tmp[i].rounded-0.01);
+          if(next>=0){ tmp[i].rounded=next; cents--; }
+        }
       }
-    }else{
-      tmp.sort((a,b)=> (a.rounded - a.raw) - (b.rounded - b.raw)); // 超額最多者先-0.01
-      let cents = Math.round(Math.abs(delta) * 100);
-      for(let i=0;cents>0 && i<tmp.length;i++){
-        const next = Util.rnd2(tmp[i].rounded - 0.01);
-        if(next >= 0){ tmp[i].rounded = next; cents--; }
-        if(i===tmp.length-1 && cents>0) i=-1;
-      }
+      sumBack=Util.rnd2(tmp.reduce((a,b)=> a+b.rounded,0));
+      delta=Util.rnd2(total - sumBack);
     }
-    sumBack = Util.rnd2(tmp.reduce((a,b)=> a + b.rounded, 0));
-    delta = Util.rnd2(total - sumBack);
-
-    const map = new Map(tmp.map(x => [x.r.id, x.rounded]));
-    const outRows = rows.map(r => ({...r, backfill: map.get(r.id)||0}));
-    return { rows: outRows, sumLine, sumBack, delta };
+    const map=new Map(tmp.map(x=>[x.r.id,x.rounded]));
+    const out=rows.map(r=>({...r, backfill: map.get(r.id)||0 }));
+    return { rows:out, sumLine, sumBack, delta };
   }
 
   function recalc(opts={}){
-    const model = readMain();
-    const rows = tableToRows();
-    const errMain = Validator.validMain(model);
-    const errRows = Validator.validRows(rows);
+    const m=readMain(); const rows=tableToRows();
+    const errM=Validator.validMain(m); const errR=Validator.validRows(rows);
+    for(const k of Object.keys(els.err)) els.err[k].textContent=errM[k]||'';
+    Array.from(els.tbody.querySelectorAll('tr')).forEach((tr,i)=>{
+      const badge=tr.querySelector('td:last-child .badge');
+      if(errR[i]){ badge.textContent='error'; badge.style.color='var(--err)'; }
+      else if(tr.dataset.dirty){ badge.textContent='edit'; badge.style.color=''; }
+      else { badge.textContent='—'; badge.style.color=''; }
+    });
+    const ad=ROCDate.toAD(m.rocYear,m.month,m.day);
+    els.greg.textContent=ad?ad.iso:'—';
 
-    // 主單錯誤顯示
-    for(const k of Object.keys(els.err)) els.err[k].textContent = errMain[k] || '';
-
-    // 每行錯誤顯示
-    Array.from(els.tbody.querySelectorAll('tr')).forEach((tr, idx) => {
-      const badge = tr.querySelector('td:last-child .badge');
-      if(errRows[idx]){ badge.textContent = 'error'; badge.style.color = 'var(--err)'; }
-      else if(tr.dataset.dirty){ badge.textContent = 'edit'; badge.style.color = ''; }
-      else { badge.textContent = '—'; badge.style.color = ''; }
+    const { rows:computed, sumLine, sumBack, delta } = computeBackfill(+m.total||0, rows);
+    const map=new Map(computed.map(x=>[x.id,x.backfill]));
+    els.tbody.querySelectorAll('tr').forEach(tr=>{
+      tr.querySelector('[data-k="backfill"]').textContent=Util.fmtTWD(map.get(tr.dataset.id)||0);
     });
 
-    // 日期換算
-    const ad = ROCDate.toAD(model.rocYear, model.month, model.day);
-    els.greg.textContent = ad ? ad.iso : '—';
-
-    // 計算回填
-    const { rows: computed, sumLine, sumBack, delta } = computeBackfill(+model.total||0, rows);
-    // 回寫顯示
-    const mapBack = new Map(computed.map(x=>[x.id, x.backfill]));
-    els.tbody.querySelectorAll('tr').forEach(tr => {
-      const id = tr.dataset.id;
-      const span = tr.querySelector('[data-k="backfill"]');
-      span.textContent = Util.fmtTWD(mapBack.get(id) || 0);
-    });
-
-    // 合計/差額顯示
-    els.lblTotal.textContent = Util.fmtTWD(+model.total||0);
-    els.lblSumLine.textContent = Util.fmtTWD(sumLine);
-    els.lblSumBack.textContent = Util.fmtTWD(sumBack);
-    els.lblDelta.textContent = Util.fmtTWD(delta);
-    els.lblDelta.style.color = delta===0 ? 'var(--ok)' : 'var(--warn)';
+    els.lblTotal.textContent=Util.fmtTWD(+m.total||0);
+    els.lblSumLine.textContent=Util.fmtTWD(sumLine);
+    els.lblSumBack.textContent=Util.fmtTWD(sumBack);
+    els.lblDelta.textContent=Util.fmtTWD(delta);
+    els.lblDelta.className = delta===0 ? 'ok' : 'warn';
     els.deltaMsg.textContent = delta===0 ? 'OK：總應回填金額等於中標金額。' : '提示：因四捨五入產生差額，可按「修正差額」微調至完全相等。';
-
-    if(opts.fromFix){ // 修正後不再提示
-      els.deltaMsg.textContent = delta===0 ? '已修正差額。' : '尚有差額，可能因行數過少或金額分配極端。';
-    }
+    if(opts.fromFix){ els.deltaMsg.textContent = delta===0 ? '已修正差額。' : '仍有差額，請檢查行金額。'; }
   }
 
-  /* --------- 讀寫主單 ---------- */
+  /* ---- 主單讀寫 ---- */
   function readMain(){
     return {
-      rocYear: +els.rocYear.value || null,
-      month: +els.month.value || null,
-      day: +els.day.value || null,
-      invNo: (els.invNo.value||'').trim().toUpperCase(),
-      total: els.total.value === '' ? null : +els.total.value
+      rocYear:+els.rocYear.value||null,
+      month:+els.month.value||null,
+      day:+els.day.value||null,
+      invNo:(els.invNo.value||'').trim().toUpperCase(),
+      total: els.total.value===''?null:+els.total.value
     };
   }
   function writeMain(doc){
-    els.rocYear.value = doc.rocYear ?? '';
-    els.month.value = doc.month ?? '';
-    els.day.value = doc.day ?? '';
-    els.invNo.value = doc.invNo ?? '';
-    els.total.value = doc.total ?? '';
-    els.tbody.innerHTML = '';
-    (doc.rows||[]).forEach(r => els.tbody.insertAdjacentHTML('beforeend', rowTpl(r)));
-    els.chkAll.checked = false;
-    recalc();
+    els.rocYear.value=doc.rocYear??'';
+    els.month.value=doc.month??'';
+    els.day.value=doc.day??'';
+    els.invNo.value=doc.invNo??'';
+    els.total.value=doc.total??'';
+    els.tbody.innerHTML='';
+    (doc.rows||[]).forEach(r=> els.tbody.insertAdjacentHTML('beforeend', rowTpl(r)));
+    els.chkAll.checked=false; recalc(); renderTodayList();
   }
-
   function collectDoc(){
-    const m = readMain();
-    const ad = ROCDate.toAD(m.rocYear, m.month, m.day);
-    const rows = tableToRows();
-    const computed = computeBackfill(+m.total||0, rows);
+    const m=readMain(); const ad=ROCDate.toAD(m.rocYear,m.month,m.day);
+    const rows=tableToRows(); const c=computeBackfill(+m.total||0, rows);
     return {
-      name: suggestName(m, ad),
+      name: suggestName(m,ad),
       gregISO: ad?.iso || '',
-      rocYear: m.rocYear, month: m.month, day: m.day,
-      invNo: m.invNo, total: Util.rnd2(+m.total||0),
-      rows: computed.rows.map(r => ({ id:r.id, itemCode:r.itemCode||'', qty:r.qty??0, lineAmount:Util.rnd2(+r.lineAmount||0), backfill:Util.rnd2(+r.backfill||0) })),
-      _calc: { sumLine: computed.sumLine, sumBack: computed.sumBack, delta: computed.delta }
+      rocYear:m.rocYear, month:m.month, day:m.day,
+      invNo:m.invNo, total: Util.rnd2(+m.total||0),
+      rows: c.rows.map(r=>({ id:r.id, itemCode:r.itemCode||'', ioType:r.ioType||'進項',
+                              qty:r.qty??0, lineAmount:Util.rnd2(+r.lineAmount||0), backfill:Util.rnd2(+r.backfill||0)})),
+      _calc:{ sumLine:c.sumLine, sumBack:c.sumBack, delta:c.delta }
     };
   }
-  function suggestName(m, ad){
-    const d = ad?.iso || '未定';
-    return `${m.invNo||'未命名'}@${d}`;
-  }
+  const suggestName=(m,ad)=> `${m.invNo||'未命名'}@${ad?.iso||'未定'}`;
 
-  /* --------- 歷史渲染/操作 ---------- */
+  /* ---- 歷史清單 ---- */
   function renderHistList(){
-    const items = Storage.list();
-    els.schemaVer.textContent = Schema.VERSION;
-    els.histCount.textContent = items.length;
-
-    const q = (els.q.value||'').trim().toUpperCase();
-    const min = els.amtMin.value === '' ? -Infinity : +els.amtMin.value;
-    const max = els.amtMax.value === '' ? Infinity : +els.amtMax.value;
-    const d1 = els.dateFrom.value || '0000-00-00';
-    const d2 = els.dateTo.value || '9999-12-31';
-
-    const fil = items.filter(x => {
-      const hitQ = !q || (x.name||'').toUpperCase().includes(q) || (x.invNo||'').toUpperCase().includes(q);
-      const hitA = (x.total||0) >= min && (x.total||0) <= max;
-      const date = x.gregISO || '0000-00-00';
-      const hitD = date >= d1 && date <= d2;
+    const items=Storage.list(); els.schemaVer.textContent=Schema.VERSION; els.histCount.textContent=items.length;
+    const q=(els.q.value||'').trim().toUpperCase();
+    const min=els.amtMin.value===''?-Infinity:+els.amtMin.value;
+    const max=els.amtMax.value===''? Infinity:+els.amtMax.value;
+    const d1=els.dateFrom.value||'0000-00-00', d2=els.dateTo.value||'9999-12-31';
+    const fil=items.filter(x=>{
+      const hitQ=!q || (x.name||'').toUpperCase().includes(q) || (x.invNo||'').toUpperCase().includes(q);
+      const hitA=(x.total||0)>=min && (x.total||0)<=max;
+      const date=x.gregISO||'0000-00-00'; const hitD=date>=d1 && date<=d2;
       return hitQ && hitA && hitD;
     });
-
-    const html = fil.map(x => `
-      <div class="item" data-hist-id="${x.id}">
+    els.histList.innerHTML = fil.map(x=>`
+      <div class="item" data-hist-id="${x.id}" title="雙擊載入到主單">
         <div><input type="radio" name="histSel" ${x.id===selectedHistId?'checked':''}></div>
         <div>
           <div class="flex">
-            <strong>${escapeHtml(x.name||'(未命名)')}</strong>
-            <span class="badge">${escapeHtml(x.invNo||'—')}</span>
+            <strong class="hist-name">${esc(x.name||'(未命名)')}</strong>
+            <span class="badge">${esc(x.invNo||'—')}</span>
             <span class="pill">${x.rows?.length||0} 筆明細</span>
             <span class="muted">${x.gregISO||'—'}</span>
           </div>
@@ -779,158 +655,159 @@ const App = (() => {
         </div>
         <div><input type="checkbox" class="bulkmark" ${selectedForBulk.has(x.id)?'checked':''} title="批量刪除標記"></div>
       </div>
-    `).join('');
-    els.histList.innerHTML = html || `<div class="muted" style="padding:10px">沒有符合條件的紀錄。</div>`;
+    `).join('') || `<div class="muted" style="padding:10px">沒有符合條件的紀錄。</div>`;
 
-    // 綁定點擊
-    els.histList.querySelectorAll('.item').forEach(div => {
-      const id = div.dataset.histId;
-      div.querySelector('input[type="radio"]').addEventListener('change', () => {
-        selectedHistId = id;
-        updateDiffPanel();
-        document.querySelector('[data-action="overwrite"]').disabled = false;
-        document.querySelector('[data-action="deleteHistory"]').disabled = false;
-        document.querySelector('[data-action="exportJson"]').disabled = false;
+    els.histList.querySelectorAll('.item').forEach(div=>{
+      const id=div.dataset.histId;
+      // 單選 → 載入 + 差異顯示
+      div.querySelector('input[type="radio"]').addEventListener('change', ()=>{
+        selectedHistId=id; loadHistToMain(id); updateDiffPanel();
+        setHistActionState(true);
       });
-      div.querySelector('.bulkmark').addEventListener('change', (e)=> {
-        if(e.target.checked) selectedForBulk.add(id); else selectedForBulk.delete(id);
-      });
+      // 雙擊任何區域 → 載入
+      div.addEventListener('dblclick', ()=>{ selectedHistId=id; loadHistToMain(id); updateDiffPanel(); setHistActionState(true); });
+      // 批量刪除勾選
+      div.querySelector('.bulkmark').addEventListener('change', (e)=>{ if(e.target.checked) selectedForBulk.add(id); else selectedForBulk.delete(id); });
     });
-
-    // 按鈕狀態
-    const hasSel = !!selectedHistId;
-    document.querySelector('[data-action="overwrite"]').disabled = !hasSel;
-    document.querySelector('[data-action="deleteHistory"]').disabled = !hasSel;
-    document.querySelector('[data-action="exportJson"]').disabled = !hasSel;
+    setHistActionState(!!selectedHistId);
   }
-
+  function setHistActionState(enabled){
+    document.querySelector('[data-action="overwrite"]').disabled=!enabled;
+    document.querySelector('[data-action="deleteHistory"]').disabled=!enabled;
+    document.querySelector('[data-action="exportJson"]').disabled=!enabled;
+  }
+  function loadHistToMain(id){
+    const doc=Storage.get(id); if(!doc){ toast('找不到該筆紀錄','err'); return; }
+    writeMain(doc); toast('已載入歷史紀錄');
+  }
   function updateDiffPanel(){
-    const cur = collectDoc();
-    const hist = selectedHistId ? Storage.get(selectedHistId) : null;
-    if(!hist){ els.diffMsg.textContent = '尚未選取紀錄。'; return; }
-    const chg = DiffUtil.diffDoc(cur, hist);
-
-    // 主單差異提示
-    const mkeys = Object.keys(chg.main);
-    let msg = [];
-    if(mkeys.length){
-      msg.push('主單：' + mkeys.join('、 '));
-    }
-
-    // 行差異：將變更外框標示
-    Array.from(els.tbody.querySelectorAll('tr')).forEach((tr, idx) => {
+    const cur=collectDoc(); const hist=selectedHistId?Storage.get(selectedHistId):null;
+    if(!hist){ els.diffMsg.textContent='尚未選取紀錄。'; return; }
+    const chg=DiffUtil.diffDoc(cur,hist);
+    const mkeys=Object.keys(chg.main); let msg=[];
+    if(mkeys.length) msg.push('主單：'+mkeys.join('、 '));
+    Array.from(els.tbody.querySelectorAll('tr')).forEach((tr,idx)=>{
       tr.classList.remove('diff-add','diff-del','diff-chg');
-      const rowChange = chg.rows.find(r => r.idx === idx);
-      if(!rowChange) return;
-      tr.classList.add(rowChange.type==='add'?'diff-add':rowChange.type==='del'?'diff-del':'diff-chg');
+      const r=chg.rows.find(x=>x.idx===idx); if(!r) return;
+      tr.classList.add(r.type==='add'?'diff-add': r.type==='del'?'diff-del':'diff-chg');
     });
-
-    els.diffMsg.innerHTML = (msg.join('； ') || '目前表單與選取紀錄比較：部分明細可能新增/刪除/欄位變更，已以外框高亮顯示。');
+    els.diffMsg.textContent = msg.join('； ') || '目前表單與選取紀錄比較：已以外框高亮顯示變更/新增/刪除。';
   }
 
-  /* --------- 動作（工具列） ---------- */
+  /* ---- 當日清單（依目前主單日期） ---- */
+  function renderTodayList(){
+    const m=readMain(); const ad=ROCDate.toAD(m.rocYear,m.month,m.day);
+    const iso=ad?.iso || '';
+    if(!iso){ els.todayList.innerHTML = `<div class="muted" style="padding:8px">請先輸入有效日期。</div>`; return; }
+    const items=Storage.list().filter(x=> x.gregISO===iso);
+    if(items.length===0){ els.todayList.innerHTML = `<div class="muted" style="padding:8px">該日期尚無資料。</div>`; return; }
+    els.todayList.innerHTML = items.map(x=>`
+      <div class="today-item" data-id="${x.id}" title="點擊載入">
+        <span class="badge">${esc(x.invNo||'—')}</span>
+        <span>${esc(x.name||'')}</span>
+        <span class="muted">金額：${Util.fmtTWD(x.total||0)}</span>
+        <span class="pill">${x.rows?.length||0} 明細</span>
+      </div>
+    `).join('');
+    els.todayList.querySelectorAll('.today-item').forEach(div=>{
+      div.addEventListener('click', ()=>{
+        selectedHistId=div.dataset.id; loadHistToMain(selectedHistId); updateDiffPanel(); setHistActionState(true);
+      });
+    });
+  }
+
+  /* ---- 動作 ---- */
   const actions = {
-    newDoc(){
-      if(!confirm('清空目前表單？未儲存的變更將遺失。')) return;
-      writeMain({ rocYear:'', month:'', day:'', invNo:'', total:'', rows:[] });
-      selectedHistId = null; selectedForBulk.clear();
-      renderHistList();
-      toast('已建立新空白表單');
+    newDoc(){ // 建立今日空白表單
+      if(!confirm('清空目前表單並建立今日空白？')) return;
+      const t=ROCDate.todayROC();
+      writeMain({ rocYear:t.rocYear, month:t.month, day:t.day, invNo:'', total:'', rows:[] });
+      selectedHistId=null; selectedForBulk.clear(); renderHistList(); toast('已建立今日空白表單');
+    },
+    addCurrentAsNew(){ // 新增：保存當筆→加入歷史→顯示於當日清單；清空號碼/金額/明細，保留日期
+      const doc=collectDoc();
+      const errM=Validator.validMain(doc), errR=Validator.validRows(doc.rows);
+      if(Object.keys(errM).length){ toast('主單欄位有誤，請修正後再新增。','err'); recalc(); return; }
+      if(Object.keys(errR).length){ toast('明細欄位有誤，請修正後再新增。','err'); recalc(); return; }
+      const saved=Storage.save(doc);
+      // 保留日期，清空其他，準備下一筆
+      const keepDate={ rocYear:doc.rocYear, month:doc.month, day:doc.day, invNo:'', total:'', rows:[] };
+      writeMain(keepDate);
+      renderHistList(); renderTodayList();
+      selectedHistId=saved.id; updateDiffPanel(); setHistActionState(true);
+      toast('已新增當筆，並加入當日清單');
     },
     addRow(){ addRow(); },
     delRows(){ delRows(); },
     dupRows(){ dupRows(); },
     fixDelta(){
-      const m = readMain();
-      const rows = tableToRows();
-      const fixed = fixDelta(+m.total||0, rows);
-      // 回寫
-      const map = new Map(fixed.rows.map(r=>[r.id, r.backfill]));
-      els.tbody.querySelectorAll('tr').forEach(tr => {
-        tr.querySelector('[data-k="backfill"]').textContent = Util.fmtTWD(map.get(tr.dataset.id)||0);
+      const m=readMain(); const rows=tableToRows();
+      const fixed=fixDelta(+m.total||0, rows);
+      const map=new Map(fixed.rows.map(r=>[r.id,r.backfill]));
+      els.tbody.querySelectorAll('tr').forEach(tr=>{
+        tr.querySelector('[data-k="backfill"]').textContent=Util.fmtTWD(map.get(tr.dataset.id)||0);
       });
-      // 合計顯示重新渲染
-      els.lblSumLine.textContent = Util.fmtTWD(fixed.sumLine);
-      els.lblSumBack.textContent = Util.fmtTWD(fixed.sumBack);
-      els.lblDelta.textContent = Util.fmtTWD(fixed.delta);
-      els.lblDelta.style.color = fixed.delta===0 ? 'var(--ok)' : 'var(--warn)';
+      els.lblSumLine.textContent=Util.fmtTWD(fixed.sumLine);
+      els.lblSumBack.textContent=Util.fmtTWD(fixed.sumBack);
+      els.lblDelta.textContent=Util.fmtTWD(fixed.delta);
+      els.lblDelta.className = fixed.delta===0 ? 'ok' : 'warn';
       els.deltaMsg.textContent = fixed.delta===0 ? '已修正差額。' : '仍有差額，請檢查行金額。';
     },
     saveAs(){
-      const doc = collectDoc();
-      const errMain = Validator.validMain(doc);
-      const errRows = Validator.validRows(doc.rows);
-      if(Object.keys(errMain).length){ toast('主單欄位有誤，請修正後再保存。','err'); recalc(); return; }
-      if(Object.keys(errRows).length){ toast('明細欄位有誤，請修正後再保存。','err'); recalc(); return; }
-
-      const name = prompt('請為此快照命名（可留空使用預設）：', doc.name||'');
-      if(name != null && name.trim()!=='') doc.name = name.trim();
-      const saved = Storage.save(doc);
-      selectedHistId = saved.id; selectedForBulk.clear();
-      renderHistList();
-      toast('已儲存快照');
+      const doc=collectDoc();
+      const errM=Validator.validMain(doc), errR=Validator.validRows(doc.rows);
+      if(Object.keys(errM).length){ toast('主單欄位有誤，請修正後再保存。','err'); recalc(); return; }
+      if(Object.keys(errR).length){ toast('明細欄位有誤，請修正後再保存。','err'); recalc(); return; }
+      const name=prompt('請為此快照命名（可留空使用預設）：', doc.name||'');
+      if(name!=null && name.trim()!=='') doc.name=name.trim();
+      const saved=Storage.save(doc);
+      selectedHistId=saved.id; selectedForBulk.clear(); renderHistList(); renderTodayList(); toast('已儲存快照');
     },
     overwrite(){
       if(!selectedHistId){ toast('請先選取要覆蓋的歷史紀錄','warn'); return; }
       if(!confirm('確定以目前表單覆蓋所選紀錄？（不可復原）')) return;
-      const doc = collectDoc();
-      const saved = Storage.save(doc, selectedHistId);
-      renderHistList();
-      toast('已覆蓋紀錄');
+      const doc=collectDoc(); Storage.save(doc, selectedHistId);
+      renderHistList(); renderTodayList(); toast('已覆蓋紀錄');
     },
     deleteHistory(){
       if(!selectedHistId){ toast('請先選取紀錄','warn'); return; }
       if(!confirm('確定刪除所選紀錄？')) return;
-      Storage.remove(selectedHistId);
-      selectedHistId = null;
-      renderHistList();
-      els.diffMsg.textContent = '紀錄已刪除。';
+      Storage.remove(selectedHistId); selectedHistId=null;
+      renderHistList(); renderTodayList(); els.diffMsg.textContent='紀錄已刪除。'; setHistActionState(false);
       toast('已刪除');
     },
     bulkDeleteHistory(){
-      const ids = Array.from(selectedForBulk);
-      if(ids.length===0){ toast('請先在列表右側勾選要刪除的紀錄','warn'); return; }
+      const ids=Array.from(selectedForBulk); if(ids.length===0){ toast('請先在列表右側勾選要刪除的紀錄','warn'); return; }
       if(!confirm(`確定批量刪除 ${ids.length} 筆紀錄？`)) return;
-      Storage.bulkRemove(ids);
-      if(ids.includes(selectedHistId)) selectedHistId = null;
-      selectedForBulk.clear();
-      renderHistList();
+      Storage.bulkRemove(ids); if(ids.includes(selectedHistId)) selectedHistId=null;
+      selectedForBulk.clear(); renderHistList(); renderTodayList(); setHistActionState(!!selectedHistId);
       toast('批量刪除完成');
     },
     exportJson(){
-      // 若選取紀錄，匯出單筆；若未選，詢問是否匯出全部
-      let payload = [];
-      if(selectedHistId){
-        const doc = Storage.get(selectedHistId);
-        payload = [Schema.wrap(doc)];
-      }else{
-        const all = Storage.list();
-        if(all.length===0){ toast('沒有可匯出的資料','warn'); return; }
+      let payload=[];
+      if(selectedHistId){ payload=[Schema.wrap(Storage.get(selectedHistId))]; }
+      else{
+        const all=Storage.list(); if(all.length===0){ toast('沒有可匯出的資料','warn'); return; }
         if(!confirm('未選取紀錄，是否匯出全部？')) return;
-        payload = all.map(x => Schema.wrap(x));
+        payload=all.map(x=>Schema.wrap(x));
       }
-      const blob = new Blob([ JSON.stringify(payload.length===1 ? payload[0] : payload, null, 2) ], { type:'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `invoice-credit-${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
+      const blob=new Blob([ JSON.stringify(payload.length===1?payload[0]:payload, null, 2) ], {type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`invoice-credit-${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
       toast('已匯出 JSON 檔');
     },
     importJson(){ els.fileInp.click(); }
   };
 
-  /* --------- 初始化與示例資料 ---------- */
+  /* ---- 初始化與示例 ---- */
   function seedIfEmpty(){
     if(Storage.list().length) return;
-    // 建立兩筆示例
     const demo1 = {
       name:'AB12345678@2025-09-15',
       gregISO:'2025-09-15', rocYear:114, month:9, day:15,
       invNo:'AB12345678', total:10000.00,
       rows:[
-        {id:Util.uuid(), itemCode:'FOOD-40x1500', qty:1, lineAmount:6000.00, backfill:6000.00},
-        {id:Util.uuid(), itemCode:'WRAP-ROLL', qty:2, lineAmount:4000.00, backfill:4000.00},
+        {id:Util.uuid(), itemCode:'FOOD-40x1500', ioType:'進項', qty:1, lineAmount:6000.00, backfill:6000.00},
+        {id:Util.uuid(), itemCode:'WRAP-ROLL',    ioType:'銷項', qty:2, lineAmount:4000.00, backfill:4000.00},
       ],
       _calc:{ sumLine:10000.00, sumBack:10000.00, delta:0}
     };
@@ -939,67 +816,44 @@ const App = (() => {
       gregISO:'2025-09-20', rocYear:114, month:9, day:20,
       invNo:'CD87654321', total:12345.67,
       rows:[
-        {id:Util.uuid(), itemCode:'A001', qty:3, lineAmount:7000.00, backfill:0},
-        {id:Util.uuid(), itemCode:'B002', qty:1, lineAmount:3456.78, backfill:0},
-        {id:Util.uuid(), itemCode:'C003', qty:5, lineAmount:888.89, backfill:0},
+        {id:Util.uuid(), itemCode:'A001', ioType:'進項', qty:3, lineAmount:7000.00, backfill:0},
+        {id:Util.uuid(), itemCode:'B002', ioType:'進項', qty:1, lineAmount:3456.78, backfill:0},
+        {id:Util.uuid(), itemCode:'C003', ioType:'銷項', qty:5, lineAmount:888.89,  backfill:0},
       ]
     };
-    // 讓 demo2 使用計算回填
-    const c = computeBackfill(demo2.total, demo2.rows);
-    demo2.rows = c.rows; demo2._calc = { sumLine:c.sumLine, sumBack:c.sumBack, delta:c.delta };
+    const c=computeBackfill(demo2.total, demo2.rows);
+    demo2.rows=c.rows; demo2._calc={ sumLine:c.sumLine, sumBack:c.sumBack, delta:c.delta };
     Storage.save(demo1); Storage.save(demo2);
   }
 
   function start(){
     initRefs(); bindGlobal(); seedIfEmpty();
-    // 預設寫入一份空白 + 示範
-    writeMain({ rocYear:114, month:9, day:25, invNo:'', total:'', rows:[
-      { id:Util.uuid(), itemCode:'FOOD-40x1500', qty:1, lineAmount:1500, backfill:0, _status:'demo'},
-      { id:Util.uuid(), itemCode:'WRAP-FOOD', qty:2, lineAmount:500, backfill:0, _status:'demo'},
+    const t=ROCDate.todayROC();
+    // 今日空白 + 兩筆示範明細
+    writeMain({ rocYear:t.rocYear, month:t.month, day:t.day, invNo:'', total:'', rows:[
+      { id:Util.uuid(), itemCode:'FOOD-40x1500', ioType:'進項', qty:1, lineAmount:1500, backfill:0, _status:'demo'},
+      { id:Util.uuid(), itemCode:'WRAP-FOOD',    ioType:'銷項', qty:2, lineAmount:500,  backfill:0, _status:'demo'},
     ]});
-    renderHistList();
-    toast('已載入：示例資料 + 空白表單');
+    renderHistList(); renderTodayList(); toast('已載入（今日空白 + 示例資料）');
   }
 
-  return { start, actions, recalc };
+  return { start };
 })();
 
-/* ===========================
-   啟動
-   =========================== */
+/* 啟動 */
 document.addEventListener('DOMContentLoaded', App.start);
 
-/* ===========================
-   小工具：錯誤提示 Toast
-   =========================== */
-// 已整合在 App.toast 中（內嵌樣式/動畫）
-
+/* ========== 基本 E2E 測試步驟（註解） ==========
+1) 歷史載入：在右側「歷史紀錄」點單選或雙擊某筆 → 左側主單應載入該筆，差異面板更新。
+2) 新增流程：
+   - 在左側輸入今日日期/發票號/金額與明細，按「新增」；
+   - 該筆加入歷史，左側「當日清單」出現一列；主單保留日期但清空其他欄位以便輸入下一筆；
+   - 連續新增多筆 → 「當日清單」可捲動檢視全部。
+3) 明細性質：每行可選「進項/銷項」，保存後在歷史/當日清單載入仍可見。
+4) 修正差額：將某行金額改為 3999.99 造成差額，按「修正差額」後差額應為 0。
+5) 匯出/匯入：選取某筆匯出 JSON；清空 localStorage 後匯入可還原（v1.0.0 與 v1.1.0 皆可）。
+6) 鍵盤：Enter 新增明細；Delete 刪除所選；Ctrl+D 複製；Ctrl+Enter 儲存。
+================================================= */
 </script>
-
-<!-- ========== 基本 E2E 測試步驟（僅註解，供人工檢查） ==========
-# 目標：驗證核心互動流程（新增/計算/儲存/覆蓋/匯出/匯入/刪除/篩選/差異）
-1. 頁面載入後，主單預設 ROC=114/09/25，示例兩筆明細；右側歷史應有至少 2 筆示例。
-2. 在主單輸入：
-   - 發票號：AB11223344
-   - 中標金額：10000
-   - 明細：將兩行 lineAmount 改為 6000 與 4000；觀察「應回填金額」= 6000 與 4000。
-   - 差額顯示應為 0。
-3. 於工具列按「儲存」，命名如「測試-一」。右側列表應新增此筆，選取單選後，差異面板以外框標示（若有變更）。
-4. 將第二行 lineAmount 改為 3999.99：觀察回填與「差額」≠0；按「修正差額」後應為 0。
-5. 按「覆蓋」：確認覆蓋成功，列表更新時間應改變。
-6. 在列表勾選多筆右側的方塊，按「批量刪除」：被勾選者應被刪除。
-7. 按「匯出」：
-   - 若有選取單筆，應下載單筆 JSON（檔名含 timestamp）。
-   - 清空 localStorage（F12 -> Application -> Local Storage -> 刪除對應 key），再按「匯入」，選擇剛下載的 JSON 檔：應成功還原該筆紀錄。
-8. 使用右側篩選（日期/金額/關鍵字）觀察列表即時變動。
-9. 鍵盤：
-   - 在明細表按 Enter 新增行；
-   - 勾選若干行按 Delete 刪除；
-   - 勾選若干行按 Ctrl+D 複製；
-   - Ctrl+Enter 觸發「儲存」。
-10. 驗證格式：
-   - 發票號輸入錯誤格式（如 ABC123），下方即時顯示錯誤；
-   - 民國年月日不合理者顯示錯誤且西元日期顯示為「—」。
-=========================================================== -->
 </body>
 </html>
