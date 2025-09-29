@@ -1,842 +1,1720 @@
 <!DOCTYPE html>
-<!--
-單檔 / 離線可執行 / 無任何外部依賴
-「台灣 各類所得源泉扣繳 + 二代健保補充保費」計算器（114年度參數預設；可覆寫）
-更新日：2025-09-23
-
-=== 年度參數（每年更新） 快速說明 ===
-1) 只要改動 <script> 內的 CONFIG_YYYY 區塊（或用頁面的「年度參數面板」覆寫）就能換年。
-2) 每年建議檢查：
-   - MIN_WAGE_MONTHLY（基本工資月薪）
-   - BONUS_THRESHOLD（變動薪資每次起扣標準）
-   - NHI_SUPP_RATE / NHI_SINGLE_MIN_GENERAL / NHI_SINGLE_CAP（補充保費費率、單次門檻、單次上限）
-   - 各類扣繳稅率（非居薪資 6%/18%、利息 15%/20%、股利非居 21%、退職 6%/18% …）
--->
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>台灣源泉扣繳＋二代健保補充保費 計算器（桌面版・離線・自然語言輸出）</title>
-<style>
-:root{
-  /* 桌面優先：最大 1200px；行動裝置縮到視窗寬 */
-  --page-w: min(1200px, calc(100vw - 48px));
-  --bg:#f6f6f6; --ink:#111; --muted:#6b6b6b;
-  --red:#c1121f; --blk:#0b0b0b; --accent:#1f4e79; --paper:#fff;
-  --gap:16px; --line:1.5; --shadow:0 8px 28px rgba(0,0,0,.08);
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}
-.wrapper{width:var(--page-w);margin:20px auto}
-.card{
-  width:100%;
-  background:var(--paper); border:6px solid var(--blk); outline:12px solid #fff;
-  box-shadow:var(--shadow); overflow:clip; position:relative;
-  opacity:0; transform:translateY(6px)
-}
-.card.ready{opacity:1; transform:none; transition:opacity .5s ease, transform .5s ease}
-.bar-top{display:grid;grid-template-columns:1fr 160px;height:52px;border-bottom:6px solid var(--blk)}
-.bar-top .l{background:linear-gradient(90deg,var(--red) 0 60%, #fff 60%)}
-.bar-top .r{background:var(--accent);border-left:6px solid var(--blk)}
-.head{padding:16px 18px 8px 18px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
-.title{font-weight:800;font-size:22px;letter-spacing:.3px}
-.tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;padding:2px 8px;background:#000;color:#fff}
-.meta{padding:0 18px 12px;border-bottom:6px solid var(--blk);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.badge{font:12px var(--mono);border:2px solid #000;padding:3px 8px;background:#fff}
-.stamp{position:absolute;right:-36px;top:88px;transform:rotate(-16deg);
-  padding:6px 12px;background:var(--red);color:#fff;border:4px solid #000;font:800 12px var(--sans);letter-spacing:1.8px}
-
-/* 主要內容：桌面雙欄；小螢幕單欄 */
-.content{padding:16px 18px 18px}
-.grid2{display:grid;grid-template-columns:1fr;gap:var(--gap)}
-@media (min-width: 960px){
-  .grid2{grid-template-columns:1.1fr .9fr}
-}
-.block{border-left:10px solid var(--red);padding-left:12px;margin-bottom:var(--gap)}
-.block h3{margin:0 0 10px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase}
-.block .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:720px){ .block .row{grid-template-columns:1fr} }
-
-input[type="number"],select,textarea{
-  width:100%;font:14px/1.4 var(--sans);padding:8px;border:2px solid #222;background:#fff
-}
-textarea{min-height:120px;resize:vertical}
-.btn{appearance:none;border:0;background:#000;color:#fff;padding:10px 12px;font-weight:700;cursor:pointer}
-.btn.ghost{background:#fff;color:#000;border:2px solid #000}
-.btn.small{padding:7px 10px;font-size:12px}
-.flex{display:flex;gap:8px;flex-wrap:wrap}
-.note{font-size:12px;color:var(--muted)}
-pre{
-  overflow:auto; background:#111; color:#f0f0f0; padding:12px; font:12px/1.5 var(--mono);
-  max-height:560px; /* 桌面拉高顯示區 */
-  white-space:pre; word-break:break-word;
-}
-.footer{padding:6px 18px 18px;font-size:12px;color:#444}
-hr{border:0;border-top:2px solid #000;margin:0}
-.summary{background:#fef3f2;border:2px dashed #d00;padding:10px;font:12px/1.5 var(--mono)}
-details summary{cursor:pointer}
-
-/* 自然語言輸出樣式 */
-.nl{
-  background:#fff; border:2px solid #000; padding:12px;
-  font-size:14px; line-height:1.8;
-}
-.nl .k{font-weight:700}
-.nl details{margin-top:8px}
-.nl ol{margin:8px 0 0 18px}
-.nl ul{margin:8px 0 0 18px}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>稅目分類計算</title>
+  <!-- Load libraries with SRI for security -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+          integrity="sha512-qZq7w7c6Xc7d6X4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4q=="
+          crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"
+          integrity="sha512-+cUq6Zk4d7c6Xc7d6X4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4qX4q=="
+          crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --primary: #1e88e5;
+      --success: #43a047;
+      --warning: #fb8c00;
+      --danger: #e53935;
+      --light: #f5f5f5;
+      --border: #ddd;
+      --text: #333;
+      --text-secondary: #555;
+      --background: #fafafa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; }
+    body { background: var(--background); color: var(--text); padding: 20px; line-height: 1.5; }
+    h1 { margin-bottom: 12px; color: var(--primary); }
+    p { margin-bottom: 20px; color: var(--text-secondary); }
+    .container { display: flex; gap: 20px; flex-wrap: wrap; }
+    .tax-selector {
+      width: 280px; background: white; padding: 16px; border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1); max-height: 80vh; overflow-y: auto;
+    }
+    .tax-selector h3 { margin-bottom: 12px; font-size: 1.1em; }
+    .tax-selector label { display: flex; align-items: center; margin: 8px 0; cursor: pointer; }
+    .tax-selector input[type="checkbox"] { margin-right: 8px; }
+    .forms-container { flex: 1; min-width: 300px; }
+    .form-panel {
+      background: white; margin-bottom: 20px; border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1); overflow: hidden;
+    }
+    .form-panel.hidden { display: none; }
+    .form-header {
+      padding: 12px 16px; background: var(--light); font-weight: bold;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer;
+    }
+    .badge {
+      font-size: 0.75em; padding: 2px 6px; border-radius: 4px; color: white;
+    }
+    .badge.exempt { background: var(--success); }
+    .badge.half { background: var(--warning); }
+    .badge.surcharge { background: var(--danger); }
+    .form-body { padding: 0 16px 16px; }
+    .field-group { margin: 12px 0; }
+    .field-group label {
+      display: block; margin-bottom: 4px; font-weight: 500;
+    }
+    .field-group input, .field-group select {
+      width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;
+    }
+    .field-group input[disabled], .field-group select[disabled] {
+      background: #f0f0f0; color: #888; cursor: not-allowed;
+    }
+    .error { color: var(--danger); font-size: 0.85em; margin-top: 4px; }
+    .result-card {
+      background: white; padding: 16px; margin-top: 16px; border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-left: 4px solid var(--primary);
+    }
+    .result-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    }
+    .result-amount { font-size: 1.4em; font-weight: bold; color: var(--primary); }
+    .breakdown {
+      margin-top: 12px; padding: 12px; background: var(--light); border-radius: 6px;
+      font-size: 0.9em; white-space: pre-wrap; word-break: break-word;
+    }
+    .actions {
+      margin-top: 20px; text-align: center;
+    }
+    .btn {
+      padding: 10px 20px; margin: 0 8px; border: none; border-radius: 6px;
+      background: var(--primary); color: white; cursor: pointer; font-weight: bold;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: #666; }
+    .hidden { display: none !important; }
+    @media (max-width: 768px) {
+      .container { flex-direction: column; }
+      .tax-selector { width: 100%; }
+    }
+  </style>
 </head>
 <body>
-<main class="wrapper">
-  <article class="card ready" aria-labelledby="ttl">
-    <div class="bar-top"><div class="l" aria-hidden="true"></div><div class="r" aria-hidden="true"></div></div>
-    <div class="stamp" aria-hidden="true">TAX / NHI</div>
+  <h1>稅目分類計算儀表板（完整版）</h1>
+  <p>選稅目 → 填必要欄位 → 一鍵計算，顯示稅額與計算拆解；不相干欄位自動鎖定。</p>
 
-    <header class="head">
-      <h1 id="ttl" class="title">各類所得源泉扣繳＋二代健保補充保費 · 計算器（桌面版）</h1>
-      <span class="tag">Offline</span>
-    </header>
+  <div class="container">
+    <div class="tax-selector">
+      <h3>選擇稅目（可多選）</h3>
+      <label><input type="checkbox" data-tax="income"> 綜合所得稅（個人）</label>
+      <label><input type="checkbox" data-tax="profit"> 營利事業所得稅（公司）</label>
+      <label><input type="checkbox" data-tax="estate"> 遺產/贈與稅</label>
+      <label><input type="checkbox" data-tax="vat"> 營業稅—加值型（5%）</label>
+      <label><input type="checkbox" data-tax="special_vat"> 營業稅—非加值型</label>
+      <label><input type="checkbox" data-tax="stock"> 證券交易稅</label>
+      <label><input type="checkbox" data-tax="futures"> 期貨/選擇權交易稅</label>
+      <label><input type="checkbox" data-tax="local"> 地方稅（地價/房屋/契稅/牌照/娛樂）</label>
+      <label><input type="checkbox" data-tax="withholding"> 扣繳稅款</label>
+      <label><input type="checkbox" data-tax="nhi"> 健保二代補充保費</label>
+      <label><input type="checkbox" data-tax="customs"> 海關進口稅費</label>
+    </div>
 
-    <section class="meta">
-      <span class="badge">更新日：2025-09-23</span>
-      <span id="paramYear" class="badge">年度參數：<b>2025</b></span>
-      <span class="badge">NHI補充：<b id="nhiRateBadg">2.11%</b></span>
-      <span class="badge">變動薪資起扣：<b id="bonusThBadg">88,501</b></span>
-      <span class="badge">基本工資(月)：<b id="minWageBadg">28,590</b></span>
-    </section>
+    <div class="forms-container" id="formsContainer"></div>
+  </div>
 
-    <section class="content">
-      <div class="grid2">
-        <!-- 左欄：年度參數＋輸入 -->
-        <div>
-          <!-- 年度參數（可視化覆寫） -->
-          <section class="block">
-            <h3>年度參數面板（每年更新）</h3>
-            <div class="summary">
-              <!-- === 年度參數（每年更新） ===
-                   若要換年，優先更新下方 JSON（或修改程式內 CONFIG_2025 區塊） -->
-              <textarea id="paramEditor" spellcheck="false"></textarea>
-              <div class="flex" style="margin-top:8px">
-                <button class="btn small" id="applyParams">套用參數</button>
-                <button class="btn small ghost" id="resetParams">還原預設(2025)</button>
-              </div>
-              <div class="note">提示：改這裡即可換年（基本工資、起扣、補充保費率…）。</div>
+  <div class="actions">
+    <button class="btn" id="calculateAllBtn">一鍵計算</button>
+    <button class="btn btn-secondary" id="clearAllBtn">全部清除</button>
+    <button class="btn btn-secondary" id="exportPDFBtn">全部匯出 PDF</button>
+  </div>
+
+  <script>
+    (function() {
+      // ===== 1. 常數定義 =====
+      const TAX_TITLES = {
+        income: '綜合所得稅（個人）',
+        profit: '營利事業所得稅（公司）',
+        estate: '遺產/贈與稅',
+        vat: '營業稅—加值型（5%）',
+        special_vat: '營業稅—非加值型',
+        stock: '證券交易稅',
+        futures: '期貨/選擇權交易稅',
+        local: '地方稅',
+        withholding: '扣繳稅款',
+        nhi: '健保二代補充保費',
+        customs: '海關進口稅費'
+      };
+
+      // 綜合所得稅常數 (2025)
+      const INCOME_TAX_CONSTANTS = {
+        EXEMPTION: { GENERAL: 97000, SENIOR: 145500 },
+        STANDARD_DEDUCTION: { SINGLE: 131000, MARRIED: 262000 },
+        SPECIAL_DEDUCTIONS: {
+          SALARY: 218000,
+          DISABILITY: 218000,
+          PRESCHOOL_CHILD: { first: 150000, additional: 225000 },
+          EDUCATION: 25000,
+          SAVINGS: 270000,
+          LONG_TERM_CARE: 120000,
+          RENT: 180000
+        },
+        BASIC_LIVING_EXPENSE: 210000,
+        BRACKETS: [
+          { max: 590000, rate: 0.05, deduction: 0 },
+          { max: 1330000, rate: 0.12, deduction: 41300 },
+          { max: 2660000, rate: 0.20, deduction: 147700 },
+          { max: 4980000, rate: 0.30, deduction: 413700 },
+          { max: Infinity, rate: 0.40, deduction: 911700 }
+        ]
+      };
+
+      // 遺產/贈與稅常數 (2025)
+      const ESTATE_GIFT_TAX_CONSTANTS = {
+        ESTATE: {
+          EXEMPTION: 13330000,
+          DEDUCTIONS: {
+            SPOUSE: 5530000,
+            CHILD: 560000,
+            PARENT: 1380000,
+            DISABILITY: 6930000,
+            SIBLING_GRANDPARENT: 560000,
+            FUNERAL: 1380000
+          },
+          BRACKETS: [
+            { max: 56210000, rate: 0.10, deduction: 0 },
+            { max: 112420000, rate: 0.15, deduction: 2810500 },
+            { max: Infinity, rate: 0.20, deduction: 8431500 }
+          ]
+        },
+        GIFT: {
+          ANNUAL_EXEMPTION: 2440000,
+          BRACKETS: [
+            { max: 28110000, rate: 0.10, deduction: 0 },
+            { max: 56210000, rate: 0.15, deduction: 2811000 },
+            { max: Infinity, rate: 0.20, deduction: 7026000 }
+          ]
+        }
+      };
+
+      // 其他稅目常數
+      const PROFIT_TAX_THRESHOLDS = {
+        EXEMPT: 120000,
+        HALF_TAX_MAX: 200000,
+        HALF_TAX_RATE: 0.5,
+        FULL_TAX_RATE: 0.2
+      };
+
+      const STOCK_TAX_RATES = {
+        '0.3': '一般股票 (0.3%)',
+        '0.1': 'ETF 當沖 (0.1%)'
+      };
+
+      const FUTURES_TAX_RATES = {
+        'stock_futures': { rate: 0.0002, name: '股價期貨' },
+        'interest': { rate: 0.000125, name: '利率類' },
+        'bond': { rate: 0.00125, name: '10年期公債' },
+        'gold': { rate: 0.0025, name: '黃金' },
+        'options': { rate: 0.001, name: '選擇權權利金' }
+      };
+
+      const VEHICLE_TAX_TABLES = {
+        sedan: [
+          { max: 500, self: 1620, business: 900 },
+          { max: 600, self: 2160, business: 1260 },
+          { max: 1200, self: 4320, business: 2160 },
+          { max: 1800, self: 7120, business: 3060 },
+          { max: 2400, self: 11230, business: 6480 },
+          { max: 3000, self: 15210, business: 9900 },
+          { max: 4200, self: 28220, business: 16380 },
+          { max: 5400, self: 46170, business: 24300 },
+          { max: 6600, self: 69690, business: 33660 },
+          { max: 7800, self: 117000, business: 44460 },
+          { max: Infinity, self: 151200, business: 56700 }
+        ],
+        bus_truck: [
+          { max: 500, bus: 0, truck: 900 },
+          { max: 600, bus: 1080, truck: 1080 },
+          { max: 1200, bus: 1800, truck: 1800 },
+          { max: 1800, bus: 2700, truck: 2700 },
+          { max: 2400, bus: 3600, truck: 3600 },
+          { max: 3000, bus: 4500, truck: 4500 },
+          { max: 3600, bus: 5400, truck: 5400 },
+          { max: 4200, bus: 6300, truck: 6300 },
+          { max: 4800, bus: 7200, truck: 7200 },
+          { max: 5400, bus: 8100, truck: 8100 },
+          { max: 6000, bus: 9000, truck: 9000 },
+          { max: 6600, bus: 9900, truck: 9900 },
+          { max: 7200, bus: 10800, truck: 10800 },
+          { max: 7800, bus: 11700, truck: 11700 },
+          { max: 8400, bus: 12600, truck: 12600 },
+          { max: 9000, bus: 13500, truck: 13500 },
+          { max: 9600, bus: 14400, truck: 14400 },
+          { max: 10200, bus: 15300, truck: 15300 },
+          { max: Infinity, bus: 16200, truck: 16200 }
+        ],
+        motorcycle: [
+          { max: 150, tax: 0 },
+          { max: 250, tax: 800 },
+          { max: 500, tax: 1620 },
+          { max: 600, tax: 2160 },
+          { max: 1200, tax: 4320 },
+          { max: 1800, tax: 7120 },
+          { max: Infinity, tax: 11230 }
+        ]
+      };
+
+      const WITHHOLDING_RATES = {
+        salary: { resident_low: 0.05, resident_high: 'table', nonresident_low: 0.06, nonresident_high: 0.18 },
+        interest: { resident: 0.10, nonresident: 0.20 },
+        dividend: { resident: 0, nonresident: 0.21 },
+        rent: { resident: 0.10, nonresident: 0.20 },
+        commission: { resident: 0.10, nonresident: 0.20 },
+        service: { resident: 0.10, nonresident: 0.20 },
+        royalty: { resident: 0.10, nonresident: 0.20 },
+        bonus: { resident: 0.10, nonresident: 0.20 },
+        retirement: { resident: 0.06, nonresident: 0.18 }
+      };
+
+      // ===== 2. 工具函數 =====
+      function roundToNTD(value) {
+        return Math.round(value);
+      }
+
+      function formatCurrency(num) {
+        if (num === 0) return 'NT$0';
+        return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD' }).format(num);
+      }
+
+      function getFormData(taxKey) {
+        const form = document.getElementById(`form-${taxKey}`);
+        if (!form) return {};
+        const data = {};
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(el => {
+          if (el.type === 'checkbox') {
+            data[el.name] = el.checked;
+          } else {
+            data[el.name] = el.value.trim();
+          }
+        });
+        return data;
+      }
+
+      function showError(fieldId, message) {
+        const errorEl = document.getElementById(`${fieldId}_error`);
+        if (errorEl) {
+          errorEl.textContent = message;
+        }
+      }
+
+      // ===== 3. 計算引擎 =====
+      function calcIncome(data) {
+        const grossIncome = parseFloat(data.income_gross);
+        if (isNaN(grossIncome) || grossIncome < 0) throw new Error('綜合所得總額需為非負數');
+
+        const exemptionType = data.income_exemption_type || 'general';
+        const exemption = exemptionType === 'senior' ? 
+          INCOME_TAX_CONSTANTS.EXEMPTION.SENIOR : 
+          INCOME_TAX_CONSTANTS.EXEMPTION.GENERAL;
+
+        const filingStatus = data.income_filing_status || 'single';
+        const standardDeduction = filingStatus === 'married' ? 
+          INCOME_TAX_CONSTANTS.STANDARD_DEDUCTION.MARRIED : 
+          INCOME_TAX_CONSTANTS.STANDARD_DEDUCTION.SINGLE;
+
+        const itemizedDeduction = data.income_itemized_deduction ? parseFloat(data.income_itemized_deduction) : 0;
+        if (isNaN(itemizedDeduction) || itemizedDeduction < 0) throw new Error('列舉扣除額需為非負數');
+        const generalDeduction = Math.max(standardDeduction, itemizedDeduction);
+
+        let specialDeductions = 0;
+        if (data.income_salary_deduction) {
+          const salaryIncome = parseFloat(data.income_salary_income) || 0;
+          specialDeductions += Math.min(salaryIncome, INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.SALARY);
+        }
+        if (data.income_disability_deduction === 'true') {
+          specialDeductions += INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.DISABILITY;
+        }
+        const preschoolChildren = parseInt(data.income_preschool_children) || 0;
+        if (preschoolChildren > 0) {
+          if (preschoolChildren === 1) {
+            specialDeductions += INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.PRESCHOOL_CHILD.first;
+          } else {
+            specialDeductions += INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.PRESCHOOL_CHILD.first;
+            specialDeductions += (preschoolChildren - 1) * INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.PRESCHOOL_CHILD.additional;
+          }
+        }
+        if (data.income_education_deduction) {
+          const education = parseFloat(data.income_education_deduction);
+          if (!isNaN(education) && education >= 0) {
+            specialDeductions += Math.min(education, INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.EDUCATION);
+          }
+        }
+        if (data.income_savings_deduction) {
+          const savings = parseFloat(data.income_savings_deduction);
+          if (!isNaN(savings) && savings >= 0) {
+            specialDeductions += Math.min(savings, INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.SAVINGS);
+          }
+        }
+        if (data.income_long_care_deduction === 'true') {
+          specialDeductions += INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.LONG_TERM_CARE;
+        }
+        if (data.income_rent_deduction === 'true') {
+          specialDeductions += INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.RENT;
+        }
+        if (data.income_property_loss_deduction) {
+          const loss = parseFloat(data.income_property_loss_deduction);
+          if (!isNaN(loss) && loss >= 0) {
+            specialDeductions += loss;
+          }
+        }
+
+        const totalDeductions = exemption + generalDeduction + specialDeductions;
+        const basicLivingExpense = INCOME_TAX_CONSTANTS.BASIC_LIVING_EXPENSE;
+        const basicLivingDeduction = totalDeductions < basicLivingExpense ? 
+          (basicLivingExpense - totalDeductions) : 0;
+
+        const netIncome = Math.max(0, grossIncome - exemption - generalDeduction - specialDeductions - basicLivingDeduction);
+
+        let tax = 0;
+        let usedBracket = null;
+        for (const bracket of INCOME_TAX_CONSTANTS.BRACKETS) {
+          if (netIncome <= bracket.max) {
+            tax = netIncome * bracket.rate - bracket.deduction;
+            usedBracket = bracket;
+            break;
+          }
+        }
+        tax = Math.max(0, roundToNTD(tax));
+
+        const withheldTax = data.income_withheld_tax ? parseFloat(data.income_withheld_tax) : 0;
+        if (isNaN(withheldTax) || withheldTax < 0) throw new Error('已扣繳稅額需為非負數');
+        const creditableTax = data.income_creditable_tax ? parseFloat(data.income_creditable_tax) : 0;
+        if (isNaN(creditableTax) || creditableTax < 0) throw new Error('可扣抵稅額需為非負數');
+
+        const finalTax = tax - withheldTax - creditableTax;
+        const isRefund = finalTax < 0;
+
+        let breakdown = `綜合所得總額：${formatCurrency(grossIncome)}\n\n`;
+        breakdown += `扣除項目：\n`;
+        breakdown += `• 免稅額：${formatCurrency(exemption)} (${exemptionType === 'senior' ? '年滿70歲' : '一般'})\n`;
+        breakdown += `• 一般扣除額：${formatCurrency(generalDeduction)} (${itemizedDeduction > standardDeduction ? '列舉扣除' : '標準扣除'})\n`;
+        if (itemizedDeduction > standardDeduction) {
+          breakdown += `  - 列舉扣除總額：${formatCurrency(itemizedDeduction)}\n`;
+        }
+        breakdown += `• 特別扣除額合計：${formatCurrency(specialDeductions)}\n`;
+        if (data.income_salary_deduction) {
+          const salaryIncome = parseFloat(data.income_salary_income) || 0;
+          const deduction = Math.min(salaryIncome, INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.SALARY);
+          breakdown += `  - 薪資所得特別扣除：${formatCurrency(deduction)}\n`;
+        }
+        if (data.income_disability_deduction === 'true') {
+          breakdown += `  - 身心障礙特別扣除：${formatCurrency(INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.DISABILITY)}\n`;
+        }
+        if (preschoolChildren > 0) {
+          if (preschoolChildren === 1) {
+            breakdown += `  - 幼兒學前特別扣除（1名）：${formatCurrency(INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.PRESCHOOL_CHILD.first)}\n`;
+          } else {
+            const amount = INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.PRESCHOOL_CHILD.first + 
+                          (preschoolChildren - 1) * INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.PRESCHOOL_CHILD.additional;
+            breakdown += `  - 幼兒學前特別扣除（${preschoolChildren}名）：${formatCurrency(amount)}\n`;
+          }
+        }
+        if (data.income_education_deduction) {
+          const education = parseFloat(data.income_education_deduction);
+          if (!isNaN(education) && education >= 0) {
+            const deduction = Math.min(education, INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.EDUCATION);
+            breakdown += `  - 教育學費特別扣除：${formatCurrency(deduction)}\n`;
+          }
+        }
+        if (data.income_savings_deduction) {
+          const savings = parseFloat(data.income_savings_deduction);
+          if (!isNaN(savings) && savings >= 0) {
+            const deduction = Math.min(savings, INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.SAVINGS);
+            breakdown += `  - 儲蓄投資特別扣除：${formatCurrency(deduction)}\n`;
+          }
+        }
+        if (data.income_long_care_deduction === 'true') {
+          breakdown += `  - 長期照顧特別扣除：${formatCurrency(INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.LONG_TERM_CARE)}\n`;
+        }
+        if (data.income_rent_deduction === 'true') {
+          breakdown += `  - 房屋租金支出特別扣除：${formatCurrency(INCOME_TAX_CONSTANTS.SPECIAL_DEDUCTIONS.RENT)}\n`;
+        }
+        if (data.income_property_loss_deduction) {
+          const loss = parseFloat(data.income_property_loss_deduction);
+          if (!isNaN(loss) && loss >= 0) {
+            breakdown += `  - 財產交易損失特別扣除：${formatCurrency(loss)}\n`;
+          }
+        }
+        if (basicLivingDeduction > 0) {
+          breakdown += `• 基本生活費差額扣除：${formatCurrency(basicLivingDeduction)}\n`;
+        }
+        breakdown += `\n綜合所得淨額 = ${formatCurrency(grossIncome)} - ${formatCurrency(exemption)} - ${formatCurrency(generalDeduction)} - ${formatCurrency(specialDeductions)} - ${formatCurrency(basicLivingDeduction)} = ${formatCurrency(netIncome)}\n\n`;
+        breakdown += `應納稅額計算：\n`;
+        breakdown += `適用級距：${usedBracket.max === Infinity ? '≥4,980,001' : `0–${usedBracket.max.toLocaleString()}`}，稅率 ${usedBracket.rate * 100}%，速算扣除 ${formatCurrency(usedBracket.deduction)}\n`;
+        breakdown += `應納稅額 = ${netIncome} × ${usedBracket.rate} - ${usedBracket.deduction} = ${formatCurrency(tax)}\n\n`;
+        breakdown += `最終應${isRefund ? '退' : '繳'}稅額 = ${formatCurrency(tax)} - ${formatCurrency(withheldTax)}（已扣繳） - ${formatCurrency(creditableTax)}（可扣抵） = ${formatCurrency(Math.abs(finalTax))}`;
+
+        return {
+          amount: Math.abs(finalTax),
+          isRefund: isRefund,
+          breakdown,
+          effectiveRate: grossIncome > 0 ? (tax / grossIncome * 100).toFixed(2) + '%' : '0%'
+        };
+      }
+
+      function calcProfit(data) {
+        const P = parseFloat(data.profit_income);
+        if (isNaN(P) || P < 0) throw new Error('課稅所得額需為非負數');
+        let tax = 0, note = '';
+        if (P <= PROFIT_TAX_THRESHOLDS.EXEMPT) {
+          tax = 0;
+          note = '免稅';
+        } else if (P <= PROFIT_TAX_THRESHOLDS.HALF_TAX_MAX) {
+          tax = (P - PROFIT_TAX_THRESHOLDS.EXEMPT) * PROFIT_TAX_THRESHOLDS.HALF_TAX_RATE;
+          note = '半稅區段';
+        } else {
+          tax = P * PROFIT_TAX_THRESHOLDS.FULL_TAX_RATE;
+        }
+        tax = roundToNTD(tax);
+        const breakdown = `課稅所得額：${formatCurrency(P)}\n` +
+          (P <= PROFIT_TAX_THRESHOLDS.EXEMPT ? 'P ≤ 120,000 → 免稅' :
+           P <= PROFIT_TAX_THRESHOLDS.HALF_TAX_MAX ? `120,000 < P ≤ 200,000 → T = (${P} − 120,000) × 50% = ${formatCurrency(tax)}` :
+           `P > 200,000 → T = ${P} × 20% = ${formatCurrency(tax)}`);
+        return {
+          amount: tax,
+          breakdown,
+          badge: note ? { type: P <= PROFIT_TAX_THRESHOLDS.EXEMPT ? 'exempt' : 'half', text: note } : null
+        };
+      }
+
+      function calcEstate(data) {
+        const type = data.estate_type || 'estate';
+        
+        if (type === 'estate') {
+          const gross = parseFloat(data.estate_gross);
+          if (isNaN(gross) || gross < 0) throw new Error('遺產總額需為非負數');
+
+          const exemption = ESTATE_GIFT_TAX_CONSTANTS.ESTATE.EXEMPTION;
+          let totalDeductions = 0;
+
+          if (data.estate_spouse_deduction === 'true') {
+            totalDeductions += ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.SPOUSE;
+          }
+
+          const childrenCount = parseInt(data.estate_children_count) || 0;
+          const childrenMinors = parseInt(data.estate_children_minors) || 0;
+          if (childrenCount > 0) {
+            totalDeductions += childrenCount * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.CHILD;
+            if (childrenMinors > 0) {
+              const minorYears = parseInt(data.estate_minor_years) || 0;
+              totalDeductions += childrenMinors * minorYears * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.CHILD;
+            }
+          }
+
+          const parentsCount = parseInt(data.estate_parents_count) || 0;
+          if (parentsCount > 0) {
+            totalDeductions += parentsCount * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.PARENT;
+          }
+
+          const disabilityCount = parseInt(data.estate_disability_count) || 0;
+          if (disabilityCount > 0) {
+            totalDeductions += disabilityCount * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.DISABILITY;
+          }
+
+          const siblingGrandparentCount = parseInt(data.estate_sibling_grandparent_count) || 0;
+          const siblingGrandparentMinors = parseInt(data.estate_sibling_grandparent_minors) || 0;
+          if (siblingGrandparentCount > 0) {
+            totalDeductions += siblingGrandparentCount * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.SIBLING_GRANDPARENT;
+            if (siblingGrandparentMinors > 0) {
+              const minorYears = parseInt(data.estate_sg_minor_years) || 0;
+              totalDeductions += siblingGrandparentMinors * minorYears * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.SIBLING_GRANDPARENT;
+            }
+          }
+
+          if (data.estate_funeral_deduction === 'true') {
+            totalDeductions += ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.FUNERAL;
+          }
+
+          const debt = data.estate_debt ? parseFloat(data.estate_debt) : 0;
+          if (debt < 0) throw new Error('債務扣除額需為非負數');
+          totalDeductions += debt;
+
+          const otherDeductions = data.estate_other_deductions ? parseFloat(data.estate_other_deductions) : 0;
+          if (otherDeductions < 0) throw new Error('其他扣除額需為非負數');
+          totalDeductions += otherDeductions;
+
+          const net = Math.max(0, gross - exemption - totalDeductions);
+
+          let tax = 0;
+          let usedBracket = null;
+          for (const bracket of ESTATE_GIFT_TAX_CONSTANTS.ESTATE.BRACKETS) {
+            if (net <= bracket.max) {
+              tax = net * bracket.rate - bracket.deduction;
+              usedBracket = bracket;
+              break;
+            }
+          }
+          tax = Math.max(0, roundToNTD(tax));
+
+          const creditable = data.estate_creditable ? parseFloat(data.estate_creditable) : 0;
+          if (creditable < 0) throw new Error('可扣抵稅額需為非負數');
+          const finalTax = Math.max(0, tax - creditable);
+
+          let breakdown = `遺產總額：${formatCurrency(gross)}\n\n`;
+          breakdown += `扣除項目：\n`;
+          breakdown += `• 免稅額：${formatCurrency(exemption)}\n`;
+          if (data.estate_spouse_deduction === 'true') {
+            breakdown += `• 配偶扣除額：${formatCurrency(ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.SPOUSE)}\n`;
+          }
+          if (childrenCount > 0) {
+            breakdown += `• 直系血親卑親屬扣除額：${childrenCount}人 × ${formatCurrency(ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.CHILD)} = ${formatCurrency(childrenCount * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.CHILD)}\n`;
+            if (childrenMinors > 0) {
+              const minorYears = parseInt(data.estate_minor_years) || 0;
+              const minorDeduction = childrenMinors * minorYears * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.CHILD;
+              breakdown += `  - 未成年人加扣（${childrenMinors}人 × ${minorYears}年）：${formatCurrency(minorDeduction)}\n`;
+            }
+          }
+          if (parentsCount > 0) {
+            breakdown += `• 父母扣除額：${parentsCount}人 × ${formatCurrency(ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.PARENT)} = ${formatCurrency(parentsCount * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.PARENT)}\n`;
+          }
+          if (disabilityCount > 0) {
+            breakdown += `• 身心障礙特別扣除額：${disabilityCount}人 × ${formatCurrency(ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.DISABILITY)} = ${formatCurrency(disabilityCount * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.DISABILITY)}\n`;
+          }
+          if (siblingGrandparentCount > 0) {
+            breakdown += `• 兄弟姊妹/祖父母扣除額：${siblingGrandparentCount}人 × ${formatCurrency(ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.SIBLING_GRANDPARENT)} = ${formatCurrency(siblingGrandparentCount * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.SIBLING_GRANDPARENT)}\n`;
+            if (siblingGrandparentMinors > 0) {
+              const minorYears = parseInt(data.estate_sg_minor_years) || 0;
+              const minorDeduction = siblingGrandparentMinors * minorYears * ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.SIBLING_GRANDPARENT;
+              breakdown += `  - 未成年人加扣（${siblingGrandparentMinors}人 × ${minorYears}年）：${formatCurrency(minorDeduction)}\n`;
+            }
+          }
+          if (data.estate_funeral_deduction === 'true') {
+            breakdown += `• 喪葬費扣除額：${formatCurrency(ESTATE_GIFT_TAX_CONSTANTS.ESTATE.DEDUCTIONS.FUNERAL)}\n`;
+          }
+          if (debt > 0) {
+            breakdown += `• 債務扣除額：${formatCurrency(debt)}\n`;
+          }
+          if (otherDeductions > 0) {
+            breakdown += `• 其他扣除額（應納未納稅捐等）：${formatCurrency(otherDeductions)}\n`;
+          }
+          breakdown += `\n課稅遺產淨額 = ${formatCurrency(gross)} - ${formatCurrency(exemption)} - ${formatCurrency(totalDeductions)} = ${formatCurrency(net)}\n\n`;
+          breakdown += `應納遺產稅額計算：\n`;
+          breakdown += `適用級距：${usedBracket.max === Infinity ? '超過112,420,000' : usedBracket.max === 112420000 ? '56,210,001–112,420,000' : '56,210,000以下'}，稅率 ${usedBracket.rate * 100}%，累進差額 ${formatCurrency(usedBracket.deduction)}\n`;
+          breakdown += `應納稅額 = ${net} × ${usedBracket.rate} - ${usedBracket.deduction} = ${formatCurrency(tax)}\n\n`;
+          if (creditable > 0) {
+            breakdown += `最終應納稅額 = ${formatCurrency(tax)} - ${formatCurrency(creditable)}（可扣抵稅額） = ${formatCurrency(finalTax)}`;
+          } else {
+            breakdown += `最終應納稅額 = ${formatCurrency(finalTax)}`;
+          }
+
+          return { amount: finalTax, breakdown };
+        } else {
+          const gross = parseFloat(data.gift_gross);
+          if (isNaN(gross) || gross < 0) throw new Error('贈與總額需為非負數');
+
+          const exemption = ESTATE_GIFT_TAX_CONSTANTS.GIFT.ANNUAL_EXEMPTION;
+          const net = Math.max(0, gross - exemption);
+
+          let tax = 0;
+          let usedBracket = null;
+          for (const bracket of ESTATE_GIFT_TAX_CONSTANTS.GIFT.BRACKETS) {
+            if (net <= bracket.max) {
+              tax = net * bracket.rate - bracket.deduction;
+              usedBracket = bracket;
+              break;
+            }
+          }
+          tax = Math.max(0, roundToNTD(tax));
+
+          let breakdown = `贈與總額：${formatCurrency(gross)}\n\n`;
+          breakdown += `扣除項目：\n`;
+          breakdown += `• 年度免稅額：${formatCurrency(exemption)}\n`;
+          breakdown += `\n課稅贈與淨額 = ${formatCurrency(gross)} - ${formatCurrency(exemption)} = ${formatCurrency(net)}\n\n`;
+          breakdown += `應納贈與稅額計算：\n`;
+          breakdown += `適用級距：${usedBracket.max === Infinity ? '超過56,210,000' : usedBracket.max === 56210000 ? '28,110,001–56,210,000' : '28,110,000以下'}，稅率 ${usedBracket.rate * 100}%，累進差額 ${formatCurrency(usedBracket.deduction)}\n`;
+          breakdown += `應納稅額 = ${net} × ${usedBracket.rate} - ${usedBracket.deduction} = ${formatCurrency(tax)}`;
+
+          return { amount: tax, breakdown };
+        }
+      }
+
+      function calcVAT(data) {
+        const sales = parseFloat(data.vat_sales);
+        if (isNaN(sales) || sales < 0) throw new Error('銷售額需為非負數');
+        if (data.vat_input_tax && data.vat_purchase) {
+          throw new Error('進項稅額與進貨額請擇一填寫');
+        }
+        let inputTax = 0;
+        if (data.vat_input_tax) {
+          inputTax = parseFloat(data.vat_input_tax);
+          if (isNaN(inputTax) || inputTax < 0) throw new Error('進項稅額需為非負數');
+        } else if (data.vat_purchase) {
+          const purchase = parseFloat(data.vat_purchase);
+          if (isNaN(purchase) || purchase < 0) throw new Error('進貨額需為非負數');
+          inputTax = purchase * 0.05;
+        }
+        const outputTax = sales * 0.05;
+        const tax = roundToNTD(outputTax - inputTax);
+        const type = tax >= 0 ? '應納' : '溢付';
+        const breakdown = `銷項稅 = ${sales} × 5% = ${formatCurrency(outputTax)}\n` +
+          `進項稅 = ${formatCurrency(inputTax)}\n` +
+          `${type}稅額 = ${formatCurrency(outputTax)} - ${formatCurrency(inputTax)} = ${formatCurrency(tax)}`;
+        return { amount: Math.abs(tax), isRefund: tax < 0, type, breakdown };
+      }
+
+      function calcSpecialVAT(data) {
+        const sales = parseFloat(data.sv_sales);
+        const rate = parseFloat(data.sv_rate) / 100;
+        if (isNaN(sales) || sales < 0) throw new Error('銷售額需為非負數');
+        if (isNaN(rate) || rate < 0 || rate > 1) throw new Error('稅率需為 0–100%');
+        const tax = roundToNTD(sales * rate);
+        const breakdown = `銷售額：${formatCurrency(sales)} × 稅率 ${(rate * 100).toFixed(2)}% = ${formatCurrency(tax)}`;
+        return { amount: tax, breakdown };
+      }
+
+      function calcStock(data) {
+        const amount = parseFloat(data.stock_amount);
+        const rate = parseFloat(data.stock_rate) / 100;
+        if (isNaN(amount) || amount < 0) throw new Error('交易金額需為非負數');
+        if (isNaN(rate) || rate < 0 || rate > 1) throw new Error('稅率需為 0–100%');
+        const tax = roundToNTD(amount * rate);
+        const breakdown = `交易金額：${formatCurrency(amount)} × 稅率 ${(rate * 100).toFixed(2)}% = ${formatCurrency(tax)}`;
+        return { amount: tax, breakdown };
+      }
+
+      function calcFutures(data) {
+        const base = parseFloat(data.futures_base);
+        const type = data.futures_type;
+        const side = data.futures_side || 'single';
+        if (isNaN(base) || base < 0) throw new Error('課稅基礎需為非負數');
+        const config = FUTURES_TAX_RATES[type];
+        if (!config) throw new Error('請選擇契約類型');
+        let tax = base * config.rate;
+        if (side === 'double') tax *= 2;
+        tax = roundToNTD(tax);
+        const breakdown = `契約類型：${config.name}\n` +
+          `課稅基礎：${formatCurrency(base)}\n` +
+          `稅率：${(config.rate * 100).toFixed(3)}% ${side === 'double' ? '(雙邊)' : '(單邊)'}\n` +
+          `稅額 = ${formatCurrency(base)} × ${(config.rate * 100).toFixed(3)}% ${side === 'double' ? '× 2' : ''} = ${formatCurrency(tax)}`;
+        return { amount: tax, breakdown };
+      }
+
+      function calcLocal(data) {
+        const results = [];
+        let total = 0;
+
+        if (data.land_value && data.land_start) {
+          const A = parseFloat(data.land_value);
+          const S = parseFloat(data.land_start);
+          if (isNaN(A) || A < 0) throw new Error('土地漲價總額需為非負數');
+          if (isNaN(S) || S <= 0) throw new Error('累進起點地價需 > 0');
+          let tax = 0;
+          if (A <= S) {
+            tax = A * 0.01;
+          } else {
+            tax = S * 0.01;
+            tax += Math.min(A - S, 4 * S) * 0.015;
+            tax += Math.min(Math.max(A - 5 * S, 0), 5 * S) * 0.025;
+            tax += Math.min(Math.max(A - 10 * S, 0), 5 * S) * 0.035;
+            tax += Math.min(Math.max(A - 15 * S, 0), 5 * S) * 0.045;
+            tax += Math.max(A - 20 * S, 0) * 0.055;
+          }
+          const reduction = data.land_reduction ? parseFloat(data.land_reduction) : 1;
+          tax *= reduction;
+          tax = roundToNTD(tax);
+          total += tax;
+          const breakdown = `地價稅計算：\n` +
+            `土地漲價總額 A = ${formatCurrency(A)}，累進起點 S = ${formatCurrency(S)}\n` +
+            (A <= S ? `A ≤ S → T = A × 1% = ${formatCurrency(tax)}` :
+            `T = S×1% + 超過部分累進加徵 = ${formatCurrency(tax)}`) +
+            (reduction < 1 ? `\n持有年限減徵係數：${(reduction * 100).toFixed(0)}%` : '');
+          results.push({ name: '地價稅', amount: tax, breakdown });
+        }
+
+        if (data.house_value) {
+          const value = parseFloat(data.house_value);
+          const rate = parseFloat(data.house_rate) / 100;
+          if (isNaN(value) || value < 0) throw new Error('房屋現值需為非負數');
+          if (isNaN(rate) || rate < 0 || rate > 1) throw new Error('稅率需為 0–100%');
+          const tax = roundToNTD(value * rate);
+          total += tax;
+          const breakdown = `房屋稅 = ${formatCurrency(value)} × ${(rate * 100).toFixed(2)}% = ${formatCurrency(tax)}`;
+          results.push({ name: '房屋稅', amount: tax, breakdown });
+        }
+
+        if (data.deed_value) {
+          const value = parseFloat(data.deed_value);
+          const rate = parseFloat(data.deed_rate) / 100;
+          if (isNaN(value) || value < 0) throw new Error('移轉現值需為非負數');
+          if (isNaN(rate) || rate < 0 || rate > 1) throw new Error('稅率需為 0–100%');
+          const tax = roundToNTD(value * rate);
+          total += tax;
+          const breakdown = `契稅 = ${formatCurrency(value)} × ${(rate * 100).toFixed(2)}% = ${formatCurrency(tax)}`;
+          results.push({ name: '契稅', amount: tax, breakdown });
+        }
+
+        if (data.vehicle_type) {
+          const type = data.vehicle_type;
+          const year = parseInt(data.vehicle_year) || 2025;
+          const location = data.vehicle_location || 'mainland';
+          const isExemptIsland = data.vehicle_island_exempt === 'true';
+          const cc = type === 'electric' ? 0 : (parseFloat(data.vehicle_cc) || 0);
+          const isBusiness = data.vehicle_usage === 'business';
+          const isTrailer = data.vehicle_type_detail === 'trailer';
+
+          let tax = 0;
+          let reason = '';
+          let tableAmount = 0;
+
+          if (type === 'special') {
+            tax = 0;
+            reason = '特種車免徵';
+          }
+          else if (['penghu', 'kinmen', 'matsu'].includes(location) && isExemptIsland) {
+            tax = 0;
+            reason = '離島免徵';
+          }
+          else if (type === 'electric') {
+            if (year <= 2025) {
+              tax = 0;
+              reason = '2025年前電動車免徵';
+            }
+          }
+          else {
+            if (['sedan', 'dual'].includes(type)) {
+              for (const b of VEHICLE_TAX_TABLES.sedan) {
+                if (cc <= b.max) {
+                  tableAmount = isBusiness ? b.business : b.self;
+                  break;
+                }
+              }
+              tax = tableAmount;
+            }
+            else if (['bus', 'truck'].includes(type)) {
+              for (const b of VEHICLE_TAX_TABLES.bus_truck) {
+                if (cc <= b.max) {
+                  tableAmount = type === 'bus' ? b.bus : b.truck;
+                  break;
+                }
+              }
+              tax = tableAmount;
+              if (isTrailer) {
+                tax = roundToNTD(tax * 1.3);
+              }
+            }
+            else if (type === 'motorcycle') {
+              for (const b of VEHICLE_TAX_TABLES.motorcycle) {
+                if (cc <= b.max) {
+                  tax = b.tax;
+                  break;
+                }
+              }
+            }
+          }
+          tax = roundToNTD(tax);
+          total += tax;
+          let breakdown = `使用牌照稅：\n車種：${type}\n`;
+          if (reason) {
+            breakdown += `免徵原因：${reason}`;
+          } else {
+            breakdown += `排氣量：${cc} cc\n` +
+              `查表金額：${formatCurrency(tableAmount)}\n` +
+              (isTrailer ? '曳引車加徵 30%\n' : '') +
+              `稅額 = ${formatCurrency(tax)}`;
+          }
+          results.push({ 
+            name: '使用牌照稅', 
+            amount: tax, 
+            breakdown, 
+            badge: reason ? { type: 'exempt', text: reason } : null 
+          });
+        }
+
+        if (data.entertainment_amount) {
+          const amount = parseFloat(data.entertainment_amount);
+          const rate = parseFloat(data.entertainment_rate) / 100;
+          if (isNaN(amount) || amount < 0) throw new Error('營業額需為非負數');
+          if (isNaN(rate) || rate < 0 || rate > 1) throw new Error('稅率需為 0–100%');
+          const tax = roundToNTD(amount * rate);
+          total += tax;
+          const breakdown = `娛樂稅 = ${formatCurrency(amount)} × ${(rate * 100).toFixed(2)}% = ${formatCurrency(tax)}`;
+          results.push({ name: '娛樂稅', amount: tax, breakdown });
+        }
+
+        if (results.length === 0) throw new Error('請至少填寫一項地方稅資料');
+
+        return { amount: total, breakdown: results.map(r => `${r.name}：${formatCurrency(r.amount)}\n${r.breakdown}`).join('\n\n'), subResults: results };
+      }
+
+      function calcWithholding(data) {
+        const category = data.wh_category;
+        const resident = data.wh_resident === 'resident';
+        const amount = parseFloat(data.wh_amount);
+        if (isNaN(amount) || amount < 0) throw new Error('給付金額需為非負數');
+
+        let tax = 0;
+        let rate = null;
+        let tableAmount = null;
+        let notes = [];
+
+        if (category === 'salary') {
+          const isLow = data.wh_salary_low === 'true';
+          if (resident) {
+            if (isLow) {
+              rate = WITHHOLDING_RATES.salary.resident_low;
+              tax = amount * rate;
+            } else {
+              const tableVal = parseFloat(data.wh_salary_table);
+              if (isNaN(tableVal) || tableVal < 0) throw new Error('請輸入薪資扣繳表格金額');
+              tax = tableVal;
+              tableAmount = tableVal;
+            }
+          } else {
+            if (isLow) {
+              rate = WITHHOLDING_RATES.salary.nonresident_low;
+              tax = amount * rate;
+            } else {
+              rate = WITHHOLDING_RATES.salary.nonresident_high;
+              tax = amount * rate;
+            }
+          }
+          notes.push(resident ? '居住者' : '非居住者');
+          if (isLow) notes.push('≤1.5倍基本工資');
+        } else if (category === 'retirement') {
+          const exempt = parseFloat(data.wh_retirement_exempt) || 0;
+          const taxable = Math.max(amount - exempt, 0);
+          rate = resident ? WITHHOLDING_RATES.retirement.resident : WITHHOLDING_RATES.retirement.nonresident;
+          tax = taxable * rate;
+          notes.push(resident ? '居住者' : '非居住者');
+          notes.push(`免稅額 ${formatCurrency(exempt)}`);
+        } else {
+          const rates = WITHHOLDING_RATES[category];
+          if (!rates) throw new Error('不支援的所得類別');
+          rate = resident ? rates.resident : rates.nonresident;
+          if (rate === 'table') {
+          } else if (rate === 0) {
+            tax = 0;
+            notes.push('免扣繳');
+          } else {
+            tax = amount * rate;
+          }
+          notes.push(resident ? '居住者' : '非居住者');
+        }
+
+        tax = roundToNTD(tax);
+        const breakdown = `所得類別：${category}\n` +
+          `給付金額：${formatCurrency(amount)}\n` +
+          (tableAmount !== null ? `扣繳表格金額：${formatCurrency(tableAmount)}` :
+           rate !== null && rate !== 'table' ? `適用稅率：${(rate * 100).toFixed(2)}%` : '') +
+          `\n稅額 = ${formatCurrency(tax)}\n` +
+          `說明：${notes.join('；')}`;
+        return { amount: tax, breakdown, rateApplied: rate, tableAmountUsed: tableAmount };
+      }
+
+      function calcNHI(data) {
+        const amount = parseFloat(data.nhi_amount);
+        if (isNaN(amount) || amount < 0) throw new Error('金額需為非負數');
+        if (amount < 20000) {
+          return {
+            amount: 0,
+            badge: { type: 'exempt', text: '未達門檻' },
+            breakdown: `單筆金額 ${formatCurrency(amount)} < 20,000 → 免徵`
+          };
+        }
+        const tax = roundToNTD(amount * 0.0211);
+        return {
+          amount: tax,
+          breakdown: `金額 ≥ 20,000 → ${formatCurrency(amount)} × 2.11% = ${formatCurrency(tax)}`
+        };
+      }
+
+      function calcCustoms(data) {
+        const trade = data.cus_trade;
+        let FOB = 0, freight = 0, insurance = 0, CIF = 0;
+
+        if (['EXW', 'FCA', 'FOB'].includes(trade)) {
+          FOB = parseFloat(data.cus_fob) || 0;
+          freight = parseFloat(data.cus_freight) || 0;
+          insurance = parseFloat(data.cus_insurance) || 0;
+          if (FOB <= 0) throw new Error('FOB 價需 > 0');
+          CIF = FOB + freight + insurance;
+        } else if (['CIF', 'CIP'].includes(trade)) {
+          CIF = parseFloat(data.cus_cif) || 0;
+          if (CIF <= 0) throw new Error('CIF 價需 > 0');
+        } else {
+          throw new Error('請選擇貿易條件');
+        }
+
+        let customsTax = 0;
+        if (data.cus_customs_rate) {
+          const rate = parseFloat(data.cus_customs_rate) / 100;
+          if (isNaN(rate) || rate < 0) throw new Error('關稅率需 ≥ 0');
+          customsTax = CIF * rate;
+        }
+
+        let exciseTax = 0;
+        if (data.cus_excise_rate) {
+          const rate = parseFloat(data.cus_excise_rate) / 100;
+          if (isNaN(rate) || rate < 0) throw new Error('貨物稅率需 ≥ 0');
+          exciseTax = (CIF + customsTax) * rate;
+        }
+
+        const tobaccoTax = 0;
+        const healthDonation = 0;
+        let promoFee = CIF * 0.0004;
+        if (promoFee < 100) promoFee = 0;
+        const vatBase = CIF + customsTax + exciseTax + tobaccoTax + healthDonation;
+        const vatTax = vatBase * 0.05;
+        const total = roundToNTD(customsTax + exciseTax + tobaccoTax + healthDonation + promoFee + vatTax);
+
+        const breakdown = `完稅價格 (CIF)：${formatCurrency(CIF)}\n` +
+          (customsTax > 0 ? `關稅 = ${formatCurrency(CIF)} × ${data.cus_customs_rate}% = ${formatCurrency(customsTax)}\n` : '關稅：0\n') +
+          (exciseTax > 0 ? `貨物稅 = (${formatCurrency(CIF)} + ${formatCurrency(customsTax)}) × ${data.cus_excise_rate}% = ${formatCurrency(exciseTax)}\n` : '貨物稅：0\n') +
+          `菸酒稅：${formatCurrency(tobaccoTax)}\n` +
+          `健康捐：${formatCurrency(healthDonation)}\n` +
+          `推廣貿易服務費 = ${formatCurrency(CIF)} × 0.04% = ${promoFee < 100 ? '0（未達100元免徵）' : formatCurrency(promoFee)}\n` +
+          `進口營業稅 = (${formatCurrency(vatBase)}) × 5% = ${formatCurrency(vatTax)}\n` +
+          `總稅費 = ${formatCurrency(total)}`;
+
+        return {
+          amount: total,
+          breakdown,
+          details: {
+            cif: CIF,
+            customs: customsTax,
+            excise: exciseTax,
+            tobacco: tobaccoTax,
+            health: healthDonation,
+            promo: promoFee,
+            vat: vatTax
+          }
+        };
+      }
+
+      // ===== 4. 表單渲染 =====
+      function renderForms() {
+        const container = document.getElementById('formsContainer');
+        container.innerHTML = '';
+
+        const panels = {
+          income: `
+            <div class="field-group">
+              <label>綜合所得總額<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="income_gross" name="income_gross" min="0" step="1000">
+              <div class="error" id="income_gross_error"></div>
             </div>
-          </section>
-
-          <!-- 輸入區 -->
-          <section class="block">
-            <h3>輸入</h3>
-            <div class="row">
-              <div>
-                <label>居住身分</label>
-                <select id="resident_status">
-                  <option value="resident">resident（居住者）</option>
-                  <option value="nonresident">nonresident（非居）</option>
-                </select>
-              </div>
-              <div>
-                <label>所得類別</label>
-                <select id="income_type">
-                  <option value="salary_fixed">salary_fixed（固定月薪）</option>
-                  <option value="salary_variable">salary_variable（變動薪資/年終/兼職）</option>
-                  <option value="professional">professional（執行業務）</option>
-                  <option value="rent">rent（租金）</option>
-                  <option value="royalty">royalty（權利金）</option>
-                  <option value="prize">prize（競技/中獎）</option>
-                  <option value="interest">interest（利息）</option>
-                  <option value="dividend">dividend（股利）</option>
-                  <option value="retirement">retirement（退職/退休）</option>
-                  <option value="other">other（其他）</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label>本次給付金額（payment_amount）</label>
-                <input id="payment_amount" type="number" min="0" step="1" value="60000">
-              </div>
-              <div>
-                <label>當月薪資總額（monthly_total_salary_for_month）</label>
-                <input id="monthly_total_salary_for_month" type="number" min="0" step="1" value="0">
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label>薪資表列或 5%（apply_salary_table_or_5pct）</label>
-                <select id="apply_salary_table_or_5pct">
-                  <option value="5pct">5pct</option>
-                  <option value="table">table（需自備稅額表函式）</option>
-                </select>
-              </div>
-              <div>
-                <label>利息細類（interest_subtype）</label>
-                <select id="interest_subtype">
-                  <option value="other">other</option>
-                  <option value="gov_bond">gov_bond（公債/金資券等）</option>
-                  <option value="corp_bond">corp_bond（公司債/金融債/短票等）</option>
-                  <option value="deposit">deposit（存款息）</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label>股利結算選擇（居民）</label>
-                <select id="dividend_resident_election_note">
-                  <option value="none">none</option>
-                  <option value="28pct_separate">28% 分離課稅</option>
-                  <option value="combine_with_8p5pct_credit">併入＋8.5% 抵減(上限8萬)</option>
-                </select>
-              </div>
-              <div>
-                <label>NHI 投保金額（員工本人，年終超額判斷用）</label>
-                <input id="nhi_employee_monthly_insured_wage" type="number" min="0" step="1" value="45000">
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label>雇主月薪資總額</label>
-                <input id="employer_month_total_salary_paid" type="number" min="0" step="1" value="0">
-              </div>
-              <div>
-                <label>雇主當月投保金額總額</label>
-                <input id="employer_month_total_insured_wage_sum" type="number" min="0" step="1" value="0">
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label>NHI 名目（六項）</label>
-                <select id="nhi_item_tag">
-                  <option value="none">none（不課）</option>
-                  <option value="side_salary">side_salary（兼職/非經常薪資）</option>
-                  <option value="executive_income">executive_income（執行業務）</option>
-                  <option value="dividend">dividend（股利）</option>
-                  <option value="interest">interest（利息）</option>
-                  <option value="rent">rent（租金）</option>
-                  <option value="year_end_excess">year_end_excess（年終超過4×投保）</option>
-                </select>
-              </div>
-              <div>
-                <label>啟用 NHI 單筆檢核</label>
-                <select id="nhi_single_payment_check">
-                  <option value="true">true</option>
-                  <option value="false">false</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="flex">
-              <button class="btn" id="runBtn">計算</button>
-              <button class="btn ghost" id="copyBtn">複製結果 JSON</button>
-              <select id="casePick" class="btn small" style="background:#fff;color:#000;border:2px solid #000">
-                <option value="">載入測試案例…</option>
-                <option value="A">A 居住者 年終 60,000</option>
-                <option value="B">B 非居 月薪 40,000（6%）</option>
-                <option value="C">C 居住者 執行業務 30,000</option>
-                <option value="D">D 居住者 股利 200,000</option>
-                <option value="E">E 居住者 退職 800,000（免稅額外部）</option>
-                <option value="F">F 非居 利息 公司債 100,000（15%）</option>
-                <option value="G">G 雇主月差額 1,500,000 - 1,200,000</option>
+            <div class="field-group">
+              <label>免稅額類型</label>
+              <select id="income_exemption_type" name="income_exemption_type">
+                <option value="general">一般納稅義務人（未達70歲）</option>
+                <option value="senior">年滿70歲者</option>
               </select>
-              <button class="btn small" id="runAll">全部測試</button>
             </div>
-          </section>
-        </div>
-
-        <!-- 右欄：輸出＋法規 -->
-        <div>
-          <section class="block">
-            <h3>輸出（自然語言）</h3>
-            <div id="outNL" class="nl" aria-live="polite"></div>
-
+            <div class="field-group">
+              <label>申報狀態</label>
+              <select id="income_filing_status" name="income_filing_status">
+                <option value="single">單身</option>
+                <option value="married">有配偶（合併申報）</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>列舉扣除額總額（若無則留空）</label>
+              <input type="number" id="income_itemized_deduction" name="income_itemized_deduction" min="0" step="1000">
+              <div class="error" id="income_itemized_deduction_error"></div>
+            </div>
             <details>
-              <summary>查看原始 JSON（稽核用）</summary>
-              <pre id="outJSON" aria-label="result json"></pre>
+              <summary><strong>特別扣除額</strong></summary>
+              <div class="field-group">
+                <label>薪資所得總額（用於薪資特別扣除）</label>
+                <input type="number" id="income_salary_income" name="income_salary_income" min="0" step="1000">
+                <label><input type="checkbox" id="income_salary_deduction" name="income_salary_deduction" value="true"> 適用薪資所得特別扣除</label>
+              </div>
+              <div class="field-group">
+                <label><input type="checkbox" id="income_disability_deduction" name="income_disability_deduction" value="true"> 身心障礙特別扣除</label>
+              </div>
+              <div class="field-group">
+                <label>6歲以下子女人數</label>
+                <input type="number" id="income_preschool_children" name="income_preschool_children" min="0" max="10" value="0">
+              </div>
+              <div class="field-group">
+                <label>教育學費支出</label>
+                <input type="number" id="income_education_deduction" name="income_education_deduction" min="0" step="1000">
+              </div>
+              <div class="field-group">
+                <label>儲蓄投資所得</label>
+                <input type="number" id="income_savings_deduction" name="income_savings_deduction" min="0" step="1000">
+              </div>
+              <div class="field-group">
+                <label><input type="checkbox" id="income_long_care_deduction" name="income_long_care_deduction" value="true"> 長期照顧特別扣除</label>
+              </div>
+              <div class="field-group">
+                <label><input type="checkbox" id="income_rent_deduction" name="income_rent_deduction" value="true"> 房屋租金支出特別扣除（假設符合條件）</label>
+              </div>
+              <div class="field-group">
+                <label>財產交易損失</label>
+                <input type="number" id="income_property_loss_deduction" name="income_property_loss_deduction" min="0" step="1000">
+              </div>
             </details>
+            <div class="field-group">
+              <label>已扣繳稅額</label>
+              <input type="number" id="income_withheld_tax" name="income_withheld_tax" min="0" step="1000">
+              <div class="error" id="income_withheld_tax_error"></div>
+            </div>
+            <div class="field-group">
+              <label>可扣抵稅額</label>
+              <input type="number" id="income_creditable_tax" name="income_creditable_tax" min="0" step="1000">
+              <div class="error" id="income_creditable_tax_error"></div>
+            </div>
+          `,
+          profit: `
+            <div class="field-group">
+              <label>課稅所得額 P（年度）<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="profit_income" name="profit_income" min="0" step="1000">
+              <div class="error" id="profit_income_error"></div>
+            </div>
+          `,
+          estate: `
+            <div class="field-group">
+              <label>稅目類型</label>
+              <select id="estate_type" name="estate_type">
+                <option value="estate">遺產稅</option>
+                <option value="gift">贈與稅</option>
+              </select>
+            </div>
+            <div id="estate_fields">
+              <div class="field-group">
+                <label>遺產總額<span style="color:var(--danger)">*</span></label>
+                <input type="number" id="estate_gross" name="estate_gross" min="0" step="10000">
+                <div class="error" id="estate_gross_error"></div>
+              </div>
+              <details>
+                <summary><strong>扣除項目</strong></summary>
+                <div class="field-group">
+                  <label><input type="checkbox" id="estate_spouse_deduction" name="estate_spouse_deduction" value="true"> 配偶扣除額（5,530,000元）</label>
+                </div>
+                <div class="field-group">
+                  <label>直系血親卑親屬人數</label>
+                  <input type="number" id="estate_children_count" name="estate_children_count" min="0" value="0">
+                  <label>其中未成年人人數</label>
+                  <input type="number" id="estate_children_minors" name="estate_children_minors" min="0" value="0">
+                  <label>距成年年數（未成年人）</label>
+                  <input type="number" id="estate_minor_years" name="estate_minor_years" min="0" value="0">
+                </div>
+                <div class="field-group">
+                  <label>父母人數</label>
+                  <input type="number" id="estate_parents_count" name="estate_parents_count" min="0" value="0">
+                </div>
+                <div class="field-group">
+                  <label>身心障礙人數（配偶/卑親屬/父母）</label>
+                  <input type="number" id="estate_disability_count" name="estate_disability_count" min="0" value="0">
+                </div>
+                <div class="field-group">
+                  <label>兄弟姊妹/祖父母人數（受扶養者）</label>
+                  <input type="number" id="estate_sibling_grandparent_count" name="estate_sibling_grandparent_count" min="0" value="0">
+                  <label>其中未成年人人數</label>
+                  <input type="number" id="estate_sibling_grandparent_minors" name="estate_sibling_grandparent_minors" min="0" value="0">
+                  <label>距成年年數（未成年人）</label>
+                  <input type="number" id="estate_sg_minor_years" name="estate_sg_minor_years" min="0" value="0">
+                </div>
+                <div class="field-group">
+                  <label><input type="checkbox" id="estate_funeral_deduction" name="estate_funeral_deduction" value="true"> 喪葬費扣除額（1,380,000元）</label>
+                </div>
+                <div class="field-group">
+                  <label>債務扣除額</label>
+                  <input type="number" id="estate_debt" name="estate_debt" min="0" step="10000">
+                </div>
+                <div class="field-group">
+                  <label>其他扣除額（應納未納稅捐等）</label>
+                  <input type="number" id="estate_other_deductions" name="estate_other_deductions" min="0" step="10000">
+                </div>
+                <div class="field-group">
+                  <label>可扣抵稅額</label>
+                  <input type="number" id="estate_creditable" name="estate_creditable" min="0" step="10000">
+                  <div class="error" id="estate_creditable_error"></div>
+                </div>
+              </details>
+            </div>
+            <div id="gift_fields" style="display:none;">
+              <div class="field-group">
+                <label>贈與總額<span style="color:var(--danger)">*</span></label>
+                <input type="number" id="gift_gross" name="gift_gross" min="0" step="10000">
+                <div class="error" id="gift_gross_error"></div>
+              </div>
+              <p>年度免稅額：${formatCurrency(ESTATE_GIFT_TAX_CONSTANTS.GIFT.ANNUAL_EXEMPTION)}（自動扣除）</p>
+            </div>
+          `,
+          vat: `
+            <div class="field-group">
+              <label>本期銷售額（應稅 5%）<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="vat_sales" name="vat_sales" min="0" step="1000">
+              <div class="error" id="vat_sales_error"></div>
+            </div>
+            <div class="field-group">
+              <label>可扣抵進項稅額（選填）</label>
+              <input type="number" id="vat_input_tax" name="vat_input_tax" min="0" step="100">
+              <div class="error" id="vat_input_tax_error"></div>
+            </div>
+            <div class="field-group">
+              <label>進貨額（若填此欄，進項=進貨×5%）</label>
+              <input type="number" id="vat_purchase" name="vat_purchase" min="0" step="1000">
+              <div class="error" id="vat_purchase_error"></div>
+            </div>
+            <small>進項稅額與進貨額請擇一填寫</small>
+          `,
+          special_vat: `
+            <div class="field-group">
+              <label>行業別<span style="color:var(--danger)">*</span></label>
+              <select id="sv_industry" name="sv_industry">
+                <option value="nightclub">夜總會/高級酒吧</option>
+                <option value="small">小規模營業人</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>銷售額<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="sv_sales" name="sv_sales" min="0" step="1000">
+              <div class="error" id="sv_sales_error"></div>
+            </div>
+            <div class="field-group">
+              <label>行業稅率 (%)<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="sv_rate" name="sv_rate" value="15" min="0" max="100" step="0.1">
+              <div class="error" id="sv_rate_error"></div>
+            </div>
+          `,
+          stock: `
+            <div class="field-group">
+              <label>交易金額（賣出成交金額）<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="stock_amount" name="stock_amount" min="0" step="1000">
+              <div class="error" id="stock_amount_error"></div>
+            </div>
+            <div class="field-group">
+              <label>交易種類</label>
+              <select id="stock_type" name="stock_type">
+                ${Object.entries(STOCK_TAX_RATES).map(([value, text]) => 
+                  `<option value="${value}">${text}</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div class="field-group">
+              <label>稅率 (%)</label>
+              <input type="number" id="stock_rate" name="stock_rate" value="0.3" min="0" max="100" step="0.1">
+              <div class="error" id="stock_rate_error"></div>
+            </div>
+          `,
+          futures: `
+            <div class="field-group">
+              <label>契約類型<span style="color:var(--danger)">*</span></label>
+              <select id="futures_type" name="futures_type">
+                ${Object.entries(FUTURES_TAX_RATES).map(([key, config]) => 
+                  `<option value="${key}">${config.name} (${(config.rate * 100).toFixed(3)}%)</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div class="field-group">
+              <label>課稅基礎（契約價值或權利金）<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="futures_base" name="futures_base" min="0" step="1000">
+              <div class="error" id="futures_base_error"></div>
+            </div>
+            <div class="field-group">
+              <label>課徵方式</label>
+              <select id="futures_side" name="futures_side">
+                <option value="single">單邊</option>
+                <option value="double">雙邊</option>
+              </select>
+            </div>
+          `,
+          local: `
+            <details>
+              <summary><strong>地價稅</strong></summary>
+              <div class="field-group">
+                <label>土地漲價總額 A</label>
+                <input type="number" id="land_value" name="land_value" min="0" step="1000">
+                <div class="error" id="land_value_error"></div>
+              </div>
+              <div class="field-group">
+                <label>累進起點地價 S</label>
+                <input type="number" id="land_start" name="land_start" min="1" step="1000">
+                <div class="error" id="land_start_error"></div>
+              </div>
+              <div class="field-group">
+                <label>持有年限減徵係數（0–1，例：0.8）</label>
+                <input type="number" id="land_reduction" name="land_reduction" min="0" max="1" step="0.01">
+              </div>
+            </details>
+            <details>
+              <summary><strong>房屋稅</strong></summary>
+              <div class="field-group">
+                <label>房屋現值<span style="color:var(--danger)">*</span></label>
+                <input type="number" id="house_value" name="house_value" min="0" step="1000">
+                <div class="error" id="house_value_error"></div>
+              </div>
+              <div class="field-group">
+                <label>稅率 (%)<span style="color:var(--danger)">*</span></label>
+                <input type="number" id="house_rate" name="house_rate" value="1.2" min="0" max="100" step="0.1">
+                <div class="error" id="house_rate_error"></div>
+              </div>
+            </details>
+            <details>
+              <summary><strong>契稅</strong></summary>
+              <div class="field-group">
+                <label>移轉現值<span style="color:var(--danger)">*</span></label>
+                <input type="number" id="deed_value" name="deed_value" min="0" step="1000">
+                <div class="error" id="deed_value_error"></div>
+              </div>
+              <div class="field-group">
+                <label>稅率 (%)<span style="color:var(--danger)">*</span></label>
+                <input type="number" id="deed_rate" name="deed_rate" value="6" min="0" max="100" step="0.1">
+                <div class="error" id="deed_rate_error"></div>
+              </div>
+            </details>
+            <details>
+              <summary><strong>使用牌照稅</strong></summary>
+              <div class="field-group">
+                <label>車種類型<span style="color:var(--danger)">*</span></label>
+                <select id="vehicle_type" name="vehicle_type">
+                  <option value="">-- 請選擇 --</option>
+                  <option value="sedan">小客車（≤9人）</option>
+                  <option value="dual">客貨兩用</option>
+                  <option value="bus">大客車（≥10人）</option>
+                  <option value="truck">貨車</option>
+                  <option value="trailer">曳引車</option>
+                  <option value="motorcycle">機車</option>
+                  <option value="electric">電動車</option>
+                  <option value="special">特種車</option>
+                </select>
+                <div class="error" id="vehicle_type_error"></div>
+              </div>
+              <div class="field-group" id="vehicle_usage_group">
+                <label>使用性質</label>
+                <select id="vehicle_usage" name="vehicle_usage">
+                  <option value="self">自用</option>
+                  <option value="business">營業用</option>
+                </select>
+              </div>
+              <div class="field-group" id="vehicle_cc_group">
+                <label>汽缸總排氣量（cc）</label>
+                <input type="number" id="vehicle_cc" name="vehicle_cc" min="0" step="10">
+                <div class="error" id="vehicle_cc_error"></div>
+              </div>
+              <input type="hidden" id="vehicle_type_detail" name="vehicle_type_detail" value="">
+              <div class="field-group">
+                <label>計算年度</label>
+                <select id="vehicle_year" name="vehicle_year">
+                  <option value="2025" selected>2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label>登記地區</label>
+                <select id="vehicle_location" name="vehicle_location">
+                  <option value="mainland">本島</option>
+                  <option value="penghu">澎湖</option>
+                  <option value="kinmen">金門</option>
+                  <option value="matsu">馬祖</option>
+                </select>
+              </div>
+              <div class="field-group" id="island_exempt_group">
+                <label><input type="checkbox" id="vehicle_island_exempt" name="vehicle_island_exempt" value="true"> 符合離島免徵條件</label>
+              </div>
+            </details>
+            <details>
+              <summary><strong>娛樂稅</strong></summary>
+              <div class="field-group">
+                <label>應稅營業額<span style="color:var(--danger)">*</span></label>
+                <input type="number" id="entertainment_amount" name="entertainment_amount" min="0" step="1000">
+                <div class="error" id="entertainment_amount_error"></div>
+              </div>
+              <div class="field-group">
+                <label>稅率 (%)</label>
+                <input type="number" id="entertainment_rate" name="entertainment_rate" value="10" min="0" max="100" step="0.1">
+                <div class="error" id="entertainment_rate_error"></div>
+              </div>
+            </details>
+          `,
+          withholding: `
+            <div class="field-group">
+              <label>給付類別<span style="color:var(--danger)">*</span></label>
+              <select id="wh_category" name="wh_category">
+                <option value="salary">薪資</option>
+                <option value="interest">利息</option>
+                <option value="dividend">股利</option>
+                <option value="rent">租金</option>
+                <option value="commission">佣金</option>
+                <option value="service">執行業務報酬</option>
+                <option value="royalty">權利金</option>
+                <option value="bonus">獎金</option>
+                <option value="retirement">退職所得</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>收款人身分<span style="color:var(--danger)">*</span></label>
+              <select id="wh_resident" name="wh_resident">
+                <option value="resident">居住者</option>
+                <option value="nonresident">非居住者</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>給付金額<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="wh_amount" name="wh_amount" min="0" step="1000">
+              <div class="error" id="wh_amount_error"></div>
+            </div>
+            <div class="field-group" id="wh_salary_low_group">
+              <label><input type="checkbox" id="wh_salary_low" name="wh_salary_low" value="true"> 本月薪資 ≤ 1.5×基本工資</label>
+            </div>
+            <div class="field-group" id="wh_salary_table_group">
+              <label>薪資扣繳表格金額（若未勾選上方）</label>
+              <input type="number" id="wh_salary_table" name="wh_salary_table" min="0" step="100">
+              <div class="error" id="wh_salary_table_error"></div>
+            </div>
+            <div class="field-group" id="wh_retirement_exempt_group">
+              <label>退職所得免稅額</label>
+              <input type="number" id="wh_retirement_exempt" name="wh_retirement_exempt" min="0" step="1000">
+              <div class="error" id="wh_retirement_exempt_error"></div>
+            </div>
+          `,
+          nhi: `
+            <div class="field-group">
+              <label>單筆金額<span style="color:var(--danger)">*</span></label>
+              <input type="number" id="nhi_amount" name="nhi_amount" min="0" step="1000">
+              <div class="error" id="nhi_amount_error"></div>
+            </div>
+          `,
+          customs: `
+            <div class="field-group">
+              <label>貿易條件<span style="color:var(--danger)">*</span></label>
+              <select id="cus_trade" name="cus_trade">
+                <option value="FOB">FOB</option>
+                <option value="CIF">CIF</option>
+                <option value="EXW">EXW</option>
+                <option value="FCA">FCA</option>
+                <option value="CIP">CIP</option>
+              </select>
+            </div>
+            <div class="field-group" id="cus_fob_group">
+              <label>FOB 價</label>
+              <input type="number" id="cus_fob" name="cus_fob" min="0.01" step="100">
+              <div class="error" id="cus_fob_error"></div>
+            </div>
+            <div class="field-group" id="cus_freight_group">
+              <label>運費</label>
+              <input type="number" id="cus_freight" name="cus_freight" min="0" step="100">
+              <div class="error" id="cus_freight_error"></div>
+            </div>
+            <div class="field-group" id="cus_insurance_group">
+              <label>保險費</label>
+              <input type="number" id="cus_insurance" name="cus_insurance" min="0" step="100">
+              <div class="error" id="cus_insurance_error"></div>
+            </div>
+            <div class="field-group" id="cus_cif_group">
+              <label>CIF 價</label>
+              <input type="number" id="cus_cif" name="cus_cif" min="0.01" step="100">
+              <div class="error" id="cus_cif_error"></div>
+            </div>
+            <div class="field-group">
+              <label>關稅率 (%)</label>
+              <input type="number" id="cus_customs_rate" name="cus_customs_rate" min="0" max="100" step="0.1">
+            </div>
+            <div class="field-group">
+              <label>貨物稅率 (%)</label>
+              <input type="number" id="cus_excise_rate" name="cus_excise_rate" min="0" max="100" step="0.1">
+            </div>
+          `
+        };
 
-            <div class="note">上方為可讀敘述；需要系統串接時可展開 JSON。</div>
-          </section>
+        Object.entries(panels).forEach(([taxKey, html]) => {
+          const panel = document.createElement('div');
+          panel.className = 'form-panel hidden';
+          panel.id = `panel-${taxKey}`;
+          panel.innerHTML = `
+            <div class="form-header" data-tax="${taxKey}">
+              <span>${TAX_TITLES[taxKey]}</span>
+              <span class="badge" id="badge-${taxKey}" style="display:none;"></span>
+            </div>
+            <div class="form-body" id="form-${taxKey}">
+              ${html}
+            </div>
+          `;
+          container.appendChild(panel);
+        });
+      }
 
-          <section class="block">
-            <h3>法規備註（摘要）</h3>
-            <ul class="note" style="margin-left:14px">
-              <li>居住者認定：年度境內居留 ≥183 天。</li>
-              <li>居住者薪資：表或 5%；月薪「每月 ≤2,000 免扣」。變動薪資每次起扣：114 年度 88,501。</li>
-              <li>非居薪資：18%；但全月 ≤ 1.5×基本工資者 6%。114 年基本工資（月）：28,590。</li>
-              <li>10% 類（執行業務、租金、權利金、競技/中獎）：居 10%（≤2,000 免扣），非居 20%。</li>
-              <li>利息：居 10%；非居：債券/短票等 15%，其餘 20%（可覆寫品項）。</li>
-              <li>股利：居 0% 源扣；結算擇一（28% 分離 或 併入＋8.5% 抵減上限 80,000）；非居 21%。</li>
-              <li>退職：扣除免稅額後，居 6%，非居 18% 源扣。</li>
-              <li>二代健保補充保費：費率 2.11%；六項名目單次達 20,000（兼職薪資門檻＝基本工資）；單次上限 10,000,000；另有雇主月差額×2.11%。</li>
-            </ul>
-          </section>
+      // ===== 5. 事件處理 =====
+      function togglePanel(taxKey) {
+        const panel = document.getElementById(`panel-${taxKey}`);
+        const formBody = panel.querySelector('.form-body');
+        if (formBody.style.display === 'none' || !formBody.style.display) {
+          formBody.style.display = 'block';
+        } else {
+          formBody.style.display = 'none';
+        }
+      }
 
-          <div class="footer">
-            桌面版：雙欄寬版顯示；行動裝置自動轉單欄。計算核心純函式，仍可抽出到任何前端框架。
+      function updateFormVisibility() {
+        Object.keys(TAX_TITLES).forEach(taxKey => {
+          const checkbox = document.querySelector(`input[data-tax="${taxKey}"]`);
+          const panel = document.getElementById(`panel-${taxKey}`);
+          if (checkbox.checked) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+            const result = document.getElementById(`result-${taxKey}`);
+            if (result) result.remove();
+          }
+        });
+      }
+
+      function calculateAll() {
+        document.querySelectorAll('.error').forEach(el => el.textContent = '');
+
+        let hasError = false;
+        Object.keys(TAX_TITLES).forEach(taxKey => {
+          const checkbox = document.querySelector(`input[data-tax="${taxKey}"]`);
+          if (!checkbox.checked) return;
+
+          const oldResult = document.getElementById(`result-${taxKey}`);
+          if (oldResult) oldResult.remove();
+
+          try {
+            const data = getFormData(taxKey);
+            let result = null;
+
+            if (taxKey === 'income') result = calcIncome(data);
+            else if (taxKey === 'profit') result = calcProfit(data);
+            else if (taxKey === 'estate') result = calcEstate(data);
+            else if (taxKey === 'vat') result = calcVAT(data);
+            else if (taxKey === 'special_vat') result = calcSpecialVAT(data);
+            else if (taxKey === 'stock') result = calcStock(data);
+            else if (taxKey === 'futures') result = calcFutures(data);
+            else if (taxKey === 'local') result = calcLocal(data);
+            else if (taxKey === 'withholding') result = calcWithholding(data);
+            else if (taxKey === 'nhi') result = calcNHI(data);
+            else if (taxKey === 'customs') result = calcCustoms(data);
+
+            if (result) {
+              showResult(taxKey, result);
+            }
+          } catch (e) {
+            hasError = true;
+            const form = document.getElementById(`form-${taxKey}`);
+            if (form) {
+              const inputs = form.querySelectorAll('input, select');
+              for (let input of inputs) {
+                if (input.id && e.message.includes(input.id.replace(/_error$/, '').replace(/_/g, ' '))) {
+                  showError(input.id, e.message);
+                  break;
+                }
+              }
+              if (!document.querySelector(`#${taxKey} .error:not(:empty)`)) {
+                const firstInput = form.querySelector('input, select');
+                if (firstInput && firstInput.id) {
+                  showError(firstInput.id, e.message);
+                }
+              }
+            }
+          }
+        });
+      }
+
+      function showResult(taxKey, result) {
+        const panel = document.getElementById(`panel-${taxKey}`);
+        const resultDiv = document.createElement('div');
+        resultDiv.id = `result-${taxKey}`;
+        resultDiv.className = 'result-card';
+
+        const badgeEl = document.getElementById(`badge-${taxKey}`);
+        if (result.badge) {
+          badgeEl.textContent = result.badge.text;
+          badgeEl.className = `badge ${result.badge.type}`;
+          badgeEl.style.display = 'inline-block';
+        } else {
+          badgeEl.style.display = 'none';
+        }
+
+        let breakdownText = result.breakdown;
+        if (result.subResults) {
+          breakdownText = result.subResults.map(sr => `${sr.name}：${formatCurrency(sr.amount)}\n${sr.breakdown}`).join('\n\n');
+        }
+
+        resultDiv.innerHTML = `
+          <div class="result-header">
+            <h3>${TAX_TITLES[taxKey]} 計算結果</h3>
+            <div class="result-amount">${formatCurrency(result.amount)}</div>
           </div>
-        </div>
-      </div>
-    </section>
-  </article>
-</main>
+          ${result.effectiveRate ? `<p>有效稅率：${result.effectiveRate}</p>` : ''}
+          <div class="breakdown"><strong>計算明細：</strong><br>${breakdownText.replace(/\n/g, '<br>')}</div>
+        `;
+        panel.appendChild(resultDiv);
+      }
 
-<script>
-/* ===============================
-   === 年度參數（每年更新） ===
-   將本區塊視為「官方數值」快取（114年度/2025）。
-   換年時優先改這裡，或用上方 UI 面板覆寫。
-   =============================== */
-const CONFIG_2025 = {
-  TAX_YEAR: 2025,
-  MIN_WAGE_MONTHLY: 28590,          // 114年基本工資（月）
-  LOW_BRACKET_MULTIPLIER: 1.5,
-  BONUS_THRESHOLD: 88501,           // 114年 變動薪資每次起扣
-  RESIDENT_SMALL_TAX_EXEMPT: 2000,  // 月薪「每月 ≤ 2,000 免扣」
-
-  RATE_SALARY_RESIDENT_5PCT: 0.05,
-  RATE_SALARY_NONRES_LOW: 0.06,
-  RATE_SALARY_NONRES_HIGH: 0.18,
-
-  RATE_COMMON_RESIDENT_10PCT: 0.10, // 執行業務/租/權/獎（居）
-  RATE_COMMON_NONRES_20PCT: 0.20,   // 同（非居）
-
-  RATE_INTEREST_RESIDENT: 0.10,     // 居：多數 10%
-  RATE_INTEREST_NONRES_DEFAULT: 0.20,
-  RATE_INTEREST_NONRES_BONDLIKE: 0.15, // 非居：債券/短票等 15%
-
-  RATE_DIVIDEND_RESIDENT_WITHHOLDING: 0.0,
-  DIVIDEND_RESIDENT_ELECTION: ["28pct_separate","combine_with_8p5pct_credit_max80000"],
-  RATE_DIVIDEND_NONRES_WITHHOLDING: 0.21,
-
-  RATE_RETIREMENT_RESIDENT: 0.06,
-  RATE_RETIREMENT_NONRES: 0.18,
-
-  NHI_SUPP_RATE: 0.0211,           // 二代健保補充保費 費率
-  NHI_SINGLE_MIN_GENERAL: 20000,   // 六項名目一般單次門檻
-  NHI_SINGLE_MIN_SIDE_SALARY_EQ_MIN_WAGE: true, // 兼職薪資門檻 = 基本工資
-  NHI_SINGLE_CAP: 10000000,        // 單次上限
-
-  TREATY_OVERRIDE_ENABLED: false
-};
-/* =============================== */
-
-const $ = (q)=>document.querySelector(q);
-const outJSONEl = $("#outJSON");
-const outNLEl = $("#outNL");
-const editor = $("#paramEditor");
-const badges = {
-  year: $("#paramYear"),
-  nhi: $("#nhiRateBadg"),
-  bonus: $("#bonusThBadg"),
-  wage: $("#minWageBadg")
-};
-
-function loadParamsToEditor(obj){
-  editor.value = JSON.stringify(obj, null, 2);
-  badges.year.innerHTML = `年度參數：<b>${obj.TAX_YEAR}</b>`;
-  badges.nhi.textContent = (obj.NHI_SUPP_RATE*100).toFixed(2)+"%";
-  badges.bonus.textContent = obj.BONUS_THRESHOLD.toLocaleString();
-  badges.wage.textContent = obj.MIN_WAGE_MONTHLY.toLocaleString();
-}
-loadParamsToEditor(CONFIG_2025);
-
-$("#applyParams").onclick = ()=>{
-  try{
-    const obj = JSON.parse(editor.value);
-    window.RUNTIME_PARAMS = Object.assign({}, CONFIG_2025, obj);
-    loadParamsToEditor(window.RUNTIME_PARAMS);
-    toast("已套用自訂年度參數");
-    saveLocal();
-  }catch(e){ toast("參數 JSON 格式錯誤："+e.message, true); }
-};
-$("#resetParams").onclick = ()=>{
-  window.RUNTIME_PARAMS = Object.assign({}, CONFIG_2025);
-  loadParamsToEditor(window.RUNTIME_PARAMS);
-  toast("已還原 2025 預設參數");
-  saveLocal();
-};
-
-/* —— 計算核心（純函式） —— */
-const DEFAULTS = Object.assign({}, CONFIG_2025);
-function pct(n){ return (n*100).toFixed((n*100)%1===0?0:2) + "%"; }
-function money(n){ return Math.round(Number(n)||0); }
-function params(){ return Object.assign({}, DEFAULTS, window.RUNTIME_PARAMS||{}); }
-function appendTrig(s, t){ return s ? (s + "; " + t) : t; }
-
-function lawNotesBase(){
-  return [
-   "所得稅法§7、§88；114年度各類扣繳率與起扣標準（薪資/變動薪資/非居6%/18%）",
-   "變動薪資每次起扣：114年 88,501；居住者月薪『每月≤2,000免扣』",
-   "非居薪資：全月≤1.5×基本工資時 6%，否則 18%；114年基本工資（月）28,590",
-   "10% 類（居）稅額≤2,000免扣；（非居）20%",
-   "利息：居 10%；非居債券/短票 15%，其他 20%（可覆寫）",
-   "股利（居）：源扣0%；結算擇一：28%分離 或 併入＋8.5%抵減（上限8萬）；非居 21%",
-   "退職：扣免稅額後 居6%／非居18%",
-   "二代健保補充保費：費率2.11%；六項單次達20,000（兼職薪資門檻=基本工資）；單次上限1,000萬；雇主月差額×2.11%"
-  ];
-}
-
-function mapFormatCode(income_type){
-  const dict = {
-    salary_fixed:   {code:"50 / 79A / 79B", label:"薪資所得"},
-    salary_variable:{code:"50 / 79A / 79B", label:"薪資所得（非每月）"},
-    professional:   {code:"9A",             label:"執行業務"},
-    rent:           {code:"51",             label:"租賃"},
-    royalty:        {code:"53",             label:"權利金"},
-    prize:          {code:"5H",             label:"競技/競賽/中獎"},
-    interest:       {code:"52 / 5A / 5B / 5C", label:"利息"},
-    dividend:       {code:"54 / 71G",       label:"股利"},
-    retirement:     {code:"57",             label:"退職"},
-    other:          {code:"99",             label:"其他"}
-  };
-  return dict[income_type] || dict.other;
-}
-
-/* 人性化的所得類別名稱（輸出用） */
-function humanIncomeType(key){
-  const m = {
-    salary_fixed: "薪資（固定月薪）",
-    salary_variable: "薪資（變動／年終／兼職）",
-    professional: "執行業務所得",
-    rent: "租賃所得",
-    royalty: "權利金所得",
-    prize: "競技／競賽／中獎",
-    interest: "利息所得",
-    dividend: "股利所得",
-    retirement: "退職／退休給付",
-    other: "其他所得"
-  };
-  return m[key] || key;
-}
-
-/* 自然語言輸出（繁中） */
-function renderNL(r, payload){
-  const intl = (v)=> (Math.round(Number(v)||0)).toLocaleString("zh-Hant-TW");
-  const rate = r.withholding_tax_rate; // 可能是 "5%" 或 "table"
-  const wht = Number(r.withholding_tax_amount)||0;
-  const exempt = r.exemption_trigger && r.exemption_trigger.trim() ? r.exemption_trigger : "無";
-  const nhiAmt = Number(r.nhi_surcharge_amount)||0;
-  const nhiReason = r.nhi_basis_reason && r.nhi_basis_reason!=="none" ? r.nhi_basis_reason : "不達門檻或不屬課徵項目";
-  const slip = r.slip_info ? `${r.slip_info.code}｜${r.slip_info.label}` : "—";
-  const who = payload.resident_status==="resident" ? "居住者" : "非居住者";
-  const incomeZh = humanIncomeType(r.tax_base_used);
-
-  let headline = "";
-  if(wht === 0){
-    headline = `本次${who}之「${incomeZh}」源泉扣繳稅額為 <b>0 元（免扣）</b>。`;
-    if(exempt !== "無"){ headline += `免扣原因：${exempt}。`; }
-  }else{
-    headline = `本次${who}之「${incomeZh}」，以稅率 <b>${rate}</b> 計算，應扣繳稅額為 <b>${intl(wht)} 元</b>。`;
-  }
-  const nhiLine = nhiAmt>0
-    ? `二代健保補充保費：<b>${intl(nhiAmt)} 元</b>（理由：${nhiReason}）。`
-    : `二代健保補充保費：<b>0 元</b>（${nhiReason}）。`;
-
-  const steps = (r.log||[]).map(s=>`<li>${s}</li>`).join("");
-  const notes = (r.law_notes||[]).map(s=>`<li>${s}</li>`).join("");
-
-  outNLEl.innerHTML = `
-    <p><span class="k">所得別：</span>${incomeZh}　
-       <span class="k">扣繳稅率：</span>${rate}　
-       <span class="k">建議申報憑單：</span>${slip}</p>
-    <p>${headline}</p>
-    <p>${nhiLine}</p>
-
-    <details><summary>計算步驟（展開）</summary><ol>${steps}</ol></details>
-    <details><summary>法規註記（展開）</summary><ul>${notes}</ul></details>
-  `;
-}
-
-/* —— 主計算 —— */
-function computeWithholding(payload){
-  const p = Object.assign({}, params(), payload.override_params||{});
-  const log = [];
-  const law_notes = lawNotesBase();
-  const res = {
-    withholding_tax_amount: 0,
-    withholding_tax_rate: "0%",
-    tax_base_used: payload.income_type,
-    exemption_trigger: "",
-    nhi_surcharge_amount: 0,
-    nhi_basis_reason: "none",
-    log,
-    law_notes,
-    slip_info: mapFormatCode(payload.income_type)
-  };
-
-  const resident = payload.resident_status === "resident";
-  log.push(`Step1: resident=${resident}`);
-
-  const amt = Number(payload.payment_amount)||0;
-
-  function applyTax(rate, opts={}){
-    const taxRaw = amt * rate;
-    let tax = money(taxRaw);
-    res.withholding_tax_rate = pct(rate);
-    if(opts.smallExemptCheck && resident && tax <= p.RESIDENT_SMALL_TAX_EXEMPT){
-      res.exemption_trigger = appendTrig(res.exemption_trigger, "resident_small_tax=true");
-      tax = 0;
-    }
-    res.withholding_tax_amount = tax;
-    log.push(`Tax=${amt}×${pct(rate)}=${money(taxRaw)} → ${tax}`);
-  }
-
-  switch(payload.income_type){
-
-    case "salary_fixed": {
-      if(!resident){
-        const low = (Number(payload.monthly_total_salary_for_month)||0) <= p.MIN_WAGE_MONTHLY*p.LOW_BRACKET_MULTIPLIER;
-        const rate = low ? p.RATE_SALARY_NONRES_LOW : p.RATE_SALARY_NONRES_HIGH;
-        log.push(`Step2: nonresident salary, monthly_total=${payload.monthly_total_salary_for_month} vs 1.5×min=${p.MIN_WAGE_MONTHLY*p.LOW_BRACKET_MULTIPLIER} → rate=${pct(rate)}`);
-        applyTax(rate);
-      }else{
-        if(payload.apply_salary_table_or_5pct === "table" && typeof window.salary_table_calc === "function"){
-          const t = money(window.salary_table_calc(payload));
-          res.withholding_tax_amount = t;
-          res.withholding_tax_rate = "table";
-          log.push("Step2: resident salary by TAX TABLE → "+t);
-        }else{
-          log.push("Step2: resident salary 5%");
-          applyTax(p.RATE_SALARY_RESIDENT_5PCT);
-        }
-        if(res.withholding_tax_amount <= p.RESIDENT_SMALL_TAX_EXEMPT){
-          res.exemption_trigger = appendTrig(res.exemption_trigger, "resident_monthly_small_tax=true");
-          res.withholding_tax_amount = 0;
-          log.push("Apply monthly small-tax exemption → 0");
+      function clearAll() {
+        if (confirm('確定清除所有資料？')) {
+          document.querySelectorAll('input[type="checkbox"]').forEach(el => el.checked = false);
+          document.querySelectorAll('input:not([type="checkbox"]), select').forEach(el => {
+            if (el.type === 'checkbox') el.checked = false;
+            else el.value = '';
+          });
+          document.querySelectorAll('.result-card').forEach(el => el.remove());
+          document.querySelectorAll('.badge').forEach(el => el.style.display = 'none');
+          document.querySelectorAll('.error').forEach(el => el.textContent = '');
+          updateFormVisibility();
         }
       }
-      break;
-    }
 
-    case "salary_variable": {
-      if(resident){
-        if(amt < p.BONUS_THRESHOLD){
-          res.exemption_trigger = appendTrig(res.exemption_trigger, `bonus_single_payment_below_threshold=true (${amt} < ${p.BONUS_THRESHOLD})`);
-          res.withholding_tax_rate = pct(p.RATE_SALARY_RESIDENT_5PCT);
-          res.withholding_tax_amount = 0;
-          log.push("Step2: resident variable salary < threshold → 免扣");
-        }else{
-          log.push("Step2: resident variable salary ≥ threshold → 5%");
-          applyTax(p.RATE_SALARY_RESIDENT_5PCT, {smallExemptCheck:false});
+      function exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const results = document.querySelectorAll('.result-card');
+        if (results.length === 0) {
+          alert('請先計算至少一項稅目');
+          return;
         }
-      }else{
-        const low = (Number(payload.monthly_total_salary_for_month)||0) <= p.MIN_WAGE_MONTHLY*p.LOW_BRACKET_MULTIPLIER;
-        const rate = low ? p.RATE_SALARY_NONRES_LOW : p.RATE_SALARY_NONRES_HIGH;
-        log.push(`Step2: nonresident variable salary uses salary rule → rate=${pct(rate)}`);
-        applyTax(rate);
+
+        const doc = new jsPDF();
+        let y = 20;
+        doc.setFontSize(16);
+        doc.text('稅目計算結果彙整', 20, y);
+        y += 15;
+        doc.setFontSize(12);
+        doc.text(`產生時間：${new Date().toLocaleString('zh-TW')}`, 20, y);
+        y += 10;
+
+        results.forEach((card, i) => {
+          if (y > 280) {
+            doc.addPage();
+            y = 20;
+          }
+          const title = card.querySelector('h3').textContent;
+          const amount = card.querySelector('.result-amount').textContent;
+          const breakdown = card.querySelector('.breakdown').innerText;
+
+          doc.setFontSize(14);
+          doc.text(`${i + 1}. ${title}`, 20, y);
+          y += 8;
+          doc.setFontSize(12);
+          doc.text(`稅額：${amount}`, 25, y);
+          y += 8;
+          doc.setFontSize(10);
+          const split = doc.splitTextToSize(breakdown, 170);
+          split.forEach(line => {
+            if (y > 280) {
+              doc.addPage();
+              y = 20;
+            }
+            doc.text(line, 25, y);
+            y += 5;
+          });
+          y += 10;
+        });
+
+        doc.save('稅目計算結果_' + new Date().toISOString().slice(0,10) + '.pdf');
       }
-      break;
-    }
 
-    case "professional":
-    case "rent":
-    case "royalty":
-    case "prize": {
-      const rate = resident ? p.RATE_COMMON_RESIDENT_10PCT : p.RATE_COMMON_NONRES_20PCT;
-      log.push(`Step2: ${payload.income_type} → rate=${pct(rate)}`);
-      applyTax(rate, {smallExemptCheck: resident});
-      break;
-    }
+      function setupEventDelegation() {
+        const formsContainer = document.getElementById('formsContainer');
+        if (!formsContainer) return;
 
-    case "interest": {
-      let rate;
-      if(resident){
-        rate = p.RATE_INTEREST_RESIDENT;
-      }else{
-        rate = (payload.interest_subtype==="gov_bond" || payload.interest_subtype==="corp_bond") ?
-          p.RATE_INTEREST_NONRES_BONDLIKE : p.RATE_INTEREST_NONRES_DEFAULT;
+        formsContainer.addEventListener('click', function(e) {
+          if (e.target.closest('.form-header')) {
+            const taxKey = e.target.closest('.form-header').dataset.tax;
+            if (taxKey) togglePanel(taxKey);
+          }
+        });
+
+        formsContainer.addEventListener('change', function(e) {
+          const target = e.target;
+
+          if (target.id === 'stock_type') {
+            const stockRateInput = target.closest('.form-body').querySelector('#stock_rate');
+            if (stockRateInput) {
+              stockRateInput.value = target.value;
+            }
+          }
+
+          if (target.id === 'estate_type') {
+            const estateFields = document.getElementById('estate_fields');
+            const giftFields = document.getElementById('gift_fields');
+            if (estateFields && giftFields) {
+              if (target.value === 'gift') {
+                estateFields.style.display = 'none';
+                giftFields.style.display = 'block';
+              } else {
+                estateFields.style.display = 'block';
+                giftFields.style.display = 'none';
+              }
+            }
+          }
+
+          if (target.id === 'vehicle_type') {
+            const panel = target.closest('.form-panel');
+            if (panel) {
+              const vUsage = panel.querySelector('#vehicle_usage_group');
+              const vCC = panel.querySelector('#vehicle_cc_group');
+              const islandExempt = panel.querySelector('#island_exempt_group');
+              const location = panel.querySelector('#vehicle_location');
+              const vehicleTypeDetail = panel.querySelector('#vehicle_type_detail');
+
+              const type = target.value;
+              if (vUsage) vUsage.style.display = ['sedan', 'dual'].includes(type) ? 'block' : 'none';
+              if (vCC) vCC.style.display = ['electric', 'special'].includes(type) ? 'none' : 'block';
+              if (islandExempt && location) islandExempt.style.display = ['penghu', 'kinmen', 'matsu'].includes(location.value) ? 'block' : 'none';
+              if (vehicleTypeDetail) {
+                vehicleTypeDetail.value = (type === 'trailer') ? 'trailer' : '';
+              }
+            }
+          }
+
+          if (target.id === 'vehicle_location') {
+            const panel = target.closest('.form-panel');
+            if (panel) {
+              const islandExempt = panel.querySelector('#island_exempt_group');
+              if (islandExempt) {
+                islandExempt.style.display = ['penghu', 'kinmen', 'matsu'].includes(target.value) ? 'block' : 'none';
+              }
+            }
+          }
+
+          if (target.id === 'wh_category') {
+            const panel = target.closest('.form-panel');
+            if (panel) {
+              const lowGroup = panel.querySelector('#wh_salary_low_group');
+              const tableGroup = panel.querySelector('#wh_salary_table_group');
+              const retireGroup = panel.querySelector('#wh_retirement_exempt_group');
+              if (lowGroup) lowGroup.style.display = target.value === 'salary' ? 'block' : 'none';
+              if (tableGroup) tableGroup.style.display = target.value === 'salary' ? 'block' : 'none';
+              if (retireGroup) retireGroup.style.display = target.value === 'retirement' ? 'block' : 'none';
+            }
+          }
+
+          if (target.id === 'cus_trade') {
+            const panel = target.closest('.form-panel');
+            if (panel) {
+              const fobGroup = panel.querySelector('#cus_fob_group');
+              const freightGroup = panel.querySelector('#cus_freight_group');
+              const insuranceGroup = panel.querySelector('#cus_insurance_group');
+              const cifGroup = panel.querySelector('#cus_cif_group');
+              if (['EXW', 'FCA', 'FOB'].includes(target.value)) {
+                if (fobGroup) fobGroup.style.display = 'block';
+                if (freightGroup) freightGroup.style.display = 'block';
+                if (insuranceGroup) insuranceGroup.style.display = 'block';
+                if (cifGroup) cifGroup.style.display = 'none';
+              } else {
+                if (fobGroup) fobGroup.style.display = 'none';
+                if (freightGroup) freightGroup.style.display = 'none';
+                if (insuranceGroup) insuranceGroup.style.display = 'none';
+                if (cifGroup) cifGroup.style.display = 'block';
+              }
+            }
+          }
+        });
       }
-      log.push(`Step2: interest subtype=${payload.interest_subtype||"other"} → rate=${pct(rate)}`);
-      applyTax(rate);
-      break;
-    }
 
-    case "dividend": {
-      if(resident){
-        res.withholding_tax_amount = 0;
-        res.withholding_tax_rate = pct(p.RATE_DIVIDEND_RESIDENT_WITHHOLDING);
-        res.exemption_trigger = appendTrig(res.exemption_trigger, "resident_dividend_withholding=0; settle_election=" + (payload.dividend_resident_election_note||"none"));
-        log.push("Step2: resident dividend → 源扣0%，結算擇一（28%分離 或 併入＋8.5%抵減上限8萬）");
-      }else{
-        applyTax(p.RATE_DIVIDEND_NONRES_WITHHOLDING);
-      }
-      break;
-    }
+      document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('calculateAllBtn').addEventListener('click', calculateAll);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+        document.getElementById('exportPDFBtn').addEventListener('click', exportPDF);
 
-    case "retirement": {
-      const rate = resident ? p.RATE_RETIREMENT_RESIDENT : p.RATE_RETIREMENT_NONRES;
-      let ex = 0;
-      if(typeof payload.retirement_exemption_value === "number"){
-        ex = payload.retirement_exemption_value;
-      }else if(payload.retirement_exemption_fn_name && typeof window[payload.retirement_exemption_fn_name]==="function"){
-        try{ ex = Number(window[payload.retirement_exemption_fn_name](amt, payload.retirement_years))||0; }catch(e){ ex=0; }
-      }
-      const base = Math.max(0, amt - ex);
-      const taxRaw = base * rate;
-      res.withholding_tax_rate = pct(rate);
-      res.withholding_tax_amount = money(taxRaw);
-      res.exemption_trigger = appendTrig(res.exemption_trigger, `retirement_exemption=${ex}`);
-      log.push(`Step2: retirement base=(amount ${amt} - exemption ${ex})=${base} → ×${pct(rate)} → ${res.withholding_tax_amount}`);
-      break;
-    }
+        document.querySelectorAll('.tax-selector input[type="checkbox"]').forEach(cb => {
+          cb.addEventListener('change', updateFormVisibility);
+        });
 
-    default: {
-      if(resident){
-        res.withholding_tax_amount = 0;
-        res.withholding_tax_rate = "rule_based (resident other: default no withhold)";
-        log.push("Step2: resident other → 預設不源扣（可透過規則表覆寫）");
-      }else{
-        log.push("Step2: nonresident other → 20%");
-        applyTax(p.RATE_COMMON_NONRES_20PCT);
-      }
-    }
-  }
+        renderForms();
+        updateFormVisibility();
+        setupEventDelegation();
+      });
 
-  const nhi = computeNHI(payload, p, log);
-  res.nhi_surcharge_amount = nhi.amount;
-  res.nhi_basis_reason = nhi.reason;
-
-  return res;
-}
-
-function computeNHI(payload, p, log){
-  let reason = "none";
-  let total = 0;
-
-  if(String(payload.nhi_single_payment_check)!=="false"){
-    const tag = payload.nhi_item_tag||"none";
-    const amt = Number(payload.payment_amount)||0;
-    let threshold = p.NHI_SINGLE_MIN_GENERAL;
-    if(tag === "side_salary" && p.NHI_SINGLE_MIN_SIDE_SALARY_EQ_MIN_WAGE){
-      threshold = p.MIN_WAGE_MONTHLY; // 兼職薪資門檻：當年基本工資
-    }
-    if(["executive_income","dividend","interest","rent","side_salary","year_end_excess"].includes(tag)){
-      if(tag==="year_end_excess"){
-        const ins = Number(payload.nhi_employee_monthly_insured_wage)||0;
-        const cumulative = Number((payload.override_params && payload.override_params.NHI_YEARLY_BONUS_TO_DATE)||0);
-        const over = Math.max(0, (cumulative + amt) - 4*ins);
-        const basis = Math.min(amt, over);
-        if(basis>0){
-          const capped = Math.min(basis, p.NHI_SINGLE_CAP);
-          total += money(capped * p.NHI_SUPP_RATE);
-          reason = `year_end_excess_basis=${basis}→capped=${capped}`;
-          log.push(`NHI: year_end_excess cumulative=${cumulative}, ins=${ins} → basis=${basis}`);
-        }else{
-          log.push("NHI: year_end_excess basis=0（尚未超過4×投保金額或缺少累計）");
-        }
-      }else{
-        if(amt >= threshold){
-          const capped = Math.min(amt, p.NHI_SINGLE_CAP);
-          total += money(capped * p.NHI_SUPP_RATE);
-          reason = `${tag}_single_payment≥${threshold}`;
-          log.push(`NHI: tag=${tag} threshold=${threshold} → basis=${capped}`);
-        }else{
-          log.push(`NHI: tag=${tag} < threshold(${threshold}) → 0`);
-        }
-      }
-    }
-  }
-
-  const A = Number(payload.employer_month_total_salary_paid)||0;
-  const B = Number(payload.employer_month_total_insured_wage_sum)||0;
-  if(A > B){
-    const diff = A - B;
-    const part = money(diff * p.NHI_SUPP_RATE);
-    total += part;
-    const r2 = `employer_month_diff=${diff}`;
-    reason = reason==="none" ? r2 : (reason + "; " + r2);
-    log.push(`NHI: employer monthly diff (${A}-${B})=${diff} → +${part}`);
-  }
-  return {amount: total, reason};
-}
-
-/* 可選 Hook：薪資稅額表 & 退職免稅額
-window.salary_table_calc = function(payload){ return 0; };
-window.retire_ex_rule = function(amount, years){ return 0; };
-*/
-
-/* —— 操作邏輯 —— */
-function gatherInput(){
-  return {
-    tax_year: (window.RUNTIME_PARAMS||CONFIG_2025).TAX_YEAR,
-    resident_status: $("#resident_status").value,
-    income_type: $("#income_type").value,
-    payment_amount: Number($("#payment_amount").value||0),
-    monthly_total_salary_for_month: Number($("#monthly_total_salary_for_month").value||0),
-    apply_salary_table_or_5pct: $("#apply_salary_table_or_5pct").value,
-    interest_subtype: $("#interest_subtype").value,
-    dividend_resident_election_note: $("#dividend_resident_election_note").value,
-    nhi_employee_monthly_insured_wage: Number($("#nhi_employee_monthly_insured_wage").value||0),
-    employer_month_total_salary_paid: Number($("#employer_month_total_salary_paid").value||0),
-    employer_month_total_insured_wage_sum: Number($("#employer_month_total_insured_wage_sum").value||0),
-    nhi_item_tag: $("#nhi_item_tag").value,
-    nhi_single_payment_check: $("#nhi_single_payment_check").value,
-    override_params: (window.RUNTIME_PARAMS||{})
-  };
-}
-
-function renderResult(r, payload){
-  // JSON（稽核用）
-  outJSONEl.textContent = JSON.stringify({result:r}, null, 2);
-  // 自然語言（可讀）
-  renderNL(r, payload);
-}
-
-$("#runBtn").onclick = ()=>{
-  const p = gatherInput();
-  const r = computeWithholding(p);
-  renderResult(r, p);
-  saveLocal();
-};
-$("#copyBtn").onclick = ()=>{
-  navigator.clipboard?.writeText(outJSONEl.textContent).then(()=>toast("已複製 JSON")).catch(()=>toast("無法複製（環境不支援）",true));
-};
-$("#casePick").onchange = (e)=>{
-  const v = e.target.value;
-  const set = (id,val)=>{ const el=$(id); if(el.tagName==="SELECT") el.value=val; else el.value=val; };
-  window.RUNTIME_PARAMS = Object.assign({}, params());
-  switch(v){
-    case "A":
-      set("#resident_status","resident");
-      set("#income_type","salary_variable");
-      set("#payment_amount",60000);
-      set("#monthly_total_salary_for_month",0);
-      set("#apply_salary_table_or_5pct","5pct");
-      set("#nhi_item_tag","side_salary");
-      set("#nhi_single_payment_check","true");
-      break;
-    case "B":
-      set("#resident_status","nonresident");
-      set("#income_type","salary_fixed");
-      set("#payment_amount",40000);
-      set("#monthly_total_salary_for_month",40000);
-      set("#nhi_item_tag","none");
-      set("#nhi_single_payment_check","false");
-      break;
-    case "C":
-      set("#resident_status","resident");
-      set("#income_type","professional");
-      set("#payment_amount",30000);
-      set("#nhi_item_tag","executive_income");
-      set("#nhi_single_payment_check","true");
-      break;
-    case "D":
-      set("#resident_status","resident");
-      set("#income_type","dividend");
-      set("#payment_amount",200000);
-      set("#dividend_resident_election_note","combine_with_8p5pct_credit");
-      set("#nhi_item_tag","dividend");
-      set("#nhi_single_payment_check","true");
-      break;
-    case "E":
-      window.retire_ex_rule = (_amt,_yrs)=>400000;
-      set("#resident_status","resident");
-      set("#income_type","retirement");
-      set("#payment_amount",800000);
-      set("#nhi_item_tag","none");
-      set("#nhi_single_payment_check","false");
-      break;
-    case "F":
-      set("#resident_status","nonresident");
-      set("#income_type","interest");
-      set("#interest_subtype","corp_bond");
-      set("#payment_amount",100000);
-      set("#nhi_item_tag","interest");
-      set("#nhi_single_payment_check","true");
-      break;
-    case "G":
-      set("#resident_status","resident");
-      set("#income_type","salary_fixed");
-      set("#payment_amount",50000);
-      set("#monthly_total_salary_for_month",50000);
-      set("#employer_month_total_salary_paid",1500000);
-      set("#employer_month_total_insured_wage_sum",1200000);
-      set("#nhi_item_tag","none");
-      set("#nhi_single_payment_check","false");
-      break;
-  }
-  if(v){
-    const p = gatherInput();
-    const r = computeWithholding(p);
-    renderResult(r, p);
-  }
-};
-
-$("#runAll").onclick = ()=>{
-  const results = [];
-  const orig = JSON.stringify(gatherInput());
-  const order = ["A","B","C","D","E","F","G"];
-  for(const k of order){
-    $("#casePick").value = k;
-    $("#casePick").dispatchEvent(new Event("change"));
-    const r = JSON.parse(outJSONEl.textContent||"{}");
-    results.push({case:k, result:r.result});
-  }
-  outJSONEl.textContent = JSON.stringify({batch:results}, null, 2);
-  outNLEl.innerHTML = `<p><b>已完成批次測試</b>，請展開下方 JSON 檢視各案例輸出。</p>`;
-  try{
-    const back = JSON.parse(orig);
-    $("#resident_status").value = back.resident_status;
-    $("#income_type").value = back.income_type;
-    $("#payment_amount").value = back.payment_amount;
-  }catch(_){}
-};
-
-/* —— 本地儲存 —— */
-function saveLocal(){
-  try{
-    localStorage.setItem("tw_wht_nhi_params", editor.value);
-    const input = gatherInput();
-    delete input.override_params;
-    localStorage.setItem("tw_wht_nhi_lastinput", JSON.stringify(input));
-  }catch(_){}
-}
-(function restore(){
-  try{
-    const s = localStorage.getItem("tw_wht_nhi_params");
-    if(s){ window.RUNTIME_PARAMS = JSON.parse(s); loadParamsToEditor(window.RUNTIME_PARAMS); }
-    const i = localStorage.getItem("tw_wht_nhi_lastinput");
-    if(i){
-      const o = JSON.parse(i);
-      $("#resident_status").value = o.resident_status;
-      $("#income_type").value = o.income_type;
-      $("#payment_amount").value = o.payment_amount;
-      $("#monthly_total_salary_for_month").value = o.monthly_total_salary_for_month;
-      $("#apply_salary_table_or_5pct").value = o.apply_salary_table_or_5pct;
-      $("#interest_subtype").value = o.interest_subtype||"other";
-      $("#dividend_resident_election_note").value = o.dividend_resident_election_note||"none";
-      $("#nhi_employee_monthly_insured_wage").value = o.nhi_employee_monthly_insured_wage||0;
-      $("#employer_month_total_salary_paid").value = o.employer_month_total_salary_paid||0;
-      $("#employer_month_total_insured_wage_sum").value = o.employer_month_total_insured_wage_sum||0;
-      $("#nhi_item_tag").value = o.nhi_item_tag||"none";
-      $("#nhi_single_payment_check").value = String(o.nhi_single_payment_check)!=="false"?"true":"false";
-    }
-  }catch(_){}
-})();
-
-/* —— 預設先算一次 —— */
-(function firstRun(){
-  const p = gatherInput();
-  const r = computeWithholding(p);
-  renderResult(r, p);
-})();
-
-function toast(msg, err=false){
-  const t = document.createElement("div");
-  t.textContent = msg;
-  t.style.cssText = `position:fixed;left:50%;top:16px;transform:translateX(-50%);
-    background:${err?'#b00020':'#111'};color:#fff;padding:8px 12px;font:12px var(--sans);z-index:9999`;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 1800);
-}
-</script>
+    })();
+  </script>
 </body>
 </html>
