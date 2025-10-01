@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勞健保費用分攤計算機</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --light-gray: #f8f9fa;
+            --dark-gray: #343a40;
+            --border-color: #dee2e6;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: var(--light-gray);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 25px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: var(--dark-gray);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group, .radio-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        .radio-options { display: flex; gap: 20px; }
+        .radio-options label { font-weight: normal; }
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.85em;
+            margin-top: 5px;
+            height: 1em;
+        }
+        .button-group { display: flex; gap: 15px; margin-top: 25px; }
+        button {
+            flex-grow: 1; padding: 12px 20px; border: none; border-radius: 5px;
+            font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.2s;
+        }
+        #calculateBtn { background-color: var(--primary-color); color: white; }
+        #calculateBtn:hover { background-color: #0056b3; }
+        #exportBtn { background-color: var(--success-color); color: white; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; opacity: 0.65; }
+        details { margin-top: 20px; border: 1px solid var(--border-color); border-radius: 5px; }
+        details summary { padding: 10px; background-color: var(--light-gray); cursor: pointer; font-weight: bold;}
+        .settings-grid { padding: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .settings-grid label { font-size: 0.9em; }
+        .settings-grid input { padding: 8px; font-size: 0.9em; }
+        .hidden { display: none; }
+        #results { margin-top: 30px; border-top: 2px solid var(--border-color); padding-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid var(--border-color); padding: 10px 12px; text-align: right; }
+        th { background-color: var(--light-gray); font-weight: 600; }
+        .summary {
+            margin-top: 20px; padding: 15px; background-color: #e9ecef;
+            border-radius: 5px; font-weight: bold; text-align: center;
+        }
+        .formula-container {
+            margin-top: 20px; position: relative;
+        }
+        .formula-box {
+            background-color: #2d2d2d; color: #f2f2f2;
+            padding: 20px; border-radius: 5px; font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap; line-height: 1.6;
+        }
+        #copyFormulaBtn {
+            position: absolute; top: 10px; right: 10px;
+            background: var(--secondary-color); color: white;
+            border: none; padding: 5px 10px; border-radius: 4px;
+            cursor: pointer; font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>勞健保費用分攤計算機</h1>
+        
+        <form id="calcForm" onsubmit="event.preventDefault(); calculate();">
+            <div class="radio-group">
+                <label>計算模式</label>
+                <div class="radio-options">
+                    <label><input type="radio" name="mode" value="overallTotal" checked> 整體總額</label>
+                    <label><input type="radio" name="mode" value="singleItem"> 單一保項</label>
+                </div>
+            </div>
+
+            <div id="insuranceItemBlock" class="form-group hidden">
+                <label for="insuranceItem">保險項目</label>
+                <select id="insuranceItem">
+                    <option value="">-- 請選擇 --</option>
+                    <option value="nhi">健保</option>
+                    <option value="li">勞保</option>
+                </select>
+                <div id="insuranceItemError" class="error-message"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="totalAmount">總額 (T)</label>
+                <input type="number" id="totalAmount" step="any" placeholder="請輸入大於 0 的金額" required>
+                <div id="totalAmountError" class="error-message"></div>
+            </div>
+
+            <div class="radio-group">
+                <label>尾差歸屬</label>
+                <div class="radio-options">
+                    <label><input type="radio" name="remainderTarget" value="employer" checked> 雇主</label>
+                    <label><input type="radio" name="remainderTarget" value="laborer"> 勞工</label>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" id="calculateBtn">計算</button>
+                <button type="button" id="exportBtn" disabled>匯出 CSV</button>
+            </div>
+        </form>
+
+        <details open>
+            <summary>進階設定 (預設 2025 年參考值)</summary>
+            <div class="settings-grid">
+                <div>
+                    <label>勞保三方比例 (雇/勞/政)</label>
+                    <input type="text" id="liRatios" value="0.70, 0.20, 0.10">
+                </div>
+                <div>
+                    <label>健保三方比例 (雇/勞/政)</label>
+                    <input type="text" id="nhiRatios" value="0.60, 0.30, 0.10">
+                </div>
+                <div id="ratesBlock">
+                    <label>費率 (勞保/就保/健保)</label>
+                    <input type="text" id="rates" value="0.105, 0.010, 0.0517">
+                </div>
+            </div>
+        </details>
+
+        <div id="results" class="hidden">
+            <h2>計算結果</h2>
+            <div id="resultsTableContainer"></div>
+            <div id="resultsSummary" class="summary"></div>
+            <div id="formula-container" class="formula-container">
+                <button id="copyFormulaBtn">複製</button>
+                <div id="formula-box" class="formula-box"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- DOM Elements ---
+    const calcForm = document.getElementById('calcForm');
+    const modeRadios = document.querySelectorAll('input[name="mode"]');
+    const insuranceItemBlock = document.getElementById('insuranceItemBlock');
+    const insuranceItemSelect = document.getElementById('insuranceItem');
+    const totalAmountInput = document.getElementById('totalAmount');
+    const exportBtn = document.getElementById('exportBtn');
+    const resultsDiv = document.getElementById('results');
+    
+    // Error messages
+    const insuranceItemError = document.getElementById('insuranceItemError');
+    const totalAmountError = document.getElementById('totalAmountError');
+
+    // Result display
+    const resultsTableContainer = document.getElementById('resultsTableContainer');
+    const resultsSummary = document.getElementById('resultsSummary');
+    const formulaContainer = document.getElementById('formula-container');
+    const formulaBox = document.getElementById('formula-box');
+    const copyFormulaBtn = document.getElementById('copyFormulaBtn');
+
+    // Settings
+    const liRatiosInput = document.getElementById('liRatios');
+    const nhiRatiosInput = document.getElementById('nhiRatios');
+    const ratesInput = document.getElementById('rates');
+    const ratesBlock = document.getElementById('ratesBlock');
+    
+    let calculationResult = null;
+
+    // --- Event Listeners ---
+    modeRadios.forEach(radio => radio.addEventListener('change', handleModeChange));
+    calcForm.addEventListener('submit', calculate);
+    exportBtn.addEventListener('click', exportToCSV);
+    copyFormulaBtn.addEventListener('click', copyFormula);
+    
+    // --- UI Logic ---
+    function handleModeChange() {
+        const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+        if (selectedMode === 'singleItem') {
+            insuranceItemBlock.classList.remove('hidden');
+            ratesBlock.style.opacity = '0.5'; // De-emphasize rates
+        } else {
+            insuranceItemBlock.classList.add('hidden');
+            ratesBlock.style.opacity = '1';
+        }
+        clearResults();
+    }
+
+    function clearResults() {
+        resultsDiv.classList.add('hidden');
+        exportBtn.disabled = true;
+        calculationResult = null;
+        totalAmountError.textContent = '';
+        insuranceItemError.textContent = '';
+    }
+
+    // --- Validation & Parsing ---
+    function parseRatios(inputStr) {
+        const parts = inputStr.split(',').map(s => parseFloat(s.trim()));
+        if (parts.length !== 3 || parts.some(isNaN)) return null;
+        const sum = parts.reduce((a, b) => a + b, 0);
+        if (Math.abs(sum - 1.0) > 0.001) return null; // Check if sum is 1
+        return { E: parts[0], L: parts[1], G: parts[2] };
+    }
+
+    function parseRates(inputStr) {
+        const parts = inputStr.split(',').map(s => parseFloat(s.trim()));
+        if (parts.length !== 3 || parts.some(isNaN)) return null;
+        return { li: parts[0], ei: parts[1], nhi: parts[2] };
+    }
+
+    function validateAndGetInputs() {
+        clearResults();
+        let isValid = true;
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+
+        const T = parseFloat(totalAmountInput.value);
+        if (isNaN(T) || T <= 0) {
+            totalAmountError.textContent = '總額必須是大於 0 的數字。';
+            isValid = false;
+        }
+
+        let insuranceItem = null;
+        if (mode === 'singleItem') {
+            insuranceItem = insuranceItemSelect.value;
+            if (!insuranceItem) {
+                insuranceItemError.textContent = '請選擇保險項目。';
+                isValid = false;
+            }
+        }
+        
+        const liRatios = parseRatios(liRatiosInput.value);
+        const nhiRatios = parseRatios(nhiRatiosInput.value);
+        const rates = parseRates(ratesInput.value);
+
+        if (!liRatios || !nhiRatios) {
+            alert('錯誤：三方比例格式不正確或加總不為 1。請使用 "雇, 勞, 政" 格式，例如 "0.7, 0.2, 0.1"。');
+            isValid = false;
+        }
+        if (!rates) {
+            alert('錯誤：費率格式不正確。請使用 "勞保, 就保, 健保" 格式，例如 "0.105, 0.010, 0.0517"。');
+            isValid = false;
+        }
+
+        if (!isValid) return null;
+        
+        return {
+            mode,
+            insuranceItem,
+            T,
+            remainderTarget: document.querySelector('input[name="remainderTarget"]:checked').value,
+            ratios: { li: liRatios, nhi: nhiRatios },
+            rates
+        };
+    }
+
+    // --- Calculation Core ---
+    function applyRoundingAndRemainder(T, E_raw, L_raw, G_raw, remainderTarget) {
+        const T_rounded = Math.round(T);
+        let E = Math.round(E_raw);
+        let L = Math.round(L_raw);
+        let G = Math.round(G_raw);
+        
+        const diff = T_rounded - (E + L + G);
+        
+        if (remainderTarget === 'employer') {
+            E += diff;
+        } else { // laborer
+            L += diff;
+        }
+        return { E, L, G, total: E + L + G };
+    }
+
+    function calculate() {
+        const inputs = validateAndGetInputs();
+        if (!inputs) return;
+
+        const { T, mode, insuranceItem, remainderTarget, ratios, rates } = inputs;
+        let E_raw, L_raw, G_raw, finalRatios;
+
+        if (mode === 'singleItem') {
+            const p = (insuranceItem === 'li') ? ratios.li : ratios.nhi;
+            E_raw = T * p.E;
+            L_raw = T * p.L;
+            G_raw = T * p.G;
+            finalRatios = { E: p.E, L: p.L, G: p.G };
+        } else { // overallTotal
+            const R = rates.li + rates.ei + rates.nhi;
+            const alpha_E = (rates.li * ratios.li.E + rates.ei * ratios.li.E + rates.nhi * ratios.nhi.E) / R;
+            const alpha_L = (rates.li * ratios.li.L + rates.ei * ratios.li.L + rates.nhi * ratios.nhi.L) / R;
+            const alpha_G = (rates.li * ratios.li.G + rates.ei * ratios.li.G + rates.nhi * ratios.nhi.G) / R;
+            
+            E_raw = T * alpha_E;
+            L_raw = T * alpha_L;
+            G_raw = T * alpha_G;
+            finalRatios = { E: alpha_E, L: alpha_L, G: alpha_G };
+        }
+
+        const finalAmounts = applyRoundingAndRemainder(T, E_raw, L_raw, G_raw, remainderTarget);
+        
+        calculationResult = {
+            ...inputs,
+            ...finalAmounts,
+            finalRatios,
+        };
+
+        displayResults(calculationResult);
+    }
+    
+    // --- Display & Export ---
+    function displayResults(result) {
+        const { E, L, G, total, finalRatios, T } = result;
+        const toPercent = (num) => (num * 100).toFixed(2) + '%';
+        
+        resultsTableContainer.innerHTML = `
+            <table>
+                <thead><tr><th>對象</th><th>分攤比例</th><th>分攤金額 (元)</th></tr></thead>
+                <tbody>
+                    <tr><td>雇主 (E)</td><td>${toPercent(finalRatios.E)}</td><td>${E.toLocaleString()}</td></tr>
+                    <tr><td>勞工 (L)</td><td>${toPercent(finalRatios.L)}</td><td>${L.toLocaleString()}</td></tr>
+                    <tr><td>政府 (G)</td><td>${toPercent(finalRatios.G)}</td><td>${G.toLocaleString()}</td></tr>
+                </tbody>
+            </table>
+        `;
+        resultsSummary.textContent = `檢核：E+L+G = ${E.toLocaleString()} + ${L.toLocaleString()} + ${G.toLocaleString()} = ${total.toLocaleString()} (總額 ${Math.round(T).toLocaleString()} 元)`;
+        
+        formulaBox.textContent = generateFormula(result);
+        resultsDiv.classList.remove('hidden');
+        exportBtn.disabled = false;
+    }
+
+    function generateFormula(result) {
+        const { T, mode, insuranceItem, ratios, rates, finalRatios, E, L, G } = result;
+
+        if (mode === 'singleItem') {
+            const itemText = insuranceItem === 'li' ? '勞保' : '健保';
+            const p = insuranceItem === 'li' ? ratios.li : ratios.nhi;
+            return `模式：單一保項 - ${itemText}
+---
+[一般式]
+E = T × ${p.E}
+L = T × ${p.L}
+G = T × ${p.G}
+
+[代入式]
+輸入 T = ${T.toLocaleString()}
+E = ${T.toLocaleString()} × ${p.E} = ${Math.round(T * p.E).toLocaleString()}
+L = ${T.toLocaleString()} × ${p.L} = ${Math.round(T * p.L).toLocaleString()}
+G = ${T.toLocaleString()} × ${p.G} = ${Math.round(T * p.G).toLocaleString()}
+
+* 註：以上為原始捨入值，最終結果已依尾差規則調整。
+* 檢核：${E.toLocaleString()} + ${L.toLocaleString()} + ${G.toLocaleString()} = ${(E+L+G).toLocaleString()}`;
+        } else { // overallTotal
+            return `模式：整體總額
+---
+[一般式]
+R = r_LI + r_EI + r_NHI
+α_E = (r_LI×${ratios.li.E} + r_EI×${ratios.li.E} + r_NHI×${ratios.nhi.E}) / R
+α_L = (r_LI×${ratios.li.L} + r_EI×${ratios.li.L} + r_NHI×${ratios.nhi.L}) / R
+α_G = (r_LI×${ratios.li.G} + r_EI×${ratios.li.G} + r_NHI×${ratios.nhi.G}) / R
+E = T × α_E, L = T × α_L, G = T × α_G
+
+[代入式] (使用目前設定值)
+R = ${rates.li} + ${rates.ei} + ${rates.nhi} = ${rates.li + rates.ei + rates.nhi}
+α_E ≈ ${(finalRatios.E * 100).toFixed(2)}%
+α_L ≈ ${(finalRatios.L * 100).toFixed(2)}%
+α_G ≈ ${(finalRatios.G * 100).toFixed(2)}%
+
+輸入 T = ${T.toLocaleString()}
+E ≈ ${T.toLocaleString()} × ${(finalRatios.E * 100).toFixed(2)}% = ${E.toLocaleString()}
+L ≈ ${T.toLocaleString()} × ${(finalRatios.L * 100).toFixed(2)}% = ${L.toLocaleString()}
+G ≈ ${T.toLocaleString()} × ${(finalRatios.G * 100).toFixed(2)}% = ${G.toLocaleString()}
+
+* 檢核：${E.toLocaleString()} + ${L.toLocaleString()} + ${G.toLocaleString()} = ${(E+L+G).toLocaleString()}`;
+        }
+    }
+
+    function copyFormula() {
+        navigator.clipboard.writeText(formulaBox.textContent).then(() => {
+            copyFormulaBtn.textContent = '已複製!';
+            setTimeout(() => { copyFormulaBtn.textContent = '複製'; }, 2000);
+        }, (err) => {
+            alert('複製失敗: ', err);
+        });
+    }
+
+    function exportToCSV() {
+        if (!calculationResult) return;
+        const { mode, insuranceItem, E, L, G, total } = calculationResult;
+        const itemText = insuranceItem ? (insuranceItem === 'li' ? '勞保' : '健保') : 'N/A';
+        const modeText = mode === 'singleItem' ? '單一保項' : '整體總額';
+
+        let csvContent = '\uFEFF'; // BOM for UTF-8
+        csvContent += '摘要,值\n';
+        csvContent += `計算模式,${modeText}\n`;
+        csvContent += `保險項目,${itemText}\n`;
+        csvContent += '對象,分攤金額\n';
+        csvContent += `雇主,${E}\n`;
+        csvContent += `勞工,${L}\n`;
+        csvContent += `政府,${G}\n`;
+        csvContent += `總計,${total}\n`;
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `費用分攤結果-${modeText}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+</body>
+</html>
