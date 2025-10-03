@@ -125,6 +125,11 @@
                 </select>
                 <div id="insuranceItemError" class="error-message"></div>
             </div>
+            
+            <div id="arrearsFundBlock" class="form-group hidden">
+                <label for="arrearsFund">31 墊償基金</label>
+                <input type="number" id="arrearsFund" step="any" value="0">
+            </div>
 
             <div class="form-group">
                 <label for="totalAmount">總額 (T)</label>
@@ -146,7 +151,7 @@
             </div>
         </form>
 
-        <details open>
+        <details>
             <summary>進階設定 (預設 2025 年參考值)</summary>
             <div class="settings-grid">
                 <div>
@@ -181,6 +186,8 @@
     const modeRadios = document.querySelectorAll('input[name="mode"]');
     const insuranceItemBlock = document.getElementById('insuranceItemBlock');
     const insuranceItemSelect = document.getElementById('insuranceItem');
+    const arrearsFundBlock = document.getElementById('arrearsFundBlock');
+    const arrearsFundInput = document.getElementById('arrearsFund');
     const totalAmountInput = document.getElementById('totalAmount');
     const exportBtn = document.getElementById('exportBtn');
     const resultsDiv = document.getElementById('results');
@@ -206,6 +213,7 @@
 
     // --- Event Listeners ---
     modeRadios.forEach(radio => radio.addEventListener('change', handleModeChange));
+    insuranceItemSelect.addEventListener('change', handleItemChange);
     calcForm.addEventListener('submit', calculate);
     exportBtn.addEventListener('click', exportToCSV);
     copyFormulaBtn.addEventListener('click', copyFormula);
@@ -215,10 +223,22 @@
         const selectedMode = document.querySelector('input[name="mode"]:checked').value;
         if (selectedMode === 'singleItem') {
             insuranceItemBlock.classList.remove('hidden');
-            ratesBlock.style.opacity = '0.5'; // De-emphasize rates
+            ratesBlock.style.opacity = '0.5';
+            handleItemChange(); // Check if fund block should be shown
         } else {
             insuranceItemBlock.classList.add('hidden');
+            arrearsFundBlock.classList.add('hidden'); // Always hide fund block in overall mode
             ratesBlock.style.opacity = '1';
+        }
+        clearResults();
+    }
+    
+    function handleItemChange() {
+        const selectedItem = insuranceItemSelect.value;
+        if (selectedItem === 'li') {
+            arrearsFundBlock.classList.remove('hidden');
+        } else {
+            arrearsFundBlock.classList.add('hidden');
         }
         clearResults();
     }
@@ -236,7 +256,7 @@
         const parts = inputStr.split(',').map(s => parseFloat(s.trim()));
         if (parts.length !== 3 || parts.some(isNaN)) return null;
         const sum = parts.reduce((a, b) => a + b, 0);
-        if (Math.abs(sum - 1.0) > 0.001) return null; // Check if sum is 1
+        if (Math.abs(sum - 1.0) > 0.001) return null;
         return { E: parts[0], L: parts[1], G: parts[2] };
     }
 
@@ -257,12 +277,24 @@
             isValid = false;
         }
 
+        let arrearsFund = 0;
         let insuranceItem = null;
         if (mode === 'singleItem') {
             insuranceItem = insuranceItemSelect.value;
             if (!insuranceItem) {
                 insuranceItemError.textContent = '請選擇保險項目。';
                 isValid = false;
+            }
+            if (insuranceItem === 'li') {
+                arrearsFund = parseFloat(arrearsFundInput.value) || 0;
+                if (arrearsFund < 0) {
+                    totalAmountError.textContent = '墊償基金不可為負數。';
+                    isValid = false;
+                }
+                if (arrearsFund > T) {
+                    totalAmountError.textContent = '墊償基金不可大於總額。';
+                    isValid = false;
+                }
             }
         }
         
@@ -271,20 +303,16 @@
         const rates = parseRates(ratesInput.value);
 
         if (!liRatios || !nhiRatios) {
-            alert('錯誤：三方比例格式不正確或加總不為 1。請使用 "雇, 勞, 政" 格式，例如 "0.7, 0.2, 0.1"。');
-            isValid = false;
+            alert('錯誤：三方比例格式不正確或加總不為 1。'); isValid = false;
         }
         if (!rates) {
-            alert('錯誤：費率格式不正確。請使用 "勞保, 就保, 健保" 格式，例如 "0.105, 0.010, 0.0517"。');
-            isValid = false;
+            alert('錯誤：費率格式不正確。'); isValid = false;
         }
 
         if (!isValid) return null;
         
         return {
-            mode,
-            insuranceItem,
-            T,
+            mode, insuranceItem, T, arrearsFund,
             remainderTarget: document.querySelector('input[name="remainderTarget"]:checked').value,
             ratios: { li: liRatios, nhi: nhiRatios },
             rates
@@ -300,11 +328,8 @@
         
         const diff = T_rounded - (E + L + G);
         
-        if (remainderTarget === 'employer') {
-            E += diff;
-        } else { // laborer
-            L += diff;
-        }
+        if (remainderTarget === 'employer') { E += diff; } 
+        else { L += diff; }
         return { E, L, G, total: E + L + G };
     }
 
@@ -312,15 +337,32 @@
         const inputs = validateAndGetInputs();
         if (!inputs) return;
 
-        const { T, mode, insuranceItem, remainderTarget, ratios, rates } = inputs;
-        let E_raw, L_raw, G_raw, finalRatios;
+        const { T, mode, insuranceItem, arrearsFund, remainderTarget, ratios, rates } = inputs;
+        let E_raw, L_raw, G_raw;
+        let effectiveRatios = {};
 
         if (mode === 'singleItem') {
-            const p = (insuranceItem === 'li') ? ratios.li : ratios.nhi;
-            E_raw = T * p.E;
-            L_raw = T * p.L;
-            G_raw = T * p.G;
-            finalRatios = { E: p.E, L: p.L, G: p.G };
+            if (insuranceItem === 'li') {
+                // ** 新的勞保計算邏輯 **
+                const p_li = ratios.li;
+                E_raw = (T - arrearsFund) * 0.7808 + arrearsFund;
+                
+                const remainder_LG = T - E_raw;
+                const ratio_sum_LG = p_li.L + p_li.G;
+
+                if (ratio_sum_LG > 0) {
+                    L_raw = remainder_LG * (p_li.L / ratio_sum_LG);
+                    G_raw = remainder_LG * (p_li.G / ratio_sum_LG);
+                } else {
+                    L_raw = 0; G_raw = 0; // Edge case
+                }
+
+            } else { // ** 健保邏輯 (維持不變) **
+                const p_nhi = ratios.nhi;
+                E_raw = T * p_nhi.E;
+                L_raw = T * p_nhi.L;
+                G_raw = T * p_nhi.G;
+            }
         } else { // overallTotal
             const R = rates.li + rates.ei + rates.nhi;
             const alpha_E = (rates.li * ratios.li.E + rates.ei * ratios.li.E + rates.nhi * ratios.nhi.E) / R;
@@ -330,17 +372,16 @@
             E_raw = T * alpha_E;
             L_raw = T * alpha_L;
             G_raw = T * alpha_G;
-            finalRatios = { E: alpha_E, L: alpha_L, G: alpha_G };
         }
 
         const finalAmounts = applyRoundingAndRemainder(T, E_raw, L_raw, G_raw, remainderTarget);
         
-        calculationResult = {
-            ...inputs,
-            ...finalAmounts,
-            finalRatios,
-        };
+        // 計算最終的有效比例用於顯示
+        effectiveRatios.E = finalAmounts.E / finalAmounts.total;
+        effectiveRatios.L = finalAmounts.L / finalAmounts.total;
+        effectiveRatios.G = finalAmounts.G / finalAmounts.total;
 
+        calculationResult = { ...inputs, ...finalAmounts, finalRatios: effectiveRatios };
         displayResults(calculationResult);
     }
     
@@ -351,14 +392,13 @@
         
         resultsTableContainer.innerHTML = `
             <table>
-                <thead><tr><th>對象</th><th>分攤比例</th><th>分攤金額 (元)</th></tr></thead>
+                <thead><tr><th>對象</th><th>有效分攤比例</th><th>分攤金額 (元)</th></tr></thead>
                 <tbody>
                     <tr><td>雇主 (E)</td><td>${toPercent(finalRatios.E)}</td><td>${E.toLocaleString()}</td></tr>
                     <tr><td>勞工 (L)</td><td>${toPercent(finalRatios.L)}</td><td>${L.toLocaleString()}</td></tr>
                     <tr><td>政府 (G)</td><td>${toPercent(finalRatios.G)}</td><td>${G.toLocaleString()}</td></tr>
                 </tbody>
-            </table>
-        `;
+            </table>`;
         resultsSummary.textContent = `檢核：E+L+G = ${E.toLocaleString()} + ${L.toLocaleString()} + ${G.toLocaleString()} = ${total.toLocaleString()} (總額 ${Math.round(T).toLocaleString()} 元)`;
         
         formulaBox.textContent = generateFormula(result);
@@ -367,17 +407,31 @@
     }
 
     function generateFormula(result) {
-        const { T, mode, insuranceItem, ratios, rates, finalRatios, E, L, G } = result;
+        const { T, mode, insuranceItem, arrearsFund, ratios, rates, finalRatios, E, L, G } = result;
 
         if (mode === 'singleItem') {
-            const itemText = insuranceItem === 'li' ? '勞保' : '健保';
-            const p = insuranceItem === 'li' ? ratios.li : ratios.nhi;
-            return `模式：單一保項 - ${itemText}
+            if (insuranceItem === 'li') {
+                return `模式：單一保項 - 勞保 (含墊償基金)
 ---
 [一般式]
-E = T × ${p.E}
-L = T × ${p.L}
-G = T × ${p.G}
+E_raw = (T - 墊償基金) × 0.7808 + 墊償基金
+剩餘額 = T - E_raw
+L_raw = 剩餘額 × (勞工比例 / (勞工比例 + 政府比例))
+G_raw = 剩餘額 × (政府比例 / (勞工比例 + 政府比例))
+
+[代入式]
+輸入 T = ${T.toLocaleString()}, 墊償基金 = ${arrearsFund.toLocaleString()}
+E_raw = (${T.toLocaleString()} - ${arrearsFund.toLocaleString()}) × 0.7808 + ${arrearsFund.toLocaleString()} = ${((T - arrearsFund) * 0.7808 + arrearsFund).toLocaleString()}
+...後續計算 L, G ...
+
+* 註：以上為原始計算值，最終結果已依尾差規則調整。
+* 檢核：${E.toLocaleString()} + ${L.toLocaleString()} + ${G.toLocaleString()} = ${(E+L+G).toLocaleString()}`;
+            } else { // NHI formula (unchanged)
+                 const p = ratios.nhi;
+                 return `模式：單一保項 - 健保
+---
+[一般式]
+E = T × ${p.E}; L = T × ${p.L}; G = T × ${p.G}
 
 [代入式]
 輸入 T = ${T.toLocaleString()}
@@ -387,27 +441,22 @@ G = ${T.toLocaleString()} × ${p.G} = ${Math.round(T * p.G).toLocaleString()}
 
 * 註：以上為原始捨入值，最終結果已依尾差規則調整。
 * 檢核：${E.toLocaleString()} + ${L.toLocaleString()} + ${G.toLocaleString()} = ${(E+L+G).toLocaleString()}`;
-        } else { // overallTotal
+            }
+        } else { // overallTotal formula (unchanged)
             return `模式：整體總額
 ---
 [一般式]
 R = r_LI + r_EI + r_NHI
-α_E = (r_LI×${ratios.li.E} + r_EI×${ratios.li.E} + r_NHI×${ratios.nhi.E}) / R
-α_L = (r_LI×${ratios.li.L} + r_EI×${ratios.li.L} + r_NHI×${ratios.nhi.L}) / R
-α_G = (r_LI×${ratios.li.G} + r_EI×${ratios.li.G} + r_NHI×${ratios.nhi.G}) / R
+α_E = (r_LI×${ratios.li.E} + ... ) / R
+...
 E = T × α_E, L = T × α_L, G = T × α_G
 
 [代入式] (使用目前設定值)
-R = ${rates.li} + ${rates.ei} + ${rates.nhi} = ${rates.li + rates.ei + rates.nhi}
-α_E ≈ ${(finalRatios.E * 100).toFixed(2)}%
-α_L ≈ ${(finalRatios.L * 100).toFixed(2)}%
-α_G ≈ ${(finalRatios.G * 100).toFixed(2)}%
-
+... (略) ...
 輸入 T = ${T.toLocaleString()}
 E ≈ ${T.toLocaleString()} × ${(finalRatios.E * 100).toFixed(2)}% = ${E.toLocaleString()}
 L ≈ ${T.toLocaleString()} × ${(finalRatios.L * 100).toFixed(2)}% = ${L.toLocaleString()}
 G ≈ ${T.toLocaleString()} × ${(finalRatios.G * 100).toFixed(2)}% = ${G.toLocaleString()}
-
 * 檢核：${E.toLocaleString()} + ${L.toLocaleString()} + ${G.toLocaleString()} = ${(E+L+G).toLocaleString()}`;
         }
     }
@@ -416,14 +465,12 @@ G ≈ ${T.toLocaleString()} × ${(finalRatios.G * 100).toFixed(2)}% = ${G.toLoca
         navigator.clipboard.writeText(formulaBox.textContent).then(() => {
             copyFormulaBtn.textContent = '已複製!';
             setTimeout(() => { copyFormulaBtn.textContent = '複製'; }, 2000);
-        }, (err) => {
-            alert('複製失敗: ', err);
         });
     }
 
     function exportToCSV() {
         if (!calculationResult) return;
-        const { mode, insuranceItem, E, L, G, total } = calculationResult;
+        const { mode, insuranceItem, arrearsFund, E, L, G, total } = calculationResult;
         const itemText = insuranceItem ? (insuranceItem === 'li' ? '勞保' : '健保') : 'N/A';
         const modeText = mode === 'singleItem' ? '單一保項' : '整體總額';
 
@@ -431,6 +478,9 @@ G ≈ ${T.toLocaleString()} × ${(finalRatios.G * 100).toFixed(2)}% = ${G.toLoca
         csvContent += '摘要,值\n';
         csvContent += `計算模式,${modeText}\n`;
         csvContent += `保險項目,${itemText}\n`;
+        if (mode === 'singleItem' && insuranceItem === 'li') {
+            csvContent += `墊償基金,${arrearsFund}\n`;
+        }
         csvContent += '對象,分攤金額\n';
         csvContent += `雇主,${E}\n`;
         csvContent += `勞工,${L}\n`;
