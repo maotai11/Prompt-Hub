@@ -62,11 +62,110 @@
     .small{font-size:0.95rem}
     .print-break{page-break-inside:avoid;page-break-after:auto}
   }
+
+  /* ===== 2025 Neo-Glass Minimal Theme (UI-only override) ===== */
+  :root{
+    --bg:#0a0e14; --card:#0f141cE6; --border:#1c2735; --text:#eaf2fb; --muted:#90a4b8; --acc:#6fc3ff; --ok:#36d39a; --warn:#ffc561; --danger:#ff6e7b; --chip:#0c1118;
+    --ring: 0 0 0 3px rgba(111,195,255,.20); --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow-md:0 8px 24px rgba(0,0,0,.35); --shadow-lg:0 18px 40px rgba(0,0,0,.45); --blur:10px; --radius:14px;
+  }
+  body{
+    background:
+      radial-gradient(1200px 800px at 20% -10%, rgba(95,169,255,.10), transparent 60%),
+      radial-gradient(1000px 700px at 100% 20%, rgba(54,211,154,.10), transparent 60%),
+      linear-gradient(180deg, #0a0e14 0%, #0b1118 60%, #0a0e14 100%);
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-1;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size:28px 28px;
+    mask-image: radial-gradient(70% 70% at 50% 20%, rgba(0,0,0,.7), transparent 90%);
+    pointer-events:none;
+  }
+  .wrap{ max-width:1280px; padding:20px; }
+  .grid{ gap:18px; }
+  .card{
+    background: linear-gradient(180deg, rgba(20,26,36,.85), rgba(12,18,26,.75));
+    border: 1px solid rgba(152,193,255,.12);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(var(--blur));
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+  }
+  .card:hover{ transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: rgba(152,193,255,.22); }
+  h1{ letter-spacing:.4px; font-weight:700; font-size:1.6rem; }
+  h2{ letter-spacing:.3px; font-weight:650; }
+  h3{ letter-spacing:.2px; font-weight:600; }
+  .btn{
+    border:1px solid rgba(152,193,255,.18);
+    background: linear-gradient(180deg, #0f141b, #0c1218);
+    color:var(--text);
+    padding:10px 14px;
+    border-radius:10px;
+    backdrop-filter: blur(6px);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+    transition: transform .12s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .btn:hover{ transform: translateY(-1px); border-color: rgba(152,193,255,.35); box-shadow: var(--shadow-sm); }
+  .btn:active{ transform: translateY(0); }
+  .btn-acc{ background: linear-gradient(180deg, #6fc3ff, #51b5ff); color:#062033; border:none; box-shadow: 0 8px 22px rgba(111,195,255,.25); }
+  .btn-ok{  background: linear-gradient(180deg, #36d39a, #25c08c); color:#031e16; border:none; box-shadow: 0 8px 22px rgba(54,211,154,.22); }
+  .btn-warn{background: linear-gradient(180deg, #ffc561, #ffb83a); color:#2b1b00; border:none; box-shadow: 0 8px 22px rgba(255,197,97,.22); }
+  .btn-danger{background: linear-gradient(180deg, #ff7e8a, #ff5564); color:#2a0004; border:none; box-shadow: 0 8px 22px rgba(255,110,123,.25); }
+  input,select,textarea{
+    background: linear-gradient(180deg, #0b1118, #0a0f15);
+    border:1px solid rgba(152,193,255,.18);
+    border-radius:10px; min-height:40px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.03), inset 0 -1px 0 rgba(0,0,0,.2);
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  input:focus,select:focus,textarea:focus{ border-color: rgba(111,195,255,.65); box-shadow: var(--ring), inset 0 0 0 1px rgba(255,255,255,.04); }
+  label{ font-size:.85rem; color:var(--muted); letter-spacing:.2px; }
+  .pill{
+    background: linear-gradient(180deg, rgba(15,20,28,.9), rgba(10,15,21,.8));
+    border:1px solid rgba(152,193,255,.18); color:#b7c8da; padding:4px 10px;
+  }
+  .tabs{ gap:10px; }
+  .tab{
+    background: linear-gradient(180deg, #0f141b, #0c1218);
+    border:1px solid rgba(152,193,255,.18);
+    border-radius:999px; padding:10px 16px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  .tab.active{
+    background: linear-gradient(180deg, #69bfff, #48b0ff);
+    color:#04223a; border-color: transparent;
+    box-shadow: 0 6px 16px rgba(111,195,255,.25);
+  }
+  .notice{ border:1px dashed rgba(255,197,97,.55); background: linear-gradient(180deg, #2b220b, #231c09); color:#ffdca0; }
+  .hr{ background: linear-gradient(90deg, rgba(152,193,255,.15), rgba(152,193,255,.04), rgba(152,193,255,.15)); height:1px; }
+  .table{ border-collapse: separate; border-spacing:0; overflow:hidden; border-radius:12px; }
+  .table thead th{
+    position: sticky; top:0; z-index:1; background: linear-gradient(180deg, #101723, #0d141e);
+    color:#cfe2f5; border-bottom:1px solid rgba(152,193,255,.20); backdrop-filter: blur(8px);
+  }
+  .table th, .table td{ border-bottom:1px solid rgba(152,193,255,.10); }
+  .table tbody tr:nth-child(even){ background: rgba(255,255,255,.02); }
+  .table tbody tr:hover{ background: rgba(111,195,255,.06); }
+  details{
+    background: linear-gradient(180deg, #0e151f, #0b121a);
+    border:1px solid rgba(152,193,255,.16); border-radius:12px;
+  }
+  summary{ color:#8fd0ff; }
+  .kbd{ background: linear-gradient(180deg, #0b1118, #0a0f15); border:1px solid rgba(152,193,255,.18); color:#bcd0e4; }
+  @media (prefers-reduced-motion: reduce){ .card, .btn, input, select, textarea { transition: none !important; } }
+  @media print{ .table thead th{ background:#fff !important; color:#000 !important; } }
+
+  /* 分頁器 */
+  .pager{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pager .btn{padding:6px 10px}
+  .pager .num{min-width:28px;text-align:center;border:1px solid var(--border);background:#0d1015;border-radius:8px;padding:6px 8px}
 </style>
 
 <!-- 內嵌 seed（初次/無資料時導入） -->
 <script type="application/json" id="seed-customers">
-{"customers":[{"id":"C0001","companyName":"範例股份有限公司","regAddr":"台北市信義區示例路 100 號","contactAddr":"台北市信義區示例路 200 號","taxId":"12345678","bizRegNo":"A123456789","principal":"王小明","contact":"林小姐","phone":"02-1234-5678","suspendFrom":"","suspendTo":"","notesHistory":[{"id":"Nseeddemo","ts":"2025-09-01T10:00:00","voucherType":"進項","text":"首度建檔，確認統編與收發方式"}]}]}
+{"customers":[{"id":"C0001","companyName":"範例股份有限公司","regAddr":"台北市信義區示例路 100 號","contactAddr":"台北市信義區示例路 200 還","taxId":"12345678","bizRegNo":"A123456789","principal":"王小明","contact":"林小姐","phone":"02-1234-5678","suspendFrom":"","suspendTo":"","notesHistory":[{"id":"Nseeddemo","ts":"2025-09-01T10:00:00","voucherType":"進項","text":"首度建檔，確認統編與收發方式"}]}]}
 </script>
 </head>
 <body>
@@ -98,6 +197,7 @@
         <div class="row no-print">
           <button class="btn" type="button" id="m1-notes-export-all">匯出全部備註 Excel</button>
           <button class="btn" type="button" id="m1-json-export">JSON 匯出</button>
+          <button class="btn" type="button" id="m1-csv-export">CSV 匯出（主檔）</button>
           <div class="small muted">CSV 匯入請用右側區塊</div>
         </div>
       </div>
@@ -150,7 +250,10 @@
 
       <div class="flex-between row" style="justify-content:space-between;align-items:center">
         <h3>客戶列表</h3>
-        <div class="row no-print"><input id="m1-search" placeholder="關鍵字（代號/公司/統編/人名/電話）" /></div>
+        <div class="row no-print" style="gap:12px;align-items:center">
+          <input id="m1-search" placeholder="關鍵字（代號/公司/統編/人名/電話）" />
+          <div id="m1-pager" class="pager"></div>
+        </div>
       </div>
       <table class="table" id="m1-table">
         <thead>
@@ -338,6 +441,13 @@ function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${String(d.g
 function isoPlusDays(iso, days){ const d=new Date(iso); d.setDate(d.getDate()+days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function weekdayZH(iso){ return ["日","一","二","三","四","五","六"][new Date(iso).getDay()]; }
 function escapeHTML(s){ return (s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+/* 屬性值跳脫：避免 XSS/破版 */
+function escapeAttr(s){
+  return String(s||"").replace(/&/g,"&amp;")
+                      .replace(/"/g,"&quot;")
+                      .replace(/</g,"&lt;")
+                      .replace(/>/g,"&gt;");
+}
 function downloadJSON(filename, obj){ const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
 function $(sel){ return document.querySelector(sel); }
 
@@ -345,6 +455,19 @@ function $(sel){ return document.querySelector(sel); }
 let customers = { customers: [] };
 let tax = { items: [] };
 let methods = { list: ["親送","郵寄","快遞","EMAIL","LINE"] };
+
+/* 模組1分頁狀態（LS 持久化） */
+let m1Pager = (()=>{
+  const k="m1_pager_v1";
+  const d = lsLoad(k, { page:1, size:20 });
+  return {
+    get page(){ return d.page; },
+    set page(v){ d.page = Math.max(1, v|0); lsSave(k,d); },
+    get size(){ return d.size; },
+    set size(v){ d.size = Math.min(200, Math.max(5, v|0 || 20)); d.page=1; lsSave(k,d); },
+    snapshot(){ return {...d}; }
+  };
+})();
 
 /* ========= 載入流程 ========= */
 async function bootstrap(){
@@ -458,10 +581,22 @@ function initUI(){
 
   m1.save.addEventListener("click", upsertCustomer);
   m1.clear.addEventListener("click", clearM1Fields);
-  m1.search.addEventListener("input", renderM1Table);
+
+  /* 匯出 */
   m1.jsonExport.addEventListener("click", ()=> downloadJSON(`customers_${Date.now()}.json`, customers));
+  const csvBtn = $("#m1-csv-export");
+  if(csvBtn) csvBtn.addEventListener("click", exportCustomersCSV);
+
+  /* 匯入 */
   m1.jsonIn.addEventListener("change", (e)=> e.target.files[0] && importJSONToM1(e.target.files[0]));
   m1.csvIn.addEventListener("change", (e)=> e.target.files[0] && importCSVToCustomers(e.target.files[0]));
+
+  /* 搜尋 → 重置至第1頁並渲染（避免跳頁找不到） */
+  m1.search.addEventListener("input", ()=>{
+    m1Pager.page = 1;
+    renderM1Table();
+  });
+
   m1.reseed.addEventListener("click", ()=>{
     if(!confirm("將載入示範資料並覆蓋現有客戶。繼續？")) return;
     try{
@@ -470,7 +605,7 @@ function initUI(){
       storeSave(DB_KEYS.M1, customers).then(()=>{ renderM1Table(); populateM2Customers(); });
     }catch(e){ alert("載入失敗："+e.message); }
   });
-  // 新：全客戶備註一次匯出
+  // 全客戶備註一次匯出
   m1.notesExportAll.addEventListener("click", exportAllNotesToExcel);
 
   function refreshDates(){
@@ -532,7 +667,7 @@ function initUI(){
             <option ${oldType==="常用備註"?"selected":""}>常用備註</option>
             <option ${oldType==="筆記紀錄"?"selected":""}>筆記紀錄</option>
           </select>
-          <input data-role="edit-note-text" style="flex:1" value="${(oldText||"").replace(/"/g,'&quot;')}" />
+          <input data-role="edit-note-text" style="flex:1" value="${escapeAttr(oldText||"")}" />
           <button class="btn btn-ok" type="button" data-act="save-note" data-id="${id}" data-nid="${nid}">儲存覆蓋</button>
           <button class="btn" type="button" data-act="cancel-edit-note" data-id="${id}" data-nid="${nid}">取消</button>
         </div>
@@ -574,6 +709,14 @@ function clearM1Fields(){ ["id","company","reg","addr","phone","bizno","taxid","
 async function upsertCustomer(){
   const id = (m1.id.value||"").trim();
   if(!id){ alert("請輸入用戶代號"); return; }
+
+  const sfrom = m1.sfrom.value || "";
+  const sto   = m1.sto.value   || "";
+  if(sfrom && sto && new Date(sfrom) > new Date(sto)){
+    alert("停業日期範圍錯誤：起日不可大於迄日"); 
+    return;
+  }
+
   const obj = {
     id,
     companyName: m1.company.value.trim(),
@@ -584,8 +727,8 @@ async function upsertCustomer(){
     taxId: m1.taxid.value.trim(),
     principal: m1.principal.value.trim(),
     contact: m1.contact.value.trim(),
-    suspendFrom: m1.sfrom.value || "",
-    suspendTo: m1.sto.value || "",
+    suspendFrom: sfrom,
+    suspendTo: sto,
     notesHistory: []
   };
   const idx = customers.customers.findIndex(c=>c.id===id);
@@ -699,18 +842,41 @@ function exportAllNotesToExcel(){
   URL.revokeObjectURL(url);
 }
 
-/* 渲染客戶列表（含備註區塊功能按鈕） */
+/* 主檔 CSV 匯出 */
+function exportCustomersCSV(){
+  const headers = ["id","companyName","regAddr","contactAddr","phone","bizRegNo","taxId","principal","contact","suspendFrom","suspendTo"];
+  const escCSV = v=>{
+    const s = String(v??"");
+    if(/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+    return s;
+  };
+  const rows = [headers.join(",")].concat(
+    customers.customers.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(c=>
+      headers.map(h=>escCSV(c[h]??"")).join(",")
+    )
+  ).join("\n");
+
+  const blob = new Blob([rows], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `customers_${Date.now()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* 渲染客戶列表（含分頁器） */
 function renderM1Table(){
   const q = (m1.search.value||"").toLowerCase();
-  const arr = customers.customers.filter(c=>{
-    if(!q) return true;
-    const hay = [c.id,c.companyName,c.taxId,c.principal,c.contact,c.phone].join("|").toLowerCase();
-    return hay.includes(q);
-  }).sort((a,b)=>a.id.localeCompare(b.id));
+  const all = customers.customers
+    .filter(c=>{
+      if(!q) return true;
+      const hay = [c.id,c.companyName,c.taxId,c.principal,c.contact,c.phone].join("|").toLowerCase();
+      return hay.includes(q);
+    })
+    .sort((a,b)=>a.id.localeCompare(b.id));
 
-  // 補舊資料備註的 id
+  // 補舊資料備註 id
   let touched = false;
-  arr.forEach(c=>{
+  all.forEach(c=>{
     c.notesHistory = c.notesHistory || [];
     c.notesHistory.forEach(n=>{
       if(!n.id){ n.id = "N" + Date.now() + Math.random().toString(16).slice(2); touched = true; }
@@ -718,7 +884,18 @@ function renderM1Table(){
   });
   if(touched){ storeSave(DB_KEYS.M1, customers); }
 
-  m1.tbody.innerHTML = arr.map(c=>{
+  // 分頁
+  const total = all.length;
+  const { page, size } = m1Pager.snapshot();
+  const pages = Math.max(1, Math.ceil(total / size));
+  const cur = Math.min(page, pages);
+  if(cur !== page){ m1Pager.page = cur; }
+
+  const start = (cur-1)*size;
+  const list = all.slice(start, start+size);
+
+  // 渲染 tbody（只渲染當頁，避免大量 innerHTML 卡頓）
+  m1.tbody.innerHTML = list.map(c=>{
     const stop = (c.suspendFrom||"") || (c.suspendTo||"") ? `${c.suspendFrom||""}~${c.suspendTo||""}` : "";
     const addr = [c.regAddr,c.contactAddr].filter(Boolean).join("<br>");
     const notesList = (c.notesHistory||[]).slice().reverse();
@@ -729,7 +906,7 @@ function renderM1Table(){
         <div class="small" data-note-row data-cid="${c.id}" data-nid="${n.id}">
           <span class="pill">${escapeHTML(n.voucherType||"備註")}</span>
           <span class="note-text">${escapeHTML(n.text||"")}</span>
-          <span class="muted">（${stamp}）</span>
+          <span class="muted">（${escapeHTML(stamp)}）</span>
           <span class="no-print" style="margin-left:8px">
             <button class="btn" type="button" data-act="edit-note" data-id="${c.id}" data-nid="${n.id}">編輯</button>
             <button class="btn btn-danger" type="button" data-act="del-note" data-id="${c.id}" data-nid="${n.id}">刪除</button>
@@ -740,7 +917,7 @@ function renderM1Table(){
 
     return `
       <tr>
-        <td><strong>${c.id}</strong></td>
+        <td><strong>${escapeHTML(c.id)}</strong></td>
         <td>${escapeHTML(c.companyName||"")}</td>
         <td>${escapeHTML(c.taxId||"")}</td>
         <td>${escapeHTML((c.contact||"")+" / "+(c.phone||""))}</td>
@@ -771,6 +948,38 @@ function renderM1Table(){
       </tr>
     `;
   }).join("");
+
+  // 渲染分頁器
+  const pager = $("#m1-pager");
+  pager.innerHTML = `
+    <button class="btn" type="button" data-act="pprev" ${cur<=1?"disabled":""}>«</button>
+    <button class="btn" type="button" data-act="prev" ${cur<=1?"disabled":""}>‹</button>
+    <span class="num">${cur}</span>/<span class="num">${pages}</span>
+    <button class="btn" type="button" data-act="next" ${cur>=pages?"disabled":""}>›</button>
+    <button class="btn" type="button" data-act="nnext" ${cur>=pages?"disabled":""}>»</button>
+    <label class="small muted">每頁</label>
+    <select id="m1-page-size">
+      ${[10,20,50,100,200].map(n=>`<option value="${n}" ${n===m1Pager.size?"selected":""}>${n}</option>`).join("")}
+    </select>
+    <span class="small muted">共 ${total} 筆</span>
+  `;
+
+  // 分頁器事件
+  pager.onclick = (e)=>{
+    const b = e.target.closest("button"); if(!b) return;
+    const act = b.getAttribute("data-act");
+    if(act==="prev"){ m1Pager.page = Math.max(1, cur-1); renderM1Table(); }
+    if(act==="next"){ m1Pager.page = Math.min(pages, cur+1); renderM1Table(); }
+    if(act==="pprev"){ m1Pager.page = 1; renderM1Table(); }
+    if(act==="nnext"){ m1Pager.page = pages; renderM1Table(); }
+  };
+  const sizeSel = pager.querySelector("#m1-page-size");
+  if(sizeSel){
+    sizeSel.onchange = (e)=>{
+      m1Pager.size = parseInt(e.target.value,10);
+      renderM1Table();
+    };
+  }
 }
 
 /* CSV 解析＆匯入 */
@@ -867,7 +1076,7 @@ function formatCustomerReadonly(cid){
   const addr=[c.regAddr,c.contactAddr].filter(Boolean).join(" / ");
   return `
     <div class="small">
-      <div><strong>${c.id}</strong>｜${escapeHTML(c.companyName||"")}</div>
+      <div><strong>${escapeHTML(c.id)}</strong>｜${escapeHTML(c.companyName||"")}</div>
       <div class="muted">統編：${escapeHTML(c.taxId||"-")}｜聯絡：${escapeHTML(c.contact||"-")} / ${escapeHTML(c.phone||"-")}</div>
       <div class="muted">地址：${escapeHTML(addr||"-")}</div>
     </div>
@@ -912,19 +1121,6 @@ function renderM2Lists(){
       </tr>
     `;
   }).join("") || `<tr><td colspan="5" class="muted">未來三日無預定</td></tr>`;
-}
-async function editTaxItem(id){
-  const it=tax.items.find(x=>x.id===id); if(!it) return;
-  m2.customerSel.value=it.customerId; m2.methodSel.value=it.method; m2.date.value=it.date; m2.remind.value=it.note||"";
-  tax.items = tax.items.filter(x=>x.id!==id);
-  await storeSave(DB_KEYS.M2, tax);
-  renderM2Lists();
-}
-async function deleteTaxItem(id){
-  if(!confirm("刪除這筆預定？")) return;
-  tax.items = tax.items.filter(x=>x.id!==id);
-  await storeSave(DB_KEYS.M2, tax);
-  renderM2Lists();
 }
 
 /* ====== 初始化 ====== */
