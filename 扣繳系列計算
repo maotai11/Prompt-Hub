@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣各類所得扣繳稅額試算</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Warm Neutral -->
+    <!-- Application Structure Plan: 採用分頁標籤式(Tab-based)的介面設計。使用者首先選擇一個主要的所得類別（如薪資、租賃、執行業務報酬等）。點擊後，只有與該類別相關的輸入欄位會顯示出來。這種以任務為導向的結構可以大幅降低介面的複雜度，避免使用者被不相關的選項干擾，讓他們能專注於當前的計算任務。所有計算都會即時反應在結果區，提供流暢且直觀的使用者體驗。 -->
+    <!-- Visualization & Content Choices: 
+        1. 所得類別 -> 目標: 組織與計算 -> 呈現方式: 頂部導覽標籤。 互動: 點擊標籤切換對應的計算機表單。 理由: 將多個獨立但複雜的計算功能清晰地分開，符合使用者一次只處理一件事的心智模型。
+        2. 納稅人身份 -> 目標: 篩選與應用規則 -> 呈現方式: 單選按鈕 (境內居住者/非境內居住者)。 互動: 選擇不同身份會觸發不同的稅率和計算門檻，這是扣繳稅法中最核心的邏輯分支。 理由: 這是決定稅率的關鍵因素，使用單選按鈕最為直觀明確。
+        3. 計算條件 -> 目標: 細化計算規則 -> 呈現方式: 下拉選單或單選按鈕 (例如: 薪資的計稅方式)。 互動: 根據選項啟用或禁用特定輸入欄位，引導使用者提供正確資訊。 理由: 有效處理同一所得類別下的不同計算情境。
+        4. 計算結果 -> 目標: 告知 -> 呈現方式: 格式化且標示清晰的數字結果區塊 (應扣繳稅額、二代健保補充保費、實領金額)。 互動: 任何輸入欄位的變動都會即時更新此區塊。 理由: 提供即時回饋，讓使用者能快速看到不同輸入的結果。
+        Library/Method: 全部使用 Vanilla JavaScript 實現互動與計算邏輯，無任何圖表或SVG需求。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8f7f4;
+        }
+        .tab {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom-color: #4f46e5;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        .form-section {
+            display: none;
+        }
+        .form-section.active {
+            display: block;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3);
+        }
+        .result-card {
+            background-color: #eef2ff;
+            border-left: 5px solid #4f46e5;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .input-group-text {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem;
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-right: 0;
+            border-radius: 0.375rem 0 0 0.375rem;
+        }
+        .input-group .form-input {
+            border-radius: 0 0.375rem 0.375rem 0;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="antialiased text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">台灣各類所得扣繳稅額試算</h1>
+            <p class="text-gray-600 mt-2">一個簡單好用的工具，協助您快速計算各類所得的應扣繳稅額及二代健保補充保費。</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+            
+            <div class="mb-6 border-b border-gray-200">
+                <nav class="flex flex-wrap -mb-px" id="tab-nav">
+                    <button data-tab="salary" class="tab active text-sm md:text-base px-3 py-3 md:px-4">薪資所得</button>
+                    <button data-tab="professional" class="tab text-sm md:text-base px-3 py-3 md:px-4">執行業務報酬</button>
+                    <button data-tab="rent" class="tab text-sm md:text-base px-3 py-3 md:px-4">租賃所得</button>
+                    <button data-tab="royalty" class="tab text-sm md:text-base px-3 py-3 md:px-4">權利金</button>
+                    <button data-tab="dividend" class="tab text-sm md:text-base px-3 py-3 md:px-4">股利所得</button>
+                    <button data-tab="other" class="tab text-sm md:text-base px-3 py-3 md:px-4">獎金/稿費等</button>
+                </nav>
+            </div>
+
+            <form id="tax-form" class="space-y-6">
+                
+                <div>
+                    <label class="block text-lg font-semibold mb-3 text-gray-700">基本資料</label>
+                    <div class="flex items-center space-x-6">
+                        <span class="text-gray-600 font-medium">納稅義務人身份：</span>
+                        <div class="flex items-center">
+                            <input type="radio" id="resident" name="residency" value="resident" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300" checked>
+                            <label for="resident" class="ml-2 block text-sm text-gray-900">境內居住者</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="non-resident" name="residency" value="non-resident" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                            <label for="non-resident" class="ml-2 block text-sm text-gray-900">非境內居住者</label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-gray-200"/>
+
+                <!-- Salary Section -->
+                <div id="form-section-salary" class="form-section active">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">薪資所得計算</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="salary-type" class="block text-sm font-medium text-gray-700 mb-1">薪資類型</label>
+                            <select id="salary-type" class="form-input">
+                                <option value="monthly">固定薪資 (每月給付)</option>
+                                <option value="part-time">非固定薪資 (兼職所得)</option>
+                                <option value="bonus">獎金 (年終、三節等)</option>
+                            </select>
+                        </div>
+                        <div id="salary-calc-method-group">
+                            <label for="salary-calc-method" class="block text-sm font-medium text-gray-700 mb-1">扣繳方式 (境內居住者)</label>
+                            <select id="salary-calc-method" class="form-input">
+                                <option value="table">依薪資所得扣繳稅額表</option>
+                                <option value="fixed">按全月給付總額扣繳 5%</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                             <label for="salary-amount" class="block text-sm font-medium text-gray-700 mb-1">給付金額</label>
+                             <div class="flex items-center input-group">
+                                 <span class="input-group-text">NT$</span>
+                                 <input type="number" id="salary-amount" class="form-input" placeholder="請輸入總給付金額">
+                             </div>
+                        </div>
+                        <div id="dependents-group">
+                            <label for="dependents" class="block text-sm font-medium text-gray-700 mb-1">扶養親屬人數 (含本人)</label>
+                            <input type="number" id="dependents" class="form-input" value="1" min="1">
+                        </div>
+                        <div id="monthly-salary-group" class="hidden">
+                            <label for="monthly-salary" class="block text-sm font-medium text-gray-700 mb-1">投保單位之月投保薪資</label>
+                             <div class="flex items-center input-group">
+                                 <span class="input-group-text">NT$</span>
+                                 <input type="number" id="monthly-salary" class="form-input" placeholder="用以計算獎金健保補充保費">
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Section -->
+                <div id="form-section-professional" class="form-section">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">執行業務報酬計算</h3>
+                    <div>
+                        <label for="professional-amount" class="block text-sm font-medium text-gray-700 mb-1">給付金額</label>
+                        <div class="flex items-center input-group">
+                             <span class="input-group-text">NT$</span>
+                             <input type="number" id="professional-amount" class="form-input" placeholder="請輸入給付總額">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">例如：律師、會計師、醫師、表演人等。</p>
+                    </div>
+                </div>
+                
+                <!-- Rent Section -->
+                <div id="form-section-rent" class="form-section">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">租賃所得計算</h3>
+                    <div>
+                        <label for="rent-amount" class="block text-sm font-medium text-gray-700 mb-1">租金給付金額</label>
+                        <div class="flex items-center input-group">
+                             <span class="input-group-text">NT$</span>
+                             <input type="number" id="rent-amount" class="form-input" placeholder="請輸入給付總額">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Royalty Section -->
+                <div id="form-section-royalty" class="form-section">
+                     <h3 class="text-lg font-semibold mb-4 text-gray-700">權利金所得計算</h3>
+                     <div>
+                         <label for="royalty-amount" class="block text-sm font-medium text-gray-700 mb-1">權利金給付金額</label>
+                         <div class="flex items-center input-group">
+                             <span class="input-group-text">NT$</span>
+                             <input type="number" id="royalty-amount" class="form-input" placeholder="請輸入給付總額">
+                         </div>
+                         <p class="text-xs text-gray-500 mt-1">例如：專利權、商標權、著作權等。</p>
+                     </div>
+                </div>
+
+                <!-- Dividend Section -->
+                <div id="form-section-dividend" class="form-section">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">股利所得計算</h3>
+                    <div>
+                        <label for="dividend-amount" class="block text-sm font-medium text-gray-700 mb-1">股利給付金額</label>
+                        <div class="flex items-center input-group">
+                             <span class="input-group-text">NT$</span>
+                             <input type="number" id="dividend-amount" class="form-input" placeholder="請輸入給付總額">
+                        </div>
+                         <p class="text-xs text-gray-500 mt-1">此處僅計算非境內居住者之扣繳稅額。</p>
+                    </div>
+                </div>
+                
+                <!-- Other Income Section -->
+                <div id="form-section-other" class="form-section">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">競技、競賽、機會中獎之獎金或給與 / 稿費等</h3>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="other-income-type" class="block text-sm font-medium text-gray-700 mb-1">所得類型</label>
+                            <select id="other-income-type" class="form-input">
+                                <option value="contest">競技競賽或機會中獎獎金</option>
+                                <option value="manuscript">稿費、版稅、樂譜、作曲、編劇、漫畫及演講鐘點費</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="other-amount" class="block text-sm font-medium text-gray-700 mb-1">給付金額</label>
+                            <div class="flex items-center input-group">
+                                 <span class="input-group-text">NT$</span>
+                                 <input type="number" id="other-amount" class="form-input" placeholder="請輸入給付總額">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h3 class="text-xl font-bold mb-4 text-gray-800">計算結果</h3>
+                <div id="results" class="result-card p-6 rounded-lg space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 font-medium">應扣繳稅額：</span>
+                        <span id="tax-due" class="text-2xl font-bold text-indigo-700">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 font-medium">二代健保補充保費：</span>
+                        <span id="nhi-due" class="text-2xl font-bold text-indigo-700">0</span>
+                    </div>
+                    <hr class="border-indigo-200">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-800 font-semibold text-lg">實發金額：</span>
+                        <span id="net-pay" class="text-3xl font-bold text-green-600">0</span>
+                    </div>
+                     <div id="result-notes" class="text-sm text-gray-500 pt-2"></div>
+                </div>
+            </div>
+            
+        </div>
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>本試算結果僅供參考，實際應納稅額以主管稽徵機關核定為準。</p>
+            <p>稅率與規定參考財政部稅務入口網，更新至 2024/2025 年度。</p>
+        </footer>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('tax-form');
+    const nav = document.getElementById('tab-nav');
+    const sections = document.querySelectorAll('.form-section');
+    const inputs = form.querySelectorAll('input, select');
+
+    let activeTab = 'salary';
+
+    const TAX_CONSTANTS = {
+        WITHHOLDING_THRESHOLD: 20000,
+        NHI_RATE: 0.0211,
+        MINIMUM_WAGE: 27470, // 2024
+        SALARY_TABLE_THRESHOLD: 88501, // 2024
+        MANUSCRIPT_EXEMPTION: 180000,
+        RESIDENT: {
+            SALARY_FIXED_RATE: 0.05,
+            PROFESSIONAL_RATE: 0.1,
+            RENT_RATE: 0.1,
+            ROYALTY_RATE: 0.1,
+            DIVIDEND_RATE: 0, // 課稅方式二選一，此處不直接扣繳
+            CONTEST_RATE: 0.1,
+            MANUSCRIPT_RATE: 0.1,
+        },
+        NON_RESIDENT: {
+            SALARY_RATE_BELOW: 0.06, // 基本工資1.5倍以下
+            SALARY_RATE_ABOVE: 0.18, // 基本工資1.5倍以上
+            PROFESSIONAL_RATE: 0.2,
+            RENT_RATE: 0.2,
+            ROYALTY_RATE: 0.2,
+            DIVIDEND_RATE: 0.21,
+            CONTEST_RATE: 0.2,
+            MANUSCRIPT_RATE: 0.2,
+            MANUSCRIPT_FIXED_RATE_THRESHOLD: 5000,
+        }
+    };
+
+    const salaryTable2024 = [
+        { upTo: 88501, tax: 0 },
+        { upTo: 89000, tax: 0 },
+        { upTo: 91501, tax: 4430 },
+        { upTo: 94001, tax: 4480 },
+        { upTo: 96501, tax: 4530 },
+        { upTo: 99001, tax: 4580 },
+        { upTo: 101501, tax: 4630 },
+        { upTo: 104001, tax: 4680 },
+        { upTo: 106501, tax: 4730 },
+        { upTo: 109001, tax: 4780 },
+        { upTo: 111501, tax: 4830 },
+        { upTo: 114001, tax: 4880 },
+        { upTo: 119001, tax: 4980 },
+        { upTo: 124001, tax: 5080 },
+        { upTo: 129001, tax: 5180 },
+        { upTo: 134001, tax: 5280 },
+        { upTo: 139001, tax: 5380 },
+        { upTo: 144001, tax: 5480 },
+        { upTo: 149001, tax: 5580 },
+        { upTo: 154001, tax: 5680 },
+        { upTo: 159001, tax: 5780 },
+        { upTo: 164001, tax: 5880 },
+        { upTo: 169001, tax: 5980 },
+        { upTo: 174001, tax: 6080 },
+        { upTo: 179001, tax: 6180 },
+        { upTo: 184001, tax: 6280 },
+        { upTo: 189001, tax: 6380 },
+        { upTo: 194001, tax: 6480 },
+        { upTo: 199001, tax: 6580 }
+    ];
+
+    function getSalaryTableTax(salary, dependents) {
+        if (salary < TAX_CONSTANTS.SALARY_TABLE_THRESHOLD) return 0;
+        
+        const adjustedSalary = salary - (dependents > 1 ? (dependents - 1) * 2500 : 0);
+        
+        for (const tier of salaryTable2024) {
+            if (adjustedSalary < tier.upTo) {
+                return tier.tax;
+            }
+        }
+        // For salaries above the table, use 5% rate as per guidelines
+        return Math.round(salary * TAX_CONSTANTS.RESIDENT.SALARY_FIXED_RATE);
+    }
+
+    function switchTab(tabName) {
+        activeTab = tabName;
+        nav.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
+        });
+        sections.forEach(section => {
+            section.classList.toggle('active', section.id === `form-section-${tabName}`);
+        });
+        updateUI();
+        calculate();
+    }
+
+    function updateUI() {
+        const residency = document.querySelector('input[name="residency"]:checked').value;
+        
+        // Salary specific UI
+        const salaryType = document.getElementById('salary-type').value;
+        const salaryCalcMethodGroup = document.getElementById('salary-calc-method-group');
+        const dependentsGroup = document.getElementById('dependents-group');
+        const monthlySalaryGroup = document.getElementById('monthly-salary-group');
+
+        salaryCalcMethodGroup.style.display = 'none';
+        dependentsGroup.style.display = 'none';
+        monthlySalaryGroup.style.display = 'none';
+
+        if (activeTab === 'salary' && residency === 'resident') {
+            if (salaryType === 'monthly') {
+                salaryCalcMethodGroup.style.display = 'block';
+                const calcMethod = document.getElementById('salary-calc-method').value;
+                if (calcMethod === 'table') {
+                    dependentsGroup.style.display = 'block';
+                }
+            }
+            if (salaryType === 'bonus') {
+                monthlySalaryGroup.style.display = 'block';
+            }
+        }
+        
+        // Dividend specific UI
+        const dividendAmountInput = document.getElementById('dividend-amount');
+        if (activeTab === 'dividend') {
+             dividendAmountInput.disabled = (residency === 'resident');
+             dividendAmountInput.placeholder = (residency === 'resident') ? '境內居住者股利採合併或分開計稅，不適用扣繳' : '請輸入給付總額';
+        }
+
+        // General UI disabling for non-relevant fields
+        const allInputs = form.querySelectorAll('input, select');
+        allInputs.forEach(input => {
+            const section = input.closest('.form-section');
+            if (section && section.id !== `form-section-${activeTab}`) {
+                input.disabled = true;
+            } else {
+                 if (input.id !== 'dividend-amount') { // Handle dividend separately
+                    input.disabled = false;
+                 }
+            }
+        });
+    }
+
+    function calculate() {
+        const residency = document.querySelector('input[name="residency"]:checked').value;
+        let amount = 0;
+        let tax = 0;
+        let nhi = 0;
+        let notes = '';
+
+        const R = TAX_CONSTANTS.RESIDENT;
+        const NR = TAX_CONSTANTS.NON_RESIDENT;
+        const isResident = residency === 'resident';
+
+        switch (activeTab) {
+            case 'salary':
+                const salaryType = document.getElementById('salary-type').value;
+                const salaryAmount = parseFloat(document.getElementById('salary-amount').value) || 0;
+                amount = salaryAmount;
+
+                if (isResident) {
+                    if (salaryType === 'monthly') {
+                        const method = document.getElementById('salary-calc-method').value;
+                        if (method === 'table') {
+                            const dependents = parseInt(document.getElementById('dependents').value) || 1;
+                            tax = getSalaryTableTax(salaryAmount, dependents);
+                            notes = `依薪資所得扣繳稅額表、扶養親屬 ${dependents} 人計算。`;
+                        } else {
+                            tax = Math.round(salaryAmount * R.SALARY_FIXED_RATE);
+                            notes = `按全月給付總額扣繳 5%。`;
+                        }
+                    } else if (salaryType === 'part-time') {
+                        if (salaryAmount > TAX_CONSTANTS.SALARY_TABLE_THRESHOLD) {
+                             tax = Math.round(salaryAmount * R.SALARY_FIXED_RATE);
+                        }
+                        if (salaryAmount >= TAX_CONSTANTS.MINIMUM_WAGE) {
+                             nhi = Math.floor(salaryAmount * TAX_CONSTANTS.NHI_RATE);
+                             notes = `兼職所得超過基本工資，需扣繳二代健保補充保費。`;
+                        }
+                    } else if (salaryType === 'bonus') {
+                        const monthlySalary = parseFloat(document.getElementById('monthly-salary').value) || 0;
+                        if (salaryAmount > TAX_CONSTANTS.SALARY_TABLE_THRESHOLD) {
+                            tax = Math.round(salaryAmount * R.SALARY_FIXED_RATE);
+                        }
+                        if (monthlySalary > 0 && salaryAmount > (monthlySalary * 4)) {
+                            nhi = Math.floor((salaryAmount - monthlySalary * 4) * TAX_CONSTANTS.NHI_RATE);
+                            notes = `獎金超過月投保薪資4倍部分，需扣繳二代健保補充保費。`;
+                        }
+                    }
+                } else { // Non-resident
+                    const threshold = TAX_CONSTANTS.MINIMUM_WAGE * 1.5;
+                    if (salaryAmount <= threshold) {
+                        tax = Math.round(salaryAmount * NR.SALARY_RATE_BELOW);
+                        notes = `非境內居住者，薪資未超過基本工資1.5倍，扣繳 6%。`;
+                    } else {
+                        tax = Math.round(salaryAmount * NR.SALARY_RATE_ABOVE);
+                        notes = `非境內居住者，薪資超過基本工資1.5倍，扣繳 18%。`;
+                    }
+                }
+                break;
+
+            case 'professional':
+            case 'rent':
+            case 'royalty':
+                const rate = isResident ? R[`${activeTab.toUpperCase()}_RATE`] : NR[`${activeTab.toUpperCase()}_RATE`];
+                const inputAmount = parseFloat(document.getElementById(`${activeTab}-amount`).value) || 0;
+                amount = inputAmount;
+
+                if (isResident && inputAmount > TAX_CONSTANTS.WITHHOLDING_THRESHOLD) {
+                    tax = Math.round(inputAmount * rate);
+                } else if (!isResident) {
+                    tax = Math.round(inputAmount * rate);
+                }
+
+                if (isResident && inputAmount >= TAX_CONSTANTS.MINIMUM_WAGE) {
+                    nhi = Math.floor(inputAmount * TAX_CONSTANTS.NHI_RATE);
+                    notes = `此類所得單次給付超過基本工資，需扣繳二代健保補充保費。`;
+                }
+                
+                break;
+
+            case 'dividend':
+                const dividendAmount = parseFloat(document.getElementById('dividend-amount').value) || 0;
+                amount = dividendAmount;
+                if (!isResident) {
+                     tax = Math.round(dividendAmount * NR.DIVIDEND_RATE);
+                     notes = `非境內居住者股利所得扣繳 21%。`;
+                } else {
+                     notes = `境內居住者股利所得採合併或分開計稅，於年度申報時處理，此處不適用就源扣繳。`;
+                }
+                break;
+            
+            case 'other':
+                const otherType = document.getElementById('other-income-type').value;
+                const otherAmount = parseFloat(document.getElementById('other-amount').value) || 0;
+                amount = otherAmount;
+
+                if (otherType === 'contest') {
+                    const rate = isResident ? R.CONTEST_RATE : NR.CONTEST_RATE;
+                     if (isResident && otherAmount > TAX_CONSTANTS.WITHHOLDING_THRESHOLD) {
+                        tax = Math.round(otherAmount * rate);
+                     } else if (!isResident) {
+                        tax = Math.round(otherAmount * rate);
+                     }
+                } else { // manuscript
+                    if (isResident) {
+                        if (otherAmount > TAX_CONSTANTS.MANUSCRIPT_EXEMPTION) {
+                             tax = Math.round((otherAmount - TAX_CONSTANTS.MANUSCRIPT_EXEMPTION) * R.MANUSCRIPT_RATE);
+                             notes = `稿費等所得全年合計數超過 18 萬元部分需扣繳 10%。`
+                        }
+                    } else { // non-resident
+                        if (otherAmount > NR.MANUSCRIPT_FIXED_RATE_THRESHOLD) {
+                             tax = Math.round(otherAmount * NR.MANUSCRIPT_RATE);
+                             notes = `非境內居住者稿費等所得，單次給付超過5000元，全額扣繳 20%。`;
+                        }
+                    }
+                }
+
+                if (isResident && amount >= TAX_CONSTANTS.MINIMUM_WAGE) {
+                     nhi = Math.floor(amount * TAX_CONSTANTS.NHI_RATE);
+                }
+                break;
+        }
+
+        displayResults(amount, tax, nhi, notes);
+    }
+    
+    function formatCurrency(num) {
+        return `NT$ ${num.toLocaleString()}`;
+    }
+
+    function displayResults(amount, tax, nhi, notes) {
+        const netPay = amount - tax - nhi;
+        document.getElementById('tax-due').textContent = formatCurrency(tax);
+        document.getElementById('nhi-due').textContent = formatCurrency(nhi);
+        document.getElementById('net-pay').textContent = formatCurrency(netPay);
+        document.getElementById('result-notes').textContent = notes || '';
+    }
+
+    nav.addEventListener('click', (e) => {
+        if (e.target.classList.contains('tab')) {
+            switchTab(e.target.dataset.tab);
+        }
+    });
+
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+             updateUI();
+             calculate();
+        });
+        input.addEventListener('change', () => {
+             updateUI();
+             calculate();
+        });
+    });
+
+    switchTab('salary');
+});
+</script>
+</body>
+</html>
