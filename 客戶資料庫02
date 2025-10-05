@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 
@@ -361,6 +362,112 @@
             flex-wrap: wrap;
             gap: 0.5rem;
             margin-bottom: 1rem;
+        }
+
+        /* --- 客戶列表工具列樣式 --- */
+        .customer-list-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-top: 1px solid var(--color-border);
+            margin-top: 1rem;
+        }
+
+        .toolbar-left {
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.6rem 2rem 0.6rem 0.8rem;
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            color: var(--color-text-primary);
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--color-accent-gold);
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+        }
+
+        .search-input::placeholder {
+            color: var(--color-text-secondary);
+        }
+
+        .clear-search-btn {
+            position: absolute;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.2rem;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .clear-search-btn:hover {
+            background: var(--color-border);
+            color: var(--color-text-primary);
+        }
+
+        .export-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.3rem;
+        }
+
+        .export-info {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            font-style: italic;
+        }
+
+        #export-customers-excel-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #export-customers-excel-btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .customer-list-toolbar {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .toolbar-left {
+                max-width: none;
+            }
+
+            .export-container {
+                align-items: center;
+            }
         }
 
         /* --- 營業稅頁面樣式 --- */
@@ -1303,6 +1410,23 @@
                 </thead>
                 <tbody id="customer-list-body"></tbody>
             </table>
+            
+            <!-- 客戶列表工具列 -->
+            <div class="customer-list-toolbar">
+                <div class="toolbar-left">
+                    <div class="search-container">
+                        <input type="text" id="customer-search-input" class="search-input" 
+                               placeholder="關鍵字搜尋（公司/聯絡人/地址/Email/電話/標籤）">
+                        <button id="clear-search-btn" class="clear-search-btn" style="display: none;">×</button>
+                    </div>
+                </div>
+                <div class="toolbar-right">
+                    <div class="export-container">
+                        <button id="export-customers-excel-btn" class="btn btn-primary">匯出 Excel (.xlsx)</button>
+                        <div class="export-info">匯出：目前結果</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="page-form" class="page">
@@ -3652,6 +3776,240 @@
                 showToast(`已匯出 ${exportRows.length} 筆${exportType}`);
             });
 
+            // --- 客戶列表搜尋和匯出功能 ---
+            let filteredCustomers = [...customers]; // 搜尋後的結果
+            let searchTimeout = null;
+
+            // 關鍵字搜尋功能
+            const searchCustomers = (keyword) => {
+                if (!keyword.trim()) {
+                    filteredCustomers = [...customers];
+                    updateExportInfo();
+                    renderCustomerTable();
+                    return;
+                }
+
+                const searchTerm = keyword.toLowerCase();
+                filteredCustomers = customers.filter(customer => {
+                    // 搜尋欄位：公司名稱、聯絡人、地址、Email、電話、標籤
+                    const searchFields = [
+                        customer.companyName || '',
+                        customer.contact || '',
+                        customer.regAddr || '',
+                        customer.contactAddr || '',
+                        customer.email || '',
+                        customer.phone || '',
+                        customer.taxId || '',
+                        customer.taxAddr || '',
+                        // 標籤搜尋（如果有備註標籤）
+                        ...(customer.notes ? customer.notes.flatMap(note => note.tags || []) : [])
+                    ];
+
+                    return searchFields.some(field => 
+                        field.toLowerCase().includes(searchTerm)
+                    );
+                });
+
+                console.log(`搜尋關鍵字: "${keyword}", 找到 ${filteredCustomers.length} 筆結果`);
+                updateExportInfo();
+                renderFilteredCustomerTable();
+            };
+
+            // 渲染篩選後的客戶表格
+            const renderFilteredCustomerTable = () => {
+                const ui = {
+                    customerBody: doc('customer-list-body')
+                };
+
+                if (filteredCustomers.length === 0) {
+                    ui.customerBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">沒有符合搜尋條件的客戶資料</td></tr>';
+                    return;
+                }
+
+                ui.customerBody.innerHTML = filteredCustomers.map(c => {
+                    const days = getDaysRemaining(c.leaseEnd);
+                    const isExpiring = days <= EXPIRE_SOON_DAYS && days > 0;
+                    const isExpired = days <= 0;
+                    const rowClass = isExpired ? 'expired' : isExpiring ? 'expiring-soon' : '';
+                    const leaseEndClass = isExpired ? 'lease-end-cell expired' : isExpiring ? 'lease-end-cell expiring' : 'lease-end-cell';
+                    
+                    return `<tr data-id="${c.id}" class="${rowClass}">
+                        <td>${c.id}<br>${c.companyName}</td>
+                        <td>${c.contact || '-'}<br>${c.phone || '-'}</td>
+                        <td>${c.taxId || '-'}<br>${c.taxAddr ? `稅籍:${c.taxAddr}` : '-'}</td>
+                        <td>${c.regAddr ? `設籍:${c.regAddr}` : ''}${c.regAddr && c.contactAddr ? '<br>' : ''}${c.contactAddr ? `聯絡:${c.contactAddr}` : ''}</td>
+                        <td>${toROCDate(c.leaseStart) || '-'}</td>
+                        <td class="${leaseEndClass}">${toROCDate(c.leaseEnd) || '-'}</td>
+                        <td class="table-row-actions">
+                            <div class="action-buttons-grid">
+                                <button type="button" class="btn-action btn-view-notes">查看備註</button>
+                                <button type="button" class="btn-action btn-edit">編輯</button>
+                                <button type="button" class="btn-action btn-delete">刪除</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            };
+
+            // 更新匯出資訊
+            const updateExportInfo = () => {
+                const exportInfo = document.querySelector('.export-info');
+                const exportBtn = doc('export-customers-excel-btn');
+                
+                if (filteredCustomers.length === 0) {
+                    if (exportInfo) exportInfo.textContent = '目前無可匯出的資料';
+                    if (exportBtn) {
+                        exportBtn.disabled = true;
+                        exportBtn.title = '目前無可匯出的資料';
+                    }
+                } else {
+                    const searchInput = doc('customer-search-input');
+                    const hasSearch = searchInput && searchInput.value.trim();
+                    const infoText = hasSearch ? 
+                        `匯出：搜尋結果 (${filteredCustomers.length} 筆)` : 
+                        `匯出：全部客戶 (${filteredCustomers.length} 筆)`;
+                    
+                    if (exportInfo) exportInfo.textContent = infoText;
+                    if (exportBtn) {
+                        exportBtn.disabled = false;
+                        exportBtn.title = '';
+                    }
+                }
+            };
+
+            // 匯出客戶Excel
+            const exportCustomersToExcel = () => {
+                if (filteredCustomers.length === 0) {
+                    showToast('沒有可匯出的資料', 'error');
+                    return;
+                }
+
+                try {
+                    const excelData = [];
+                    
+                    // 標題行
+                    excelData.push([
+                        'customer_id', 'company_name', 'contact_name', 'email', 'phone',
+                        'registered_address', 'lease_end_date', 'tags'
+                    ]);
+                    
+                    // 資料行
+                    filteredCustomers.forEach(customer => {
+                        const tags = customer.notes ? 
+                            [...new Set(customer.notes.flatMap(note => note.tags || []))]
+                                .map(tag => tag.toLowerCase())
+                                .join('; ') : '';
+                        
+                        const leaseEndDate = customer.leaseEnd ? 
+                            new Date(customer.leaseEnd).toISOString().split('T')[0].replace(/-/g, '/') : '';
+                        
+                        excelData.push([
+                            customer.id || '',
+                            customer.companyName || '',
+                            customer.contact || '',
+                            customer.email || '',
+                            customer.phone || '',
+                            customer.regAddr || '',
+                            leaseEndDate,
+                            tags
+                        ]);
+                    });
+                    
+                    // 創建工作簿
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(excelData);
+                    
+                    // 設定欄位寬度
+                    ws['!cols'] = [
+                        { width: 12 }, // customer_id
+                        { width: 25 }, // company_name
+                        { width: 15 }, // contact_name
+                        { width: 25 }, // email
+                        { width: 15 }, // phone
+                        { width: 35 }, // registered_address
+                        { width: 12 }, // lease_end_date
+                        { width: 30 }  // tags
+                    ];
+                    
+                    // 凍結標題行
+                    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+                    
+                    // 設定標題行樣式
+                    const headerStyle = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "D4AF37" } },
+                        alignment: { horizontal: "center" }
+                    };
+                    
+                    for (let col = 0; col < 8; col++) {
+                        const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
+                        if (!ws[cellRef]) ws[cellRef] = {};
+                        ws[cellRef].s = headerStyle;
+                    }
+                    
+                    XLSX.utils.book_append_sheet(wb, ws, "Customers");
+                    
+                    // 匯出檔案
+                    const now = new Date();
+                    const timestamp = now.toISOString().replace(/[-:]/g, '').slice(0, 13);
+                    const fileName = `customers_${timestamp}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+                    
+                    showToast(`✅ 已匯出 ${filteredCustomers.length} 筆客戶資料`);
+                    
+                } catch (error) {
+                    console.error('Excel匯出失敗:', error);
+                    showToast('匯出失敗，請重試', 'error');
+                }
+            };
+
+            // 搜尋輸入事件
+            doc('customer-search-input')?.addEventListener('input', (e) => {
+                const keyword = e.target.value;
+                const clearBtn = doc('clear-search-btn');
+                
+                // 顯示/隱藏清除按鈕
+                if (clearBtn) {
+                    clearBtn.style.display = keyword ? 'block' : 'none';
+                }
+                
+                // Debounce搜尋
+                if (searchTimeout) clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchCustomers(keyword);
+                }, 300);
+            });
+
+            // 清除搜尋
+            doc('clear-search-btn')?.addEventListener('click', () => {
+                const searchInput = doc('customer-search-input');
+                const clearBtn = doc('clear-search-btn');
+                
+                if (searchInput) searchInput.value = '';
+                if (clearBtn) clearBtn.style.display = 'none';
+                
+                filteredCustomers = [...customers];
+                updateExportInfo();
+                renderCustomerTable();
+            });
+
+            // 匯出Excel按鈕事件
+            doc('export-customers-excel-btn')?.addEventListener('click', exportCustomersToExcel);
+
+            // 重寫原有的renderCustomerTable函數，使其使用filteredCustomers
+            const originalRenderCustomerTable = renderCustomerTable;
+            renderCustomerTable = () => {
+                // 如果沒有搜尋，使用原有邏輯
+                const searchInput = doc('customer-search-input');
+                if (!searchInput || !searchInput.value.trim()) {
+                    filteredCustomers = [...customers];
+                    updateExportInfo();
+                }
+                
+                // 使用篩選後的渲染邏輯
+                renderFilteredCustomerTable();
+            };
+
             // --- INITIAL RENDER --- 
             console.log('=== 系統初始化 ===');
             console.log('載入的客戶資料筆數:', customers.length);
@@ -3664,6 +4022,10 @@
             }
             
             renderAll();
+            
+            // 初始化搜尋和匯出功能
+            filteredCustomers = [...customers];
+            updateExportInfo();
         });
     </script>
 </body>
