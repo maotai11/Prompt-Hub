@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣個人綜合所得稅全方位試算工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <!-- Chosen Palette: Serene Green & Neutral Gray -->
+    <!-- Application Structure Plan: 採用引導式多步驟儀表板結構。使用者依序完成：1. 申報戶基本資料（身份、扶養親屬）。2. 各類所得彙總。3. 扣除額選擇（標準 vs. 列舉）。4. 特別扣除額填報。5. 股利所得稅制比較。6. 最終稅額計算與圖表分析。此線性流程將複雜的綜所稅申報分解為清晰、易於管理的區塊，並在關鍵決策點（如扣除額選擇、股利稅制）提供即時反饋，幫助使用者做出最優選擇。 -->
+    <!-- Visualization & Content Choices: 
+        1. 稅額級距分析 -> 目標: 視覺化所得分佈 -> 呈現方式: Chart.js 長條圖。互動: 圖表會動態顯示綜合所得淨額落在哪個稅率級距，以及各級距的應納稅額。理由: 將抽象的累進稅率概念具象化，讓使用者直觀理解稅負結構。
+        2. 所得結構分析 -> 目標: 了解所得來源 -> 呈現方式: Chart.js 環圈圖。互動: 顯示薪資、股利、租賃等各類所得佔總所得的比例。理由: 幫助使用者快速掌握自己的所得組成。
+        3. 股利稅制比較 -> 目標: 決策支援 -> 呈現方式: 兩欄式卡片佈局，並列顯示「合併計稅」與「分離計稅」的最終應納稅額。互動: 系統會自動計算並以高亮標示出較有利的方案。理由: 這是綜所稅申報中最複雜的決策之一，直觀的並列比較能提供最強大的決策支援。
+        Library/Method: Vanilla JavaScript for all calculation logic. Chart.js for all visualizations. NO SVG/Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .form-section {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.07);
+            margin-bottom: 2rem;
+            padding: 1.5rem 2rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background-color: #f8f9fa;
+        }
+        .form-input:focus, .form-input-group:focus-within .form-input {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+        }
+        .input-group-text {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-right: 0;
+            border-radius: 0.375rem 0 0 0.375rem;
+            color: #495057;
+        }
+        .form-input-group {
+            display: flex;
+            align-items: center;
+        }
+        .form-input-group .form-input {
+            border-radius: 0 0.375rem 0.375rem 0;
+        }
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #212529;
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #343a40;
+            margin-bottom: 1rem;
+        }
+        .info-icon {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            background-color: #6c757d;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            cursor: help;
+            position: relative;
+        }
+        .tooltip {
+            visibility: hidden;
+            width: 220px;
+            background-color: #212529;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.875rem;
+        }
+        .info-icon:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .chart-container {
+            position: relative; 
+            width: 100%; 
+            max-width: 600px; 
+            margin: 1rem auto; 
+            height: 300px; 
+            max-height: 350px;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="antialiased text-gray-800">
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900">個人綜合所得稅全方位試算工具</h1>
+            <p class="text-gray-600 mt-2">適用於 113 年度所得 (114 年申報)</p>
+        </header>
+
+        <!-- Step 1: Filing Status -->
+        <section class="form-section">
+            <h2>步驟一：申報戶基本資料</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="filing-status" class="block text-sm font-medium text-gray-700 mb-1">申報身份</label>
+                    <select id="filing-status" class="form-input">
+                        <option value="single">單身</option>
+                        <option value="married">已婚合併申報</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="dependents-under-70" class="block text-sm font-medium text-gray-700 mb-1">扶養親屬 (未滿 70 歲)</label>
+                    <input type="number" id="dependents-under-70" class="form-input" value="0" min="0">
+                </div>
+                <div>
+                    <label for="dependents-over-70" class="block text-sm font-medium text-gray-700 mb-1">扶養親屬 (年滿 70 歲)</label>
+                    <input type="number" id="dependents-over-70" class="form-input" value="0" min="0">
+                </div>
+                <div class="md:col-span-2 bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">免稅額總計</p>
+                    <p id="total-exemption-amount" class="text-2xl font-bold text-blue-700">NT$ 0</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 2: Income -->
+        <section class="form-section">
+            <h2>步驟二：各類所得金額</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">薪資所得 (5A)</label>
+                    <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="income-salary" class="form-input" value="0"></div>
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">營利所得 (5B) (獨資/合夥)</label>
+                    <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="income-business" class="form-input" value="0"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">股利所得 (5B)</label>
+                    <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="income-dividend" class="form-input" value="0"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">利息所得 (5B)</label>
+                    <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="income-interest" class="form-input" value="0"></div>
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">租賃及權利金所得 (5C)</label>
+                    <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="income-rent" class="form-input" value="0"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">其他所得 (9B)</label>
+                    <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="income-other" class="form-input" value="0"></div>
+                </div>
+                <div class="md:col-span-2 bg-green-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">綜合所得總額</p>
+                    <p id="total-gross-income" class="text-2xl font-bold text-green-700">NT$ 0</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 3: Deductions -->
+        <section class="form-section">
+            <h2>步驟三：一般扣除額 (擇優適用)</h2>
+            <div class="flex justify-center mb-6">
+                <div class="inline-flex rounded-md shadow-sm" role="group">
+                    <button type="button" id="btn-standard-deduction" class="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-l-lg hover:bg-blue-700">標準扣除額</button>
+                    <button type="button" id="btn-itemized-deduction" class="px-6 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-r-lg hover:bg-blue-50">列舉扣除額</button>
+                </div>
+            </div>
+
+            <!-- Itemized Deductions (hidden by default) -->
+            <div id="itemized-deductions-container" class="hidden space-y-4">
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">捐贈 <i class="info-icon">i<span class="tooltip">對教育、文化、公益、慈善機關或團體的捐贈，以綜合所得總額 20% 為限。</span></i></label>
+                        <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="deduction-donation" class="form-input itemized-input" value="0"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">人身保險費 <i class="info-icon">i<span class="tooltip">每人每年上限 NT$24,000 (含勞、健保)。</span></i></label>
+                        <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="deduction-insurance" class="form-input itemized-input" value="0"></div>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">醫藥及生育費 <i class="info-icon">i<span class="tooltip">須為公立醫院、健保特約院所或經財政部認定會計紀錄完備的醫院，核實認列。</span></i></label>
+                        <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="deduction-medical" class="form-input itemized-input" value="0"></div>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">災害損失 <i class="info-icon">i<span class="tooltip">須有稽徵機關證明文件。</span></i></label>
+                        <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="deduction-disaster" class="form-input itemized-input" value="0"></div>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">購屋借款利息 <i class="info-icon">i<span class="tooltip">每戶每年上限 NT$300,000。</span></i></label>
+                        <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="deduction-mortgage" class="form-input itemized-input" value="0"></div>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">房屋租金支出 <i class="info-icon">i<span class="tooltip">每戶每年上限 NT$120,000。與購屋借款利息擇一申報。</span></i></label>
+                        <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="deduction-rent" class="form-input itemized-input" value="0"></div>
+                    </div>
+                </div>
+            </div>
+             <div class="mt-6 bg-gray-100 p-4 rounded-lg">
+                <p class="text-sm text-gray-600">一般扣除額總計 (已擇優)</p>
+                <p id="total-general-deduction" class="text-2xl font-bold text-gray-800">NT$ 0</p>
+            </div>
+        </section>
+
+        <!-- Step 4: Special Deductions -->
+         <section class="form-section">
+            <h2>步驟四：特別扣除額</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">薪資所得特別扣除額</label>
+                    <div class="form-input-group"><span class="input-group-text">NT$</span><input type="number" id="special-salary" class="form-input" value="0" readonly></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">身心障礙特別扣除額 <i class="info-icon">i<span class="tooltip">每人每年 NT$207,000。</span></i></label>
+                    <input type="number" id="special-disability-count" class="form-input" value="0" min="0" placeholder="請輸入人數">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">教育學費特別扣除額 <i class="info-icon">i<span class="tooltip">扶養就讀大專以上子女適用，每人每年 NT$25,000。</span></i></label>
+                    <input type="number" id="special-tuition-count" class="form-input" value="0" min="0" placeholder="請輸入人數">
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">幼兒學前特別扣除額 <i class="info-icon">i<span class="tooltip">扶養 5 歲以下子女適用，每人每年 NT$120,000。</span></i></label>
+                    <input type="number" id="special-preschool-count" class="form-input" value="0" min="0" placeholder="請輸入人數">
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">長期照顧特別扣除額 <i class="info-icon">i<span class="tooltip">符合衛福部公告資格者，每人每年 NT$120,000。</span></i></label>
+                    <input type="number" id="special-longtermcare-count" class="form-input" value="0" min="0" placeholder="請輸入人數">
+                </div>
+                <div class="md:col-span-2 bg-purple-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">特別扣除額總計</p>
+                    <p id="total-special-deduction" class="text-2xl font-bold text-purple-700">NT$ 0</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 5 & 6: Summary and Calculation -->
+        <section class="form-section bg-gray-800 text-white">
+            <h2 class="text-white border-gray-600">最終稅額試算與分析</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Calculation Summary -->
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-gray-400">綜合所得淨額 (應稅所得)</p>
+                        <p id="net-taxable-income" class="text-3xl font-bold">NT$ 0</p>
+                    </div>
+                     <div>
+                        <p class="text-sm text-gray-400">基本生活費差額</p>
+                        <p id="basic-living-expense-diff" class="text-xl font-semibold text-yellow-400">NT$ 0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">適用稅率級距</p>
+                        <p id="tax-bracket-rate" class="text-3xl font-bold">0%</p>
+                    </div>
+                </div>
+                <!-- Dividend Tax Comparison -->
+                <div class="bg-gray-700 p-6 rounded-lg">
+                    <h3 class="text-white text-center">股利所得稅制比較</h3>
+                     <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div id="dividend-option-merge" class="text-center p-3 rounded-md bg-gray-600 border-2 border-transparent">
+                            <p class="font-semibold">方案A: 合併計稅</p>
+                            <p class="text-sm text-gray-300">應納稅額</p>
+                            <p id="tax-due-merge" class="text-2xl font-bold text-green-400">NT$ 0</p>
+                        </div>
+                         <div id="dividend-option-separate" class="text-center p-3 rounded-md bg-gray-600 border-2 border-transparent">
+                            <p class="font-semibold">方案B: 分離計稅</p>
+                             <p class="text-sm text-gray-300">應納稅額</p>
+                            <p id="tax-due-separate" class="text-2xl font-bold text-orange-400">NT$ 0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 pt-6 border-t border-gray-600 text-center">
+                <p class="text-lg text-gray-300">最終應納稅額 (已擇優)</p>
+                <p id="final-tax-due" class="text-5xl font-extrabold text-green-300">NT$ 0</p>
+            </div>
+        </section>
+
+         <!-- Step 7: Visualization -->
+        <section class="form-section">
+            <h2>視覺化分析</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-center">所得結構分析</h3>
+                    <div class="chart-container"><canvas id="income-structure-chart"></canvas></div>
+                </div>
+                <div>
+                    <h3 class="text-center">稅額級距分析</h3>
+                    <div class="chart-container"><canvas id="tax-bracket-chart"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>本試算結果僅供參考，實際應納稅額以國稅局核定為準。</p>
+            <p>免稅額及扣除額等係依據 113 年度綜合所得稅申報規定。</p>
+        </footer>
+    </div>
+
+<script>
+let incomeStructureChart, taxBracketChart;
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Constants for 113 Tax Year (filed in 114) ---
+    const TAX_CONSTANTS = {
+        EXEMPTION_PER_PERSON: 92000,
+        EXEMPTION_OVER_70: 138000,
+        STANDARD_DEDUCTION_SINGLE: 124000,
+        STANDARD_DEDUCTION_MARRIED: 248000,
+        SPECIAL_SALARY_DEDUCTION: 207000,
+        SPECIAL_DISABILITY_DEDUCTION: 207000,
+        SPECIAL_TUITION_DEDUCTION: 25000,
+        SPECIAL_PRESCHOOL_DEDUCTION: 120000,
+        SPECIAL_LONGTERMCARE_DEDUCTION: 120000,
+        BASIC_LIVING_EXPENSE: 202000,
+        INSURANCE_DEDUCTION_CAP: 24000,
+        MORTGAGE_DEDUCTION_CAP: 300000,
+        RENT_DEDUCTION_CAP: 120000,
+        DIVIDEND_CREDIT_RATE: 0.085,
+        DIVIDEND_CREDIT_CAP: 80000,
+        DIVIDEND_FLAT_RATE: 0.28,
+        TAX_BRACKETS: [
+            { limit: 560000, rate: 0.05, progressive_diff: 0 },
+            { limit: 1260000, rate: 0.12, progressive_diff: 39200 },
+            { limit: 2520000, rate: 0.20, progressive_diff: 140000 },
+            { limit: 4720000, rate: 0.30, progressive_diff: 392000 },
+            { limit: Infinity, rate: 0.40, progressive_diff: 864000 },
+        ],
+    };
+
+    // --- DOM Elements ---
+    const allInputs = document.querySelectorAll('input, select');
+    const filingStatusSelect = document.getElementById('filing-status');
+    const dependentsUnder70Input = document.getElementById('dependents-under-70');
+    const dependentsOver70Input = document.getElementById('dependents-over-70');
+    const totalExemptionAmountP = document.getElementById('total-exemption-amount');
+    const totalGrossIncomeP = document.getElementById('total-gross-income');
+    const totalGeneralDeductionP = document.getElementById('total-general-deduction');
+    const totalSpecialDeductionP = document.getElementById('total-special-deduction');
+    const netTaxableIncomeP = document.getElementById('net-taxable-income');
+    const taxBracketRateP = document.getElementById('tax-bracket-rate');
+    const finalTaxDueP = document.getElementById('final-tax-due');
+    
+    // Income inputs
+    const incomeSalaryInput = document.getElementById('income-salary');
+    const incomeBusinessInput = document.getElementById('income-business');
+    const incomeDividendInput = document.getElementById('income-dividend');
+    const incomeInterestInput = document.getElementById('income-interest');
+    const incomeRentInput = document.getElementById('income-rent');
+    const incomeOtherInput = document.getElementById('income-other');
+
+    // Deduction buttons and container
+    const btnStandard = document.getElementById('btn-standard-deduction');
+    const btnItemized = document.getElementById('btn-itemized-deduction');
+    const itemizedContainer = document.getElementById('itemized-deductions-container');
+    const itemizedInputs = document.querySelectorAll('.itemized-input');
+    
+    // Itemized deduction inputs
+    const deductionDonationInput = document.getElementById('deduction-donation');
+    const deductionInsuranceInput = document.getElementById('deduction-insurance');
+    const deductionMedicalInput = document.getElementById('deduction-medical');
+    const deductionDisasterInput = document.getElementById('deduction-disaster');
+    const deductionMortgageInput = document.getElementById('deduction-mortgage');
+    const deductionRentInput = document.getElementById('deduction-rent');
+
+    // Special deduction inputs
+    const specialSalaryInput = document.getElementById('special-salary');
+    const specialDisabilityCountInput = document.getElementById('special-disability-count');
+    const specialTuitionCountInput = document.getElementById('special-tuition-count');
+    const specialPreschoolCountInput = document.getElementById('special-preschool-count');
+    const specialLongtermcareCountInput = document.getElementById('special-longtermcare-count');
+
+    // Dividend comparison
+    const taxDueMergeP = document.getElementById('tax-due-merge');
+    const taxDueSeparateP = document.getElementById('tax-due-separate');
+    const dividendOptionMergeDiv = document.getElementById('dividend-option-merge');
+    const dividendOptionSeparateDiv = document.getElementById('dividend-option-separate');
+
+    // Basic Living Expense
+    const basicLivingExpenseDiffP = document.getElementById('basic-living-expense-diff');
+
+
+    // --- State ---
+    let useStandardDeduction = true;
+
+    // --- Helper Functions ---
+    const getNum = (el) => parseFloat(el.value) || 0;
+    const formatCurrency = (num) => `NT$ ${Math.round(num).toLocaleString()}`;
+    
+    // --- Main Calculation Logic ---
+    const calculateAll = () => {
+        // Step 1: Filer Info & Exemptions
+        const isMarried = filingStatusSelect.value === 'married';
+        const numFilers = isMarried ? 2 : 1;
+        const depUnder70 = getNum(dependentsUnder70Input);
+        const depOver70 = getNum(dependentsOver70Input);
+        const totalPeople = numFilers + depUnder70 + depOver70;
+        
+        const selfOver70Count = Array.from(document.querySelectorAll('.self-over-70-checkbox:checked')).length;
+
+        const totalExemption = (totalPeople * TAX_CONSTANTS.EXEMPTION_PER_PERSON) + (depOver70 * (TAX_CONSTANTS.EXEMPTION_OVER_70 - TAX_CONSTANTS.EXEMPTION_PER_PERSON));
+        totalExemptionAmountP.textContent = formatCurrency(totalExemption);
+
+        // Step 2: Gross Income
+        const salary = getNum(incomeSalaryInput);
+        const business = getNum(incomeBusinessInput);
+        const dividend = getNum(incomeDividendInput);
+        const interest = getNum(incomeInterestInput);
+        const rent = getNum(incomeRentInput);
+        const other = getNum(incomeOtherInput);
+        const grossIncome = salary + business + dividend + interest + rent + other;
+        const grossIncomeWithoutDividend = grossIncome - dividend;
+        totalGrossIncomeP.textContent = formatCurrency(grossIncome);
+
+        // Step 3: General Deductions
+        const standardDeduction = isMarried ? TAX_CONSTANTS.STANDARD_DEDUCTION_MARRIED : TAX_CONSTANTS.STANDARD_DEDUCTION_SINGLE;
+        
+        const donation = getNum(deductionDonationInput);
+        const insurance = getNum(deductionInsuranceInput);
+        const medical = getNum(deductionMedicalInput);
+        const disaster = getNum(deductionDisasterInput);
+        const mortgage = getNum(deductionMortgageInput);
+        const rentDeduction = getNum(deductionRentInput);
+        
+        const itemizedDeduction = Math.min(donation, grossIncome * 0.2) +
+                                  Math.min(insurance, totalPeople * TAX_CONSTANTS.INSURANCE_DEDUCTION_CAP) +
+                                  medical + disaster +
+                                  (mortgage > 0 ? Math.min(mortgage, TAX_CONSTANTS.MORTGAGE_DEDUCTION_CAP) : Math.min(rentDeduction, TAX_CONSTANTS.RENT_DEDUCTION_CAP));
+
+        const generalDeduction = useStandardDeduction ? standardDeduction : Math.max(standardDeduction, itemizedDeduction);
+        totalGeneralDeductionP.textContent = `${formatCurrency(generalDeduction)} (${useStandardDeduction ? '標準' : '列舉(已擇優)'})`;
+        
+        // Step 4: Special Deductions
+        const specialSalary = salary > 0 ? Math.min(salary, TAX_CONSTANTS.SPECIAL_SALARY_DEDUCTION) : 0;
+        specialSalaryInput.value = specialSalary;
+        
+        const specialDisability = getNum(specialDisabilityCountInput) * TAX_CONSTANTS.SPECIAL_DISABILITY_DEDUCTION;
+        const specialTuition = getNum(specialTuitionCountInput) * TAX_CONSTANTS.SPECIAL_TUITION_DEDUCTION;
+        const specialPreschool = getNum(specialPreschoolCountInput) * TAX_CONSTANTS.SPECIAL_PRESCHOOL_DEDUCTION;
+        const specialLongtermcare = getNum(specialLongtermcareCountInput) * TAX_CONSTANTS.SPECIAL_LONGTERMCARE_DEDUCTION;
+        const totalSpecialDeduction = specialSalary + specialDisability + specialTuition + specialPreschool + specialLongtermcare;
+        totalSpecialDeductionP.textContent = formatCurrency(totalSpecialDeduction);
+
+        // Step 5: Basic Living Expense Difference
+        const totalBasicLivingExpense = totalPeople * TAX_CONSTANTS.BASIC_LIVING_EXPENSE;
+        const comparableItemsTotal = totalExemption + generalDeduction + totalSpecialDeduction - specialSalary; // Salary deduction is excluded
+        const basicLivingExpenseDifference = Math.max(0, totalBasicLivingExpense - comparableItemsTotal);
+        basicLivingExpenseDiffP.textContent = formatCurrency(basicLivingExpenseDifference);
+
+        // Step 6: Calculate Net Taxable Income & Tax
+        const calculateTaxByBracket = (income) => {
+            if (income <= 0) return { tax: 0, rate: '0%' };
+            for (const bracket of TAX_CONSTANTS.TAX_BRACKETS) {
+                if (income <= bracket.limit) {
+                    return { tax: Math.round(income * bracket.rate - bracket.progressive_diff), rate: `${bracket.rate * 100}%` };
+                }
+            }
+            return { tax: 0, rate: '0%' }; // Should not be reached
+        };
+        
+        // Option A: Dividend Merged
+        const netIncomeMerge = Math.max(0, grossIncome - totalExemption - generalDeduction - totalSpecialDeduction - basicLivingExpenseDifference);
+        const taxInfoMerge = calculateTaxByBracket(netIncomeMerge);
+        const dividendCredit = Math.min(dividend * TAX_CONSTANTS.DIVIDEND_CREDIT_RATE, TAX_CONSTANTS.DIVIDEND_CREDIT_CAP);
+        const taxDueMerge = Math.max(0, taxInfoMerge.tax - dividendCredit);
+        taxDueMergeP.textContent = formatCurrency(taxDueMerge);
+
+        // Option B: Dividend Separate
+        const netIncomeSeparate = Math.max(0, grossIncomeWithoutDividend - totalExemption - generalDeduction - totalSpecialDeduction - basicLivingExpenseDifference);
+        const taxInfoSeparate = calculateTaxByBracket(netIncomeSeparate);
+        const dividendTaxSeparate = dividend * TAX_CONSTANTS.DIVIDEND_FLAT_RATE;
+        const taxDueSeparate = taxInfoSeparate.tax + dividendTaxSeparate;
+        taxDueSeparateP.textContent = formatCurrency(taxDueSeparate);
+
+        // Final tax decision
+        const finalTax = Math.min(taxDueMerge, taxDueSeparate);
+        finalTaxDueP.textContent = formatCurrency(finalTax);
+        
+        if (taxDueMerge < taxDueSeparate) {
+            dividendOptionMergeDiv.style.borderColor = '#198754';
+            dividendOptionSeparateDiv.style.borderColor = 'transparent';
+        } else {
+            dividendOptionMergeDiv.style.borderColor = 'transparent';
+            dividendOptionSeparateDiv.style.borderColor = '#fd7e14';
+        }
+        
+        const finalNetIncome = (taxDueMerge < taxDueSeparate) ? netIncomeMerge : netIncomeSeparate;
+        const finalTaxInfo = (taxDueMerge < taxDueSeparate) ? taxInfoMerge : taxInfoSeparate;
+        netTaxableIncomeP.textContent = formatCurrency(finalNetIncome);
+        taxBracketRateP.textContent = finalTaxInfo.rate;
+
+        // Update charts
+        updateIncomeChart(salary, business, dividend, interest, rent, other);
+        updateTaxBracketChart(finalNetIncome);
+    };
+
+    // --- Charting ---
+    const initCharts = () => {
+        const incomeCtx = document.getElementById('income-structure-chart').getContext('2d');
+        incomeStructureChart = new Chart(incomeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['薪資', '營利', '股利', '利息', '租賃', '其他'],
+                datasets: [{
+                    data: [0,0,0,0,0,0],
+                    backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#fd7e14', '#6f42c1', '#6c757d']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+        
+        const bracketCtx = document.getElementById('tax-bracket-chart').getContext('2d');
+        taxBracketChart = new Chart(bracketCtx, {
+            type: 'bar',
+            data: {
+                labels: ['5%', '12%', '20%', '30%', '40%'],
+                datasets: [{
+                    label: '所得淨額分佈',
+                    data: [0,0,0,0,0],
+                    backgroundColor: '#198754'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { callback: value => value.toLocaleString() } } }
+            }
+        });
+    };
+    
+    const updateIncomeChart = (...incomes) => {
+        incomeStructureChart.data.datasets[0].data = incomes;
+        incomeStructureChart.update();
+    };
+
+    const updateTaxBracketChart = (netIncome) => {
+        const bracketData = [0,0,0,0,0];
+        let remainingIncome = netIncome;
+        let lastLimit = 0;
+        
+        for (let i = 0; i < TAX_CONSTANTS.TAX_BRACKETS.length; i++) {
+            const bracket = TAX_CONSTANTS.TAX_BRACKETS[i];
+            const bracketRange = bracket.limit - lastLimit;
+            const incomeInBracket = Math.min(remainingIncome, bracketRange);
+            if (incomeInBracket > 0) {
+                bracketData[i] = incomeInBracket;
+                remainingIncome -= incomeInBracket;
+            }
+            lastLimit = bracket.limit;
+            if (remainingIncome <= 0) break;
+        }
+        taxBracketChart.data.datasets[0].data = bracketData;
+        taxBracketChart.update();
+    };
+
+    // --- Event Listeners ---
+    allInputs.forEach(input => input.addEventListener('input', calculateAll));
+    
+    btnStandard.addEventListener('click', () => {
+        useStandardDeduction = true;
+        itemizedContainer.classList.add('hidden');
+        btnStandard.classList.remove('bg-white', 'text-blue-600');
+        btnStandard.classList.add('bg-blue-600', 'text-white');
+        btnItemized.classList.add('bg-white', 'text-blue-600');
+        btnItemized.classList.remove('bg-blue-600', 'text-white');
+        calculateAll();
+    });
+    
+    btnItemized.addEventListener('click', () => {
+        useStandardDeduction = false;
+        itemizedContainer.classList.remove('hidden');
+        btnItemized.classList.remove('bg-white', 'text-blue-600');
+        btnItemized.classList.add('bg-blue-600', 'text-white');
+        btnStandard.classList.add('bg-white', 'text-blue-600');
+        btnStandard.classList.remove('bg-blue-600', 'text-white');
+        calculateAll();
+    });
+
+    // --- Initial Load ---
+    initCharts();
+    calculateAll();
+});
+</script>
+</body>
+</html>
