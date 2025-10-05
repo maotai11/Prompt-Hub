@@ -1,0 +1,3671 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OFFLINE CRM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;700&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <!-- SheetJS 庫用於處理 Excel 檔案 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --color-background: #101010;
+            --color-surface: #1A1A1A;
+            --color-surface-light: #252525;
+            --color-text-primary: #F0F0F0;
+            --color-text-secondary: #A0A0A0;
+            --color-accent-gold: #D4AF37;
+            --color-border: #383838;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Layout & Components --- */
+        .app-header {
+            padding: 1.5rem 2.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .main-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        .main-container {
+            padding: 2rem 2.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--color-text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--color-text-primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--color-accent-gold);
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .module-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--color-surface);
+            padding: 2.5rem;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        .btn-primary {
+            background-color: var(--color-accent-gold);
+            color: #000;
+            border-color: var(--color-accent-gold);
+        }
+
+        .btn-primary:hover {
+            background-color: #FFD700;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);
+        }
+
+        /* --- 備註匯出面板樣式 --- */
+        .notes-export-panel {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+            border-left: 4px solid var(--color-accent-gold);
+        }
+
+        .notes-export-panel h3 {
+            color: var(--color-accent-gold);
+        }
+
+        #export-notes-excel-btn {
+            font-weight: 600;
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        #export-notes-excel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(212, 175, 55, 0.4);
+        }
+
+        #notes-count-display {
+            font-weight: 500;
+            padding: 0.3rem 0.8rem;
+            background-color: rgba(212, 175, 55, 0.1);
+            border-radius: 4px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        /* --- 營業稅對話框和訊息預覽樣式 --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 1.5rem;
+            color: var(--color-accent-gold);
+        }
+
+        .modal-content .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .modal-content label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--color-text-secondary);
+        }
+
+        .modal-content input,
+        .modal-content select {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            color: var(--color-text-primary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .message-preview {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .message-group {
+            margin-bottom: 2rem;
+        }
+
+        .message-group h4 {
+            color: var(--color-accent-gold);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .message-item {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .message-header {
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .message-content {
+            background: var(--color-background);
+            padding: 1rem;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+
+        .copy-message-btn {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+        }
+
+        .btn-small {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+        }
+
+        .vat-row-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* --- 提醒卡片樣式 --- */
+        .reminder-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .reminder-card {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .reminder-card:hover {
+            background: var(--color-border);
+            transform: translateY(-1px);
+        }
+
+        .reminder-company {
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 0.3rem;
+        }
+
+        .reminder-contact,
+        .reminder-method,
+        .reminder-date,
+        .reminder-note {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.2rem;
+        }
+
+        .reminder-note {
+            color: var(--color-accent-gold);
+            font-style: italic;
+        }
+
+        .reminder-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+        }
+
+        .empty-reminder {
+            text-align: center;
+            color: var(--color-text-secondary);
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* --- 營業稅頁面樣式 --- */
+        .vat-controls {
+            margin-bottom: 1.5rem;
+        }
+
+        .vat-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 2rem;
+        }
+
+        .vat-period-controls {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-end;
+        }
+
+        .vat-period-controls .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .vat-period-controls label {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+        }
+
+        .vat-period-controls input,
+        .vat-period-controls select {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .vat-quick-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* 提醒區塊 */
+        .vat-reminders-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .vat-reminder-column .card {
+            height: 100%;
+            min-height: 300px;
+        }
+
+        .reminder-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--color-accent-gold);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 0.5rem;
+        }
+
+        .reminder-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .reminder-card {
+            background: var(--color-surface-light);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid var(--color-accent-gold);
+        }
+
+        .reminder-card-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .reminder-card-info {
+            flex-grow: 1;
+        }
+
+        .reminder-card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .reminder-card-company {
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .reminder-card-details {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.3rem;
+        }
+
+        /* 批次區塊 */
+        .vat-batch-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .batch-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            gap: 2rem;
+        }
+
+        .collect-method-filter {
+            flex-grow: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 0.5rem 0;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .message-preview {
+            background: var(--color-surface-light);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid var(--color-accent-gold);
+            white-space: pre-wrap;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        /* 資料表格 */
+        .vat-data-section {
+            margin-bottom: 2rem;
+        }
+
+        .vat-table-container {
+            overflow-x: auto;
+        }
+
+        .vat-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .vat-data-table th,
+        .vat-data-table td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+            vertical-align: top;
+        }
+
+        .vat-data-table th {
+            background: var(--color-surface);
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            position: sticky;
+            top: 0;
+        }
+
+        .vat-data-table tbody tr:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .vat-row-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .vat-header-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .vat-period-controls {
+                flex-wrap: wrap;
+            }
+
+            .vat-reminders-section {
+                grid-template-columns: 1fr;
+            }
+
+            .batch-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-text-secondary);
+            border-color: var(--color-border);
+        }
+
+        /* --- Customer Form --- */
+        .data-form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem 2rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        .form-group input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            padding: 0.6rem 0.2rem;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .form-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--color-border);
+            padding-top: 1.5rem;
+        }
+
+        /* --- Customer Table --- */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            position: relative;
+            table-layout: fixed;
+        }
+
+        .data-table th:nth-child(1) { width: 18%; } /* 代號/公司名稱 */
+        .data-table th:nth-child(2) { width: 15%; } /* 聯絡人/電話 */
+        .data-table th:nth-child(3) { width: 15%; } /* 統一編號/稅籍編號 */
+        .data-table th:nth-child(4) { width: 20%; } /* 地址 */
+        .data-table th:nth-child(5) { width: 10%; } /* 租約起日 */
+        .data-table th:nth-child(6) { width: 10%; } /* 租約迄日 */
+        .data-table th:nth-child(7) { width: 12%; } /* 操作 */
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+            border-bottom: 1px solid var(--color-border);
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .data-table th {
+            font-size: 0.8rem;
+            font-weight: 400;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            line-height: 1.2;
+            background-color: var(--color-surface);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .data-table tr {
+            transition: all 0.2s ease;
+        }
+
+        .data-table tr:hover {
+            background-color: rgba(212, 175, 55, 0.05);
+        }
+
+        /* 即將到期的行樣式 */
+        .data-table tr.expiring-soon {
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), transparent);
+            border-left: 4px solid var(--color-accent-gold);
+        }
+
+        .data-table tr.expired {
+            background: linear-gradient(90deg, rgba(229, 115, 115, 0.1), transparent);
+            border-left: 4px solid #E57373;
+        }
+
+        .data-table tr.expiring-soon:hover,
+        .data-table tr.expired:hover {
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+        }
+
+        .data-table tr.expired:hover {
+            background: linear-gradient(90deg, rgba(229, 115, 115, 0.15), rgba(229, 115, 115, 0.05));
+        }
+
+        /* 租約到期日欄位的特殊樣式 */
+        .lease-end-cell {
+            position: relative;
+        }
+
+        .lease-end-cell.expiring {
+            color: var(--color-accent-gold);
+            font-weight: 600;
+        }
+
+        .lease-end-cell.expired {
+            color: #E57373;
+            font-weight: 600;
+        }
+
+        .lease-end-cell::after {
+            content: '';
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .lease-end-cell.expiring::after {
+            background-color: var(--color-accent-gold);
+            opacity: 1;
+            animation: pulse 2s infinite;
+        }
+
+        .lease-end-cell.expired::after {
+            background-color: #E57373;
+            opacity: 1;
+            animation: urgentBlink 1s infinite;
+        }
+
+        .table-row-actions {
+            padding: 0.5rem;
+        }
+
+        .action-buttons-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.3rem;
+            max-width: 120px;
+        }
+
+        .table-row-actions .btn-action {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            text-decoration: underline;
+            font-size: 0.85rem;
+            transition: color 0.2s ease;
+            padding: 0.2rem 0;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .table-row-actions .btn-action:hover {
+            color: var(--color-text-primary);
+            background-color: rgba(212, 175, 55, 0.1);
+        }
+
+        /* --- Global Notes Page & Tag Filtering --- */
+        .filter-container {
+            background-color: var(--color-surface);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+        }
+
+        .tag-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            overflow-x: auto;
+            padding-bottom: 1.5rem;
+        }
+
+        .tag-filter-bar .tag-item {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.7;
+            flex-shrink: 0;
+        }
+
+        .tag-filter-bar .tag-item.active {
+            opacity: 1;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .filter-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .filter-logic-switcher .btn {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+        }
+
+        .filter-status-bar {
+            background-color: var(--color-surface-light);
+            padding: 0.8rem 1.5rem;
+            margin-bottom: 2rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notes-list {
+            list-style: none;
+        }
+
+        .note-card {
+            position: relative;
+            background: var(--color-surface);
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid var(--color-border);
+        }
+
+        .note-card .customer-name {
+            font-family: 'EB Garamond', serif;
+            font-weight: 700;
+            color: var(--color-accent-gold);
+        }
+
+        .note-content {
+            margin: 0.5rem 0 1rem 0;
+        }
+
+        .note-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-delete-note {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.5;
+        }
+
+        .btn-delete-note:hover {
+            opacity: 1;
+            color: var(--color-accent-gold);
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .tag-item {
+            color: var(--color-text-primary);
+            padding: 0.3rem 0.8rem;
+            border-radius: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .notes-textarea {
+            background: transparent;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            color: var(--color-text-primary);
+            padding: 0.8rem;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .tag-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            padding: 0.6rem 0.2rem;
+            font-size: 1rem;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+        .tag-input-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .tag-delete-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            padding: 0 0 0 0.5rem;
+        }
+
+        /* --- Lease Reminder Specific Styles --- */
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .no-margin-bottom {
+            margin-bottom: 0 !important;
+        }
+
+        #expiring-customers-section {
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        /* 優先級指示器 - 增強視覺警示 */
+        .priority-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: linear-gradient(135deg, #E53E3E, #C53030);
+            color: white;
+            padding: 0.5rem 1.2rem;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4), 0 0 20px rgba(229, 62, 62, 0.2);
+            animation: criticalPulse 1.5s infinite;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes criticalPulse {
+            0% { 
+                opacity: 1; 
+                transform: scale(1); 
+                box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4), 0 0 20px rgba(229, 62, 62, 0.2);
+            }
+            50% { 
+                opacity: 0.9; 
+                transform: scale(1.08); 
+                box-shadow: 0 6px 25px rgba(229, 62, 62, 0.6), 0 0 30px rgba(229, 62, 62, 0.4);
+            }
+            100% { 
+                opacity: 1; 
+                transform: scale(1); 
+                box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4), 0 0 20px rgba(229, 62, 62, 0.2);
+            }
+        }
+
+        /* 增強狀態標籤的視覺衝擊力 */
+        .status-badge.critical {
+            background: linear-gradient(135deg, #E53E3E, #C53030);
+            color: white;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(229, 62, 62, 0.4);
+            animation: criticalBadge 2s infinite;
+        }
+
+        @keyframes criticalBadge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .status-badge.warning {
+            background: linear-gradient(135deg, #D69E2E, #B7791F);
+            color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 8px rgba(214, 158, 46, 0.3);
+        }
+
+        #expiring-customers-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        #expiring-customers-list li {
+            background-color: var(--color-surface-light);
+            padding: 1.2rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #expiring-customers-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            transition: width 0.3s ease;
+        }
+
+        #expiring-customers-list li:hover {
+            background-color: var(--color-border);
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        #expiring-customers-list li:hover::before {
+            width: 12px;
+        }
+
+        #expiring-customers-list li.expired {
+            background: linear-gradient(135deg, rgba(229, 115, 115, 0.1), rgba(229, 115, 115, 0.05));
+            border: 1px solid rgba(229, 115, 115, 0.3);
+        }
+
+        #expiring-customers-list li.expired::before {
+            background: linear-gradient(180deg, #E57373, #EF5350);
+        }
+
+        #expiring-customers-list li.expiring-soon {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        #expiring-customers-list li.expiring-soon::before {
+            background: linear-gradient(180deg, var(--color-accent-gold), #FFD700);
+        }
+
+        #expiring-customers-list .customer-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        #expiring-customers-list .customer-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--color-text-primary);
+        }
+
+        #expiring-customers-list .customer-contact {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        #expiring-customers-list .customer-address {
+            color: var(--color-text-secondary);
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        #expiring-customers-list .days-left {
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            text-align: center;
+            min-width: 120px;
+            position: relative;
+        }
+
+        #expiring-customers-list .days-left:not(.expired-text) {
+            background: linear-gradient(135deg, var(--color-accent-gold), #FFD700);
+            color: #000;
+            box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+        }
+
+        #expiring-customers-list .days-left.expired-text {
+            background: linear-gradient(135deg, #E57373, #EF5350);
+            color: white;
+            box-shadow: 0 2px 8px rgba(229, 115, 115, 0.4);
+            animation: urgentBlink 1.5s infinite alternate;
+        }
+
+        @keyframes urgentBlink {
+            0% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        /* 狀態標籤 */
+        .status-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.critical {
+            background: #E57373;
+            color: white;
+        }
+
+        .status-badge.warning {
+            background: var(--color-accent-gold);
+            color: #000;
+        }
+
+        #reminder-card {
+            background-color: var(--color-surface-light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--color-accent-gold);
+            display: none;
+        }
+
+        #reminder-card.active {
+            display: block;
+        }
+
+        #reminder-card pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--color-text-primary);
+            margin-bottom: 1rem;
+        }
+
+        #reminder-card .copy-btn-wrapper {
+            text-align: right;
+        }
+
+        .expiring-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-copy-reminder {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+        }
+    </style>
+    <style>
+        /* --- Toast Notifications --- */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .toast {
+            background-color: rgba(50, 50, 50, 0.9);
+            color: var(--color-text-primary);
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            transform: translateY(20px);
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <header class="app-header">
+        <h1 class="main-title">客戶資料庫</h1>
+    </header>
+    <main class="main-container">
+        <nav class="tab-nav">
+            <button id="tab-list" type="button" class="tab-btn active">客戶列表</button>
+            <button id="tab-form" type="button" class="tab-btn">客戶資料</button>
+            <button id="tab-notes" type="button" class="tab-btn">所有備註</button>
+            <button id="tab-vat" type="button" class="tab-btn">營業稅</button>
+        </nav>
+
+        <div id="page-list" class="page active">
+            <!-- Excel 功能說明 -->
+            <div class="excel-info card" style="margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 1.5rem;">📊</div>
+                    <div>
+                        <strong>Excel 批量編輯功能</strong>
+                        <div style="font-size: 0.9rem; color: var(--color-text-secondary); margin-top: 0.3rem;">
+                            點擊「匯出範本 (.xlsx)」下載Excel檔案 → 在Excel中編輯客戶資料 → 點擊「匯入 Excel」上傳修改後的檔案
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 統計資訊面板 -->
+            <div class="stats-panel card" style="margin-bottom: 1rem; padding: 1.5rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <div class="stat-item" style="text-align: center;">
+                        <div class="stat-number" id="total-customers" style="font-size: 2rem; font-weight: 700; color: var(--color-accent-gold);">0</div>
+                        <div class="stat-label" style="color: var(--color-text-secondary); font-size: 0.9rem;">總客戶數</div>
+                    </div>
+                    <div class="stat-item" style="text-align: center;">
+                        <div class="stat-number" id="expired-count" style="font-size: 2rem; font-weight: 700; color: #E57373;">0</div>
+                        <div class="stat-label" style="color: var(--color-text-secondary); font-size: 0.9rem;">已到期</div>
+                    </div>
+                    <div class="stat-item" style="text-align: center;">
+                        <div class="stat-number" id="expiring-count" style="font-size: 2rem; font-weight: 700; color: var(--color-accent-gold);">0</div>
+                        <div class="stat-label" style="color: var(--color-text-secondary); font-size: 0.9rem;">即將到期</div>
+                    </div>
+                    <div class="stat-item" style="text-align: center;">
+                        <div class="stat-number" id="active-count" style="font-size: 2rem; font-weight: 700; color: #38A169;">0</div>
+                        <div class="stat-label" style="color: var(--color-text-secondary); font-size: 0.9rem;">正常租約</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="expiring-customers-section" class="card">
+                <div class="priority-indicator" id="priority-indicator" style="display: none;">
+                    高優先級提醒
+                </div>
+                <div class="section-header-row">
+                    <h2 class="module-title no-margin-bottom">即將到期客戶</h2>
+                    <div class="header-controls" style="display: flex; gap: 1rem; align-items: center;">
+                        <select id="expiring-sort-select" class="form-control" style="background: var(--color-surface-light); color: var(--color-text-primary); border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 4px;">
+                            <option value="days-asc">依到期日排序 (近到遠)</option>
+                            <option value="days-desc">依到期日排序 (遠到近)</option>
+                            <option value="company-asc">依公司名稱排序 (A-Z)</option>
+                            <option value="company-desc">依公司名稱排序 (Z-A)</option>
+                        </select>
+                        <select id="expiring-filter-select" class="form-control" style="background: var(--color-surface-light); color: var(--color-text-primary); border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 4px;">
+                            <option value="all">顯示全部</option>
+                            <option value="expired">僅顯示已到期</option>
+                            <option value="critical">僅顯示30天內到期</option>
+                            <option value="warning">僅顯示90天內到期</option>
+                        </select>
+                        <button id="export-expiring-csv-btn" class="btn btn-secondary">匯出 CSV</button>
+                        <button id="export-excel-template-btn" class="btn btn-primary">匯出範本 (.xlsx)</button>
+                        <button id="import-excel-btn" class="btn btn-primary">匯入 Excel</button>
+                        <button id="export-all-data-btn" class="btn btn-secondary">匯出所有資料</button>
+                        <button id="import-data-btn" class="btn btn-secondary">匯入資料</button>
+                        <button id="clear-data-btn" class="btn btn-secondary" style="background-color: #E53E3E; color: white;">清除所有資料</button>
+                    </div>
+                </div>
+                <ul id="expiring-customers-list"></ul>
+            </div>
+
+            <div id="reminder-card" class="card">
+                <pre id="reminder-text-display"></pre>
+                <div class="copy-btn-wrapper">
+                    <button id="copy-reminder-btn" class="btn btn-primary">複製提醒語</button>
+                </div>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>代號<br>公司名稱</th>
+                        <th>聯絡人<br>電話</th>
+                        <th>統一編號<br>稅籍編號</th>
+                        <th>地址</th>
+                        <th>租約起日</th>
+                        <th>租約迄日</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="customer-list-body"></tbody>
+            </table>
+        </div>
+
+        <div id="page-form" class="page">
+            <div id="form-container"></div>
+        </div>
+
+        <div id="page-notes" class="page">
+            <div class="filter-container">
+                <div class="tag-filter-bar" id="tag-filter-bar"></div>
+                <div class="filter-controls">
+                    <div>
+                        <label>篩選邏輯: </label>
+                        <div class="btn-group" id="filter-logic-switcher">
+                            <button class="btn btn-secondary active" data-logic="OR">OR (聯集)</button>
+                            <button class="btn btn-secondary" data-logic="AND">AND (交集)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 備註匯出功能區塊 -->
+            <div class="notes-export-panel card" id="notesExportPanel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-family: 'EB Garamond', serif; font-size: 1.5rem;">備註匯出</h3>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <span id="notes-count-display" style="color: var(--color-text-secondary); font-size: 0.9rem;">載入中...</span>
+                        <button id="export-notes-excel-btn" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span>📊</span>
+                            <span>匯出 Excel (.xlsx)</span>
+                        </button>
+                    </div>
+                </div>
+                <div style="color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.5;">
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong>匯出模式：</strong>
+                    </div>
+                    <div style="margin-left: 1rem;">
+                        • <strong>有標籤篩選時</strong>：僅匯出符合篩選條件的備註<br>
+                        • <strong>無標籤篩選時</strong>：匯出所有客戶的備註資料
+                    </div>
+                </div>
+            </div>
+            <div class="filter-status-bar" id="filter-status-bar" style="display: none;">
+                <span></span><button class="btn btn-secondary" id="clear-filter-btn">清空篩選</button>
+            </div>
+            <ul class="notes-list" id="notes-list"></ul>
+        </div>
+
+        <!-- 營業稅頁面 -->
+        <div id="page-vat" class="page">
+            <!-- 頂部控制列 -->
+            <div class="vat-controls card">
+                <div class="vat-header-row">
+                    <div class="vat-period-controls">
+                        <div class="form-group">
+                            <label for="vat-year">年度</label>
+                            <input type="number" id="vat-year" min="100" max="200" value="113" style="width: 80px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="vat-period">期數</label>
+                            <select id="vat-period">
+                                <option value="1">第1期 (01-02月)</option>
+                                <option value="2">第2期 (03-04月)</option>
+                                <option value="3">第3期 (05-06月)</option>
+                                <option value="4">第4期 (07-08月)</option>
+                                <option value="5">第5期 (09-10月)</option>
+                                <option value="6">第6期 (11-12月)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="vat-deadline">最晚收取發票日</label>
+                            <input type="date" id="vat-deadline">
+                        </div>
+                    </div>
+                    <div class="vat-quick-actions">
+                        <button id="load-other-period-btn" class="btn btn-secondary">載入他期作為草稿</button>
+                        <button id="vat-history-btn" class="btn btn-secondary">編輯紀錄</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提醒區塊（兩欄） -->
+            <div class="vat-reminders-section">
+                <div class="vat-reminder-column">
+                    <div class="card">
+                        <h3 class="reminder-title">今日預計收取 <span id="today-date"></span></h3>
+                        <div id="today-reminders" class="reminder-list"></div>
+                    </div>
+                </div>
+                <div class="vat-reminder-column">
+                    <div class="card">
+                        <h3 class="reminder-title">明日預計收取 <span id="tomorrow-date-range"></span></h3>
+                        <div id="tomorrow-reminders" class="reminder-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提醒客人區塊 -->
+            <div class="vat-batch-section card">
+                <h3>提醒客人（批次話術 & 匯出）</h3>
+                <div class="batch-controls">
+                    <div class="collect-method-filter">
+                        <label>收取發票方式：</label>
+                        <div id="collect-method-checkboxes" class="checkbox-group"></div>
+                        <button id="add-collect-method-btn" class="btn btn-secondary btn-small">+ 新增方式</button>
+                    </div>
+                    <div class="batch-actions">
+                        <button id="generate-batch-message-btn" class="btn btn-primary">一鍵產生話術</button>
+                        <button id="export-batch-excel-btn" class="btn btn-primary">匯出 Excel</button>
+                    </div>
+                </div>
+                <div id="batch-message-preview" class="message-preview" style="display: none;"></div>
+            </div>
+
+            <!-- 本期資料表格 -->
+            <div class="vat-data-section card">
+                <div class="section-header-row">
+                    <h3>本期資料</h3>
+                    <div class="data-actions">
+                        <button id="add-vat-row-btn" class="btn btn-primary">+ 新增客戶</button>
+                        <button id="export-period-data-btn" class="btn btn-secondary">匯出本期資料</button>
+                    </div>
+                </div>
+                <div class="vat-table-container">
+                    <table class="vat-data-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all-vat"></th>
+                                <th>客戶</th>
+                                <th>收取方式</th>
+                                <th>預計收取日</th>
+                                <th>備註-發票</th>
+                                <th>備註-提醒</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vat-data-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast-container"></div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- CONFIG --- //
+            const EXPIRE_SOON_DAYS = 90; // 可調整的到期提醒閾值
+
+            // --- DATA STORAGE FUNCTIONS --- //
+            const STORAGE_KEY = 'offline-crm-customers';
+            
+            // 儲存資料到 localStorage
+            const saveCustomersToStorage = () => {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(customers));
+                    console.log('客戶資料已儲存到本地儲存');
+                } catch (error) {
+                    console.error('儲存客戶資料失敗:', error);
+                    showToast('儲存資料失敗，請檢查瀏覽器設定', 'error');
+                }
+            };
+            
+            // 從 localStorage 載入資料
+            const loadCustomersFromStorage = () => {
+                try {
+                    const storedData = localStorage.getItem(STORAGE_KEY);
+                    if (storedData) {
+                        const parsedData = JSON.parse(storedData);
+                        console.log('從本地儲存載入客戶資料:', parsedData.length, '筆');
+                        return parsedData;
+                    }
+                } catch (error) {
+                    console.error('載入客戶資料失敗:', error);
+                    showToast('載入資料失敗，將使用預設資料', 'error');
+                }
+                return null;
+            };
+            
+            // 預設資料
+            const defaultCustomers = [
+                { id: "C0001", companyName: "範例股份有限公司", taxId: "12345678", taxAddr: "台北市信義區", contact: "林小姐", phone: "02-1234-5678", regAddr: "台北市信義區示例路 100 號", contactAddr: "台北市信義區示例路 200 號", leaseStart: "2024-01-01", leaseEnd: "2025-01-15", notes: [{ id: `N001`, content: "9/30 已報價，客戶考慮中。", tags: ["報價", "待回覆"], createdAt: "2023-09-30" }] },
+                { id: "C0002", companyName: "星塵設計", taxId: "98765432", taxAddr: "台北市大安區", contact: "大衛·鮑伊", phone: "0987-654-321", regAddr: "台北市大安區忠孝東路四段 100 號", contactAddr: "台北市大安區忠孝東路四段 100 號", leaseStart: "2024-03-01", leaseEnd: "2024-06-01", notes: [{ id: `N002`, content: "專案初步討論，對我們的風格很感興趣。", tags: ["潛在客戶", "待回覆"], createdAt: "2023-10-02" }] },
+                { id: "C0003", companyName: "未來科技", taxId: "87654321", taxAddr: "新北市板橋區", contact: "李經理", phone: "02-5555-1234", regAddr: "新北市板橋區文化路一段 1 號", contactAddr: "新北市板橋區文化路一段 1 號", leaseStart: "2023-01-01", leaseEnd: "2024-03-01", notes: [] }
+            ];
+            
+            // --- DATA --- //
+            // 初始化客戶資料：優先從本地儲存載入，否則使用預設資料
+            let customers = loadCustomersFromStorage() || defaultCustomers;
+            let currentlyEditingId = null;
+            let currentlyEditingNoteId = null;
+            let newNoteTags = [];
+            let filterState = { selectedTags: [], logic: 'OR' };
+            
+            // UI狀態物件
+            let uiState = {
+                activeTab: 'page-list',
+                expiringSort: 'days-asc',
+                expiringFilter: 'all',
+                reminderCardOpenForId: null,
+                scrollPosition: 0
+            };
+
+            // --- UI ELEMENTS --- //
+            const doc = (id) => document.getElementById(id);
+            const ui = {
+                list: doc('page-list'), form: doc('page-form'), notes: doc('page-notes'),
+                tabList: doc('tab-list'), tabForm: doc('tab-form'), tabNotes: doc('tab-notes'),
+                customerBody: doc('customer-list-body'), formContainer: doc('form-container'),
+                notesList: doc('notes-list'), tagFilterBar: doc('tag-filter-bar'),
+                filterLogicSwitcher: doc('filter-logic-switcher'), filterStatusBar: doc('filter-status-bar'), clearFilterBtn: doc('clear-filter-btn'),
+                expiringCustomersList: doc('expiring-customers-list'), exportExpiringCsvBtn: doc('export-expiring-csv-btn'),
+                reminderCard: doc('reminder-card'), reminderTextDisplay: doc('reminder-text-display'), copyReminderBtn: doc('copy-reminder-btn')
+            };
+
+            // --- UTILITIES --- //
+            const showToast = (message, type = 'success') => {
+                const toastContainer = doc('toast-container');
+                const toast = document.createElement('div');
+                toast.classList.add('toast');
+                if (type === 'error') {
+                    toast.style.backgroundColor = 'rgba(180, 50, 50, 0.9)';
+                }
+                toast.textContent = message;
+                toastContainer.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10); // Small delay to trigger transition
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, 3000);
+            };
+            const TAG_COLORS = ['#4A69BD', '#58B19F', '#F8C291', '#EAB543', '#9A6324', '#82589F', '#E06C9F'];
+            const getTagColor = (tag) => { let hash = 0; for (let i = 0; i < tag.length; i++) { hash = tag.charCodeAt(i) + ((hash << 5) - hash); } return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length]; };
+            const normalizeTag = (tag) => tag.trim().toLowerCase();
+            const toROCDate = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return '無效日期'; // 新增錯誤處理
+                return `${date.getFullYear() - 1911}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+            };
+            const getDaysRemaining = (endDateStr) => {
+                if (!endDateStr) return Infinity;
+                const endDate = new Date(endDateStr);
+                if (isNaN(endDate.getTime())) return -99999; // 或定義一個錯誤狀態值
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const diffTime = endDate.getTime() - today.getTime();
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            };
+
+            // --- RENDER FUNCTIONS --- //
+            const renderAll = () => { 
+                console.log('=== renderAll 開始，保存UI狀態 ===');
+                
+                // 保存當前UI狀態
+                const sortSelect = doc('expiring-sort-select');
+                const filterSelect = doc('expiring-filter-select');
+                if (sortSelect) uiState.expiringSort = sortSelect.value;
+                if (filterSelect) uiState.expiringFilter = filterSelect.value;
+                
+                // 執行渲染
+                renderCustomerTable(); 
+                renderExpiringCustomersList(); 
+                renderNotesPage(); 
+                renderTagFilterBar(); 
+                renderFilterStatusBar(); 
+                updateStatsPanel();
+                
+                // 恢復UI狀態
+                setTimeout(() => {
+                    const newSortSelect = doc('expiring-sort-select');
+                    const newFilterSelect = doc('expiring-filter-select');
+                    if (newSortSelect && uiState.expiringSort) {
+                        newSortSelect.value = uiState.expiringSort;
+                    }
+                    if (newFilterSelect && uiState.expiringFilter) {
+                        newFilterSelect.value = uiState.expiringFilter;
+                    }
+                    console.log('=== UI狀態已恢復 ===');
+                }, 10);
+            };
+
+            const updateStatsPanel = () => {
+                const totalCustomers = customers.length;
+                const expiredCount = customers.filter(c => c.leaseEnd && getDaysRemaining(c.leaseEnd) <= 0).length;
+                const expiringCount = customers.filter(c => c.leaseEnd && getDaysRemaining(c.leaseEnd) > 0 && getDaysRemaining(c.leaseEnd) <= EXPIRE_SOON_DAYS).length;
+                const activeCount = customers.filter(c => !c.leaseEnd || getDaysRemaining(c.leaseEnd) > EXPIRE_SOON_DAYS).length;
+
+                const totalEl = doc('total-customers');
+                const expiredEl = doc('expired-count');
+                const expiringEl = doc('expiring-count');
+                const activeEl = doc('active-count');
+
+                if (totalEl) totalEl.textContent = totalCustomers;
+                if (expiredEl) expiredEl.textContent = expiredCount;
+                if (expiringEl) expiringEl.textContent = expiringCount;
+                if (activeEl) activeEl.textContent = activeCount;
+            };
+
+            const renderCustomerTable = () => {
+                console.log('=== renderCustomerTable 開始 ===');
+                console.log('客戶陣列長度:', customers.length);
+                if (customers.length > 0) {
+                    console.log('第一筆客戶資料:', customers[0]);
+                    const futureCustomer = customers.find(c => c.companyName === '未來科技');
+                    if (futureCustomer) {
+                        console.log('未來科技客戶資料:', futureCustomer);
+                    }
+                }
+                
+                if (customers.length === 0) {
+                    ui.customerBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">目前沒有客戶資料。</td></tr>';
+                    return;
+                }
+                ui.customerBody.innerHTML = customers.map(c => {
+                    const days = getDaysRemaining(c.leaseEnd);
+                    const isExpiring = days <= EXPIRE_SOON_DAYS && days > 0;
+                    const isExpired = days <= 0;
+                    const rowClass = isExpired ? 'expired' : isExpiring ? 'expiring-soon' : '';
+                    const leaseEndClass = isExpired ? 'lease-end-cell expired' : isExpiring ? 'lease-end-cell expiring' : 'lease-end-cell';
+                    
+                    return `<tr data-id="${c.id}" class="${rowClass}">
+                        <td>${c.id}<br>${c.companyName}</td>
+                        <td>${c.contact || '-'}<br>${c.phone || '-'}</td>
+                        <td>${c.taxId || '-'}<br>${c.taxAddr ? `稅籍:${c.taxAddr}` : '-'}</td>
+                        <td>${c.regAddr ? `設籍:${c.regAddr}` : ''}${c.regAddr && c.contactAddr ? '<br>' : ''}${c.contactAddr ? `聯絡:${c.contactAddr}` : ''}</td>
+                        <td>${toROCDate(c.leaseStart) || '-'}</td>
+                        <td class="${leaseEndClass}">${toROCDate(c.leaseEnd) || '-'}</td>
+                        <td class="table-row-actions">
+                            <div class="action-buttons-grid">
+                                <button type="button" class="btn-action btn-view-notes">查看備註</button>
+                                <button type="button" class="btn-action btn-edit">編輯</button>
+                                <button type="button" class="btn-action btn-delete">刪除</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            };
+
+            const renderExpiringCustomersList = () => {
+                console.log('=== renderExpiringCustomersList 開始 ===');
+                const futureCustomer = customers.find(c => c.companyName === '未來科技');
+                if (futureCustomer) {
+                    console.log('渲染到期清單時的未來科技資料:', futureCustomer);
+                }
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                // 獲取篩選和排序設定
+                const sortSelect = doc('expiring-sort-select');
+                const filterSelect = doc('expiring-filter-select');
+                const sortValue = sortSelect ? sortSelect.value : 'days-asc';
+                const filterValue = filterSelect ? filterSelect.value : 'all';
+
+                // 篩選邏輯
+                let expiringCustomers = customers.filter(c => {
+                    if (!c.leaseEnd) return false;
+                    const days = getDaysRemaining(c.leaseEnd);
+                    
+                    switch (filterValue) {
+                        case 'expired': return days <= 0;
+                        case 'critical': return days <= 30 && days > 0;
+                        case 'warning': return days <= 90 && days > 30;
+                        case 'all': 
+                        default: return days <= EXPIRE_SOON_DAYS;
+                    }
+                });
+
+                // 排序邏輯
+                expiringCustomers.sort((a, b) => {
+                    switch (sortValue) {
+                        case 'days-desc':
+                            return getDaysRemaining(b.leaseEnd) - getDaysRemaining(a.leaseEnd);
+                        case 'company-asc':
+                            return (a.companyName || '').localeCompare(b.companyName || '');
+                        case 'company-desc':
+                            return (b.companyName || '').localeCompare(a.companyName || '');
+                        case 'days-asc':
+                        default:
+                            return getDaysRemaining(a.leaseEnd) - getDaysRemaining(b.leaseEnd);
+                    }
+                });
+
+                ui.expiringCustomersList.innerHTML = '';
+                const priorityIndicator = doc('priority-indicator');
+                
+                if (expiringCustomers.length === 0) {
+                    ui.expiringCustomersList.innerHTML = '<li>目前沒有即將到期或已到期的客戶。</li>';
+                    ui.reminderCard.classList.remove('active');
+                    priorityIndicator.style.display = 'none';
+                    return;
+                }
+
+                // 檢查是否有緊急情況（已到期或30天內到期）
+                const criticalCount = expiringCustomers.filter(c => getDaysRemaining(c.leaseEnd) <= 30).length;
+                const expiredCount = expiringCustomers.filter(c => getDaysRemaining(c.leaseEnd) <= 0).length;
+                
+                if (criticalCount > 0) {
+                    priorityIndicator.style.display = 'block';
+                    priorityIndicator.textContent = expiredCount > 0 
+                        ? `緊急：${expiredCount} 個已到期，${criticalCount - expiredCount} 個即將到期`
+                        : `注意：${criticalCount} 個客戶即將到期`;
+                } else {
+                    priorityIndicator.style.display = 'none';
+                }
+
+                // 一次性innerHTML指派：先用map產生字串陣列，再join一次性指定
+                const listItemsHtml = expiringCustomers.map(c => {
+                    const days = getDaysRemaining(c.leaseEnd);
+                    const statusClass = days <= 0 ? 'expired' : 'expiring-soon';
+                    const statusText = days <= 0 ? `已到期 ${Math.abs(days)} 天` : `剩餘 ${days} 天`;
+                    const urgencyLevel = days <= 0 ? 'critical' : days <= 30 ? 'critical' : 'warning';
+                    const statusBadge = days <= 0 ? '緊急' : days <= 30 ? '急迫' : '注意';
+                    
+                    return `
+                    <li data-id="${c.id}" class="${statusClass}">
+                        <div class="status-badge ${urgencyLevel}">${statusBadge}</div>
+                        <div class="customer-info">
+                            <div class="customer-name">${c.companyName || '資料待補'}</div>
+                            <div class="customer-contact">${c.contact || '資料待補'} ${c.phone ? '• ' + c.phone : ''}</div>
+                            <div class="customer-address">${c.regAddr || '資料待補'}</div>
+                        </div>
+                        <div class="expiring-actions">
+                            <div class="days-left ${statusClass === 'expired' ? 'expired-text' : ''}">
+                                <div style="font-size: 0.8rem; opacity: 0.8;">${toROCDate(c.leaseEnd)}</div>
+                                <div>${statusText}</div>
+                            </div>
+                            <div class="action-buttons" style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                                <button type="button" class="btn btn-primary btn-quick-edit" data-id="${c.id}" title="快速編輯客戶資料">
+                                    ✏️ 編輯
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-copy-reminder" data-id="${c.id}" title="複製提醒訊息">
+                                    📋 複製提醒
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-mark-renewed" data-id="${c.id}" title="標記為已續約" style="background-color: #38A169; color: white;">
+                                    ✓ 已續約
+                                </button>
+                            </div>
+                        </div>
+                    </li>`;
+                });
+                
+                // 一次性指派完整HTML
+                ui.expiringCustomersList.innerHTML = listItemsHtml.join('');
+            };
+
+            const renderFormPage = (customer = null) => {
+                currentlyEditingId = customer ? customer.id : null;
+                currentlyEditingNoteId = null;
+                newNoteTags = [];
+                
+                console.log('=== renderFormPage 調用 ===');
+                console.log('傳入的客戶資料:', customer);
+                console.log('設置的 currentlyEditingId:', currentlyEditingId);
+
+                const formHtml = `
+                <div class="card">
+                    <h2 class="module-title">${customer ? '編輯客戶資料' : '新增客戶資料'}</h2>
+                    <form id="data-form">
+                        <div class="data-form-grid">
+                            <div class="form-group">
+                                <label for="id">客戶代號</label>
+                                <input type="text" id="id" value="${customer?.id || ''}" ${customer ? 'readonly' : ''}>
+                            </div>
+                            <div class="form-group">
+                                <label for="companyName">公司名稱</label>
+                                <input type="text" id="companyName" value="${customer?.companyName || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="taxId">統一編號</label>
+                                <input type="text" id="taxId" value="${customer?.taxId || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="contact">聯絡人</label>
+                                <input type="text" id="contact" value="${customer?.contact || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">電話</label>
+                                <input type="text" id="phone" value="${customer?.phone || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="leaseStart">租約起日</label>
+                                <input type="date" id="leaseStart" value="${customer?.leaseStart || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="taxAddr">稅籍編號</label>
+                                <input type="text" id="taxAddr" value="${customer?.taxAddr || ''}">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="regAddr">設籍地址</label>
+                                <input type="text" id="regAddr" value="${customer?.regAddr || ''}">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="contactAddr">聯絡地址</label>
+                                <input type="text" id="contactAddr" value="${customer?.contactAddr || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="leaseEnd">租約迄日</label>
+                                <input type="date" id="leaseEnd" value="${customer?.leaseEnd || ''}">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">${customer ? '更新客戶' : '新增客戶'}</button>
+                                <button type="button" class="btn btn-secondary" id="cancel-form-btn">取消</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>`;
+
+                if (customer && customer.notes) {
+                    const notesHtml = `
+                    <div class="card">
+                        <h3 class="module-title">客戶備註</h3>
+                        <div class="tag-input-wrapper">
+                            <div id="new-note-tags"></div>
+                            <input type="text" id="new-note-tag-input" class="tag-input" placeholder="輸入標籤後按 Enter">
+                        </div>
+                        <textarea id="new-note-content" class="notes-textarea" placeholder="輸入備註內容..."></textarea>
+                        <button type="button" id="add-note-btn" class="btn btn-primary">儲存新備註</button>
+                        
+                        <ul class="notes-list" style="margin-top: 2rem;">
+                            ${customer.notes.length > 0 ? customer.notes.map(note => `
+                                <li class="note-card">
+                                    <p class="note-content">${note.content}</p>
+                                    <div class="tag-list">
+                                        ${note.tags.map(tag => `<span class="tag-item" style="background-color: ${getTagColor(tag)};">${tag}</span>`).join('')}
+                                    </div>
+                                    <div class="note-meta">
+                                        <span>${note.createdAt}</span>
+                                        <div class="note-actions">
+                                            <button class="btn-action btn-edit-note" data-note-id="${note.id}">編輯</button>
+                                            <button class="btn-action btn-delete-note" data-note-id="${note.id}">刪除</button>
+                                        </div>
+                                    </div>
+                                </li>
+                            `).join('') : '<li style="text-align: center; padding: 2rem;">此客戶目前沒有備註。</li>'}
+                        </ul>
+                    </div>`;
+                    ui.formContainer.innerHTML = formHtml + notesHtml;
+                } else {
+                    ui.formContainer.innerHTML = formHtml;
+                }
+
+                showPage('page-form');
+                
+                // 渲染完成後立即綁定submit事件到當前表單
+                setTimeout(() => {
+                    const currentForm = doc('data-form');
+                    if (currentForm) {
+                        console.log('=== 綁定表單submit事件 ===');
+                        currentForm.addEventListener('submit', handleFormSubmit);
+                        
+                        // 雙重防呆：在表單屬性層級禁止預設提交
+                        currentForm.setAttribute('onsubmit', 'return false;');
+                        
+                        console.log('表單事件綁定完成');
+                    } else {
+                        console.error('找不到表單元素，無法綁定事件');
+                    }
+                }, 10);
+            };
+
+            const renderNotesPage = () => {
+                const allNotes = customers.flatMap(c =>
+                    c.notes.map(note => ({ ...note, customer: c }))
+                );
+
+                let filteredNotes = allNotes;
+                if (filterState.selectedTags.length > 0) {
+                    filteredNotes = allNotes.filter(note => {
+                        const noteTags = note.tags.map(normalizeTag);
+                        if (filterState.logic === 'AND') {
+                            return filterState.selectedTags.every(tag => noteTags.includes(tag));
+                        } else {
+                            return filterState.selectedTags.some(tag => noteTags.includes(tag));
+                        }
+                    });
+                }
+
+                // 更新備註計數顯示
+                const notesCountDisplay = doc('notes-count-display');
+                if (notesCountDisplay) {
+                    if (filterState.selectedTags.length > 0) {
+                        notesCountDisplay.textContent = `篩選結果：${filteredNotes.length} 筆備註 (共 ${allNotes.length} 筆)`;
+                    } else {
+                        notesCountDisplay.textContent = `共 ${allNotes.length} 筆備註`;
+                    }
+                }
+
+                ui.notesList.innerHTML = filteredNotes.length > 0
+                    ? filteredNotes.map(note => `
+                    <li class="note-card">
+                        <p class="customer-name">${note.customer.companyName || note.customer.id}</p>
+                        <p class="note-content">${note.content}</p>
+                        <div class="tag-list">
+                            ${note.tags.map(tag => `<span class="tag-item" style="background-color: ${getTagColor(tag)};">${tag}</span>`).join('')}
+                        </div>
+                        <div class="note-meta">
+                            <span>${note.createdAt}</span>
+                            <div class="note-actions">
+                                <button class="btn-action btn-edit-from-note" data-id="${note.customer.id}">編輯客戶</button>
+                            </div>
+                        </div>
+                    </li>
+                `).join('')
+                    : '<li style="text-align: center; padding: 2rem;">沒有符合條件的備註。</li>';
+            };
+
+            const renderTagFilterBar = () => {
+                const allTags = [...new Set(customers.flatMap(c =>
+                    c.notes.flatMap(n => n.tags.map(normalizeTag))
+                ))];
+
+                ui.tagFilterBar.innerHTML = allTags.map(tag =>
+                    `<span class="tag-item ${filterState.selectedTags.includes(tag) ? 'active' : ''}" 
+                       style="background-color: ${getTagColor(tag)};" 
+                       data-tag="${tag}">${tag}</span>`
+                ).join('');
+            };
+
+            const renderFilterStatusBar = () => {
+                if (filterState.selectedTags.length > 0) {
+                    ui.filterStatusBar.style.display = 'flex';
+                    ui.filterStatusBar.querySelector('span').textContent =
+                        `已選擇 ${filterState.selectedTags.length} 個標籤 (${filterState.logic} 邏輯)`;
+                } else {
+                    ui.filterStatusBar.style.display = 'none';
+                }
+            };
+
+            // 假設有一個函式負責渲染特定客戶的備註區塊
+            const renderCustomerNotesSection = (customer) => {
+                const notesSection = doc('customer-notes-section'); // 假設這是備註區塊的父元素 ID
+                if (!notesSection) return;
+
+                // 清空並重新渲染備註列表 (或使用更精細的 diffing 演算法)
+                notesSection.querySelector('.notes-list').innerHTML = customer.notes.length > 0
+                    ? customer.notes.map(note => `
+                    <li class="note-card">
+                        <p class="customer-name">${customer.companyName}</p>
+                        <p class="note-content">${note.content}</p>
+                        <div class="tag-list">
+                            ${note.tags.map(tag => `<span class="tag-item" style="background-color: ${getTagColor(tag)};">${tag}</span>`).join('')}
+                        </div>
+                        <div class="note-meta">
+                            <span>${note.createdAt}</span>
+                            <div class="note-actions">
+                                <button class="btn-action btn-edit-note" data-note-id="${note.id}">編輯</button>
+                                <button class="btn-action btn-delete-note" data-note-id="${note.id}">刪除</button>
+                            </div>
+                        </div>
+                    </li>
+                `).join('')
+                    : '<li style="text-align: center; padding: 2rem;">此客戶目前沒有備註。</li>';
+
+                // 更新新增/編輯備註表單的狀態
+                doc('new-note-content').value = currentlyEditingNoteId ? customer.notes.find(n => n.id === currentlyEditingNoteId).content : '';
+                doc('new-note-tags').innerHTML = newNoteTags.map(t => `<span class="tag-item" style="background-color: ${getTagColor(t)};" data-tag="${t}">${t} <button class="tag-delete-btn" data-tag="${t}">&times;</button></span>`).join('');
+                doc('add-note-btn').textContent = currentlyEditingNoteId ? '更新備註' : '儲存新備註';
+            };
+
+            const populateReminderCard = (customer) => {
+                const contact = customer.contact || '資料待補';
+                const companyName = customer.companyName || '資料待補';
+                const regAddr = customer.regAddr || '資料待補';
+                const leaseEnd = toROCDate(customer.leaseEnd) || '資料待補';
+
+                const reminderText =
+                    `陳小姐 您好：
+
+特此提醒，${companyName}目前承租位於 ${regAddr}，租賃合約將於${leaseEnd}到期。
+
+再麻煩提供新的租賃合約
+
+謝謝
+`;
+                ui.reminderTextDisplay.textContent = reminderText;
+                ui.reminderCard.classList.add('active');
+            };
+
+            const handleExportExpiringCsv = () => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const expiringCustomers = customers.filter(c => c.leaseEnd && getDaysRemaining(c.leaseEnd) <= EXPIRE_SOON_DAYS)
+                    .sort((a, b) => getDaysRemaining(a.leaseEnd) - getDaysRemaining(b.leaseEnd));
+
+                let csvContent = "公司名稱,聯絡人,設籍地址,租約迄日(YYY/MM/DD),倒數天數,電話\n";
+                expiringCustomers.forEach(c => {
+                    const days = getDaysRemaining(c.leaseEnd);
+                    const company = c.companyName || '資料待補';
+                    const contact = c.contact || '資料待補';
+                    const address = c.regAddr || '資料待補';
+                    const leaseEndRoc = toROCDate(c.leaseEnd) || '資料待補';
+                    const phone = c.phone || '資料待補';
+                    csvContent += `"${company}","${contact}","${address}","${leaseEndRoc}","${days}","${phone}"\n`;
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.setAttribute('download', '即將到期客戶清單.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // --- EVENT HANDLERS --- //
+            const showPage = (pageId) => {
+                // 保存當前狀態
+                uiState.activeTab = pageId;
+                
+                ['page-list', 'page-form', 'page-notes', 'page-vat'].forEach(p => doc(p).classList.remove('active'));
+                ['tab-list', 'tab-form', 'tab-notes', 'tab-vat'].forEach(t => doc(t).classList.remove('active'));
+                doc(pageId).classList.add('active');
+                doc(pageId.replace('page', 'tab')).classList.add('active');
+                
+                if (pageId === 'page-form') {
+                    ui.formContainer.style.display = 'block';
+                }
+                
+                console.log('=== 頁面切換完成 ===', pageId);
+            };
+            ui.tabList.addEventListener('click', () => showPage('page-list'));
+            ui.tabForm.addEventListener('click', () => renderFormPage());
+            ui.tabNotes.addEventListener('click', () => showPage('page-notes'));
+            doc('tab-vat')?.addEventListener('click', () => { showPage('page-vat'); initVatPage(); });
+            ui.clearFilterBtn.addEventListener('click', () => { filterState.selectedTags = []; renderAll(); });
+
+            // --- 備註 Excel 匯出功能 ---
+            doc('export-notes-excel-btn')?.addEventListener('click', () => {
+                try {
+                    // 獲取所有備註資料
+                    const allNotes = customers.flatMap(c => 
+                        c.notes.map(note => ({ ...note, customer: c }))
+                    );
+                    
+                    let filteredNotes = allNotes;
+                    let exportMode = '全部備註';
+                    
+                    // 如果有標籤篩選，則只匯出符合條件的備註
+                    if (filterState.selectedTags.length > 0) {
+                        filteredNotes = allNotes.filter(note => {
+                            const noteTags = note.tags.map(tag => tag.toLowerCase());
+                            if (filterState.logic === 'AND') {
+                                return filterState.selectedTags.every(tag => noteTags.includes(tag));
+                            } else {
+                                return filterState.selectedTags.some(tag => noteTags.includes(tag));
+                            }
+                        });
+                        exportMode = `篩選條件 (${filterState.selectedTags.join(', ')})`;
+                    }
+                    
+                    if (filteredNotes.length === 0) {
+                        showToast('沒有符合條件的備註資料可匯出', 'error');
+                        return;
+                    }
+                    
+                    // 準備Excel資料
+                    const excelData = [];
+                    
+                    // 標題行
+                    excelData.push([
+                        '客戶代號', '公司名稱', '聯絡人', '電話', '備註日期', '備註內容', '標籤', '統一編號', '設籍地址'
+                    ]);
+                    
+                    // 資料行
+                    filteredNotes.forEach(note => {
+                        const customer = note.customer;
+                        excelData.push([
+                            customer.id || '',
+                            customer.companyName || '',
+                            customer.contact || '',
+                            customer.phone || '',
+                            note.createdAt || '',
+                            note.content || '',
+                            note.tags ? note.tags.join(', ') : '',
+                            customer.taxId || '',
+                            customer.regAddr || ''
+                        ]);
+                    });
+                    
+                    // 創建工作簿
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(excelData);
+                    
+                    // 設定欄位寬度
+                    ws['!cols'] = [
+                        { width: 12 }, // 客戶代號
+                        { width: 20 }, // 公司名稱
+                        { width: 12 }, // 聯絡人
+                        { width: 15 }, // 電話
+                        { width: 12 }, // 備註日期
+                        { width: 50 }, // 備註內容
+                        { width: 20 }, // 標籤
+                        { width: 12 }, // 統一編號
+                        { width: 30 }  // 設籍地址
+                    ];
+                    
+                    // 設定標題行樣式
+                    const headerStyle = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "D4AF37" } },
+                        alignment: { horizontal: "center" }
+                    };
+                    
+                    // 應用標題樣式
+                    for (let col = 0; col < 9; col++) {
+                        const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
+                        if (!ws[cellRef]) ws[cellRef] = {};
+                        ws[cellRef].s = headerStyle;
+                    }
+                    
+                    // 添加工作表
+                    XLSX.utils.book_append_sheet(wb, ws, "客戶備註");
+                    
+                    // 匯出檔案
+                    const today = new Date().toISOString().split('T')[0];
+                    const fileName = `客戶備註_${exportMode.replace(/[^\w\s]/gi, '')}_${today}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+                    
+                    showToast(`✅ 已匯出 ${filteredNotes.length} 筆備註資料`);
+                    
+                } catch (error) {
+                    console.error('備註Excel匯出失敗:', error);
+                    showToast('備註Excel匯出失敗，請確認瀏覽器支援', 'error');
+                }
+            });
+
+            ui.customerBody.addEventListener('click', e => {
+                const row = e.target.closest('tr');
+                if (!row) return;
+                const id = row.dataset.id;
+                if (e.target.classList.contains('btn-edit')) {
+                    const customer = customers.find(c => c.id === id);
+                    if (customer) renderFormPage(customer);
+                } else if (e.target.classList.contains('btn-delete')) {
+                    if (confirm(`確定要刪除此客戶嗎？`)) { 
+                        customers = customers.filter(c => c.id !== id); 
+                        saveCustomersToStorage(); 
+                        renderAll(); 
+                        showToast('客戶資料已刪除');
+                    }
+                } else if (e.target.classList.contains('btn-view-notes')) {
+                    const customer = customers.find(c => c.id === id);
+                    if (!customer) return;
+                    filterState.selectedTags = [...new Set(customer.notes.flatMap(n => n.tags.map(normalizeTag)))];
+                    filterState.logic = 'OR';
+                    showPage('page-notes');
+                    renderAll();
+                }
+            });
+
+            ui.notesList.addEventListener('click', e => {
+                if (e.target.classList.contains('btn-edit-from-note')) {
+                    e.preventDefault();
+                    const customer = customers.find(c => c.id === e.target.dataset.id);
+                    if (customer) renderFormPage(customer);
+                }
+            });
+
+            ui.tagFilterBar.addEventListener('click', e => { if (e.target.classList.contains('tag-item')) { const tag = e.target.dataset.tag; const index = filterState.selectedTags.indexOf(tag); if (index > -1) filterState.selectedTags.splice(index, 1); else filterState.selectedTags.push(tag); renderAll(); } });
+            ui.filterLogicSwitcher.addEventListener('click', e => { if (e.target.tagName === 'BUTTON') { filterState.logic = e.target.dataset.logic; ui.filterLogicSwitcher.querySelectorAll('button').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); renderAll(); } });
+
+            // 表單提交處理函數
+            const handleFormSubmit = (e) => {
+                // 第一行執行防呆
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('=== 表單提交事件觸發 ===');
+                console.log('事件目標:', e.target);
+                console.log('當前編輯ID:', currentlyEditingId);
+                
+                // 直接從表單元素收集資料
+                const form = e.target;
+                const formData = {
+                    id: form.querySelector('#id')?.value?.trim() || '',
+                    companyName: form.querySelector('#companyName')?.value?.trim() || '',
+                    taxId: form.querySelector('#taxId')?.value?.trim() || '',
+                    taxAddr: form.querySelector('#taxAddr')?.value?.trim() || '',
+                    contact: form.querySelector('#contact')?.value?.trim() || '',
+                    phone: form.querySelector('#phone')?.value?.trim() || '',
+                    regAddr: form.querySelector('#regAddr')?.value?.trim() || '',
+                    contactAddr: form.querySelector('#contactAddr')?.value?.trim() || '',
+                    leaseStart: form.querySelector('#leaseStart')?.value?.trim() || '',
+                    leaseEnd: form.querySelector('#leaseEnd')?.value?.trim() || ''
+                };
+                
+                console.log('收集到的表單資料:', formData);
+                
+                // 基本驗證
+                if (!formData.companyName && !formData.id) {
+                    showToast('「用戶代號」和「公司名稱」至少需填寫一項。', 'error');
+                    return false;
+                }
+                
+                if (currentlyEditingId) {
+                    console.log('=== 執行更新操作 ===');
+                    const customerIndex = customers.findIndex(c => c.id === currentlyEditingId);
+                    console.log('找到客戶索引:', customerIndex);
+                    
+                    if (customerIndex !== -1) {
+                        const originalCustomer = { ...customers[customerIndex] };
+                        console.log('原始客戶資料:', originalCustomer);
+                        
+                        // 整筆覆寫：創建全新物件，切斷舊參照
+                        const newCustomerData = {
+                            id: formData.id,
+                            companyName: formData.companyName,
+                            taxId: formData.taxId,
+                            taxAddr: formData.taxAddr,
+                            contact: formData.contact,
+                            phone: formData.phone,
+                            regAddr: formData.regAddr,
+                            contactAddr: formData.contactAddr,
+                            leaseStart: formData.leaseStart,
+                            leaseEnd: formData.leaseEnd,
+                            notes: originalCustomer.notes || [] // 保留備註
+                        };
+                        
+                        // 整筆替換，不是逐欄位修改
+                        customers[customerIndex] = newCustomerData;
+                        
+                        // 立即驗證更新結果
+                        const verifyResult = customers.find(c => c.id === currentlyEditingId);
+                        console.log('=== 立即驗證更新結果 ===');
+                        console.log('目標客戶ID:', currentlyEditingId);
+                        console.log('驗證結果:', verifyResult);
+                        console.log('聯絡人是否已更新:', verifyResult?.contact);
+                        
+                        showToast(`✅ 客戶資料已更新！聯絡人: ${customers[customerIndex].contact}`);
+                        
+                        // 儲存資料到本地儲存
+                        saveCustomersToStorage();
+                        
+                        // 單一路徑：更新資料 → renderAll() → 切換頁面
+                        console.log('=== 開始渲染流程 ===');
+                        renderAll();
+                        console.log('=== renderAll完成，準備切換頁面 ===');
+                        showPage('page-list');
+                        console.log('=== 頁面切換完成，清除編輯狀態 ===');
+                        currentlyEditingId = null;
+                        
+                    } else {
+                        console.error('找不到要更新的客戶');
+                        showToast('找不到要更新的客戶資料。', 'error');
+                    }
+                } else {
+                    console.log('=== 執行新增操作 ===');
+                    formData.id = formData.id || `C${Date.now()}`;
+                    if (customers.some(c => c.id === formData.id)) {
+                        showToast(`客戶代號 "${formData.id}" 已存在，請重新輸入。`, 'error');
+                        return false;
+                    }
+                    formData.notes = [];
+                    customers.push(formData);
+                    showToast('客戶資料已成功新增！');
+                    
+                    // 儲存資料到本地儲存
+                    saveCustomersToStorage();
+                    
+                    renderAll();
+                    showPage('page-list');
+                }
+                
+                // 雙重防呆：返回false阻止預設行為
+                return false;
+            };
+
+            ui.formContainer.addEventListener('click', e => {
+                // Handle cancel button
+                if (e.target.id === 'cancel-form-btn') {
+                    if (currentlyEditingId) {
+                        const confirmCancel = confirm('確定要取消編輯嗎？未儲存的變更將會遺失。');
+                        if (!confirmCancel) return;
+                    }
+                    currentlyEditingId = null;
+                    showPage('page-list');
+                    showToast('已取消編輯操作');
+                    return;
+                }
+
+                const customer = customers.find(c => c.id === currentlyEditingId);
+                if (!customer) return;
+
+                // --- Save/Update Note --- 
+                if (e.target.id === 'add-note-btn') {
+                    const content = doc('new-note-content').value.trim();
+                    if (!content) return alert('備註內容不可為空。');
+                    const tags = newNoteTags;
+
+                    if (currentlyEditingNoteId) {
+                        const note = customer.notes.find(n => n.id === currentlyEditingNoteId);
+                        if (note) { note.content = content; note.tags = tags; }
+                    } else {
+                        customer.notes.push({ id: `N${Date.now()}`, content, tags, createdAt: new Date().toISOString().split('T')[0] });
+                    }
+                    currentlyEditingNoteId = null;
+                    newNoteTags = [];
+                    doc('new-note-content').value = '';
+                    doc('new-note-tags').innerHTML = '';
+                    doc('add-note-btn').textContent = '儲存新備註';
+                    
+                    // 儲存資料到本地儲存
+                    saveCustomersToStorage();
+                    showToast('備註已儲存');
+                    
+                    renderFormPage(customer); // Re-render only the form page
+                } else if (e.target.classList.contains('btn-delete-note')) {
+                    const noteId = e.target.dataset.noteId;
+                    if (confirm('確定要刪除此備註嗎？')) {
+                        customer.notes = customer.notes.filter(n => n.id !== noteId);
+                        
+                        // 儲存資料到本地儲存
+                        saveCustomersToStorage();
+                        showToast('備註已刪除');
+                        
+                        renderFormPage(customer);
+                    }
+                } else if (e.target.classList.contains('btn-edit-note')) {
+                    const noteId = e.target.dataset.noteId;
+                    const note = customer.notes.find(n => n.id === noteId);
+                    if (note) {
+                        currentlyEditingNoteId = noteId;
+                        newNoteTags = [...note.tags];
+                        doc('new-note-content').value = note.content;
+                        doc('new-note-tags').innerHTML = newNoteTags.map(t => `<span class="tag-item" style="background-color: ${getTagColor(t)};" data-tag="${t}">${t} <button class="tag-delete-btn" data-tag="${t}">&times;</button></span>`).join('');
+                        doc('add-note-btn').textContent = '更新備註';
+                        doc('new-note-content').focus();
+                    }
+                } else if (e.target.classList.contains('tag-delete-btn')) {
+                    const tagToRemove = e.target.dataset.tag;
+                    newNoteTags = newNoteTags.filter(t => t !== tagToRemove);
+                    e.target.parentElement.remove();
+                }
+            });
+
+            ui.formContainer.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && e.target.id === 'new-note-tag-input') {
+                    e.preventDefault();
+                    const newTag = normalizeTag(e.target.value);
+                    if (!newTag) return;
+                    if (!newNoteTags.includes(newTag)) {
+                        newNoteTags.push(newTag);
+                        doc('new-note-tags').innerHTML += `<span class="tag-item" style="background-color: ${getTagColor(newTag)};" data-tag="${newTag}">${newTag} <button class="tag-delete-btn" data-tag="${newTag}">&times;</button></span>`;
+                    }
+                    e.target.value = '';
+                }
+            });
+
+            // --- Lease Reminder Event Handlers --- 
+            ui.expiringCustomersList.addEventListener('click', async e => {
+                if (e.target.classList.contains('btn-quick-edit')) {
+                    const customerId = e.target.dataset.id;
+                    const customer = customers.find(c => c.id === customerId);
+                    if (customer) {
+                        renderFormPage(customer);
+                    }
+                } else if (e.target.classList.contains('btn-mark-renewed')) {
+                    const customerId = e.target.dataset.id;
+                    const customer = customers.find(c => c.id === customerId);
+                    if (customer) {
+                        const newEndDate = prompt('請輸入新的租約到期日 (YYYY-MM-DD):', customer.leaseEnd);
+                        if (newEndDate && /^\d{4}-\d{2}-\d{2}$/.test(newEndDate)) {
+                            customer.leaseEnd = newEndDate;
+                            
+                            // 儲存資料到本地儲存
+                            saveCustomersToStorage();
+                            
+                            showToast(`${customer.companyName} 的租約已更新至 ${toROCDate(newEndDate)}`);
+                            renderAll();
+                        } else if (newEndDate) {
+                            showToast('日期格式錯誤，請使用 YYYY-MM-DD 格式', 'error');
+                        }
+                    }
+                } else if (e.target.classList.contains('btn-copy-reminder')) {
+                    const customerId = e.target.dataset.id;
+                    const customer = customers.find(c => c.id === customerId);
+
+                    if (!customer) {
+                        showToast('客戶資料不存在。', 'error');
+                        return;
+                    }
+
+                    // Handle empty or invalid leaseEnd
+                    if (!customer.leaseEnd || isNaN(new Date(customer.leaseEnd))) {
+                        showToast('缺少租約迄日日期，無法複製提醒。', 'error');
+                        return;
+                    }
+
+                    const contactName = customer.contact || '貴公司';
+                    const companyName = customer.companyName || '資料待補';
+                    const regAddr = customer.regAddr ? `位於${customer.regAddr}` : '';
+                    const leaseEndDate = toROCDate(customer.leaseEnd);
+
+                    const reminderText = `${contactName} 您好：\n\n特此提醒，${companyName}目前承租${regAddr}，租賃合約將於${leaseEndDate}到期。\n\n再麻煩提供新的租賃合約\n\n謝謝您`;
+
+                    try {
+                        await navigator.clipboard.writeText(reminderText);
+                        showToast(`已複製提醒給：${contactName} / ${companyName}`);
+                    } catch (err) {
+                        console.error('複製失敗: ', err);
+                        showToast('複製失敗，請手動選取複製', 'error');
+                    }
+                } else {
+                    const listItem = e.target.closest('li');
+                    if (listItem) {
+                        const customerId = listItem.dataset.id;
+                        const customer = customers.find(c => c.id === customerId);
+                        if (customer) {
+                            populateReminderCard(customer);
+                        }
+                    }
+                }
+            });
+
+            ui.copyReminderBtn.addEventListener('click', () => {
+                const textToCopy = ui.reminderTextDisplay.textContent;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    ui.copyReminderBtn.textContent = '已複製!';
+                    setTimeout(() => { ui.copyReminderBtn.textContent = '複製提醒語'; }, 2000);
+                    showToast('提醒語已複製到剪貼簿！'); // 新增 Toast 提示
+                }).catch(err => {
+                    console.error('複製失敗: ', err);
+                    showToast('複製失敗，請手動選取複製', 'error'); // 提供使用者回饋
+                });
+            });
+
+            ui.exportExpiringCsvBtn.addEventListener('click', handleExportExpiringCsv);
+
+            // --- 資料管理功能 ---
+            doc('export-all-data-btn')?.addEventListener('click', () => {
+                try {
+                    const dataStr = JSON.stringify(customers, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `客戶資料備份_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast('資料已匯出');
+                } catch (error) {
+                    console.error('匯出失敗:', error);
+                    showToast('匯出失敗', 'error');
+                }
+            });
+
+            doc('import-data-btn')?.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const importedData = JSON.parse(e.target.result);
+                                if (Array.isArray(importedData)) {
+                                    if (confirm('確定要匯入資料嗎？這將覆蓋現有資料。')) {
+                                        customers = importedData;
+                                        saveCustomersToStorage();
+                                        renderAll();
+                                        showToast(`已匯入 ${customers.length} 筆客戶資料`);
+                                    }
+                                } else {
+                                    showToast('檔案格式錯誤', 'error');
+                                }
+                            } catch (error) {
+                                console.error('匯入失敗:', error);
+                                showToast('匯入失敗，請檢查檔案格式', 'error');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                input.click();
+            });
+
+            doc('clear-data-btn')?.addEventListener('click', () => {
+                if (confirm('確定要清除所有資料嗎？此操作無法復原！')) {
+                    if (confirm('最後確認：真的要清除所有客戶資料嗎？')) {
+                        customers = [];
+                        localStorage.removeItem(STORAGE_KEY);
+                        renderAll();
+                        showToast('所有資料已清除');
+                    }
+                }
+            });
+
+            // --- Excel 匯出範本功能 ---
+            doc('export-excel-template-btn')?.addEventListener('click', () => {
+                try {
+                    // 準備Excel資料，包含現有客戶資料和空白範本行
+                    const excelData = [];
+                    
+                    // 標題行
+                    excelData.push([
+                        '客戶代號', '公司名稱', '統一編號', '稅籍編號', '聯絡人', '電話', 
+                        '設籍地址', '聯絡地址', '租約起日', '租約迄日', '備註'
+                    ]);
+                    
+                    // 現有客戶資料
+                    customers.forEach(c => {
+                        const notesText = c.notes ? c.notes.map(n => `${n.createdAt}: ${n.content}`).join('; ') : '';
+                        excelData.push([
+                            c.id || '',
+                            c.companyName || '',
+                            c.taxId || '',
+                            c.taxAddr || '',
+                            c.contact || '',
+                            c.phone || '',
+                            c.regAddr || '',
+                            c.contactAddr || '',
+                            c.leaseStart || '',
+                            c.leaseEnd || '',
+                            notesText
+                        ]);
+                    });
+                    
+                    // 添加5行空白範本供新增使用
+                    for (let i = 0; i < 5; i++) {
+                        excelData.push(['', '', '', '', '', '', '', '', '', '', '']);
+                    }
+                    
+                    // 創建工作簿
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(excelData);
+                    
+                    // 設定欄位寬度
+                    ws['!cols'] = [
+                        { width: 12 }, // 客戶代號
+                        { width: 20 }, // 公司名稱
+                        { width: 12 }, // 統一編號
+                        { width: 15 }, // 稅籍編號
+                        { width: 12 }, // 聯絡人
+                        { width: 15 }, // 電話
+                        { width: 30 }, // 設籍地址
+                        { width: 30 }, // 聯絡地址
+                        { width: 12 }, // 租約起日
+                        { width: 12 }, // 租約迄日
+                        { width: 40 }  // 備註
+                    ];
+                    
+                    // 設定標題行樣式
+                    const headerStyle = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "D4AF37" } },
+                        alignment: { horizontal: "center" }
+                    };
+                    
+                    // 應用標題樣式
+                    for (let col = 0; col < 11; col++) {
+                        const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
+                        if (!ws[cellRef]) ws[cellRef] = {};
+                        ws[cellRef].s = headerStyle;
+                    }
+                    
+                    XLSX.utils.book_append_sheet(wb, ws, "客戶資料");
+                    
+                    // 匯出檔案
+                    const fileName = `客戶資料範本_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+                    
+                    showToast(`Excel範本已匯出：${fileName}`);
+                } catch (error) {
+                    console.error('Excel匯出失敗:', error);
+                    showToast('Excel匯出失敗，請確認瀏覽器支援', 'error');
+                }
+            });
+
+            // --- Excel 匯入功能 ---
+            doc('import-excel-btn')?.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.xlsx,.xls';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const data = new Uint8Array(e.target.result);
+                                const workbook = XLSX.read(data, { type: 'array' });
+                                const sheetName = workbook.SheetNames[0];
+                                const worksheet = workbook.Sheets[sheetName];
+                                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                                
+                                if (jsonData.length < 2) {
+                                    showToast('Excel檔案格式錯誤或無資料', 'error');
+                                    return;
+                                }
+                                
+                                // 檢查標題行
+                                const headers = jsonData[0];
+                                const expectedHeaders = ['客戶代號', '公司名稱', '統一編號', '稅籍編號', '聯絡人', '電話', '設籍地址', '聯絡地址', '租約起日', '租約迄日', '備註'];
+                                
+                                const isValidFormat = expectedHeaders.every((header, index) => 
+                                    headers[index] && headers[index].toString().trim() === header
+                                );
+                                
+                                if (!isValidFormat) {
+                                    showToast('Excel檔案格式不正確，請使用匯出的範本格式', 'error');
+                                    return;
+                                }
+                                
+                                // 解析資料行
+                                const importedCustomers = [];
+                                for (let i = 1; i < jsonData.length; i++) {
+                                    const row = jsonData[i];
+                                    
+                                    // 跳過空行
+                                    if (!row || row.every(cell => !cell || cell.toString().trim() === '')) {
+                                        continue;
+                                    }
+                                    
+                                    const customer = {
+                                        id: row[0] ? row[0].toString().trim() : `C${Date.now()}_${i}`,
+                                        companyName: row[1] ? row[1].toString().trim() : '',
+                                        taxId: row[2] ? row[2].toString().trim() : '',
+                                        taxAddr: row[3] ? row[3].toString().trim() : '',
+                                        contact: row[4] ? row[4].toString().trim() : '',
+                                        phone: row[5] ? row[5].toString().trim() : '',
+                                        regAddr: row[6] ? row[6].toString().trim() : '',
+                                        contactAddr: row[7] ? row[7].toString().trim() : '',
+                                        leaseStart: row[8] ? row[8].toString().trim() : '',
+                                        leaseEnd: row[9] ? row[9].toString().trim() : '',
+                                        notes: []
+                                    };
+                                    
+                                    // 處理備註
+                                    if (row[10] && row[10].toString().trim()) {
+                                        const notesText = row[10].toString().trim();
+                                        // 簡單解析備註格式：日期: 內容; 日期: 內容
+                                        const noteEntries = notesText.split(';');
+                                        noteEntries.forEach(entry => {
+                                            const trimmedEntry = entry.trim();
+                                            if (trimmedEntry) {
+                                                const colonIndex = trimmedEntry.indexOf(':');
+                                                if (colonIndex > 0) {
+                                                    const date = trimmedEntry.substring(0, colonIndex).trim();
+                                                    const content = trimmedEntry.substring(colonIndex + 1).trim();
+                                                    customer.notes.push({
+                                                        id: `N${Date.now()}_${Math.random()}`,
+                                                        content: content,
+                                                        tags: [],
+                                                        createdAt: date
+                                                    });
+                                                } else {
+                                                    // 沒有日期格式，使用今天日期
+                                                    customer.notes.push({
+                                                        id: `N${Date.now()}_${Math.random()}`,
+                                                        content: trimmedEntry,
+                                                        tags: [],
+                                                        createdAt: new Date().toISOString().split('T')[0]
+                                                    });
+                                                }
+                                            }
+                                        });
+                                    }
+                                    
+                                    // 基本驗證
+                                    if (customer.companyName || customer.id) {
+                                        importedCustomers.push(customer);
+                                    }
+                                }
+                                
+                                if (importedCustomers.length === 0) {
+                                    showToast('Excel檔案中沒有有效的客戶資料', 'error');
+                                    return;
+                                }
+                                
+                                // 確認匯入
+                                const confirmMessage = `找到 ${importedCustomers.length} 筆客戶資料，確定要匯入嗎？\n\n匯入方式：\n• 確定：覆蓋現有資料\n• 取消：取消匯入`;
+                                
+                                if (confirm(confirmMessage)) {
+                                    customers = importedCustomers;
+                                    saveCustomersToStorage();
+                                    renderAll();
+                                    showToast(`✅ 已成功匯入 ${customers.length} 筆客戶資料`);
+                                }
+                                
+                            } catch (error) {
+                                console.error('Excel匯入失敗:', error);
+                                showToast('Excel匯入失敗，請檢查檔案格式', 'error');
+                            }
+                        };
+                        reader.readAsArrayBuffer(file);
+                    }
+                };
+                input.click();
+            });
+
+            // --- 排序和篩選事件監聽器 - 直接綁定到select元素 ---
+            // 延遲綁定，確保元素存在
+            setTimeout(() => {
+                const sortSelect = doc('expiring-sort-select');
+                const filterSelect = doc('expiring-filter-select');
+                
+                if (sortSelect) {
+                    sortSelect.addEventListener('change', () => {
+                        console.log('排序選項變更，重新渲染到期清單');
+                        renderExpiringCustomersList();
+                    });
+                }
+                
+                if (filterSelect) {
+                    filterSelect.addEventListener('change', () => {
+                        console.log('篩選選項變更，重新渲染到期清單');
+                        renderExpiringCustomersList();
+                    });
+                }
+            }, 100);
+
+            // --- 營業稅功能 ---
+            const VAT_STORAGE_KEY = 'offline-crm-vat-data';
+            let currentVatData = null;
+            let vatHistory = [];
+            let collectMethods = ['快遞', '自己寄送', '親收'];
+
+            // 營業稅資料結構
+            const createVatPeriodSheet = (year, period) => ({
+                year: year,
+                period: period,
+                last_collect_deadline: '',
+                rows: [],
+                history: [],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
+
+            // 儲存營業稅資料
+            const saveVatData = () => {
+                try {
+                    const allVatData = JSON.parse(localStorage.getItem(VAT_STORAGE_KEY) || '{}');
+                    const key = `${currentVatData.year}_${currentVatData.period}`;
+                    currentVatData.updated_at = new Date().toISOString();
+                    allVatData[key] = currentVatData;
+                    localStorage.setItem(VAT_STORAGE_KEY, JSON.stringify(allVatData));
+                    console.log('營業稅資料已儲存:', key);
+                } catch (error) {
+                    console.error('儲存營業稅資料失敗:', error);
+                    showToast('儲存失敗', 'error');
+                }
+            };
+
+            // 載入營業稅資料
+            const loadVatData = (year, period) => {
+                try {
+                    const allVatData = JSON.parse(localStorage.getItem(VAT_STORAGE_KEY) || '{}');
+                    const key = `${year}_${period}`;
+                    return allVatData[key] || createVatPeriodSheet(year, period);
+                } catch (error) {
+                    console.error('載入營業稅資料失敗:', error);
+                    return createVatPeriodSheet(year, period);
+                }
+            };
+
+            // 取得台灣時間
+            const getTaiwanDate = (offset = 0) => {
+                const now = new Date();
+                const taiwanTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)); // UTC+8
+                taiwanTime.setDate(taiwanTime.getDate() + offset);
+                return taiwanTime;
+            };
+
+            // 格式化日期為民國年
+            const formatROCDate = (date, includeWeekday = true) => {
+                const year = date.getFullYear() - 1911;
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+                const weekday = weekdays[date.getDay()];
+                return includeWeekday ? `${year}-${month}-${day}（${weekday}）` : `${year}-${month}-${day}`;
+            };
+
+            // 取得當前期數（根據月份）
+            const getCurrentPeriod = () => {
+                const month = new Date().getMonth() + 1; // 1-12
+                return Math.ceil(month / 2);
+            };
+
+            // 初始化營業稅頁面
+            const initVatPage = () => {
+                const currentYear = new Date().getFullYear() - 1911; // 民國年
+                const currentPeriod = getCurrentPeriod();
+                
+                // 設定預設值
+                doc('vat-year').value = currentYear;
+                doc('vat-period').value = currentPeriod;
+                
+                // 載入資料
+                loadCurrentVatPeriod();
+                
+                // 更新日期顯示
+                updateDateDisplays();
+                
+                // 渲染收取方式選項
+                renderCollectMethodCheckboxes();
+                
+                // 渲染提醒列表
+                renderReminderLists();
+                
+                // 渲染本期資料表格
+                renderVatDataTable();
+            };
+
+
+
+
+
+            // 複製提醒話術
+            const copyReminderMessage = (rowId) => {
+                const row = currentVatData.rows.find(r => r.row_id === rowId);
+                if (!row) return;
+                
+                const customer = customers.find(c => c.id === row.customer_id);
+                if (!customer) return;
+                
+                const plannedDate = new Date(row.planned_collect_date);
+                const year = plannedDate.getFullYear() - 1911;
+                const month = (plannedDate.getMonth() + 1).toString().padStart(2, '0');
+                const day = plannedDate.getDate().toString().padStart(2, '0');
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                const weekday = weekdays[plannedDate.getDay()];
+                const dateStr = `${year}-${month}-${day}（週${weekday}）`;
+                
+                const message = `提醒您，我們已安排於${dateStr}前往貴公司收取發票資料。
+
+麻煩您協助確認以下資料是否已備妥：
+✅ 本期所有進項與銷項發票、憑證
+✅ 作廢發票、海關進口報單等其他證明文件
+
+若有任何變動，請盡快回覆告知，謝謝！`;
+                
+                navigator.clipboard.writeText(message).then(() => {
+                    showToast('提醒話術已複製到剪貼簿');
+                }).catch(() => {
+                    showToast('複製失敗', 'error');
+                });
+            };
+
+            // 加入匯出清單
+            const addToExportList = (rowId) => {
+                // 這裡可以實現加入匯出清單的邏輯
+                showToast('已加入匯出清單');
+            };
+
+            // 載入當前期數資料
+            const loadCurrentVatPeriod = () => {
+                const year = parseInt(doc('vat-year').value);
+                const period = parseInt(doc('vat-period').value);
+                currentVatData = loadVatData(year, period);
+                doc('vat-deadline').value = currentVatData.last_collect_deadline;
+                
+                // 重新渲染所有相關組件
+                renderVatDataTable();
+                renderReminderLists();
+                renderCollectMethodCheckboxes();
+                
+                console.log('=== 載入期數資料完成 ===');
+                console.log('年度:', year, '期數:', period);
+                console.log('本期資料筆數:', currentVatData.rows.length);
+            };
+
+            // 更新日期顯示
+            const updateDateDisplays = () => {
+                const today = getTaiwanDate();
+                const tomorrow = getTaiwanDate(1);
+                
+                doc('today-date').textContent = `（${formatROCDate(today)}）`;
+                
+                // 處理週五的特殊情況
+                if (today.getDay() === 5) { // 週五
+                    const saturday = getTaiwanDate(1);
+                    const sunday = getTaiwanDate(2);
+                    const monday = getTaiwanDate(3);
+                    doc('tomorrow-date-range').textContent = 
+                        `（${formatROCDate(saturday, false)}～${formatROCDate(monday)}）`;
+                } else {
+                    doc('tomorrow-date-range').textContent = `（${formatROCDate(tomorrow)}）`;
+                }
+            };
+
+            // 渲染收取方式選項
+            const renderCollectMethodCheckboxes = () => {
+                const container = doc('collect-method-checkboxes');
+                container.innerHTML = collectMethods.map(method => `
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="method-${method}" value="${method}" checked>
+                        <label for="method-${method}">${method}</label>
+                        <button class="btn-small btn-secondary" onclick="removeCollectMethod('${method}')">×</button>
+                    </div>
+                `).join('');
+            };
+
+            // 新增收取方式
+            window.addCollectMethod = () => {
+                const method = prompt('請輸入新的收取方式：');
+                if (method && method.trim() && !collectMethods.includes(method.trim())) {
+                    collectMethods.push(method.trim());
+                    renderCollectMethodCheckboxes();
+                    saveVatData();
+                }
+            };
+
+            // 移除收取方式
+            window.removeCollectMethod = (method) => {
+                if (confirm(`確定要移除「${method}」這個收取方式嗎？`)) {
+                    collectMethods = collectMethods.filter(m => m !== method);
+                    renderCollectMethodCheckboxes();
+                    saveVatData();
+                }
+            };
+
+            // 渲染提醒列表
+            const renderReminderLists = () => {
+                if (!currentVatData || !currentVatData.rows) {
+                    doc('today-reminders').innerHTML = '<div style="text-align: center; color: var(--color-text-secondary); padding: 2rem;">請先載入期數資料</div>';
+                    doc('tomorrow-reminders').innerHTML = '<div style="text-align: center; color: var(--color-text-secondary); padding: 2rem;">請先載入期數資料</div>';
+                    return;
+                }
+                
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD格式
+                
+                console.log('=== 渲染提醒列表 ===');
+                console.log('今日日期:', todayStr);
+                console.log('本期資料筆數:', currentVatData.rows.length);
+                console.log('本期資料:', currentVatData.rows.map(r => ({ id: r.customer_id, date: r.planned_collect_date })));
+                
+                // 今日提醒
+                const todayReminders = currentVatData.rows.filter(row => {
+                    const match = row.planned_collect_date === todayStr;
+                    if (match) console.log('今日提醒匹配:', row.customer_id, row.planned_collect_date);
+                    return match;
+                });
+                
+                console.log('今日提醒筆數:', todayReminders.length);
+                renderReminderList('today-reminders', todayReminders);
+                
+                // 明日提醒（處理週五特殊情況）
+                let tomorrowDates = [];
+                if (today.getDay() === 5) { // 週五
+                    for (let i = 1; i <= 3; i++) {
+                        const date = new Date(today);
+                        date.setDate(date.getDate() + i);
+                        tomorrowDates.push(date.toISOString().split('T')[0]);
+                    }
+                } else {
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    tomorrowDates.push(tomorrow.toISOString().split('T')[0]);
+                }
+                
+                console.log('明日提醒日期範圍:', tomorrowDates);
+                
+                const tomorrowReminders = currentVatData.rows.filter(row => {
+                    const match = tomorrowDates.includes(row.planned_collect_date);
+                    if (match) console.log('明日提醒匹配:', row.customer_id, row.planned_collect_date);
+                    return match;
+                });
+                
+                console.log('明日提醒筆數:', tomorrowReminders.length);
+                renderReminderList('tomorrow-reminders', tomorrowReminders);
+            };
+
+            // 渲染單個提醒列表
+            const renderReminderList = (containerId, reminders) => {
+                const container = doc(containerId);
+                if (reminders.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: var(--color-text-secondary); padding: 2rem;">本欄位無符合日期的客戶</div>';
+                    return;
+                }
+                
+                container.innerHTML = reminders.map(row => {
+                    const customer = customers.find(c => c.id === row.customer_id);
+                    if (!customer) return '';
+                    
+                    return `
+                        <div class="reminder-card">
+                            <div class="reminder-card-header">
+                                <div class="reminder-card-info">
+                                    <div class="reminder-card-company">${customer.companyName || customer.id}</div>
+                                    <div class="reminder-card-details">
+                                        聯絡人：${customer.contact || '未設定'} | 
+                                        收取方式：${row.collect_method} | 
+                                        預計收取：${row.planned_collect_date}
+                                        ${row.note_reminder ? `<br>提醒備註：${row.note_reminder}` : ''}
+                                    </div>
+                                </div>
+                                <div class="reminder-card-actions">
+                                    <button class="btn btn-small btn-secondary" onclick="copyReminderMessage('${row.row_id}')">複製提醒</button>
+                                    <button class="btn btn-small btn-primary" onclick="addToExportList('${row.row_id}')">加入匯出</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            // 複製提醒話術
+            window.copyReminderMessage = (rowId) => {
+                const row = currentVatData.rows.find(r => r.row_id === rowId);
+                if (!row) return;
+                
+                const message = generateReminderMessage(row);
+                navigator.clipboard.writeText(message).then(() => {
+                    showToast('提醒話術已複製到剪貼簿');
+                }).catch(() => {
+                    showToast('複製失敗', 'error');
+                });
+            };
+
+            // 生成提醒話術
+            const generateReminderMessage = (row) => {
+                const customer = customers.find(c => c.id === row.customer_id);
+                const plannedDate = row.planned_collect_date;
+                
+                return `提醒您，我們已安排於【${plannedDate}】前往貴公司收取發票資料。
+
+麻煩您協助確認以下資料是否已備妥：
+✅ 本期所有進項與銷項發票、憑證
+✅ 作廢發票、海關進口報單等其他證明文件
+
+若有任何變動，請盡快回覆告知，謝謝！`;
+            };
+
+            // 渲染本期資料表格
+            const renderVatDataTable = () => {
+                const tbody = doc('vat-data-tbody');
+                if (!currentVatData.rows.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">尚未新增任何客戶資料</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = currentVatData.rows.map(row => {
+                    const customer = customers.find(c => c.id === row.customer_id);
+                    if (!customer) return '';
+                    
+                    return `
+                        <tr data-row-id="${row.row_id}">
+                            <td><input type="checkbox" class="row-checkbox" value="${row.row_id}"></td>
+                            <td>
+                                <div><strong>${customer.companyName || customer.id}</strong></div>
+                                <div style="font-size: 0.9rem; color: var(--color-text-secondary);">
+                                    ${customer.contact || '未設定'} | ${customer.phone || ''}
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--color-text-secondary);">
+                                    ${customer.regAddr || ''}
+                                </div>
+                            </td>
+                            <td>${row.collect_method}</td>
+                            <td>${row.planned_collect_date}</td>
+                            <td>${row.note_invoice || ''}</td>
+                            <td>${row.note_reminder || ''}</td>
+                            <td class="vat-row-actions">
+                                <button class="btn btn-small btn-secondary" onclick="editVatRow('${row.row_id}')">編輯</button>
+                                <button class="btn btn-small btn-secondary" onclick="deleteVatRow('${row.row_id}')">刪除</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            };
+
+            // 產生批次話術
+            const generateBatchMessages = (rows, selectedMethods) => {
+                const messages = {};
+                
+                selectedMethods.forEach(method => {
+                    const methodRows = rows.filter(row => row.collect_method === method);
+                    messages[method] = methodRows.map(row => {
+                        const customer = customers.find(c => c.id === row.customer_id);
+                        if (!customer) return '';
+                        
+                        const contactName = customer.contact || '貴公司';
+                        const period = currentVatData.period;
+                        const periodText = `第${period}期`;
+                        const deadline = currentVatData.last_collect_deadline;
+                        const deadlineMinus2 = getDateMinus2(deadline);
+                        const noteReminder = row.note_reminder ? `\n${row.note_reminder}` : '';
+                        
+                        if (method === '自己寄送') {
+                            return `${contactName}您好：
+
+提醒您，本期（${periodText}）營業稅即將開始申報囉！
+
+請您務必於${deadlineMinus2}前備妥所有進項、銷項發票及相關憑證（含作廢發票、進口報單等），並準備好交付本所。${noteReminder}
+
+謝謝`;
+                        } else {
+                            return `${contactName}您好：
+
+提醒您，本期（${periodText}）營業稅即將開始申報囉！
+
+請問${deadlineMinus2}前的哪個時段過去貴公司收取資料比較方便呢？
+
+請提供您方便的確切日期與時間，會盡快為您安排過去收取。`;
+                        }
+                    });
+                });
+                
+                return messages;
+            };
+
+            // 顯示批次話術
+            const displayBatchMessages = (messages) => {
+                const previewDiv = doc('batch-message-preview');
+                let html = '';
+                
+                Object.keys(messages).forEach(method => {
+                    html += `<div class="message-group">
+                        <h4>${method} (${messages[method].length} 筆)</h4>
+                        <div class="message-list">`;
+                    
+                    messages[method].forEach((message, index) => {
+                        if (message.trim()) {
+                            html += `<div class="message-item">
+                                <div class="message-header">客戶 ${index + 1}</div>
+                                <pre class="message-content">${message}</pre>
+                                <button class="btn btn-small btn-secondary copy-message-btn" data-message="${encodeURIComponent(message)}">複製</button>
+                            </div>`;
+                        }
+                    });
+                    
+                    html += `</div></div>`;
+                });
+                
+                previewDiv.innerHTML = html;
+                previewDiv.style.display = 'block';
+                
+                // 綁定複製按鈕事件
+                previewDiv.querySelectorAll('.copy-message-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const message = decodeURIComponent(e.target.dataset.message);
+                        navigator.clipboard.writeText(message).then(() => {
+                            showToast('話術已複製到剪貼簿');
+                        }).catch(() => {
+                            showToast('複製失敗', 'error');
+                        });
+                    });
+                });
+            };
+
+            // 匯出營業稅資料到Excel
+            const exportVatToExcel = (rows, exportType) => {
+                try {
+                    const excelData = [];
+                    
+                    // 標題行
+                    excelData.push([
+                        'customer_id', 'company_name', 'contact_name', 'registered_address',
+                        'collect_method', 'planned_collect_date', 'period', 'year',
+                        'last_collect_deadline', 'deadline_minus2', 'note_invoice',
+                        'note_reminder', 'message_type', 'message_preview'
+                    ]);
+                    
+                    // 資料行
+                    rows.forEach(row => {
+                        const customer = customers.find(c => c.id === row.customer_id);
+                        if (!customer) return;
+                        
+                        const deadline = currentVatData.last_collect_deadline;
+                        const deadlineMinus2 = getDateMinus2(deadline);
+                        const messageType = row.collect_method === '自己寄送' ? 'B-自己寄送' : 'B-到府收取';
+                        
+                        // 產生完整話術
+                        const contactName = customer.contact || '貴公司';
+                        const period = currentVatData.period;
+                        const periodText = `第${period}期`;
+                        const noteReminder = row.note_reminder ? `\n${row.note_reminder}` : '';
+                        
+                        let messagePreview = '';
+                        if (row.collect_method === '自己寄送') {
+                            messagePreview = `${contactName}您好：\n\n提醒您，本期（${periodText}）營業稅即將開始申報囉！\n\n請您務必於${deadlineMinus2}前備妥所有進項、銷項發票及相關憑證（含作廢發票、進口報單等），並準備好交付本所。${noteReminder}\n\n謝謝`;
+                        } else {
+                            messagePreview = `${contactName}您好：\n\n提醒您，本期（${periodText}）營業稅即將開始申報囉！\n\n請問${deadlineMinus2}前的哪個時段過去貴公司收取資料比較方便呢？\n\n請提供您方便的確切日期與時間，會盡快為您安排過去收取。`;
+                        }
+                        
+                        excelData.push([
+                            customer.id,
+                            customer.companyName || '',
+                            customer.contact || '',
+                            customer.regAddr || '',
+                            row.collect_method,
+                            row.planned_collect_date,
+                            `第${currentVatData.period}期`,
+                            currentVatData.year + 1911, // 轉為西元年
+                            deadline,
+                            deadlineMinus2,
+                            row.note_invoice || '',
+                            row.note_reminder || '',
+                            messageType,
+                            messagePreview
+                        ]);
+                    });
+                    
+                    // 創建工作簿
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(excelData);
+                    
+                    // 設定欄位寬度
+                    ws['!cols'] = [
+                        { width: 12 }, { width: 20 }, { width: 12 }, { width: 30 },
+                        { width: 12 }, { width: 15 }, { width: 10 }, { width: 8 },
+                        { width: 15 }, { width: 15 }, { width: 20 }, { width: 20 },
+                        { width: 15 }, { width: 50 }
+                    ];
+                    
+                    // 凍結標題行
+                    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+                    
+                    XLSX.utils.book_append_sheet(wb, ws, "Notices");
+                    
+                    // 匯出檔案
+                    const now = new Date();
+                    const timestamp = now.toISOString().replace(/[-:]/g, '').slice(0, 13);
+                    const fileName = `vat_notice_${timestamp}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+                    
+                } catch (error) {
+                    console.error('Excel匯出失敗:', error);
+                    showToast('Excel匯出失敗', 'error');
+                }
+            };
+
+            // 顯示新增客戶對話框
+            const showAddVatRowDialog = () => {
+                const customerOptions = customers.map(c => 
+                    `<option value="${c.id}">${c.companyName || c.id} (${c.contact || '未設定'})</option>`
+                ).join('');
+                
+                const methodOptions = collectMethods.map(method => 
+                    `<option value="${method}">${method}</option>`
+                ).join('');
+                
+                const dialogHtml = `
+                    <div class="modal-overlay" id="add-vat-row-modal">
+                        <div class="modal-content">
+                            <h3>新增客戶到本期資料</h3>
+                            <div class="form-group">
+                                <label>選擇客戶</label>
+                                <select id="new-vat-customer">${customerOptions}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>收取發票方式</label>
+                                <select id="new-vat-method">${methodOptions}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>預計收取日</label>
+                                <input type="date" id="new-vat-date">
+                            </div>
+                            <div class="form-group">
+                                <label>備註-發票</label>
+                                <input type="text" id="new-vat-note-invoice" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>備註-提醒</label>
+                                <input type="text" id="new-vat-note-reminder" placeholder="選填">
+                            </div>
+                            <div class="modal-actions">
+                                <button class="btn btn-primary" onclick="confirmAddVatRow()">確定新增</button>
+                                <button class="btn btn-secondary" onclick="closeAddVatRowDialog()">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', dialogHtml);
+            };
+
+            // 關閉新增客戶對話框
+            window.closeAddVatRowDialog = () => {
+                const modal = doc('add-vat-row-modal');
+                if (modal) modal.remove();
+            };
+
+            // 確認新增客戶
+            window.confirmAddVatRow = () => {
+                const customerId = doc('new-vat-customer').value;
+                const method = doc('new-vat-method').value;
+                const date = doc('new-vat-date').value;
+                const noteInvoice = doc('new-vat-note-invoice').value;
+                const noteReminder = doc('new-vat-note-reminder').value;
+                
+                if (!customerId || !method) {
+                    showToast('請選擇客戶和收取方式', 'error');
+                    return;
+                }
+                
+                // 檢查是否已存在
+                const exists = currentVatData.rows.some(row => row.customer_id === customerId);
+                if (exists) {
+                    showToast('此客戶已存在於本期資料中', 'error');
+                    return;
+                }
+                
+                const newRow = {
+                    row_id: `vat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    customer_id: customerId,
+                    collect_method: method,
+                    planned_collect_date: date,
+                    note_invoice: noteInvoice,
+                    note_reminder: noteReminder,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+                
+                currentVatData.rows.push(newRow);
+                
+                // 記錄歷史
+                currentVatData.history.push({
+                    timestamp: new Date().toISOString(),
+                    action: '新增',
+                    summary: `新增客戶 ${customers.find(c => c.id === customerId)?.companyName || customerId}`
+                });
+                
+                saveVatData();
+                renderVatDataTable();
+                closeAddVatRowDialog();
+                showToast('客戶已新增到本期資料');
+            };
+
+            // 獲取日期減2天
+            const getDateMinus2 = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                date.setDate(date.getDate() - 2);
+                const year = date.getFullYear() - 1911; // 民國年
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                const weekday = weekdays[date.getDay()];
+                return `${year}-${month}-${day}（週${weekday}）`;
+            };
+
+            // 編輯營業稅資料行
+            window.editVatRow = (rowId) => {
+                console.log('編輯營業稅資料行:', rowId);
+                const row = currentVatData.rows.find(r => r.row_id === rowId);
+                if (!row) {
+                    showToast('找不到要編輯的資料', 'error');
+                    return;
+                }
+                
+                const customer = customers.find(c => c.id === row.customer_id);
+                if (!customer) {
+                    showToast('找不到對應的客戶資料', 'error');
+                    return;
+                }
+                
+                showEditVatRowDialog(row, customer);
+            };
+
+            // 顯示編輯客戶對話框
+            const showEditVatRowDialog = (row, customer) => {
+                const methodOptions = collectMethods.map(method => 
+                    `<option value="${method}" ${method === row.collect_method ? 'selected' : ''}>${method}</option>`
+                ).join('');
+                
+                const dialogHtml = `
+                    <div class="modal-overlay" id="edit-vat-row-modal">
+                        <div class="modal-content">
+                            <h3>編輯客戶資料</h3>
+                            <div class="form-group">
+                                <label>客戶資訊</label>
+                                <div style="background: var(--color-surface-light); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                                    <div><strong>${customer.companyName || customer.id}</strong></div>
+                                    <div style="color: var(--color-text-secondary); font-size: 0.9rem;">
+                                        ${customer.contact || '未設定'} | ${customer.phone || ''}
+                                    </div>
+                                    <div style="color: var(--color-text-secondary); font-size: 0.8rem;">
+                                        ${customer.regAddr || ''}
+                                    </div>
+                                    <div style="margin-top: 0.5rem;">
+                                        <a href="#" onclick="showPage('page-list'); closeEditVatRowDialog();" style="color: var(--color-accent-gold); font-size: 0.8rem;">
+                                            → 到客戶列表編輯基本資料
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>收取發票方式</label>
+                                <select id="edit-vat-method">${methodOptions}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>預計收取日</label>
+                                <input type="date" id="edit-vat-date" value="${row.planned_collect_date || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>備註-發票</label>
+                                <input type="text" id="edit-vat-note-invoice" value="${row.note_invoice || ''}" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>備註-提醒</label>
+                                <input type="text" id="edit-vat-note-reminder" value="${row.note_reminder || ''}" placeholder="選填">
+                            </div>
+                            <div class="modal-actions">
+                                <button class="btn btn-primary" onclick="confirmEditVatRow('${row.row_id}')">確定更新</button>
+                                <button class="btn btn-secondary" onclick="closeEditVatRowDialog()">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', dialogHtml);
+            };
+
+            // 關閉編輯客戶對話框
+            window.closeEditVatRowDialog = () => {
+                const modal = doc('edit-vat-row-modal');
+                if (modal) modal.remove();
+            };
+
+            // 確認編輯客戶
+            window.confirmEditVatRow = (rowId) => {
+                const method = doc('edit-vat-method').value;
+                const date = doc('edit-vat-date').value;
+                const noteInvoice = doc('edit-vat-note-invoice').value;
+                const noteReminder = doc('edit-vat-note-reminder').value;
+                
+                if (!method) {
+                    showToast('請選擇收取方式', 'error');
+                    return;
+                }
+                
+                const rowIndex = currentVatData.rows.findIndex(r => r.row_id === rowId);
+                if (rowIndex === -1) {
+                    showToast('找不到要更新的資料', 'error');
+                    return;
+                }
+                
+                // 保存原始資料用於歷史記錄
+                const originalRow = { ...currentVatData.rows[rowIndex] };
+                
+                // 更新資料
+                currentVatData.rows[rowIndex] = {
+                    ...currentVatData.rows[rowIndex],
+                    collect_method: method,
+                    planned_collect_date: date,
+                    note_invoice: noteInvoice,
+                    note_reminder: noteReminder,
+                    updated_at: new Date().toISOString()
+                };
+                
+                // 記錄歷史
+                const customer = customers.find(c => c.id === currentVatData.rows[rowIndex].customer_id);
+                const changes = [];
+                if (originalRow.collect_method !== method) changes.push(`收取方式: ${originalRow.collect_method} → ${method}`);
+                if (originalRow.planned_collect_date !== date) changes.push(`預計收取日: ${originalRow.planned_collect_date || '未設定'} → ${date || '未設定'}`);
+                if (originalRow.note_invoice !== noteInvoice) changes.push(`備註-發票: ${originalRow.note_invoice || '空'} → ${noteInvoice || '空'}`);
+                if (originalRow.note_reminder !== noteReminder) changes.push(`備註-提醒: ${originalRow.note_reminder || '空'} → ${noteReminder || '空'}`);
+                
+                currentVatData.history.push({
+                    timestamp: new Date().toISOString(),
+                    action: '編輯',
+                    summary: `編輯客戶 ${customer?.companyName || rowId}${changes.length > 0 ? ': ' + changes.join(', ') : ''}`
+                });
+                
+                saveVatData();
+                renderVatDataTable();
+                renderReminderLists(); // 重新渲染提醒列表
+                closeEditVatRowDialog();
+                showToast('客戶資料已更新');
+            };
+
+            // 刪除營業稅資料行
+            window.deleteVatRow = (rowId) => {
+                const row = currentVatData.rows.find(r => r.row_id === rowId);
+                if (!row) return;
+                
+                const customer = customers.find(c => c.id === row.customer_id);
+                const customerName = customer?.companyName || row.customer_id;
+                
+                if (confirm(`確定要刪除客戶「${customerName}」的資料嗎？\n\n此筆將被移除，可在編輯紀錄回朔復原。`)) {
+                    currentVatData.rows = currentVatData.rows.filter(r => r.row_id !== rowId);
+                    
+                    // 記錄歷史
+                    currentVatData.history.push({
+                        timestamp: new Date().toISOString(),
+                        action: '刪除',
+                        summary: `刪除客戶 ${customerName}`
+                    });
+                    
+                    saveVatData();
+                    renderVatDataTable();
+                    showToast('資料已刪除');
+                }
+            };
+
+            // --- 營業稅事件處理器 ---
+            doc('vat-year')?.addEventListener('change', loadCurrentVatPeriod);
+            doc('vat-period')?.addEventListener('change', loadCurrentVatPeriod);
+            doc('vat-deadline')?.addEventListener('change', () => {
+                if (currentVatData) {
+                    currentVatData.last_collect_deadline = doc('vat-deadline').value;
+                    saveVatData();
+                }
+            });
+
+            doc('add-collect-method-btn')?.addEventListener('click', addCollectMethod);
+            
+            // 載入他期作為草稿
+            doc('load-other-period-btn')?.addEventListener('click', () => {
+                console.log('=== 載入他期作為草稿 ===');
+                const currentYear = parseInt(doc('vat-year').value);
+                const currentPeriod = parseInt(doc('vat-period').value);
+                
+                const periodOptions = [
+                    { value: 1, text: '第1期 (01-02月)' },
+                    { value: 2, text: '第2期 (03-04月)' },
+                    { value: 3, text: '第3期 (05-06月)' },
+                    { value: 4, text: '第4期 (07-08月)' },
+                    { value: 5, text: '第5期 (09-10月)' },
+                    { value: 6, text: '第6期 (11-12月)' }
+                ];
+                
+                const availablePeriods = periodOptions.filter(p => p.value !== currentPeriod);
+                const periodList = availablePeriods.map(p => `${p.value}. ${p.text}`).join('\n');
+                
+                const selectedPeriod = prompt(`請選擇要載入的期數：\n${periodList}\n\n請輸入期數 (1-6):`);
+                
+                if (selectedPeriod && /^[1-6]$/.test(selectedPeriod)) {
+                    const sourcePeriod = parseInt(selectedPeriod);
+                    const sourceData = loadVatData(currentYear, sourcePeriod);
+                    
+                    if (sourceData.rows.length === 0) {
+                        showToast(`第${sourcePeriod}期沒有資料可載入`, 'error');
+                        return;
+                    }
+                    
+                    if (confirm(`確定要載入第${sourcePeriod}期的 ${sourceData.rows.length} 筆資料作為草稿嗎？\n\n注意：這不會覆蓋現有資料，而是作為新增的草稿。`)) {
+                        // 複製資料但重新生成ID和時間
+                        const draftRows = sourceData.rows.map(row => ({
+                            ...row,
+                            row_id: `vat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            planned_collect_date: '', // 清空預計收取日，需要重新設定
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }));
+                        
+                        currentVatData.rows.push(...draftRows);
+                        saveVatData();
+                        renderVatDataTable();
+                        showToast(`已載入 ${draftRows.length} 筆草稿資料`);
+                    }
+                } else if (selectedPeriod) {
+                    showToast('請輸入有效的期數 (1-6)', 'error');
+                }
+            });
+            
+            // 編輯紀錄
+            doc('vat-history-btn')?.addEventListener('click', () => {
+                console.log('=== 查看編輯紀錄 ===');
+                if (!currentVatData || currentVatData.history.length === 0) {
+                    showToast('目前沒有編輯紀錄');
+                    return;
+                }
+                
+                const historyList = currentVatData.history
+                    .slice(-10) // 只顯示最近10筆
+                    .reverse()
+                    .map((entry, index) => {
+                        const date = new Date(entry.timestamp).toLocaleString('zh-TW');
+                        return `${index + 1}. ${date}\n   ${entry.action}: ${entry.summary}`;
+                    })
+                    .join('\n\n');
+                
+                alert(`編輯紀錄 (最近10筆):\n\n${historyList}`);
+            });
+            
+            // 一鍵產生話術
+            doc('generate-batch-message-btn')?.addEventListener('click', () => {
+                console.log('=== 一鍵產生話術 ===');
+                const selectedMethods = Array.from(document.querySelectorAll('#collect-method-checkboxes input:checked'))
+                    .map(cb => cb.value);
+                
+                if (selectedMethods.length === 0) {
+                    showToast('請先選擇收取發票方式', 'error');
+                    return;
+                }
+                
+                const filteredRows = currentVatData.rows.filter(row => 
+                    selectedMethods.includes(row.collect_method)
+                );
+                
+                if (filteredRows.length === 0) {
+                    showToast('沒有符合條件的客戶資料', 'error');
+                    return;
+                }
+                
+                const messages = generateBatchMessages(filteredRows, selectedMethods);
+                displayBatchMessages(messages);
+                showToast(`已產生 ${filteredRows.length} 筆客戶的話術`);
+            });
+            
+            // 匯出批次Excel
+            doc('export-batch-excel-btn')?.addEventListener('click', () => {
+                console.log('=== 匯出批次Excel ===');
+                const selectedMethods = Array.from(document.querySelectorAll('#collect-method-checkboxes input:checked'))
+                    .map(cb => cb.value);
+                
+                if (selectedMethods.length === 0) {
+                    showToast('請先選擇收取發票方式', 'error');
+                    return;
+                }
+                
+                const filteredRows = currentVatData.rows.filter(row => 
+                    selectedMethods.includes(row.collect_method)
+                );
+                
+                if (filteredRows.length === 0) {
+                    showToast('沒有符合條件的客戶資料可匯出', 'error');
+                    return;
+                }
+                
+                exportVatToExcel(filteredRows, `批次話術_${selectedMethods.join('_')}`);
+            });
+            
+            // 新增客戶到本期資料
+            doc('add-vat-row-btn')?.addEventListener('click', () => {
+                console.log('=== 新增客戶到本期資料 ===');
+                showAddVatRowDialog();
+            });
+            
+            // 匯出本期資料
+            doc('export-period-data-btn')?.addEventListener('click', () => {
+                console.log('=== 匯出本期資料 ===');
+                if (currentVatData.rows.length === 0) {
+                    showToast('本期沒有資料可匯出', 'error');
+                    return;
+                }
+                
+                const selectedRows = Array.from(document.querySelectorAll('#vat-data-tbody input[type="checkbox"]:checked'))
+                    .map(cb => currentVatData.rows.find(row => row.row_id === cb.value))
+                    .filter(row => row);
+                
+                const exportRows = selectedRows.length > 0 ? selectedRows : currentVatData.rows;
+                const exportType = selectedRows.length > 0 ? '選取資料' : '全部資料';
+                
+                exportVatToExcel(exportRows, `本期資料_${exportType}`);
+                showToast(`已匯出 ${exportRows.length} 筆${exportType}`);
+            });
+
+            // --- INITIAL RENDER --- 
+            console.log('=== 系統初始化 ===');
+            console.log('載入的客戶資料筆數:', customers.length);
+            
+            // 顯示載入完成提示
+            if (localStorage.getItem(STORAGE_KEY)) {
+                showToast(`已載入 ${customers.length} 筆客戶資料`);
+            } else {
+                showToast('使用預設資料，首次使用請新增客戶資料');
+            }
+            
+            renderAll();
+        });
+    </script>
+</body>
+
+</html>
