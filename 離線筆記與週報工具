@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離線筆記與週報工具</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SheetJS (xlsx.js) for Excel import/export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* 自定義樣式 */
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #111827; /* Dark background */
+            color: #d1d5db; /* Light gray text */
+        }
+        /* 自定義滾動條樣式 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        /* 標籤篩選器狀態 */
+        .tag-filter.active-include { background-color: #10b981; color: white; }
+        .tag-filter.active-exclude { background-color: #ef4444; color: white; text-decoration: line-through; }
+
+        /* 今日高亮 */
+        .today-highlight {
+            background-color: #374151 !important;
+            border: 1px solid #0ea5e9;
+        }
+
+        /* 動畫 */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .modal-enter { animation: modal-in 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="app" class="flex flex-col h-screen">
+        
+        <!-- 全域標頭 -->
+        <header class="bg-gray-900 shadow-md p-3 flex items-center justify-between flex-shrink-0 z-10">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-xl font-bold text-white">離線筆記與週報</h1>
+                <div id="offline-indicator" class="hidden items-center space-x-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m-12.728 0a9 9 0 010-12.728m12.728 0L5.636 18.364m0-12.728L18.364 18.364"></path></svg>
+                    <span>離線</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="relative">
+                    <input id="global-search" type="text" placeholder="全域搜尋..." class="bg-gray-700 text-white w-40 sm:w-64 px-3 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <button id="settings-btn" class="p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主體內容 -->
+        <main class="flex-grow flex overflow-hidden">
+            <!-- 頁籤導覽 -->
+            <nav class="bg-gray-800/50 w-48 flex-shrink-0 p-4">
+                <ul class="space-y-2">
+                    <li><button data-view="notes" class="nav-tab w-full text-left px-3 py-2 rounded-md font-medium transition">📝 筆記</button></li>
+                    <li><button data-view="worklog" class="nav-tab w-full text-left px-3 py-2 rounded-md font-medium transition">📅 工作紀錄</button></li>
+                </ul>
+            </nav>
+
+            <!-- 內容區域 -->
+            <div id="view-container" class="flex-grow p-4 overflow-y-auto">
+                <!-- 筆記視圖 -->
+                <div id="notes-view" class="view-content hidden"></div>
+                <!-- 工作紀錄視圖 -->
+                <div id="worklog-view" class="view-content hidden"></div>
+            </div>
+        </main>
+
+        <!-- Toast 通知 -->
+        <div id="toast" class="fixed bottom-5 right-5 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg transition-transform translate-x-full">
+            <p id="toast-message"></p>
+        </div>
+
+    </div>
+
+    <!-- 筆記編輯/新增 Modal -->
+    <div id="note-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="modal-enter bg-gray-800 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b border-gray-700">
+                <h2 id="note-modal-title" class="text-xl font-bold text-white">新增筆記</h2>
+            </div>
+            <div class="p-4 flex-grow overflow-y-auto">
+                <input type="hidden" id="note-id">
+                <div class="mb-4">
+                    <label for="note-title" class="block text-sm font-medium text-gray-300 mb-1">標題</label>
+                    <input type="text" id="note-title" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label for="note-content" class="block text-sm font-medium text-gray-300 mb-1">內容</label>
+                    <textarea id="note-content" rows="10" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label for="note-tags-input" class="block text-sm font-medium text-gray-300 mb-1">標籤 (輸入後按 Enter 新增)</label>
+                    <div id="note-tags-container" class="flex flex-wrap gap-2 mb-2 p-2 bg-gray-700 rounded-md min-h-[40px]"></div>
+                    <input type="text" id="note-tags-input" class="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="p-4 bg-gray-800/50 border-t border-gray-700 flex justify-end space-x-3">
+                <button id="note-modal-cancel" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition">取消</button>
+                <button id="note-modal-save" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工作紀錄編輯/新增 Modal -->
+    <div id="worklog-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="modal-enter bg-gray-800 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] flex flex-col">
+            <h2 id="worklog-modal-title" class="text-xl font-bold text-white p-4 border-b border-gray-700">新增工作紀錄</h2>
+            <div class="p-4 flex-grow overflow-y-auto space-y-4">
+                <input type="hidden" id="worklog-id">
+                <input type="hidden" id="worklog-date">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">專案/客戶</label>
+                    <input type="text" id="worklog-project" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">任務標題</label>
+                    <input type="text" id="worklog-task" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">開始時間</label>
+                        <input type="time" id="worklog-start" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">結束時間</label>
+                        <input type="time" id="worklog-end" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                 <div>
+                    <label for="worklog-tags-input" class="block text-sm font-medium text-gray-300 mb-1">標籤 (輸入後按 Enter 新增)</label>
+                    <div id="worklog-tags-container" class="flex flex-wrap gap-2 mb-2 p-2 bg-gray-700 rounded-md min-h-[40px]"></div>
+                    <input type="text" id="worklog-tags-input" class="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">備註</label>
+                    <textarea id="worklog-notes" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-800/50 border-t border-gray-700 flex justify-end space-x-3">
+                <button id="worklog-modal-delete" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500 transition hidden mr-auto">刪除</button>
+                <button id="worklog-modal-cancel" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition">取消</button>
+                <button id="worklog-modal-save" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定 Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="modal-enter bg-gray-800 rounded-lg shadow-xl w-11/12 md:w-1/2 lg:w-1/3">
+            <div class="p-4 flex justify-between items-center border-b border-gray-700">
+                <h2 class="text-xl font-bold text-white">設定 & 資料管理</h2>
+                <button id="settings-modal-close" class="p-1 rounded-full hover:bg-gray-700">&times;</button>
+            </div>
+            <div class="p-6 space-y-6">
+                <div>
+                    <h3 class="font-semibold text-lg mb-2">匯出資料</h3>
+                    <div class="flex space-x-2">
+                        <button id="export-notes-xlsx" class="flex-1 px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-600 transition">匯出筆記 (.xlsx)</button>
+                        <button id="export-worklog-xlsx" class="flex-1 px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-600 transition">匯出本週紀錄 (.xlsx)</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg mb-2">匯入資料</h3>
+                     <div class="flex space-x-2">
+                        <label class="flex-1 text-center cursor-pointer px-4 py-2 bg-blue-700 text-white rounded-md hover:bg-blue-600 transition">
+                            <span>匯入筆記 (.xlsx)</span>
+                            <input type="file" id="import-notes-xlsx" class="hidden" accept=".xlsx">
+                        </label>
+                    </div>
+                </div>
+                <div class="border-t border-gray-700 pt-6">
+                    <h3 class="font-semibold text-lg mb-2 text-amber-400">備份與還原 (JSON)</h3>
+                    <p class="text-sm text-gray-400 mb-3">這將會匯出/匯入所有資料（筆記和工作紀錄）。還原會覆蓋現有資料！</p>
+                    <div class="flex space-x-2">
+                         <button id="export-backup-json" class="flex-1 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-500 transition">建立備份</button>
+                         <label class="flex-1 text-center cursor-pointer px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-600 transition">
+                            <span>還原備份</span>
+                            <input type="file" id="import-backup-json" class="hidden" accept=".json">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 確認 Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="modal-enter bg-gray-800 rounded-lg shadow-xl w-11/12 sm:w-1/3">
+            <div class="p-6">
+                <h3 id="confirm-modal-title" class="text-lg font-bold text-white mb-2">確認操作</h3>
+                <p id="confirm-modal-body" class="text-gray-300 mb-6">您確定要執行此操作嗎？此操作無法復原。</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="confirm-modal-cancel" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition">取消</button>
+                    <button id="confirm-modal-confirm" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500 transition">確認</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- 全域狀態 & 常數 ---
+        const DB_NAME = 'OfflineProductivityApp';
+        const DB_VERSION = 1;
+        const STORES = {
+            notes: 'notes',
+            worklog: 'worklog'
+        };
+        let db;
+        let appState = {
+            currentView: 'notes',
+            notes: [],
+            workLogs: [],
+            allTags: new Set(),
+            noteFilters: {
+                include: new Set(),
+                exclude: new Set(),
+                searchTerm: ''
+            },
+            worklogDate: new Date(), // for worklog view navigation
+        };
+
+        // --- DOM 元素 ---
+        const views = {
+            notes: document.getElementById('notes-view'),
+            worklog: document.getElementById('worklog-view')
+        };
+        const navTabs = document.querySelectorAll('.nav-tab');
+        const noteModal = document.getElementById('note-modal');
+        const worklogModal = document.getElementById('worklog-modal');
+        const settingsModal = document.getElementById('settings-modal');
+        const confirmModal = document.getElementById('confirm-modal');
+        const globalSearch = document.getElementById('global-search');
+
+        // --- 日期與格式化輔助函數 ---
+        const toMinguoDateString = (dateObj, withWeek = true) => {
+            if (!dateObj) return '';
+            const rocYear = dateObj.getFullYear() - 1911;
+            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            const day = dateObj.getDate().toString().padStart(2, '0');
+            const weekDay = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
+            return withWeek ? `民國${rocYear}/${month}/${day} (週${weekDay})` : `民國${rocYear}/${month}/${day}`;
+        };
+
+        const getWeekInfo = (date) => {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            const day = d.getDay(); // 0 (Sun) - 6 (Sat)
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+            const monday = new Date(d.setDate(diff));
+            const sunday = new Date(new Date(monday).setDate(monday.getDate() + 6));
+            
+            // Calculate week number
+            const firstDayOfYear = new Date(monday.getFullYear(), 0, 1);
+            const pastDaysOfYear = (monday - firstDayOfYear) / 86400000;
+            const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+
+            return { monday, sunday, weekNumber };
+        };
+
+        const toISODateString = (date) => date.toISOString().split('T')[0];
+
+        // --- IndexedDB 操作 ---
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = event => reject("資料庫開啟失敗：" + event.target.errorCode);
+                request.onsuccess = event => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = event => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORES.notes)) {
+                        const noteStore = db.createObjectStore(STORES.notes, { keyPath: 'note_id' });
+                        noteStore.createIndex('updated_at', 'updated_at');
+                        noteStore.createIndex('tags', 'tags', { multiEntry: true });
+                    }
+                    if (!db.objectStoreNames.contains(STORES.worklog)) {
+                        const worklogStore = db.createObjectStore(STORES.worklog, { keyPath: 'entry_id' });
+                        worklogStore.createIndex('date', 'date');
+                    }
+                };
+            });
+        }
+
+        function dbAction(storeName, mode, action, data) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject("資料庫尚未初始化");
+                    return;
+                }
+                const transaction = db.transaction(storeName, mode);
+                const store = transaction.objectStore(storeName);
+                let request;
+
+                switch (action) {
+                    case 'add': request = store.add(data); break;
+                    case 'put': request = store.put(data); break;
+                    case 'delete': request = store.delete(data); break;
+                    case 'get': request = store.get(data); break;
+                    case 'getAll': request = store.getAll(); break;
+                    case 'clear': request = store.clear(); break;
+                    default: reject('無效的資料庫操作'); return;
+                }
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = event => reject(event.target.error);
+            });
+        }
+        
+        // --- Toast 通知 ---
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+        function showToast(message, isError = false) {
+            toastMessage.textContent = message;
+            toast.className = `fixed bottom-5 right-5 text-white px-4 py-2 rounded-md shadow-lg transition-transform ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        // --- 確認 Modal ---
+        function showConfirm(title, body) {
+            return new Promise(resolve => {
+                document.getElementById('confirm-modal-title').textContent = title;
+                document.getElementById('confirm-modal-body').textContent = body;
+                confirmModal.classList.remove('hidden');
+
+                const cancelBtn = document.getElementById('confirm-modal-cancel');
+                const confirmBtn = document.getElementById('confirm-modal-confirm');
+
+                const cleanup = (result) => {
+                    confirmModal.classList.add('hidden');
+                    confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+                    cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+                    resolve(result);
+                };
+
+                confirmBtn.onclick = () => cleanup(true);
+                cancelBtn.onclick = () => cleanup(false);
+            });
+        }
+
+
+        // --- UI 渲染 ---
+        const render = async () => {
+            await loadData();
+            updateActiveTab();
+            
+            if (appState.currentView === 'notes') {
+                renderNotesView();
+            } else {
+                renderWorkLogView();
+            }
+        };
+
+        const updateActiveTab = () => {
+            navTabs.forEach(tab => {
+                const isCurrent = tab.dataset.view === appState.currentView;
+                tab.classList.toggle('bg-blue-600', isCurrent);
+                tab.classList.toggle('text-white', isCurrent);
+                tab.classList.toggle('text-gray-300', !isCurrent);
+                tab.classList.toggle('hover:bg-gray-700', !isCurrent);
+            });
+            Object.values(views).forEach(v => v.classList.add('hidden'));
+            views[appState.currentView].classList.remove('hidden');
+        };
+        
+        async function loadData() {
+            appState.notes = (await dbAction(STORES.notes, 'readonly', 'getAll')).sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
+            appState.workLogs = await dbAction(STORES.worklog, 'readonly', 'getAll');
+
+            // 更新所有標籤
+            const noteTags = appState.notes.flatMap(n => n.tags);
+            const worklogTags = appState.workLogs.flatMap(w => w.tags || []);
+            appState.allTags = new Set([...noteTags, ...worklogTags].map(t => t.toLowerCase()));
+        }
+
+        // --- 筆記功能 ---
+        function renderNotesView() {
+            const container = views.notes;
+            const { include, exclude, searchTerm } = appState.noteFilters;
+            const searchLower = searchTerm.toLowerCase();
+
+            const filteredNotes = appState.notes.filter(note => {
+                const noteTagsLower = note.tags.map(t => t.toLowerCase());
+                if (include.size > 0 && ![...include].every(tag => noteTagsLower.includes(tag))) {
+                    return false;
+                }
+                if (exclude.size > 0 && [...exclude].some(tag => noteTagsLower.includes(tag))) {
+                    return false;
+                }
+                if (searchLower) {
+                    const titleMatch = note.title.toLowerCase().includes(searchLower);
+                    const contentMatch = note.content.toLowerCase().includes(searchLower);
+                    const tagsMatch = note.tags.some(t => t.toLowerCase().includes(searchLower));
+                    if (!titleMatch && !contentMatch && !tagsMatch) return false;
+                }
+                return true;
+            });
+            
+            let tagFiltersHTML = `<div class="mb-4"><span class="font-semibold mr-2">標籤篩選:</span>`;
+            if (appState.allTags.size > 0) {
+                 tagFiltersHTML += [...appState.allTags].sort().map(tag => {
+                    let classes = 'tag-filter cursor-pointer inline-block bg-gray-600 text-xs font-semibold mr-2 px-2.5 py-1 rounded-full transition';
+                    if (include.has(tag)) classes += ' active-include';
+                    else if (exclude.has(tag)) classes += ' active-exclude';
+                    return `<span class="${classes}" data-tag="${tag}">${tag}</span>`;
+                }).join('');
+            } else {
+                tagFiltersHTML += `<span class="text-gray-400 text-sm">尚無標籤</span>`;
+            }
+            tagFiltersHTML += '</div>';
+
+            let notesListHTML = '';
+            if (appState.notes.length === 0) {
+                notesListHTML = `<div class="text-center py-10"><p class="text-gray-400">尚無筆記，點右上角 + 建立第一則</p></div>`;
+            } else if (filteredNotes.length === 0) {
+                 notesListHTML = `<div class="text-center py-10"><p class="text-gray-400">沒有符合條件的筆記，試試清除某些篩選條件</p></div>`;
+            } else {
+                notesListHTML = filteredNotes.map(note => `
+                    <div class="note-item bg-gray-800 p-4 rounded-lg mb-3 cursor-pointer hover:bg-gray-700/50 transition fade-in" data-id="${note.note_id}">
+                        <div class="flex justify-between items-start">
+                           <div>
+                                <h3 class="font-bold text-lg text-white">${note.title || '無標題'}</h3>
+                                <p class="text-gray-400 text-sm mt-1 mb-2 line-clamp-2">${note.content.substring(0, 150)}</p>
+                           </div>
+                           <button class="delete-note-btn p-1 text-gray-500 hover:text-red-500 transition" data-id="${note.note_id}">&times;</button>
+                        </div>
+                        <div class="flex justify-between items-end mt-2">
+                             <div class="flex flex-wrap gap-2">
+                                ${note.tags.map(tag => `<span class="bg-gray-600 text-xs font-semibold px-2 py-1 rounded-full">${tag}</span>`).join('')}
+                            </div>
+                            <p class="text-xs text-gray-500 flex-shrink-0 ml-4">更新於: ${toMinguoDateString(new Date(note.updated_at))}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">我的筆記</h2>
+                    <button id="add-note-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition font-semibold">+ 新增筆記</button>
+                </div>
+                ${tagFiltersHTML}
+                <div id="notes-list">${notesListHTML}</div>
+            `;
+        }
+        
+        function openNoteModal(note = null) {
+            const isNew = !note;
+            document.getElementById('note-modal-title').textContent = isNew ? '新增筆記' : '編輯筆記';
+            document.getElementById('note-id').value = isNew ? '' : note.note_id;
+            document.getElementById('note-title').value = isNew ? '' : note.title;
+            document.getElementById('note-content').value = isNew ? '' : note.content;
+            
+            renderNoteTags(isNew ? [] : note.tags);
+            
+            noteModal.classList.remove('hidden');
+        }
+
+        function renderNoteTags(tags) {
+            const container = noteModal.querySelector(noteModal.id.includes('worklog') ? '#worklog-tags-container' : '#note-tags-container');
+            container.innerHTML = tags.map(tag => `
+                <span class="bg-blue-500 text-white text-sm font-medium px-2 py-1 rounded-md flex items-center">
+                    ${tag}
+                    <button class="remove-tag-btn ml-2 text-blue-200 hover:text-white" data-tag="${tag}">&times;</button>
+                </span>
+            `).join('');
+        }
+        
+        async function saveNote() {
+            const id = document.getElementById('note-id').value;
+            const title = document.getElementById('note-title').value.trim();
+            const content = document.getElementById('note-content').value.trim();
+            const tagsContainer = document.getElementById('note-tags-container');
+            const tags = [...tagsContainer.querySelectorAll('span')].map(span => span.textContent.slice(0, -1).trim());
+            
+            if (!content) {
+                showToast('筆記內容不能為空', true);
+                return;
+            }
+
+            const now = new Date().toISOString();
+            const noteData = {
+                note_id: id || crypto.randomUUID(),
+                title: title,
+                content: content,
+                tags: [...new Set(tags)], // 去重
+                updated_at: now,
+            };
+
+            if (!id) {
+                noteData.created_at = now;
+                await dbAction(STORES.notes, 'readwrite', 'add', noteData);
+                showToast('筆記已新增');
+            } else {
+                const originalNote = await dbAction(STORES.notes, 'readonly', 'get', id);
+                noteData.created_at = originalNote.created_at;
+                await dbAction(STORES.notes, 'readwrite', 'put', noteData);
+                showToast('筆記已更新');
+            }
+            noteModal.classList.add('hidden');
+            render();
+        }
+
+        // --- 工作紀錄功能 ---
+        function renderWorkLogView() {
+            const container = views.worklog;
+            const { monday, sunday, weekNumber } = getWeekInfo(appState.worklogDate);
+            const minguoYear = monday.getFullYear() - 1911;
+
+            const weekEntries = appState.workLogs.filter(log => {
+                const logDate = new Date(log.date + 'T00:00:00');
+                return logDate >= monday && logDate <= sunday;
+            });
+
+            let weekTotalMinutes = 0;
+            const projectTotals = {};
+            const tagTotals = {};
+
+            weekEntries.forEach(entry => {
+                const duration = calculateDuration(entry.start_time, entry.end_time);
+                weekTotalMinutes += duration;
+                
+                const projectKey = entry.project_or_client || '未分類';
+                projectTotals[projectKey] = (projectTotals[projectKey] || 0) + duration;
+                
+                (entry.tags || []).forEach(tag => {
+                     tagTotals[tag] = (tagTotals[tag] || 0) + duration;
+                });
+            });
+
+            const renderSummary = (totals) => {
+                 return Object.entries(totals)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([key, minutes]) => `<div class="flex justify-between text-sm"><span class="font-medium">${key}</span> <span class="text-gray-300">${(minutes / 60).toFixed(2)} 小時</span></div>`)
+                    .join('');
+            };
+
+            let daysHTML = '';
+            for (let i = 0; i < 7; i++) {
+                const currentDate = new Date(monday);
+                currentDate.setDate(monday.getDate() + i);
+                const isoDate = toISODateString(currentDate);
+                
+                const dayEntries = weekEntries.filter(log => log.date === isoDate);
+                let dayTotalMinutes = 0;
+                
+                const entryHTML = dayEntries.map(entry => {
+                    const duration = calculateDuration(entry.start_time, entry.end_time);
+                    dayTotalMinutes += duration;
+                    return `
+                        <div class="worklog-entry-item bg-gray-700 p-2 rounded-md mb-2 cursor-pointer hover:bg-gray-600" data-id="${entry.entry_id}">
+                            <p class="font-semibold text-sm text-white">${entry.task_title}</p>
+                            <p class="text-xs text-gray-400">${entry.project_or_client}</p>
+                            <p class="text-xs text-gray-400">${entry.start_time} - ${entry.end_time} (${(duration / 60).toFixed(2)}h)</p>
+                        </div>
+                    `;
+                }).join('');
+
+                const isToday = toISODateString(new Date()) === isoDate;
+
+                daysHTML += `
+                    <div class="bg-gray-800 rounded-lg p-3 flex flex-col ${isToday ? 'today-highlight' : ''}">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-700">
+                           <div>
+                                <p class="font-bold text-white">${toMinguoDateString(currentDate)}</p>
+                           </div>
+                           <div class="text-right">
+                                <p class="font-semibold text-sm text-blue-400">${(dayTotalMinutes / 60).toFixed(2)} 小時</p>
+                           </div>
+                        </div>
+                        <div class="flex-grow overflow-y-auto pr-1">
+                            ${entryHTML}
+                        </div>
+                         <button class="add-worklog-btn mt-2 w-full text-center py-1.5 bg-blue-600/50 text-white rounded-md hover:bg-blue-600/80 transition text-sm" data-date="${isoDate}">+ 新增紀錄</button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prev-week-btn" class="px-3 py-1.5 bg-gray-700 rounded-md hover:bg-gray-600">‹ 上一週</button>
+                    <h2 class="text-xl font-bold text-center">
+                        民國${minguoYear} 第 ${weekNumber} 週<br>
+                        <span class="text-sm font-normal text-gray-400">${toMinguoDateString(monday, false)} ~ ${toMinguoDateString(sunday, false)}</span>
+                    </h2>
+                    <button id="next-week-btn" class="px-3 py-1.5 bg-gray-700 rounded-md hover:bg-gray-600">下一週 ›</button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2">本週總計</h3>
+                        <p class="text-3xl font-bold text-blue-400">${(weekTotalMinutes / 60).toFixed(2)} <span class="text-lg">小時</span></p>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2">專案/客戶 統計</h3>
+                        <div class="space-y-1 max-h-24 overflow-y-auto">${renderSummary(projectTotals) || '<p class="text-sm text-gray-400">無資料</p>'}</div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2">標籤 統計</h3>
+                        <div class="space-y-1 max-h-24 overflow-y-auto">${renderSummary(tagTotals) || '<p class="text-sm text-gray-400">無資料</p>'}</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3" style="max-height: calc(100vh - 300px);">
+                    ${daysHTML}
+                </div>
+            `;
+        }
+        
+        function calculateDuration(start, end) {
+            if (!start || !end) return 0;
+            const [sh, sm] = start.split(':').map(Number);
+            const [eh, em] = end.split(':').map(Number);
+            const startDate = new Date(0, 0, 0, sh, sm, 0);
+            const endDate = new Date(0, 0, 0, eh, em, 0);
+            return (endDate - startDate) / (1000 * 60);
+        }
+
+        function openWorklogModal(entry = null, date = null) {
+            const isNew = !entry;
+            document.getElementById('worklog-modal-title').textContent = `${isNew ? '新增' : '編輯'}工作紀錄 (${toMinguoDateString(new Date((isNew ? date : entry.date) + 'T00:00:00'))})`;
+            document.getElementById('worklog-id').value = isNew ? '' : entry.entry_id;
+            document.getElementById('worklog-date').value = isNew ? date : entry.date;
+            document.getElementById('worklog-project').value = isNew ? '' : entry.project_or_client;
+            document.getElementById('worklog-task').value = isNew ? '' : entry.task_title;
+            document.getElementById('worklog-start').value = isNew ? '' : entry.start_time;
+            document.getElementById('worklog-end').value = isNew ? '' : entry.end_time;
+            document.getElementById('worklog-notes').value = isNew ? '' : entry.notes;
+
+            renderNoteTags(isNew ? [] : (entry.tags || []));
+
+            const deleteBtn = document.getElementById('worklog-modal-delete');
+            deleteBtn.classList.toggle('hidden', isNew);
+            if (!isNew) deleteBtn.dataset.id = entry.entry_id;
+            
+            worklogModal.classList.remove('hidden');
+        }
+
+        async function saveWorklog() {
+            const id = document.getElementById('worklog-id').value;
+            const date = document.getElementById('worklog-date').value;
+            const project = document.getElementById('worklog-project').value.trim();
+            const task = document.getElementById('worklog-task').value.trim();
+            const start = document.getElementById('worklog-start').value;
+            const end = document.getElementById('worklog-end').value;
+            const notes = document.getElementById('worklog-notes').value.trim();
+            const tagsContainer = document.getElementById('worklog-tags-container');
+            const tags = [...tagsContainer.querySelectorAll('span')].map(span => span.textContent.slice(0, -1).trim());
+
+            if (!project || !task || !start || !end) {
+                showToast('專案、任務、起訖時間為必填項', true);
+                return;
+            }
+
+            const now = new Date().toISOString();
+            const logData = {
+                entry_id: id || crypto.randomUUID(),
+                date,
+                project_or_client: project,
+                task_title: task,
+                start_time: start,
+                end_time: end,
+                tags: [...new Set(tags)],
+                notes,
+                updated_at: now,
+            };
+
+            if (!id) {
+                logData.created_at = now;
+                await dbAction(STORES.worklog, 'readwrite', 'add', logData);
+                showToast('工作紀錄已新增');
+            } else {
+                const originalLog = await dbAction(STORES.worklog, 'readonly', 'get', id);
+                logData.created_at = originalLog.created_at;
+                await dbAction(STORES.worklog, 'readwrite', 'put', logData);
+                showToast('工作紀錄已更新');
+            }
+            worklogModal.classList.add('hidden');
+            render();
+        }
+        
+        // --- 匯出/匯入 ---
+        function exportNotesToXLSX() {
+            const dataToExport = appState.notes.map(note => ({
+                note_id: note.note_id,
+                title: note.title,
+                content: note.content,
+                tags: note.tags.join(';'),
+                created_at: toMinguoDateString(new Date(note.created_at)),
+                updated_at: toMinguoDateString(new Date(note.updated_at)),
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Notes");
+            XLSX.writeFile(workbook, "Notes.xlsx");
+            showToast("筆記已匯出為 Notes.xlsx");
+        }
+        
+        async function importNotesFromXLSX(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet);
+
+                    let toAdd = [], toUpdate = [], errors = 0;
+                    for(const row of json) {
+                        if (!row.content) { errors++; continue; }
+                        
+                        const note = {
+                            note_id: row.note_id || crypto.randomUUID(),
+                            title: row.title || '',
+                            content: row.content,
+                            tags: row.tags ? String(row.tags).split(';').map(t=>t.trim()).filter(Boolean) : [],
+                            updated_at: new Date().toISOString()
+                        };
+
+                        const existing = await dbAction(STORES.notes, 'readonly', 'get', note.note_id);
+                        if (existing) {
+                            note.created_at = existing.created_at;
+                            note.tags = [...new Set([...existing.tags, ...note.tags])];
+                            toUpdate.push(note);
+                        } else {
+                            note.created_at = new Date().toISOString();
+                            toAdd.push(note);
+                        }
+                    }
+
+                    if (await showConfirm('匯入預覽', `將新增 ${toAdd.length} 筆，更新 ${toUpdate.length} 筆，${errors} 筆錯誤。確定要匯入嗎？`)) {
+                        const transaction = db.transaction(STORES.notes, 'readwrite');
+                        const store = transaction.objectStore(STORES.notes);
+                        for (const note of [...toAdd, ...toUpdate]) {
+                            store.put(note);
+                        }
+                        transaction.oncomplete = () => {
+                            showToast('筆記匯入成功');
+                            render();
+                        };
+                        transaction.onerror = () => showToast('匯入失敗', true);
+                    }
+                } catch (err) {
+                    showToast('檔案解析失敗', true);
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function exportWorkLogToXLSX() {
+            const { monday, sunday, weekNumber } = getWeekInfo(appState.worklogDate);
+            const weekEntries = appState.workLogs.filter(log => {
+                const logDate = new Date(log.date + 'T00:00:00');
+                return logDate >= monday && logDate <= sunday;
+            });
+            
+            if (weekEntries.length === 0) {
+                showToast("本週無工作紀錄可匯出", true);
+                return;
+            }
+
+            let weekTotalMinutes = 0;
+            const projectTotals = {};
+            const tagTotals = {};
+            
+            const entriesData = weekEntries.map(entry => {
+                const duration = calculateDuration(entry.start_time, entry.end_time);
+                weekTotalMinutes += duration;
+                
+                const projectKey = entry.project_or_client || '未分類';
+                projectTotals[projectKey] = (projectTotals[projectKey] || 0) + duration;
+                (entry.tags || []).forEach(tag => {
+                     tagTotals[tag] = (tagTotals[tag] || 0) + duration;
+                });
+                
+                const d = new Date(entry.date + 'T00:00:00');
+                return {
+                    entry_id: entry.entry_id,
+                    date: toMinguoDateString(d, false),
+                    weekday: `週${['日', '一', '二', '三', '四', '五', '六'][d.getDay()]}`,
+                    project_or_client: entry.project_or_client,
+                    task_title: entry.task_title,
+                    tags: (entry.tags || []).join(';'),
+                    start_time: entry.start_time,
+                    end_time: entry.end_time,
+                    duration_minutes: duration,
+                    notes: entry.notes
+                };
+            });
+            
+            const toHoursStr = (totals) => Object.entries(totals).map(([key, val]) => `${key}:${(val/60).toFixed(2)}h`).join(';');
+            const summaryData = [{
+                week_label: `民國${monday.getFullYear() - 1911} 第${weekNumber}週`,
+                total_hours: (weekTotalMinutes/60).toFixed(2),
+                by_project: toHoursStr(projectTotals),
+                by_tag: toHoursStr(tagTotals),
+            }];
+
+            const summaryWs = XLSX.utils.json_to_sheet(summaryData);
+            const entriesWs = XLSX.utils.json_to_sheet(entriesData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+            XLSX.utils.book_append_sheet(wb, entriesWs, "Entries");
+            
+            const filename = `WorkLog_WEEK_${monday.getFullYear() - 1911}W${weekNumber}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            showToast(`工作紀錄已匯出為 ${filename}`);
+        }
+
+        async function exportBackup() {
+            const backupData = {
+                notes: await dbAction(STORES.notes, 'readonly', 'getAll'),
+                worklog: await dbAction(STORES.worklog, 'readonly', 'getAll'),
+                exportDate: new Date().toISOString()
+            };
+            const jsonStr = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('已建立全量備份');
+        }
+
+        function importBackup(file) {
+             const reader = new FileReader();
+             reader.onload = async (e) => {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    if (!backupData.notes || !backupData.worklog) {
+                        throw new Error("無效的備份檔案格式");
+                    }
+                    if (await showConfirm('還原備份', `您確定要從 ${new Date(backupData.exportDate).toLocaleString()} 的備份還原嗎？這將會覆蓋所有現有資料！`)) {
+                        await dbAction(STORES.notes, 'readwrite', 'clear');
+                        await dbAction(STORES.worklog, 'readwrite', 'clear');
+
+                        for(const note of backupData.notes) await dbAction(STORES.notes, 'readwrite', 'add', note);
+                        for(const log of backupData.worklog) await dbAction(STORES.worklog, 'readwrite', 'add', log);
+
+                        showToast('備份還原成功');
+                        render();
+                    }
+                } catch (err) {
+                    showToast('備份檔案解析或還原失敗', true);
+                    console.error(err);
+                }
+             };
+             reader.readAsText(file);
+        }
+
+        // --- 事件監聽 ---
+        function setupEventListeners() {
+            // 頁籤切換
+            navTabs.forEach(tab => tab.addEventListener('click', () => {
+                appState.currentView = tab.dataset.view;
+                render();
+            }));
+
+            // 全域搜尋 (debounce)
+            let searchTimeout;
+            globalSearch.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    appState.noteFilters.searchTerm = globalSearch.value;
+                    render(); // Re-render both to apply search
+                }, 300);
+            });
+            
+            // 筆記 Modal
+            noteModal.querySelector('#note-modal-cancel').addEventListener('click', () => noteModal.classList.add('hidden'));
+            noteModal.querySelector('#note-modal-save').addEventListener('click', saveNote);
+            
+            const setupTagInput = (modal) => {
+                const input = modal.querySelector(modal.id.includes('worklog') ? '#worklog-tags-input' : '#note-tags-input');
+                const container = modal.querySelector(modal.id.includes('worklog') ? '#worklog-tags-container' : '#note-tags-container');
+
+                input.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const tagValue = input.value.trim();
+                        if (tagValue) {
+                            const currentTags = [...container.querySelectorAll('span')].map(s => s.textContent.slice(0, -1).trim());
+                            if (!currentTags.includes(tagValue)) {
+                                renderNoteTags([...currentTags, tagValue]);
+                            }
+                            input.value = '';
+                        }
+                    }
+                });
+
+                container.addEventListener('click', e => {
+                    if (e.target.classList.contains('remove-tag-btn')) {
+                        const tagToRemove = e.target.dataset.tag;
+                        const currentTags = [...container.querySelectorAll('span')].map(s => s.textContent.slice(0, -1).trim());
+                        renderNoteTags(currentTags.filter(t => t !== tagToRemove));
+                    }
+                });
+            };
+            setupTagInput(noteModal);
+            setupTagInput(worklogModal);
+
+
+            // 工作紀錄 Modal
+            worklogModal.querySelector('#worklog-modal-cancel').addEventListener('click', () => worklogModal.classList.add('hidden'));
+            worklogModal.querySelector('#worklog-modal-save').addEventListener('click', saveWorklog);
+            worklogModal.querySelector('#worklog-modal-delete').addEventListener('click', async e => {
+                 const id = e.target.dataset.id;
+                 if (await showConfirm('刪除工作紀錄', '您確定要刪除這筆工作紀錄嗎？')) {
+                    await dbAction(STORES.worklog, 'readwrite', 'delete', id);
+                    showToast('工作紀錄已刪除');
+                    worklogModal.classList.add('hidden');
+                    render();
+                 }
+            });
+
+            // 設定 Modal
+            document.getElementById('settings-btn').addEventListener('click', () => settingsModal.classList.remove('hidden'));
+            document.getElementById('settings-modal-close').addEventListener('click', () => settingsModal.classList.add('hidden'));
+            document.getElementById('export-notes-xlsx').addEventListener('click', exportNotesToXLSX);
+            document.getElementById('export-worklog-xlsx').addEventListener('click', exportWorkLogToXLSX);
+            document.getElementById('export-backup-json').addEventListener('click', exportBackup);
+            document.getElementById('import-notes-xlsx').addEventListener('change', e => importNotesFromXLSX(e.target.files[0]));
+            document.getElementById('import-backup-json').addEventListener('change', e => importBackup(e.target.files[0]));
+
+            // 動態事件 (使用事件委派)
+            document.getElementById('view-container').addEventListener('click', async (e) => {
+                const target = e.target;
+                
+                // 筆記相關
+                if (target.closest('#add-note-btn')) {
+                    openNoteModal();
+                }
+                if (target.closest('.note-item') && !target.closest('.delete-note-btn')) {
+                    const id = target.closest('.note-item').dataset.id;
+                    const note = appState.notes.find(n => n.note_id === id);
+                    if (note) openNoteModal(note);
+                }
+                 if (target.closest('.delete-note-btn')) {
+                    const id = target.closest('.delete-note-btn').dataset.id;
+                    if (await showConfirm('刪除筆記', '您確定要刪除這則筆記嗎？')) {
+                        await dbAction(STORES.notes, 'readwrite', 'delete', id);
+                        showToast('筆記已刪除');
+                        render();
+                    }
+                }
+                if (target.classList.contains('tag-filter')) {
+                    const tag = target.dataset.tag;
+                    const { include, exclude } = appState.noteFilters;
+                    if (include.has(tag)) {
+                        include.delete(tag);
+                        exclude.add(tag);
+                    } else if (exclude.has(tag)) {
+                        exclude.delete(tag);
+                    } else {
+                        include.add(tag);
+                    }
+                    renderNotesView();
+                }
+
+                // 工作紀錄相關
+                if (target.id === 'prev-week-btn') {
+                    appState.worklogDate.setDate(appState.worklogDate.getDate() - 7);
+                    renderWorkLogView();
+                }
+                if (target.id === 'next-week-btn') {
+                    appState.worklogDate.setDate(appState.worklogDate.getDate() + 7);
+                    renderWorkLogView();
+                }
+                if (target.closest('.add-worklog-btn')) {
+                    openWorklogModal(null, target.closest('.add-worklog-btn').dataset.date);
+                }
+                if (target.closest('.worklog-entry-item')) {
+                    const id = target.closest('.worklog-entry-item').dataset.id;
+                    const entry = appState.workLogs.find(l => l.entry_id === id);
+                    if (entry) openWorklogModal(entry);
+                }
+            });
+            
+            // 離線狀態監聽
+            window.addEventListener('online', () => document.getElementById('offline-indicator').classList.add('hidden'));
+            window.addEventListener('offline', () => document.getElementById('offline-indicator').classList.remove('hidden'));
+            if (!navigator.onLine) {
+                 document.getElementById('offline-indicator').classList.remove('hidden');
+            }
+        }
+        
+        // --- 初始化 App ---
+        async function initializeApp() {
+            try {
+                await initDB();
+                setupEventListeners();
+                render();
+            } catch (error) {
+                console.error("應用程式初始化失敗:", error);
+                document.body.innerHTML = '<div class="text-center p-10 text-red-500">應用程式載入失敗，請檢查瀏覽器是否支援 IndexedDB 或嘗試清除網站資料。</div>';
+            }
+        }
+
+        initializeApp();
+    });
+    </script>
+</body>
+</html>
