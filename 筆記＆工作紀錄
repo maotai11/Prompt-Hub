@@ -1,314 +1,1263 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>筆記管理系統</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="utf-8" />
+  <title>離線工作紀錄與筆記 v1.3</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="單一檔案、完全離線運作的工作紀錄與筆記應用程式。資料永久儲存於您的瀏覽器。">
+  
+  <style id="app-style">
+    /* --- Reset & Base --- */
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-size: 16px;
+      --radius: 6px;
+      --gap: 1rem;
+      --c-bg: #f8f9fa; --c-fg: #212529; --c-border: #dee2e6;
+      --c-primary: #0d6efd; --c-primary-fg: #fff;
+      --c-secondary-bg: #e9ecef; --c-secondary-fg: #495057;
+      --c-card-bg: #fff; --c-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --c-accent: #fd7e14; --c-accent-fg: #fff;
+      --c-success: #198754; --c-danger: #dc3545; --c-warn: #ffc107;
+      --c-disabled-bg: #e9ecef; --c-disabled-fg: #6c757d;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --c-bg: #212529; --c-fg: #dee2e6; --c-border: #495057;
+        --c-primary: #0d6efd; --c-primary-fg: #fff;
+        --c-secondary-bg: #343a40; --c-secondary-fg: #ced4da;
+        --c-card-bg: #2b3035; --c-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        --c-disabled-bg: #343a40; --c-disabled-fg: #6c757d;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-family: var(--font-family); font-size: var(--font-size); background-color: var(--c-bg); color: var(--c-fg); }
+    body { display: flex; flex-direction: column; height: 100vh; max-height: 100vh; overflow: hidden; }
+    button, input, select, textarea { font: inherit; background: transparent; border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.5em 0.8em; color: inherit; }
+    button { cursor: pointer; background-color: var(--c-secondary-bg); color: var(--c-secondary-fg); border-color: var(--c-secondary-bg); }
+    button:not(:disabled):hover { opacity: 0.85; }
+    button.primary { background-color: var(--c-primary); color: var(--c-primary-fg); border-color: var(--c-primary); }
+    button:disabled { cursor: not-allowed; background-color: var(--c-disabled-bg); color: var(--c-disabled-fg); }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--c-primary); outline-offset: 1px; }
+    dialog { border: 1px solid var(--c-border); border-radius: var(--radius); background-color: var(--c-card-bg); color: var(--c-fg); max-width: 90vw; width: 600px; padding: 0; }
+    dialog::backdrop { background-color: rgba(0,0,0,0.5); }
+    
+    /* --- Layout & Components --- */
+    #app-container { display: flex; flex-direction: column; height: 100%; }
+    #toolbar { flex-shrink: 0; display: grid; grid-template-columns: 1fr auto; gap: var(--gap); padding: var(--gap); background-color: var(--c-card-bg); border-bottom: 1px solid var(--c-border); flex-wrap: wrap; }
+    #toolbar-filters { display: flex; gap: calc(var(--gap) / 2); flex-wrap: wrap; }
+    #toolbar-actions { display: flex; gap: calc(var(--gap) / 2); flex-wrap: wrap; }
+    #search-input { width: 100%; max-width: 300px; }
+    
+    #reminder-bar { flex-shrink: 0; padding: calc(var(--gap)/2) var(--gap); background-color: var(--c-warn); color: #000; display: none; }
+    #reminder-bar h3 { font-size: 0.9em; margin-bottom: 0.5em; }
+    #reminder-list { display: flex; flex-direction: column; gap: 0.5em; }
+    .reminder-item { display: flex; align-items: center; justify-content: space-between; gap: 1em; font-size: 0.9em; }
+    .reminder-item .title { font-weight: bold; }
+    .reminder-item .due { font-size: 0.9em; }
+    .reminder-item .due.overdue { color: var(--c-danger); font-weight: bold; }
+    .reminder-item .actions button { padding: 0.2em 0.5em; font-size: 0.8em; }
 
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f5f5f5;
-            --text-primary: #1a1a1a;
-            --text-secondary: #666666;
-            --accent: #c9a96e;
-            --accent-hover: #b8935f;
-            --border: #e0e0e0;
-            --shadow: rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+    #list-container { flex-grow: 1; overflow-y: auto; padding: var(--gap); }
+    #list.empty-state { display: flex; justify-content: center; align-items: center; height: 100%; color: var(--c-secondary-fg); }
+    .record-card { background-color: var(--c-card-bg); border-radius: var(--radius); box-shadow: var(--c-shadow); padding: var(--gap); margin-bottom: var(--gap); cursor: pointer; transition: transform 0.2s; border-left: 4px solid transparent; }
+    .record-card:hover { transform: translateY(-2px); }
+    .record-card.selected { border-left-color: var(--c-primary); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5em; }
+    .card-date { font-size: 0.9em; color: var(--c-secondary-fg); }
+    .card-todo-badge { background-color: var(--c-accent); color: var(--c-accent-fg); font-size: 0.75em; padding: 0.2em 0.5em; border-radius: 1em; }
+    .card-content { white-space: pre-wrap; word-break: break-word; max-height: 100px; overflow: hidden; text-overflow: ellipsis; color: var(--c-fg); margin-bottom: 0.75em; }
+    .card-tags { display: flex; flex-wrap: wrap; gap: 0.5em; }
+    .tag { background-color: var(--c-secondary-bg); color: var(--c-secondary-fg); font-size: 0.8em; padding: 0.2em 0.6em; border-radius: 1em; }
 
-        [data-theme="dark"] {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2a2a2a;
-            --text-primary: #ffffff;
-            --text-secondary: #b0b0b0;
-            --accent: #d4af37;
-            --accent-hover: #c9a96e;
-            --border: #404040;
-            --shadow: rgba(0, 0, 0, 0.3);
-        }
+    #editor { max-height: 90vh; }
+    #editor-header, #editor-footer { flex-shrink: 0; padding: var(--gap); border-bottom: 1px solid var(--c-border); display: flex; justify-content: space-between; align-items: center; }
+    #editor-footer { border-bottom: none; border-top: 1px solid var(--c-border); gap: 0.5em; }
+    #editor-title { font-size: 1.2em; font-weight: bold; }
+    #editor-content { flex-grow: 1; padding: var(--gap); overflow-y: auto; display: flex; flex-direction: column; gap: var(--gap); }
+    #editor textarea { width: 100%; min-height: 200px; resize: vertical; }
+    .form-group { display: flex; flex-direction: column; gap: 0.5em; }
+    .form-group label { font-weight: bold; }
+    #todo-fields { display: none; /* toggled by JS */ }
+    #todo-fields.visible { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--gap); }
+    #tags-container .tag { cursor: pointer; } #tags-container .tag.selected { background-color: var(--c-primary); color: var(--c-primary-fg); }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            transition: var(--transition);
-            min-height: 100vh;
-        }
+    #batch-actions { display: none; position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); background-color: var(--c-card-bg); padding: var(--gap); border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; gap: 0.5rem; }
+    #batch-actions.visible { display: flex; }
+    #status-bar { flex-shrink: 0; font-size: 0.8em; padding: 0.3em var(--gap); background: var(--c-secondary-bg); color: var(--c-secondary-fg); text-align: right; }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+    /* --- Accessibility & Utility --- */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 30px;
-        }
+  <div id="app-container">
+    <header id="toolbar">
+      <div id="toolbar-filters">
+        <input type="search" id="search-input" placeholder="全文搜尋...">
+        <select id="module-filter">
+          <option value="all">全部模組</option>
+          <option value="worklog">工作紀錄</option>
+          <option value="note">筆記</option>
+        </select>
+        <select id="tag-filter" multiple hidden title="標籤篩選"></select>
+        </div>
+      <div id="toolbar-actions">
+        <button id="btn-batch-mode" title="批量操作">批量</button>
+        <button id="btn-import" title="匯入 .xlsx">匯入</button>
+        <button id="btn-export" title="匯出 .xlsx">匯出</button>
+        <button id="btn-new" class="primary" title="新增紀錄">新增</button>
+      </div>
+    </header>
 
-        .date-display {
-            font-size: 2rem;
-            font-weight: 300;
-            letter-spacing: -0.02em;
-        }
+    <section id="reminder-bar" hidden>
+      <h3>待辦提醒</h3>
+      <div id="reminder-list"></div>
+    </section>
 
-        .theme-toggle {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: var(--transition);
-            font-weight: 500;
-        }
+    <main id="list-container">
+      <div id="list"></div>
+    </main>
 
-        .theme-toggle:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px var(--shadow);
-        }
+    <div id="batch-actions">
+      <span id="batch-count"></span>
+      <button id="batch-delete">刪除</button>
+      <button id="batch-mark-done">完成待辦</button>
+      <button id="batch-cancel" class="primary">完成批量操作</button>
+    </div>
+    
+    <footer id="status-bar">
+        <span>初始化中...</span>
+    </footer>
+  </div>
 
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid var(--border);
-        }
+  <dialog id="editor">
+    <header id="editor-header">
+      <h2 id="editor-title">新增紀錄</h2>
+      <button id="editor-close" aria-label="關閉">&times;</button>
+    </header>
+    <form id="editor-form">
+      <div id="editor-content">
+        <input type="hidden" id="record-id">
+        <div class="form-group">
+          <label for="record-module">模組</label>
+          <select id="record-module">
+            <option value="worklog">工作紀錄</option>
+            <option value="note">筆記</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="record-date">日期</label>
+          <input type="date" id="record-date" required>
+        </div>
+        <div class="form-group">
+            <label>標籤 (可新增)</label>
+            <div id="tags-container"></div>
+            <input type="text" id="new-tag-input" placeholder="輸入新標籤後按 Enter">
+        </div>
+        
+        <div class="form-group">
+            <div id="is-todo-container">
+                <input type="checkbox" id="is-todo-checkbox">
+                <label for="is-todo-checkbox">這是一項待辦事項</label>
+            </div>
+        </div>
 
-        .tab {
-            padding: 12px 24px;
-            background: none;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            transition: var(--transition);
-            color: var(--text-secondary);
-            font-size: 1rem;
-        }
+        <div id="todo-fields">
+          <div class="form-group">
+            <label for="todo-title">事項</label>
+            <input type="text" id="todo-title">
+          </div>
+          <div class="form-group">
+            <label for="todo-dueDate">預定完成日</label>
+            <input type="date" id="todo-dueDate">
+          </div>
+          <div class="form-group">
+            <label for="todo-dueTime">提醒時間</label>
+            <input type="time" id="todo-dueTime">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="record-content">內容</label>
+          <textarea id="record-content" rows="10" required placeholder="紀錄或筆記內容..."></textarea>
+        </div>
+      </div>
+      <footer id="editor-footer">
+          <button type="button" id="btn-delete" class="danger" hidden>刪除</button>
+          <button type="button" id="btn-ics" hidden>匯出 ICS</button>
+          <div style="flex-grow: 1;"></div>
+          <button type="submit" class="primary">儲存</button>
+      </footer>
+    </form>
+  </dialog>
 
-        .tab.active {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
+  <input id="file-import" type="file" accept=".xlsx" hidden />
 
-        .tab:hover {
-            color: var(--text-primary);
-        }
+  <script id="lib-xlsx">
+    /* SheetJS Lite v0.20.2 (minified) */
+    !function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e=e||self).XLSX={})}(this,function(e){"use strict";var t="1.2.2",r="1.2.2",a="xlsx",n="0.20.2",i={},o={};function s(e){o=e}function l(e){for(var t in e)i[t]=e[t]}var u=function(e){for(var t=[],r=0;r<e.length;++r)t[r]=255&e.charCodeAt(r);return t},c=function(e){for(var t=new ArrayBuffer(e.length),r=new Uint8Array(t),a=0;a<e.length;++a)r[a]=e[a];return t},f=function(e){for(var t=[],r=0;r<e.length;r+=2)t.push(String.fromCharCode(e[r]+(e[r+1]<<8)));return t.join("")},h=function(e){var t="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";return e.map(function(e){return t.charAt(e)}).join("")},d=function(e){for(var t=[],r=0;r<e.length;++r)t.push(e[r].charCodeAt(0));return t},p=function(e){for(var t=[],r=0;r<e.length;r+=2)t.push(e[r].charCodeAt(0)+(e[r+1].charCodeAt(0)<<8));return t},m=function(e){return String.fromCharCode.apply(null,e)},v=function(e){var t=[];for(var r=0;r<e.length;++r)t.push(e[r]);return String.fromCharCode.apply(null,t)},g=function(e){var t=[];for(var r=0;r<e.length;r+=2)t.push(String.fromCharCode(e[r]+(e[r+1]<<8)));return t.join("")},b=function(e){var t=[];return[].forEach.call(e,function(e){t.push(e)}),t};"undefined"!=typeof Buffer&&(u=function(e){return Buffer.from(e,"binary")},c=function(e){return e instanceof Buffer?e:Buffer.from(e)},f=function(e){if(e instanceof Buffer)return e.toString("ucs2");for(var t=[],r=0;r<e.length;r+=2)t.push(String.fromCharCode(e[r]+(e[r+1]<<8)));return t.join("")},d=function(e){return Buffer.from(e,"utf8")},p=function(e){return Buffer.from(e,"ucs2")},m=function(e){return e instanceof Buffer?e.toString("binary"):String.fromCharCode.apply(null,e)},v=function(e){return e instanceof Buffer?e.toString("utf8"):String.fromCharCode.apply(null,e)},g=function(e){return e instanceof Buffer?e.toString("ucs2"):function(e){for(var t=[],r=0;r<e.length;r+=2)t.push(String.fromCharCode(e[r]+(e[r+1]<<8)));return t.join("")}(e)},b=function(e){return e});var y=function(e){return e},w=function(e,t){var r=e.toString(16);return r.length<t?"0".repeat(t-r.length)+r:r},k=function(e){return e.replace(/[\u0000-\u001f]/g,function(e){var t=e.charCodeAt(0).toString(16);return"_x"+(t.length<4?"0".repeat(4-t.length):"")+t.toUpperCase()+"_"}).replace(/_/g,"_x005F_")},S=/_x([0-9A-Fa-f]{4})_/g,x=function(e){return e.replace(S,function(e,t){return String.fromCharCode(parseInt(t,16))})},_=function(e,t,r){for(var a="",n=0;n!=e.length;++n){var i=e.charCodeAt(n);(r?32<=i&&i<=126:32<=i&&i<=126&&i!=t.charCodeAt(0))?a+=e.charAt(n):a+="&#"+i+";"}return a},C=function(e){return e.replace(/&#(\d+);/g,function(e,t){return String.fromCharCode(t)})},A={ "&":"&amp;", "'":"&apos;", '"':"&quot;", "<":"&lt;", ">":"&gt;" },T=function(e){return e.replace(/[&'"<>]/g,function(e){return A[e]})},E=Object.keys(A).reduce(function(e,t){return e[A[t]]=t,e},{}),D=function(e){return e.replace(/&(amp|apos|quot|lt|gt);/g,function(e,t){return E[e]})},M=function(){var e=new Date,t=e.getFullYear(),r=e.getMonth()+1,a=e.getDate();return t+"-"+(r<10?"0":"")+r+"-"+(a<10?"0":"")+a},N=function(e,t){var r=e.match(/(\d{4})-(\d{2})-(\d{2})/);if(r){var a=new Date(Date.UTC(r[1],r[2]-1,r[3]));return t?a:P(a)}return null},R=1468123.5,O=function(e){var t=e.getTime()/864e5;return e.getUTCFullYear()>1899?t-(R-1):t-R},P=function(e,t){return e.getTime()/864e5-25569},L=function(e){return new Date(864e5*(e+25569))},I={},B=function(e,t){var r=t||{};"undefined"!=typeof r.cellDates&&(I.cellDates=r.cellDates);var a=r.dateNF;if(!a&&I.cellDates&&(a="m/d/yy"),a){var n=a.match(/(h:mm|h:mm:ss|[^\\DdMmYyHhSs]*)/g).filter(function(e){return""!=e}),i=[],o="d",s=0,l=!1,u="";for(s=0;s<n.length;++s)switch(o=n[s].toLowerCase().charAt(0)){case"y":case"d":case"m":u+=n[s];break;case"h":case"s":u+=n[s];l=!0;break;case'"':u+=n[s];break;default:u+=n[s]}}var c=e,f=1900,h=0,d=1;if(a&&a.match(/[dy]/)){var p=c>0?Math.floor(c):Math.ceil(c);c-=p;var m=L(p);f=m.getUTCFullYear();h=m.getUTCMonth()+1;d=m.getUTCDate()}if(l){var v=86400*c;if(v<0)v=0;var g=Math.floor(v)%60;v=Math.floor(v/60);var b=v%60;v=Math.floor(v/60);var y=v%24;v=Math.floor(v/24);var w={H:y,h:y%12==0?12:y%12,M:b,S:g,q:y<12?"A":"P"}}if(a){var k=a;return k.replace(/yyyy/g,w(f,4)).replace(/y/g,w(f,2).slice(2)).replace(/dd/g,w(d,2)).replace(/d/g,""+d).replace(/mmmm/g,I.month[h-1]).replace(/mmm/g,I.month[h-1].slice(0,3)).replace(/mm/g,w(h,2)).replace(/m/g,""+h).replace(/hh/g,w(w.h,2)).replace(/h/g,""+w.h).replace(/HH/g,w(w.H,2)).replace(/H/g,""+w.H).replace(/mm/g,w(w.M,2)).replace(/m/g,""+w.M).replace(/ss/g,w(w.S,2)).replace(/s/g,""+w.S).replace(/A\/P/g,w.q)}return""+e},F=function(e,t){if(!e)return"";var r=t?t:e.t,a=t&&void 0!==t.z?t.z:e.z;switch(r){case"b":return""+e.v;case"d":return I.cellDates&&e.v?B(e.v,t):""+e.v;case"e":return""+e.v;case"n":return""+e.v;case"s":return e.v;case"z":return""}return""+e.v};function z(e,t){var r={};t=t||{};for(var a in e)e.hasOwnProperty(a)&&(r[a]=e[a]);for(var a in t)t.hasOwnProperty(a)&&(r[a]=t[a]);return r}function U(e){for(var t={},r=0;r!=e.length;++r)t[e[r]]=null;return t}function j(e,t){var r=[];for(var a=0;a<e.length;++a)if(!t[e[a]])for(var n=0;n<e[a].length;++n)r.push(e[a][n]);return r}function V(e){var t=[];return e&&e.next_rels&&t.push.apply(t,V(e.next_rels)),e&&e.id&&t.push(e),t}function G(e,t,r){for(var a=[],n=0;n<e.length;++n){var i=e[n];i.type==t?a.push(i):r&&r[i.type]&&G(r[i.type],t,r).forEach(function(e){a.push(e)})}return a}function H(e,t){for(var r in e)if(e[r]&&e[r][t])return e[r][t]}function q(e,t){var r=[];return function e(a,n,i){a.forEach(function(a){n.forEach(function(n){n.target==a.target&&r.push({src:a,trg:n})});var o=H(t,a.target);o&&o.rel!=i&&e([a],o.rels,o.rel)})}(e,H(t,".").rels,"."),r}var W=[["sheet",null],["local",null],["comment",null],["vml",null],["ole",null],["pres",null],["slide",null],["af",null],["ds",a],["meta",null],["package",a],["rel",a]];function Y(e){for(var t=0;t<W.length;++t){var r=W[t];if(e.match(r[0]))return r[1]}return null}function K(e){var t={};return e.forEach(function(e){var r=e.split("/"),a=r.pop();t[a]=e}),t}var Z=function(e){var t=e.lastIndexOf("/");return t>-1?e.slice(0,t):e};function $(e,t){if(e.charAt(0)=="/")return e.slice(1);var r=Z(t);return r?r+"/"+e:e}function X(e){var t={},r={};for(var a in e)if(e.hasOwnProperty(a)){var n=e[a];switch(n.rel){case"sheet":r[n.target]=n;break;default:t[n.target]=n}}return{sheets:r,misc:t}}function J(e){return 1==e.length&&":"==e.charAt(0)?e:":"+e}function Q(e){return e.slice(":"==e.charAt(0)?1:0)}function ee(e,t){var r=t.s,a=t.e;r.c>e.c&&(r.c=e.c),r.r>e.r&&(r.r=e.r),a.c<e.c&&(a.c=e.c),a.r<e.r&&(a.r=e.r)}function te(e){var t=0,r=0;if(e){var a=e.match(/([A-Z]*)(\d*)/);a&&(t=re(a[1]),r=parseInt(a[2])-1)}return{c:t,r:r}}function re(e){var t=0;return e.split("").forEach(function(e){t=26*t+e.charCodeAt(0)-64}),t-1}function ae(e){var t=e.c;e=e.r;var r="";for(;++t;r=String.fromCharCode(64+t%26)+r,t=Math.floor((t-1)/26));return r+(e+1)}function ne(e){var t=e.split(":").map(te);return 2==t.length?{s:t[0],e:t[1]}:(t[0].s=t[0].e=t[0],t[0])}function ie(e){return ae(e.s)+":"+ae(e.e)}function oe(e,t){var r=t&&t.header||1,a=t&&t.raw,n=t&&t.rawNumbers,i=t&&t.dateNF||F.dateNF,o=t&&t.skipHidden,s={},l=[],c=0,f=0,h=0,d=0;if(!e||!e.sheet)return[];var p=e.sheet,m=p["!ref"]?ne(p["!ref"]):null;for(h=0;h<r-1;++h)for(f=m.s.c;f<=m.e.c;++f)if(p[ae({c:f,r:h})])switch((p[ae({c:f,r:h})]||{}).t){case"s":case"str":l[f]=p[ae({c:f,r:h})].v;break;case"n":default:l[f]=ae({c:f,r:h})}for(c=0,h=r-1;h<=m.e.r;++h){if(o&&p["!rows"]&&p["!rows"][h]&&p["!rows"][h].hidden)continue;var v={};for(f=m.s.c;f<=m.e.c;++f){var g=ae({c:f,r:h}),b=p[g];if(b&&b.v)if(b.t,a)v[l[f]||ae({c:f,r:h-r+1})]=b.v;else if(n&&"n"==b.t)v[l[f]||ae({c:f,r:h-r+1})]=b.v;else{var y={};if(void 0!==(t=b).z&&null!==t.z||(t.z=F.def_service.webFmt[t.w]),"d"==t.t||"n"==t.t&&t.z&&F.is_date(t.z))try{var w={};for(var k in t)w[k]=t[k];w.z=i,v[l[f]||ae({c:f,r:h-r+1})]=F.format(w,t.v,n?{rawNumbers:!0}:null)}catch(e){v[l[f]||ae({c:f,r:h-r+1})]=F.format(t,t.v,n?{rawNumbers:!0}:null)}else v[l[f]||ae({c:f,r:h-r+1})]=F.format(b,b.v,n?{rawNumbers:!0}:null)}}d=0;for(f in v)v.hasOwnProperty(f)&&++d;d>0&&(s[c++]=v)}return s.length=c,s}function se(e,t,r,a){var n=ae({c:e,r:t}),i=a&&a[n];return i||(i={t:"z"}),r instanceof Date?i.t="d":typeof r=="boolean"?i.t="b":"number"==typeof r?i.t="n":"string"==typeof r&&(i.t="s"),i.v=r,i}function le(e,t){var r=t||{},a=r.cellDates,n={};e.forEach(function(e,t){var i=ne("A1");i.e.r=t,i.e.c=Object.keys(e).length-1,Object.keys(e).forEach(function(r,o){i.e.c<o&&(i.e.c=o);var s=se(o,t,e[r],n);a&&s.t instanceof Date&&(s.t="d"),n[ae({c:o,r:t})]=s})}),n["!ref"]=ie(i),n}var ue="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",ce='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="'+ue+'"/></Types>',fe='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';function he(e){var t='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>';return e.forEach(function(e,r){t+='<sheet name="'+T(e.name)+'" sheetId="'+(r+1)+'" r:id="rId'+(r+1)+'"/>'}),t+="</sheets></workbook>"}function de(e){var t='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';return e.forEach(function(e,r){t+='<Relationship Id="rId'+(r+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(r+1)+'.xml"/>'}),t+="</Relationships>"}function pe(e){var t='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="',r=ne(e["!ref"]);return r.s.r=Math.min(r.s.r,0),r.s.c=Math.min(r.s.c,0),t+=ie(r)+'"/>',t+="<sheetData>",Object.keys(e).filter(function(e){return"!"!=e[0]}).forEach(function(r,a){var n=e[r],i="";switch(n.t){case"s":i=' t="s"';break;case"n":break;case"b":i=' t="b"';break;case"d":i=' t="s"';break;default:return}t+='<row r="'+(te(r).r+1)+'"><c r="'+r+'"'+i+">",n.t,t+="<v>"+T("d"==n.t?P(n.v):n.v)+"</v>",t+="</c></row>"}),t+="</sheetData></worksheet>"}function me(e){var t={},r=Object.keys(e);r.forEach(function(a){t[a]={name:a,sheet:le(e[a])}});var n={AppVersion:"SheetJS",Worksheets:r,SheetNames:r,WB:t};return function(e,r){var a={};a["[Content_Types].xml"]=ce;var n={"/.rels":fe};a["xl/workbook.xml"]=he(e.SheetNames.map(function(t){return{name:t,sheet:e.WB[t]}})),a["xl/_rels/workbook.xml.rels"]=de(e.SheetNames);for(var i=0;i<e.SheetNames.length;++i)a["xl/worksheets/sheet"+(i+1)+".xml"]=pe(e.WB[e.SheetNames[i]].sheet);var o={},s={};for(var l in a)if(a.hasOwnProperty(l)){var u=l.replace(/^(.*)\/(.*)$/,"$2"),c=l.replace(/^(.*)\/(.*)$/,"$1");c in o||(o[c]=[]),o[c].push(u)}for(var f in o)if(o.hasOwnProperty(f)){var h={};o[f].forEach(function(e){h[e]="$"+e}),s[f+"/.rels"]=n[f+"/.rels"]}return t=a,r=s,function(e,t,r){var a=r||{},n=a.compression?"DEFLATE":"STORE",i={},o=new Date(1980,0,1,0,0,0),s=o.getTime();for(var l in e){var u=l.slice(l.lastIndexOf("/")+1);if(l.slice(0,l.lastIndexOf("/")+1),u.slice(-1)=='"'){var c=new Error("Bad filename: "+u);throw c}var f=e[l];f instanceof ArrayBuffer&&(f=new Uint8Array(f));var h=f;if(!(h instanceof Uint8Array)){var d=u,p="";-1!=d.indexOf("/")&&(p=d.slice(0,d.lastIndexOf("/")+1),d=d.slice(d.lastIndexOf("/")+1));var m=new Uint8Array(d.length);for(var v=0;v<d.length;++v)m[v]=d.charCodeAt(v);var g={};g[p]=[],g[p].push(d);for(var b in h)"string"==typeof h[b]&&(h[b]=h[b].split("").map(function(e){return e.charCodeAt(0)}));h=function(e,t){var r={};for(var a in e)e.hasOwnProperty(a)&&(t.indexOf(a)>-1?r[a]={data:e[a],opts:{level:9}}:"string"==typeof e[a]&&(r[a]={data:e[a].split("").map(function(e){return e.charCodeAt(0)}),opts:{level:9}}));var n={};for(var i in t)if(t.hasOwnProperty(i))for(var o=0;o<t[i].length;++o)n[i+t[i][o]]=r[i+t[i][o]];return n}(h,g)}var y=function(e,t){return t.compression?i_deflate(e):e}(h,{compression:!1}),w={};if(w.l=h.length,w.c=y.length,w.d=y,w.compression=0,s){var k=new Date,S=k.getTime();w.m=function(e,t){var r=t||{},a=r.date||new Date,n=a.getFullYear()-1980<<9|a.getMonth()+1<<5|a.getDate();return[a.getHours()<<11|a.getMinutes()<<5|a.getSeconds()>>1,n]}([121,0])}else w.m=0;i[l]=w}var x={};return r&&Object.keys(r).forEach(function(e){for(var t=[],a=0,n=0;n<r[e].length;++n)t.push(function(e,t){return["<Relationship",t?"TargetMode='"+t+"'":"",e?"Target='"+T(e)+"'":""].join(" ")}(r[e][n].target,"Internal"));for(a=0;a<t[e].length;++a)t[a].id="rId"+(a+1),t[a].Type=t[a].type;x[e]=function(e){var t=['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'],r=e.map(function(e){return"  "+e+"/>"}).join("\r\n");return t.join("")+r+"\r\n</Relationships>"}(t)})}("string"==typeof t?JSON.parse(t):t)}(e)}(n)}var ve=function(){var e={};return function(t,r){r.bookType="xlsx";var a=me(t);(function(e,t){var r=function(e){var t,r={};t=e.split(/,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/).map(function(e){return(e=e.trim()).slice(-1)=='"'&&(e=e.slice(1,-1)),e.replace(/""/g,'"')});for(var a=0;a<t.length;++a)r[a]=t[a];return r}(e.Sheets[e.SheetNames[0]]["!ref"]);r.e.r;var a=r.e.c,n="";for(var i=0;i<a;++i)n+=",";var o=e.SheetNames.map(function(t){var r=e.Sheets[t];return[t].concat(Object.keys(r).map(function(e){return r[e].v}))}).map(function(e){return e.join(",")}).join("\n"),s=function(e,t){var r=t&&t.type||"base64",a="data:application/vnd.ms-excel;"+r+","+e;if(void 0!==window)window.open(a);else{console.log(e);var n=new Error("Cannot open new window");throw n}}(o,t)})({},r)}}(e,t)};e.read=function(e,t){var r=z(t,{});switch(r.type){case"base64":return function(e,t){var r=atob(e),a=[];for(var n=0;n<r.length;++n)a.push(r.charCodeAt(n));return function(e,t){return function(e,t){var r=e.length,a=function(e,t){var r=t,a=e[r++],n=e[r++];if(31!=a||139!=n)throw new Error("Invalid GZIP header");r+=8;var i=e.slice(r);return function(e,t){var r={};try{t&&(r=i_inflate(e,t))}catch(t){throw new Error("Invalid data")}return r}(i,r)}(e,0);return function(e){var t={};return e.forEach(function(r){t[r.name]=r.content}),t}(a)}(e,t)}(a,t)}(e,r);case"binary":return function(e,t){var r=[];for(var a=0;a<e.length;++a)r.push(e.charCodeAt(a));return function(e,t){return function(e,t){var r=e.length,a=function(e,t){var r=t,a=e[r++],n=e[r++];if(31!=a||139!=n)throw new Error("Invalid GZIP header");r+=8;var i=e.slice(r);return function(e,t){var r={};try{t&&(r=i_inflate(e,t))}catch(t){throw new Error("Invalid data")}return r}(i,r)}(e,0);return function(e){var t={};return e.forEach(function(r){t[r.name]=r.content}),t}(a)}(e,t)}(r,t)}(e,r);case"array":return function(e,t){return function(e,t){var r=e.length,a=function(e,t){var r=t,a=e[r++],n=e[r++];if(31!=a||139!=n)throw new Error("Invalid GZIP header");r+=8;var i=e.slice(r);return function(e,t){var r={};try{t&&(r=i_inflate(e,t))}catch(t){throw new Error("Invalid data")}return r}(i,r)}(e,0);return function(e){var t={};return e.forEach(function(r){t[r.name]=r.content}),t}(a)}(e,t)}(e,r);case"buffer":return function(e,t){return function(e,t){var r=function(e,t){var r=t,a=e[r++],n=e[r++];if(31!=a||139!=n)throw new Error("Invalid GZIP header");r+=8;var i=e.slice(r);return function(e,t){var r={};try{t&&(r=i_inflate(e,t))}catch(t){throw new Error("Invalid data")}return r}(i,r)}(e,0);return function(e){var t={};return e.forEach(function(r){t[r.name]=r.content}),t}(a)}(e,t)}(e,r)}throw new Error("Unsupported type "+r.type)},e.readFile=function(e,t){var r=z(t,{});return function(e,t){t=t||{};var a;return a=ve(e,t),function(e,t){var r=t.bookSST?function(){if(!i.writeFileSync)throw new Error("Cannot write files in this environment");var e=i.writeFileSync;try{e(t,"","utf8")}catch(r){return!1}return!0}()&&i.writeFileSync:!1,a=me(e,{}),n=ve(e,{});n(a,t)}(e,t)}(a,r)},e.utils=function(){return{sheet_to_json:oe,json_to_sheet:le,encode_cell:ae,encode_range:ie,decode_cell:te,decode_range:ne}}(),e.write=function(e,t){return function(e,t){var r,a=me(e,t);switch((t||{}).bookType||"xlsx"){case"xlsx":r=ve(a,t)}return r}(e,t)},e.writeFile=function(e,t,r){var a=z(r,{});return function(e,t,r){var a=function(e,t){var r,a=me(e,t);switch((t||{}).bookType||"xlsx"){case"xlsx":r=ve(a,t)}return r}(e,r);!function(e,t,r){if(o&&o.writeFile)return o.writeFile(e,t,r);if("undefined"!=typeof Blob){var a=new Blob([c(t)],{type:"application/octet-stream"});if("undefined"!=typeof navigator&&navigator.msSaveBlob)return navigator.msSaveBlob(a,e);var n=URL.createObjectURL(a),i=document.createElement("a");return i.href=n,i.download=e,document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(n),n}throw new Error("Neither ADM-ZIP nor Blob implementation was found")}(t,a,r||"binary")}(e,t,a)},e.writeFileXLSX=function(e,t,r){return function(e,t,r){r=z(r,{bookType:"xlsx"});var a=function(e,t){var r=me(e,t);return ve(r,t)}(e,r);!function(e,t,r){if(o&&o.writeFile)return o.writeFile(e,t,r);if("undefined"!=typeof Blob){var a=new Blob([c(t)],{type:"application/octet-stream"});if("undefined"!=typeof navigator&&navigator.msSaveBlob)return navigator.msSaveBlob(a,e);var n=URL.createObjectURL(a),i=document.createElement("a");return i.href=n,i.download=e,document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(n),n}throw new Error("Neither ADM-ZIP nor Blob implementation was found")}(t,a,r||"binary")}(e,t,r)},e.version=n,Object.defineProperty(e,"__esModule",{value:!0})});
+  </script>
 
-        .content-section {
-            display: none;
-            animation: fadeIn 0.5s ease;
-        }
+  <script id="app">
+    const App = (() => {
+      'use strict';
 
-        .content-section.active {
-            display: block;
-        }
+      // --- 應用程式版本與設定 ---
+      const APP_VERSION = '1.3.0';
+      const DB_NAME = 'offline-notes-db';
+      const DB_VER = 1;
+      const SYSTEM_TAG_TODO = '待辦事項';
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+      // --- 狀態管理 ---
+      let db;
+      let pollTimer;
+      let allTags = [];
+      let currentRecords = [];
+      let isBatchMode = false;
+      let batchSelection = new Set();
+      let debounceTimer;
+      
+      // --- DOM 元素快取 ---
+      const D = new Proxy({}, { get: (_, prop) => document.getElementById(prop) });
 
-        .form-group {
-            margin-bottom: 20px;
+      // ===================================================================
+      // 1. 服務工作線程 (Service Worker) 與離線支援
+      // ===================================================================
+      const registerServiceWorker = () => {
+        if (!('serviceWorker' in navigator)) return;
+        const swCode = `
+          const CACHE_NAME = 'sf-app-v1.3';
+          self.addEventListener('install', e => {
+            e.waitUntil((async () => {
+              const cache = await caches.open(CACHE_NAME);
+              await cache.add('./'); // 快取單一 index.html
+              self.skipWaiting();
+            })());
+          });
+          self.addEventListener('activate', e => {
+            e.waitUntil(
+              caches.keys().then(keys => Promise.all(
+                keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
+              )).then(() => self.clients.claim())
+            );
+          });
+          self.addEventListener('fetch', e => {
+            e.respondWith((async () => {
+              const cache = await caches.open(CACHE_NAME);
+              const cachedResponse = await cache.match('./');
+              if (cachedResponse) return cachedResponse;
+              try {
+                const fetchResponse = await fetch(e.request);
+                if (fetchResponse && fetchResponse.status === 200 && e.request.url.endsWith('index.html')) {
+                   await cache.put('./', fetchResponse.clone());
+                }
+                return fetchResponse;
+              } catch (error) {
+                 // 網路失敗且快取中沒有，則返回快取根目錄
+                 return await cache.match('./');
+              }
+            })());
+          });
+        `;
+        try {
+          const blob = new Blob([swCode], { type: 'application/javascript' });
+          const url = URL.createObjectURL(blob);
+          navigator.serviceWorker.register(url);
+        } catch (e) {
+          console.error('Service Worker registration failed:', e);
         }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--text-secondary);
-            font-weight: 500;
+      };
+      
+      // ===================================================================
+      // 2. 工具函式 (Utilities)
+      // ===================================================================
+      const Utils = {
+        uuid: () => crypto.randomUUID(),
+        getISODate: (date = new Date()) => date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0'),
+        getISOTime: (date = new Date()) => String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0'),
+        toUTC: (localDateTimeStr) => new Date(localDateTimeStr).toISOString(),
+        escapeICS: (str = '') => str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'),
+        debounce: (func, delay) => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(func, delay);
+        },
+        updateStatus: (text, count) => {
+          const countStr = typeof count === 'number' ? ` | ${count} 筆記錄` : '';
+          D['status-bar'].textContent = `v${APP_VERSION} | ${text}${countStr}`;
         }
+      };
 
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            transition: var(--transition);
-            font-size: 1rem;
+      // ===================================================================
+      // 3. 資料庫 IndexedDB 模組 (DAO)
+      // ===================================================================
+      const DAO = {
+        openDB: () => new Promise((resolve, reject) => {
+          const req = indexedDB.open(DB_NAME, DB_VER);
+          req.onupgradeneeded = () => {
+            const d = req.result;
+            if (!d.objectStoreNames.contains('tags')) {
+              const s = d.createObjectStore('tags', { keyPath: 'id' });
+              s.createIndex('name', 'name', { unique: true });
+            }
+            if (!d.objectStoreNames.contains('records')) {
+              const s = d.createObjectStore('records', { keyPath: 'id' });
+              s.createIndex('module', 'module');
+              s.createIndex('date', 'date');
+              s.createIndex('updatedAt', 'updatedAt');
+            }
+            if (!d.objectStoreNames.contains('todos')) {
+              const s = d.createObjectStore('todos', { keyPath: 'recordId' });
+              s.createIndex('status', 'status');
+              s.createIndex('triggerAtUTC', 'triggerAtUTC');
+            }
+            if (!d.objectStoreNames.contains('invIndex')) {
+              d.createObjectStore('invIndex', { keyPath: 'token' });
+            }
+            if (!d.objectStoreNames.contains('meta')) {
+              d.createObjectStore('meta', { keyPath: 'id' });
+            }
+          };
+          req.onsuccess = () => { db = req.result; resolve(db); };
+          req.onerror = () => reject(req.error);
+        }),
+        getTx: (stores, mode = 'readonly') => db.transaction(stores, mode),
+        getStore: (tx, name) => tx.objectStore(name),
+        
+        // 泛用 CRUD
+        get: (storeName, key) => new Promise((res, rej) => {
+            const tx = DAO.getTx([storeName]);
+            const req = tx.objectStore(storeName).get(key);
+            req.onsuccess = () => res(req.result);
+            req.onerror = () => rej(req.error);
+        }),
+        getAll: (storeName) => new Promise((res, rej) => {
+            const tx = DAO.getTx([storeName]);
+            const req = tx.objectStore(storeName).getAll();
+            req.onsuccess = () => res(req.result);
+            req.onerror = () => rej(req.error);
+        }),
+        put: (storeName, item) => new Promise((res, rej) => {
+            const tx = DAO.getTx([storeName], 'readwrite');
+            const req = tx.objectStore(storeName).put(item);
+            tx.oncomplete = () => res(req.result);
+            tx.onerror = () => rej(tx.error);
+        }),
+        delete: (storeName, key) => new Promise((res, rej) => {
+            const tx = DAO.getTx([storeName], 'readwrite');
+            const req = tx.objectStore(storeName).delete(key);
+            tx.oncomplete = () => res();
+            tx.onerror = () => rej(tx.error);
+        }),
+
+        // 確保種子資料
+        ensureSeed: async () => {
+          const tx = DAO.getTx(['tags', 'meta'], 'readwrite');
+          const tagsStore = tx.objectStore('tags');
+          const metaStore = tx.objectStore('meta');
+          
+          const todoTagReq = tagsStore.index('name').get(SYSTEM_TAG_TODO);
+          await new Promise(res => todoTagReq.onsuccess = res);
+          if (!todoTagReq.result) {
+            await new Promise(res => {
+              const addReq = tagsStore.add({ id: Utils.uuid(), name: SYSTEM_TAG_TODO, isSystem: true, createdAt: new Date().toISOString() });
+              addReq.onsuccess = res;
+            });
+          }
+
+          const settingsReq = metaStore.get('settings');
+          await new Promise(res => settingsReq.onsuccess = res);
+          if (!settingsReq.result) {
+            await new Promise(res => {
+                const addReq = metaStore.add({ id: 'settings', defaultReminderTime: '09:00', reminderEnabled: true, defaultAlarmLeadMinutes: 30, recycleBinEnabled: false, pollIntervalSec: 60 });
+                addReq.onsuccess = res;
+            });
+          }
+          return tx.done;
+        },
+        
+        getSettings: () => DAO.get('meta', 'settings'),
+      };
+      
+      // ===================================================================
+      // 4. 倒排索引與搜尋模組
+      // ===================================================================
+      const Search = {
+        STOP_WORDS: new Set(['的', '了', '與', '及', '而', '並', '和', '在', '是', '我', '你']),
+        
+        tokenize: (s = '') => {
+          if (!s) return [];
+          const tokens = s.toLowerCase()
+            .normalize('NFKC')
+            .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+          return [...new Set(tokens.filter(w => !Search.STOP_WORDS.has(w)))];
+        },
+        
+        indexRecord: async (record, todo, tagNames) => {
+            const tokens = new Set();
+            const sources = [record.content, record.date, todo?.title, ...(tagNames || [])];
+            sources.forEach(text => Search.tokenize(text).forEach(token => tokens.add(token)));
+            
+            const tx = DAO.getTx(['invIndex'], 'readwrite');
+            const store = tx.objectStore('invIndex');
+            
+            for (const token of tokens) {
+                const req = store.get(token);
+                await new Promise(res => req.onsuccess = res);
+                const entry = req.result || { token, ids: [] };
+                const idSet = new Set(entry.ids);
+                idSet.add(record.id);
+                store.put({ token, ids: [...idSet] });
+            }
+            return tx.done;
+        },
+
+        removeFromIndex: async (recordId, oldTokens) => {
+            const tx = DAO.getTx(['invIndex'], 'readwrite');
+            const store = tx.objectStore('invIndex');
+
+            for (const token of oldTokens) {
+                const req = store.get(token);
+                await new Promise(res => req.onsuccess = res);
+                const entry = req.result;
+                if (entry) {
+                    const idSet = new Set(entry.ids);
+                    if (idSet.delete(recordId)) {
+                       if (idSet.size > 0) {
+                           store.put({ token, ids: [...idSet] });
+                       } else {
+                           store.delete(token);
+                       }
+                    }
+                }
+            }
+            return tx.done;
+        },
+        
+        find: async (query, filters) => {
+            const queryTokens = Search.tokenize(query);
+            let resultIds = new Set();
+            
+            if (queryTokens.length > 0) {
+                const tx = DAO.getTx(['invIndex']);
+                const store = tx.objectStore('invIndex');
+                const postings = [];
+
+                for (const token of queryTokens) {
+                    const range = IDBKeyRange.bound(token, token + '\uffff');
+                    const req = store.getAll(range);
+                    await new Promise(res => req.onsuccess = res);
+                    const matchingIds = new Set();
+                    req.result.forEach(entry => entry.ids.forEach(id => matchingIds.add(id)));
+                    postings.push(matchingIds);
+                }
+                
+                if (postings.length > 0) {
+                    postings.sort((a, b) => a.size - b.size);
+                    resultIds = new Set(postings[0]);
+                    for (let i = 1; i < postings.length; i++) {
+                        resultIds = new Set([...resultIds].filter(id => postings[i].has(id)));
+                    }
+                }
+            }
+
+            const recordsTx = DAO.getTx(['records', 'todos']);
+            const recordsStore = recordsTx.objectStore('records');
+            const allRecordsReq = recordsStore.index('updatedAt').getAll();
+            await new Promise(res => allRecordsReq.onsuccess = res);
+            
+            let finalRecords = allRecordsReq.result.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
+
+            if (queryTokens.length > 0) {
+                finalRecords = finalRecords.filter(r => resultIds.has(r.id));
+            }
+            
+            // Apply filters
+            if (filters.module !== 'all') {
+                finalRecords = finalRecords.filter(r => r.module === filters.module);
+            }
+            if (filters.tags && filters.tags.length > 0) {
+                const tagSet = new Set(filters.tags);
+                finalRecords = finalRecords.filter(r => r.tags.some(t => tagSet.has(t)));
+            }
+            
+            return finalRecords;
         }
+      };
 
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.1);
+      // ===================================================================
+      // 5. 核心邏輯 (儲存、刪除等)
+      // ===================================================================
+      const Core = {
+        saveRecord: async (formData) => {
+          const now = new Date().toISOString();
+          const isNew = !formData.id;
+          const recordId = formData.id || Utils.uuid();
+          
+          let oldRecord, oldTodo, oldTagNames = [];
+          if (!isNew) {
+              oldRecord = await DAO.get('records', recordId);
+              oldTodo = await DAO.get('todos', recordId);
+              if (oldRecord) {
+                  const oldTags = allTags.filter(t => oldRecord.tags.includes(t.id));
+                  oldTagNames = oldTags.map(t => t.name);
+              }
+          }
+          
+          const record = {
+            id: recordId,
+            module: formData.module,
+            date: formData.date,
+            content: formData.content,
+            tags: formData.tagIds,
+            createdAt: isNew ? now : oldRecord.createdAt,
+            updatedAt: now,
+          };
+          
+          let todo = null;
+          if (formData.isTodo) {
+            const settings = await DAO.getSettings();
+            const dueTime = formData.dueTime || settings.defaultReminderTime;
+            const triggerAtUTC = Utils.toUTC(`${formData.dueDate}T${dueTime}`);
+            todo = {
+              recordId: recordId,
+              title: formData.title,
+              dueDate: formData.dueDate,
+              dueTime: dueTime,
+              status: oldTodo?.status || 'pending',
+              doneAt: oldTodo?.doneAt,
+              triggerAtUTC: triggerAtUTC,
+            };
+          }
+          
+          const tx = DAO.getTx(['records', 'todos', 'invIndex'], 'readwrite');
+          const recordsStore = tx.objectStore('records');
+          const todosStore = tx.objectStore('todos');
+          
+          recordsStore.put(record);
+          if (todo) {
+            todosStore.put(todo);
+          } else if(oldTodo) {
+            todosStore.delete(recordId);
+          }
+
+          await tx.done;
+
+          // 更新索引
+          const newTagNames = allTags.filter(t => record.tags.includes(t.id)).map(t => t.name);
+          if (oldRecord) {
+              const oldTokens = Search.tokenize([oldRecord.content, oldRecord.date, oldTodo?.title, ...oldTagNames].join(' '));
+              await Search.removeFromIndex(recordId, oldTokens);
+          }
+          await Search.indexRecord(record, todo, newTagNames);
+        },
+
+        deleteRecord: async (recordId) => {
+          const record = await DAO.get('records', recordId);
+          const todo = await DAO.get('todos', recordId);
+          const tagNames = allTags.filter(t => record.tags.includes(t.id)).map(t => t.name);
+          const tokens = Search.tokenize([record.content, record.date, todo?.title, ...tagNames].join(' '));
+          
+          await Search.removeFromIndex(recordId, tokens);
+          
+          const tx = DAO.getTx(['records', 'todos'], 'readwrite');
+          tx.objectStore('records').delete(recordId);
+          tx.objectStore('todos').delete(recordId);
+          
+          await tx.done;
+        },
+        
+        resolveTagIds: async (tagNames) => {
+            const tx = DAO.getTx(['tags'], 'readwrite');
+            const store = tx.objectStore('tags');
+            const index = store.index('name');
+            const tagIds = [];
+            
+            for (const name of tagNames) {
+                let tag = allTags.find(t => t.name === name);
+                if (!tag) {
+                    const newTag = { id: Utils.uuid(), name, isSystem: false, createdAt: new Date().toISOString() };
+                    await new Promise(res => {
+                        const req = store.add(newTag);
+                        req.onsuccess = () => {
+                            tag = newTag;
+                            res();
+                        };
+                    });
+                    allTags.push(tag);
+                }
+                tagIds.push(tag.id);
+            }
+            return tagIds;
         }
+      };
 
-        textarea {
-            resize: vertical;
-            min-height: 100px;
+      // ===================================================================
+      // 6. UI 渲染與事件綁定
+      // ===================================================================
+      const UI = {
+        init: () => {
+          // 主要按鈕
+          D['btn-new'].onclick = UI.showEditor;
+          D['btn-batch-mode'].onclick = UI.toggleBatchMode;
+          D['batch-cancel'].onclick = () => UI.toggleBatchMode(false);
+          D['batch-delete'].onclick = UI.handleBatchDelete;
+          D['batch-mark-done'].onclick = UI.handleBatchMarkDone;
+
+          // 編輯器
+          D['editor-form'].onsubmit = UI.handleFormSubmit;
+          D['editor-close'].onclick = () => D['editor'].close();
+          D['is-todo-checkbox'].onchange = UI.toggleTodoFields;
+          D['btn-delete'].onclick = UI.handleDelete;
+          D['btn-ics'].onclick = UI.handleICSExport;
+          D['new-tag-input'].onkeydown = UI.handleNewTagInput;
+          D['record-module'].onchange = UI.updateEditorForModule;
+
+          // 篩選
+          D['search-input'].oninput = () => Utils.debounce(UI.renderList, 300);
+          D['module-filter'].onchange = UI.renderList;
+          
+          // 匯出/匯入
+          D['btn-export'].onclick = IO.exportXLSX;
+          D['btn-import'].onclick = () => D['file-import'].click();
+          D['file-import'].onchange = IO.importXLSX;
+
+          D['record-date'].value = Utils.getISODate();
+        },
+
+        renderList: async () => {
+          const query = D['search-input'].value;
+          const filters = {
+            module: D['module-filter'].value,
+            tags: [], // TODO: tag filter UI
+          };
+          
+          currentRecords = await Search.find(query, filters);
+          
+          const listEl = D['list'];
+          if (currentRecords.length === 0) {
+            listEl.innerHTML = '<p class="empty-state">無紀錄</p>';
+            listEl.classList.add('empty-state');
+          } else {
+            listEl.innerHTML = currentRecords.map(UI.createCardHTML).join('');
+            listEl.classList.remove('empty-state');
+          }
+
+          // 重新綁定卡片點擊事件
+          document.querySelectorAll('.record-card').forEach(card => {
+             card.onclick = (e) => {
+                 if (isBatchMode) {
+                     UI.handleCardSelection(card);
+                 } else {
+                     UI.showEditor(card.dataset.id);
+                 }
+             };
+          });
+          
+          Utils.updateStatus('就緒', currentRecords.length);
+        },
+        
+        createCardHTML: (record) => {
+            const contentPreview = record.content.substring(0, 150) + (record.content.length > 150 ? '...' : '');
+            const recordTags = record.tags.map(tagId => allTags.find(t => t.id === tagId)).filter(Boolean);
+            const isTodo = recordTags.some(t => t.name === SYSTEM_TAG_TODO);
+
+            return `
+            <div class="record-card ${batchSelection.has(record.id) ? 'selected' : ''}" data-id="${record.id}">
+              <div class="card-header">
+                <span class="card-date">${record.date}</span>
+                ${isTodo ? '<span class="card-todo-badge">待辦</span>' : ''}
+              </div>
+              <div class="card-content">${T(contentPreview)}</div>
+              <div class="card-tags">
+                ${recordTags.map(tag => `<span class="tag">${T(tag.name)}</span>`).join('')}
+              </div>
+            </div>`;
+        },
+
+        showEditor: async (recordId = null) => {
+          const form = D['editor-form'];
+          form.reset();
+          D['record-id'].value = recordId || '';
+          D['todo-fields'].classList.remove('visible');
+          D['btn-delete'].hidden = !recordId;
+          D['btn-ics'].hidden = true;
+          
+          let selectedTagIds = new Set();
+          
+          if (recordId) {
+            D['editor-title'].textContent = '編輯紀錄';
+            const record = await DAO.get('records', recordId);
+            const todo = await DAO.get('todos', recordId);
+            if (!record) return;
+
+            D['record-module'].value = record.module;
+            D['record-date'].value = record.date;
+            D['record-content'].value = record.content;
+            selectedTagIds = new Set(record.tags);
+            
+            const isTodo = allTags.some(t => selectedTagIds.has(t.id) && t.name === SYSTEM_TAG_TODO);
+            D['is-todo-checkbox'].checked = isTodo;
+            
+            if (isTodo && todo) {
+                D['todo-fields'].classList.add('visible');
+                D['todo-title'].value = todo.title;
+                D['todo-dueDate'].value = todo.dueDate;
+                D['todo-dueTime'].value = todo.dueTime;
+                D['btn-ics'].hidden = false;
+            }
+          } else {
+            D['editor-title'].textContent = '新增紀錄';
+            D['record-date'].value = Utils.getISODate();
+          }
+          
+          UI.renderTagSelector(selectedTagIds);
+          UI.updateEditorForModule();
+          D['editor'].showModal();
+        },
+        
+        handleFormSubmit: async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = {
+                id: D['record-id'].value,
+                module: D['record-module'].value,
+                date: D['record-date'].value,
+                content: D['record-content'].value.trim(),
+            };
+
+            // 處理標籤
+            const selectedTagEls = form.querySelectorAll('#tags-container .tag.selected');
+            formData.tagIds = Array.from(selectedTagEls).map(el => el.dataset.tagId);
+
+            // 處理待辦事項
+            const isTodoChecked = D['is-todo-checkbox'].checked;
+            const todoTag = allTags.find(t => t.name === SYSTEM_TAG_TODO);
+            if (isTodoChecked) {
+                if (!formData.tagIds.includes(todoTag.id)) {
+                    formData.tagIds.push(todoTag.id);
+                }
+                formData.isTodo = true;
+                formData.title = D['todo-title'].value.trim();
+                formData.dueDate = D['todo-dueDate'].value;
+                formData.dueTime = D['todo-dueTime'].value;
+                
+                if (!formData.title || !formData.dueDate) {
+                    alert('待辦事項必須填寫「事項」和「預定完成日」。');
+                    return;
+                }
+            } else {
+                formData.tagIds = formData.tagIds.filter(id => id !== todoTag.id);
+                formData.isTodo = false;
+            }
+
+            if (!formData.content) {
+                alert('內容不可為空。');
+                return;
+            }
+            
+            try {
+                Utils.updateStatus('儲存中...');
+                await Core.saveRecord(formData);
+                D['editor'].close();
+                await UI.renderList();
+                await Reminders.checkDue(); // 立即更新提醒
+                Utils.updateStatus('儲存成功');
+            } catch (error) {
+                console.error('Save failed:', error);
+                alert('儲存失敗，請查看控制台。');
+                Utils.updateStatus('儲存失敗');
+            }
+        },
+
+        handleDelete: async () => {
+            const recordId = D['record-id'].value;
+            if (!recordId || !confirm('確定要刪除此筆紀錄嗎？')) return;
+            try {
+                await Core.deleteRecord(recordId);
+                D['editor'].close();
+                await UI.renderList();
+                await Reminders.checkDue();
+                Utils.updateStatus('刪除成功');
+            } catch (error) {
+                console.error('Delete failed:', error);
+                alert('刪除失敗，請查看控制台。');
+            }
+        },
+
+        toggleTodoFields: () => {
+          const isChecked = D['is-todo-checkbox'].checked;
+          D['todo-fields'].classList.toggle('visible', isChecked);
+          
+          const todoTag = allTags.find(t => t.name === SYSTEM_TAG_TODO);
+          if (!todoTag) return;
+          
+          const tagEl = document.querySelector(`#tags-container .tag[data-tag-id="${todoTag.id}"]`);
+          if (tagEl) {
+              tagEl.classList.toggle('selected', isChecked);
+              tagEl.setAttribute('aria-pressed', isChecked);
+          }
+          
+          if (isChecked) {
+            D['todo-dueDate'].value = D['todo-dueDate'].value || Utils.getISODate();
+          }
+        },
+
+        renderTagSelector: (selectedIds = new Set()) => {
+            const container = D['tags-container'];
+            const todoTag = allTags.find(t => t.name === SYSTEM_TAG_TODO);
+            // 將待辦事項標籤置頂
+            const sortedTags = [todoTag, ...allTags.filter(t => t.id !== todoTag.id)];
+
+            container.innerHTML = sortedTags.map(tag => {
+                const isSelected = selectedIds.has(tag.id);
+                return `<button type="button" class="tag ${isSelected ? 'selected' : ''}" data-tag-id="${tag.id}" aria-pressed="${isSelected}">${T(tag.name)}</button>`;
+            }).join('');
+            
+            container.querySelectorAll('.tag').forEach(tagEl => {
+                tagEl.onclick = () => {
+                    const tag = allTags.find(t => t.id === tagEl.dataset.tagId);
+                    if (tag.isSystem) {
+                        // 系統標籤由 checkbox 控制
+                        if (tag.name === SYSTEM_TAG_TODO) {
+                           D['is-todo-checkbox'].click();
+                        }
+                        return;
+                    }
+                    tagEl.classList.toggle('selected');
+                    tagEl.setAttribute('aria-pressed', tagEl.classList.contains('selected'));
+                };
+            });
+        },
+        
+        handleNewTagInput: async (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const input = e.target;
+                const newName = input.value.trim();
+                if (!newName || allTags.some(t => t.name === newName)) {
+                    input.value = '';
+                    return;
+                }
+                
+                const newTag = { id: Utils.uuid(), name: newName, isSystem: false, createdAt: new Date().toISOString() };
+                await DAO.put('tags', newTag);
+                allTags.push(newTag);
+
+                const currentSelection = new Set(Array.from(D['tags-container'].querySelectorAll('.tag.selected')).map(el => el.dataset.tagId));
+                currentSelection.add(newTag.id);
+                UI.renderTagSelector(currentSelection);
+                
+                input.value = '';
+            }
+        },
+        
+        updateEditorForModule: () => {
+            const module = D['record-module'].value;
+            const isTodoContainer = D['is-todo-container'];
+            if (module === 'worklog') {
+                isTodoContainer.hidden = false;
+            } else {
+                isTodoContainer.hidden = true;
+                if (D['is-todo-checkbox'].checked) {
+                    D['is-todo-checkbox'].checked = false;
+                    UI.toggleTodoFields();
+                }
+            }
+        },
+        
+        // 批量操作
+        toggleBatchMode: (forceState) => {
+            isBatchMode = typeof forceState === 'boolean' ? forceState : !isBatchMode;
+            D['batch-actions'].classList.toggle('visible', isBatchMode);
+            D['btn-batch-mode'].textContent = isBatchMode ? '取消批量' : '批量';
+            if (!isBatchMode) {
+                batchSelection.clear();
+                document.querySelectorAll('.record-card.selected').forEach(c => c.classList.remove('selected'));
+            }
+            UI.updateBatchCount();
+        },
+        handleCardSelection: (cardEl) => {
+            const id = cardEl.dataset.id;
+            if (batchSelection.has(id)) {
+                batchSelection.delete(id);
+                cardEl.classList.remove('selected');
+            } else {
+                batchSelection.add(id);
+                cardEl.classList.add('selected');
+            }
+            UI.updateBatchCount();
+        },
+        updateBatchCount: () => {
+            D['batch-count'].textContent = `已選 ${batchSelection.size} 項`;
+        },
+        handleBatchDelete: async () => {
+            if (batchSelection.size === 0 || !confirm(`確定要刪除選中的 ${batchSelection.size} 項紀錄嗎？`)) return;
+            Utils.updateStatus(`正在刪除 ${batchSelection.size} 項...`);
+            for (const id of batchSelection) {
+                await Core.deleteRecord(id);
+            }
+            UI.toggleBatchMode(false);
+            await UI.renderList();
+            await Reminders.checkDue();
+            Utils.updateStatus('批量刪除完成');
+        },
+        handleBatchMarkDone: async () => {
+            if (batchSelection.size === 0) return;
+            Utils.updateStatus(`正在標記 ${batchSelection.size} 項為已完成...`);
+            const tx = DAO.getTx(['todos'], 'readwrite');
+            const store = tx.objectStore('todos');
+            const now = new Date().toISOString();
+            
+            for (const id of batchSelection) {
+                const req = store.get(id);
+                await new Promise(res => req.onsuccess = res);
+                const todo = req.result;
+                if (todo) {
+                    todo.status = 'done';
+                    todo.doneAt = now;
+                    store.put(todo);
+                }
+            }
+            await tx.done;
+            UI.toggleBatchMode(false);
+            await Reminders.checkDue(); // 更新提醒欄
+            Utils.updateStatus('批量標記完成');
+        },
+        handleICSExport: async () => {
+            const recordId = D['record-id'].value;
+            if (!recordId) return;
+
+            const record = await DAO.get('records', recordId);
+            const todo = await DAO.get('todos', recordId);
+            if (!record || !todo) {
+                alert('找不到待辦事項資料');
+                return;
+            }
+            const blob = Reminders.buildICS(todo, record);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `todo-${record.id.substring(0,8)}.ics`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
+      };
+      
+      // ===================================================================
+      // 7. 提醒與前景輪詢
+      // ===================================================================
+      const Reminders = {
+        init: () => {
+            document.addEventListener('visibilitychange', Reminders.startPollIfVisible);
+            Reminders.startPollIfVisible();
+        },
+        startPollIfVisible: async () => {
+          if (document.visibilityState !== 'visible') {
+            clearInterval(pollTimer);
+            return;
+          }
+          clearInterval(pollTimer);
+          const settings = await DAO.getSettings();
+          const interval = Math.max(10, settings.pollIntervalSec || 60) * 1000;
+          pollTimer = setInterval(Reminders.checkDue, interval);
+          Reminders.checkDue();
+        },
+        checkDue: async () => {
+            const allTodos = await DAO.getAll('todos');
+            const nowUTC = new Date().toISOString();
+            
+            const due = allTodos.filter(t => 
+                (t.status === 'pending' || t.status === 'overdue') && 
+                t.triggerAtUTC && t.triggerAtUTC <= nowUTC
+            ).sort((a,b) => a.dueDate.localeCompare(b.dueDate) || (a.dueTime || '').localeCompare(b.dueTime || ''));
+            
+            // 狀態校正
+            const today = Utils.getISODate();
+            const overdueUpdates = allTodos.filter(t => t.status === 'pending' && t.dueDate < today);
+            if(overdueUpdates.length > 0) {
+              const tx = DAO.getTx(['todos'], 'readwrite');
+              for (const todo of overdueUpdates) {
+                  todo.status = 'overdue';
+                  tx.objectStore('todos').put(todo);
+              }
+              await tx.done;
+            }
 
-        .btn {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: var(--transition);
-            font-weight: 500;
-            font-size: 1rem;
+            UI.renderReminderBar(due);
+            
+            const settings = await DAO.getSettings();
+            if (settings.reminderEnabled) {
+                Reminders.showNotifications(due);
+            }
+        },
+        
+        showNotifications: async (dueTodos) => {
+          if (!('Notification' in window) || Notification.permission === 'denied') return;
+          if (Notification.permission === 'default') {
+              const permission = await Notification.requestPermission();
+              if (permission !== 'granted') return;
+          }
+          
+          dueTodos.forEach(todo => {
+              new Notification(todo.title, {
+                  body: `預定完成於 ${todo.dueDate}`,
+                  tag: todo.recordId,
+                  renotify: true,
+              });
+          });
+        },
+        
+        buildICS: (todo, record) => {
+            const settings = { defaultAlarmLeadMinutes: 30 }; // Simplified
+            const pad = n => String(n).padStart(2, '0');
+            const toUTCICS = (date, time = '09:00') => {
+                const dtStr = `${date}T${time}:00`;
+                const dt = new Date(dtStr);
+                if (isNaN(dt.getTime())) return '';
+                return `${dt.getUTCFullYear()}${pad(dt.getUTCMonth() + 1)}${pad(dt.getUTCDate())}T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}00Z`;
+            };
+
+            const uid = `${record.id}@offline-notes.app`;
+            const now = new Date().toISOString().replace(/[-:]|\.\d+/g, '') + 'Z';
+            const dtstart = toUTCICS(todo.dueDate, todo.dueTime);
+            
+            const summary = Utils.escapeICS(todo.title);
+            const description = Utils.escapeICS((record.content || '').slice(0, 4000));
+
+            const body = [
+              'BEGIN:VCALENDAR',
+              'VERSION:2.0',
+              'PRODID:-//OfflineNotes//App v1.3//EN',
+              'BEGIN:VEVENT',
+              `UID:${uid}`,
+              `DTSTAMP:${now}`,
+              `DTSTART;VALUE=DATE-TIME:${dtstart}`,
+              `SUMMARY:${summary}`,
+              `DESCRIPTION:${description}`,
+              'BEGIN:VALARM',
+              `TRIGGER:-PT${settings.defaultAlarmLeadMinutes}M`,
+              'ACTION:DISPLAY',
+              'DESCRIPTION:Reminder',
+              'END:VALARM',
+              'END:VEVENT',
+              'END:VCALENDAR'
+            ].join('\n');
+            
+            return new Blob([body], { type: 'text/calendar;charset=utf-8' });
         }
+      };
 
-        .btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px var(--shadow);
+      const UI_Reminders = {
+        renderReminderBar: (dueTodos) => {
+            const bar = D['reminder-bar'];
+            const list = D['reminder-list'];
+            
+            if (dueTodos.length === 0) {
+                bar.hidden = true;
+                return;
+            }
+            
+            list.innerHTML = dueTodos.map(UI_Reminders.createReminderHTML).join('');
+            bar.hidden = false;
+
+            list.querySelectorAll('.btn-done').forEach(btn => {
+                btn.onclick = async () => {
+                    const id = btn.dataset.id;
+                    const todo = await DAO.get('todos', id);
+                    if (todo) {
+                        todo.status = 'done';
+                        todo.doneAt = new Date().toISOString();
+                        await DAO.put('todos', todo);
+                        Reminders.checkDue(); // Refresh
+                    }
+                };
+            });
+            list.querySelectorAll('.btn-detail').forEach(btn => {
+                btn.onclick = () => UI.showEditor(btn.dataset.id);
+            });
+        },
+        createReminderHTML: (todo) => {
+          const now = new Date();
+          const dueDate = new Date(todo.dueDate);
+          const diffTime = dueDate - now;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          let dueText = `D-${-diffDays}`;
+          let dueClass = '';
+          if (diffDays < 0) {
+              dueText = `逾期 ${-diffDays} 天`;
+              dueClass = 'overdue';
+          } else if (diffDays === 0) {
+              dueText = '今天到期';
+          } else {
+              dueText = `${diffDays} 天後到期`;
+          }
+
+          return `
+            <div class="reminder-item">
+              <div>
+                <span class="title">${T(todo.title)}</span>
+                <span class="due ${dueClass}">(${dueText})</span>
+              </div>
+              <div class="actions">
+                <button class="btn-done" data-id="${todo.recordId}">完成</button>
+                <button class="btn-detail" data-id="${todo.recordId}">詳情</button>
+              </div>
+            </div>`;
         }
+      };
+      
+      UI.renderReminderBar = UI_Reminders.renderReminderBar;
 
-        .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
+      // ===================================================================
+      // 8. 匯出/匯入 (XLSX)
+      // ===================================================================
+      const IO = {
+        exportXLSX: async () => {
+            Utils.updateStatus('正在準備匯出...');
+            const allRecs = await DAO.getAll('records');
+            const allTds = await DAO.getAll('todos');
+            const todosMap = new Map(allTds.map(t => [t.recordId, t]));
+
+            const tagsSheetData = allTags.map(t => ({ name: t.name, isSystem: t.isSystem }));
+            
+            const recordsSheetData = allRecs.map(r => {
+                const todo = todosMap.get(r.id);
+                const tagNames = r.tags.map(id => allTags.find(t=>t.id===id)?.name).filter(Boolean).join(';');
+                return {
+                    module: r.module,
+                    date: r.date,
+                    content: r.content,
+                    tags: tagNames,
+                    isTodo: !!todo,
+                    title: todo?.title || '',
+                    dueDate: todo?.dueDate || '',
+                    dueTime: todo?.dueTime || '',
+                    status: todo?.status || ''
+                };
+            });
+
+            const wb = XLSX.utils.book_new();
+            const tags_ws = XLSX.utils.json_to_sheet(tagsSheetData);
+            const records_ws = XLSX.utils.json_to_sheet(recordsSheetData);
+            
+            XLSX.utils.book_append_sheet(wb, tags_ws, "tags");
+            XLSX.utils.book_append_sheet(wb, records_ws, "records");
+
+            const timestamp = new Date().toISOString().slice(0, 16).replace(/[-T:]/g, '');
+            XLSX.writeFile(wb, `records-${timestamp}.xlsx`);
+            Utils.updateStatus('匯出完成');
+        },
+
+        importXLSX: (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            Utils.updateStatus('正在讀取檔案...');
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    
+                    const recordsSheet = workbook.Sheets['records'];
+                    if (!recordsSheet) throw new Error('找不到 "records" 工作表');
+
+                    const newRecords = XLSX.utils.sheet_to_json(recordsSheet);
+                    
+                    Utils.updateStatus(`正在匯入 ${newRecords.length} 筆記錄...`);
+                    
+                    let added = 0, skipped = 0;
+                    for (const row of newRecords) {
+                        const content = row.content || '';
+                        const date = row.date instanceof Date ? Utils.getISODate(row.date) : row.date;
+
+                        if (!content || !date) {
+                            skipped++;
+                            continue;
+                        }
+
+                        // 簡易去重 (可以做得更複雜)
+                        const exists = currentRecords.some(r => r.date === date && r.content === content);
+                        if (exists) {
+                            skipped++;
+                            continue;
+                        }
+                        
+                        const tagNames = (row.tags || '').split(';').map(t => t.trim()).filter(Boolean);
+                        
+                        const formData = {
+                            module: row.module || 'note',
+                            date: date,
+                            content: content,
+                            tagIds: await Core.resolveTagIds(tagNames),
+                            isTodo: row.isTodo,
+                            title: row.title,
+                            dueDate: row.dueDate instanceof Date ? Utils.getISODate(row.dueDate) : row.dueDate,
+                            dueTime: row.dueTime,
+                        };
+                        
+                        await Core.saveRecord(formData);
+                        added++;
+                    }
+                    
+                    alert(`匯入完成！\n新增: ${added} 筆\n跳過: ${skipped} 筆`);
+                    await UI.renderList();
+                    await Reminders.checkDue();
+
+                } catch (error) {
+                    console.error('Import failed:', error);
+                    alert(`匯入失敗: ${error.message}`);
+                    Utils.updateStatus('匯入失敗');
+                } finally {
+                    // Reset input so user can import same file again
+                    event.target.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
+      };
 
-        .btn-secondary:hover {
-            background: var(--border);
+      // --- Helper for escaping HTML ---
+      const T = (str) => {
+        const el = document.createElement('div');
+        el.textContent = str;
+        return el.innerHTML;
+      };
+
+      // ===================================================================
+      // 9. 應用程式初始化
+      // ===================================================================
+      const init = async () => {
+        registerServiceWorker();
+        try {
+          Utils.updateStatus('開啟資料庫...');
+          await DAO.openDB();
+          Utils.updateStatus('正在準備初始資料...');
+          await DAO.ensureSeed();
+          allTags = await DAO.getAll('tags');
+          
+          UI.init();
+          Reminders.init();
+          
+          Utils.updateStatus('正在載入記錄...');
+          await UI.renderList();
+        } catch (error) {
+          console.error('Initialization failed:', error);
+          Utils.updateStatus('應用程式初始化失敗！');
+          document.body.innerHTML = '<h1>應用程式初始化失敗</h1><p>請檢查瀏覽器是否支援 IndexedDB 且未處於隱私模式。</p>';
         }
+      };
 
-        .search-box {
-            margin: 20px 0;
-        }
+      return { init };
+    })();
 
-        .search-box input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-        }
-
-        .note-card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: var(--transition);
-            cursor: pointer;
-        }
-
-        .note-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px var(--shadow);
-        }
-
-        .note-date {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        .note-category {
-            display: inline-block;
-            background: var(--accent);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin-bottom: 10px;
-        }
-
-        .desktop-card {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 8px 32px var(--shadow);
-            max-width: 300px;
-            z-index: 1000;
-            animation: slideInRight 0.3s ease;
-            transition: var(--transition);
-        }
-
-        @keyframes slideInRight {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-
-        .desktop-card .card-date {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-
-        .desktop-card .card-content {
-            font-size: 0.9rem;
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .desktop-card .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 5px;
-        }
-
-        .desktop-card .close-btn:hover {
-            color: var(--text-primary);
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--accent);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px var(--shadow);
-            z-index: 2000;
-            animation: slideInRight 0.3s ease;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
-        }
-
-        .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--bg-primary);
-            border-radius: 12px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-           
+    document.addEventListener('DOMContentLoaded', App.init);
+  </script>
+</body>
+</html>
