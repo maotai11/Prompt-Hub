@@ -1,490 +1,733 @@
 <!DOCTYPE html><html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>離線匯差計算器｜水單 & 進出口報單</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>匯差計算（離線單檔版）</title>
   <style>
     :root{
-      --bg:#0f172a; /* slate-900 */
-      --panel:#111827; /* gray-900 */
-      --panel-2:#0b1220; /* darker */
-      --muted:#94a3b8; /* slate-400 */
-      --text:#e2e8f0; /* slate-200 */
-      --accent:#22d3ee; /* cyan-400 */
-      --accent-2:#38bdf8; /* sky-400 */
-      --ok:#34d399; /* green */
-      --bad:#fb7185; /* rose */
-      --warn:#f59e0b; /* amber */
-      --card:#111827;
-      --border:#23324d;
+      --bg:#0f172a;--panel:#111827;--card:#0b1220;--muted:#94a3b8;--text:#e5e7eb;--accent:#22c55e;--danger:#ef4444;--warn:#f59e0b;--primary:#3b82f6;
+      --border:#1f2937
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,#13203b 0%,transparent 60%),linear-gradient(0deg,var(--bg),#060a13);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji"}
-    h1,h2{margin:.2rem 0 1rem}
-    h1{font-size:1.3rem}
-    h2{font-size:1.1rem;color:#cbd5e1}
-    .wrap{max-width:1200px;margin:0 auto;padding:20px}
-    .grid{display:grid;gap:12px}
-    .grid.cols-2{grid-template-columns:1fr 1fr}
-    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
-    .row{display:flex;gap:8px;align-items:center}
-    .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-    .tab{border:1px solid var(--border);background:#0b1220;color:#cbd5e1;border-radius:999px;padding:8px 12px;cursor:pointer;transition:.18s}
-    .tab.active{background:linear-gradient(90deg,#0ea5e9,#06b6d4);color:#0b1220;font-weight:700}
-    label{font-size:.85rem;color:var(--muted)}
-    input,select,textarea{width:100%;background:#0a1220;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
-    textarea{min-height:100px}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans",sans-serif;background:var(--bg);color:var(--text)}
+    header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--panel);position:sticky;top:0;z-index:10}
+    h1{margin:0;font-size:18px;letter-spacing:.5px}
+    .container{max-width:1200px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+    .card h2{margin:0 0 10px 0;font-size:16px}
+    label{font-size:12px;color:var(--muted)}
+    input,select,button,textarea{background:#0a0f1a;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+    input,select,textarea{width:100%}
+    button{cursor:pointer}
+    button.primary{background:var(--primary)}
+    button.success{background:var(--accent)}
+    button.warn{background:var(--warn)}
+    button.danger{background:var(--danger)}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
     table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left}
-    th{font-weight:600;color:#cbd5e1}
-    .btn{background:#0a1322;border:1px solid var(--border);color:#e2e8f0;border-radius:10px;padding:8px 12px;cursor:pointer}
-    .btn.primary{background:linear-gradient(90deg,#0ea5e9,#06b6d4);border:none;color:#082f49;font-weight:700}
-    .btn.ghost{background:transparent}
-    .btn.warn{background:linear-gradient(90deg,#f59e0b,#f97316);border:none;color:#111}
-    .btn.danger{background:linear-gradient(90deg,#fb7185,#ef4444);border:none;color:#111}
-    .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:.75rem;opacity:.9}
-    .gain{background:rgba(34,211,238,.12);color:#67e8f9}
-    .loss{background:rgba(251,113,133,.12);color:#fecdd3}
+    th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-size:12px}
+    th{color:#cbd5e1}
     .muted{color:var(--muted)}
-    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-    .right{display:flex;justify-content:flex-end;gap:8px}
-    .hint{font-size:.8rem;color:#9ca3af}
-    .sticky{position:sticky;top:8px}
-    .footer{margin-top:16px;color:#64748b;font-size:.8rem}
-    .small{font-size:.85rem}
-    .split{display:grid;grid-template-columns: 1.3fr .7fr;gap:12px}
-    @media (max-width: 900px){.grid.cols-2,.grid.cols-3,.split{grid-template-columns:1fr}}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--border)}
+    .pill.ok{background:#052e16;color:#86efac;border-color:#14532d}
+    .pill.warn{background:#3f2d14;color:#fde68a;border-color:#854d0e}
+    .pill.bad{background:#3f1d1d;color:#fecaca;border-color:#7f1d1d}
+    .flex{display:flex;gap:8px}
+    .grow{flex:1}
+    .right{text-align:right}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    details{border:1px solid var(--border);border-radius:12px;padding:8px}
+    summary{cursor:pointer}
+    .tabs{display:flex;gap:8px;margin:10px 0}
+    .tabs button{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#0a0f1a}
+    .tabs button.active{background:var(--primary)}
+    .hidden{display:none}
+    .footer{padding:12px 16px;color:var(--muted);text-align:center;border-top:1px solid var(--border)}
+    .hr{height:1px;background:var(--border);margin:8px 0}
+    .small{font-size:12px}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>離線匯差計算器｜水單 & 進出口報單</h1>
-    <div class="tabs" id="tabs"></div><!-- Panels -->
-<div id="panel-container" class="grid"></div>
+  <header>
+    <h1>匯差計算（離線單檔）</h1>
+  </header>
+  <div class="container">
+    <div class="tabs">
+      <button data-tab="water" class="active">水單</button>
+      <button data-tab="trade">進出口報單</button>
+      <button data-tab="result">匯兌損益</button>
+      <button data-tab="tools">工具/備份</button>
+    </div><!-- 水單管理 -->
+<section id="tab-water" class="card">
+  <h2>水單管理</h2>
+  <div class="grid">
+    <div class="card">
+      <h2>新增/編輯水單</h2>
+      <div class="row">
+        <div class="grow">
+          <label>編號（自動）</label>
+          <input id="ws-id" placeholder="新增時留空" disabled />
+        </div>
+        <div>
+          <label>廠商</label>
+          <input id="ws-vendor" placeholder="必填" />
+        </div>
+        <div>
+          <label>幣別</label>
+          <select id="ws-ccy">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="JPY">JPY</option>
+            <option value="CNY">CNY</option>
+            <option value="TWD">TWD</option>
+          </select>
+        </div>
+        <div>
+          <label>日期</label>
+          <input id="ws-date" type="date" />
+        </div>
+        <div>
+          <label>匯率（本幣/外幣）</label>
+          <input id="ws-rate" type="number" step="0.000001" placeholder="如 32.123456" />
+        </div>
+        <div>
+          <label>外幣金額</label>
+          <input id="ws-amtF" type="number" step="0.0001" placeholder="可為正負" />
+        </div>
+        <div>
+          <label>進/出口（選填）</label>
+          <select id="ws-intent">
+            <option value="未指定">未指定</option>
+            <option value="進口">進口</option>
+            <option value="出口">出口</option>
+          </select>
+        </div>
+        <div class="grow">
+          <label>備註</label>
+          <input id="ws-note" />
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:8px">
+        <button class="primary" id="btn-ws-save">儲存/更新</button>
+        <button class="warn" id="btn-ws-reset">清表單</button>
+        <button class="danger" id="btn-ws-delete">刪除</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>水單清單</h2>
+      <div class="row">
+        <div><label>廠商</label><input id="ws-q-vendor" placeholder="關鍵字" /></div>
+        <div><label>幣別</label>
+          <select id="ws-q-ccy">
+            <option value="">全部</option>
+            <option>USD</option><option>EUR</option><option>JPY</option><option>CNY</option><option>TWD</option>
+          </select>
+        </div>
+        <div><label>類型</label>
+          <select id="ws-q-intent">
+            <option value="">全部</option>
+            <option>未指定</option><option>進口</option><option>出口</option>
+          </select>
+        </div>
+        <div class="grow"><label>日期區間</label>
+          <div class="row"><input id="ws-q-from" type="date"/><input id="ws-q-to" type="date"/></div>
+        </div>
+        <div style="align-self:end" class="toolbar"><button id="btn-ws-refresh">查詢</button></div>
+      </div>
+      <div class="hr"></div>
+      <table>
+        <thead>
+          <tr><th>編號</th><th>廠商</th><th>幣別</th><th>日期</th><th>匯率</th><th>外幣金額</th><th>意向</th><th>狀態</th></tr>
+        </thead>
+        <tbody id="ws-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
-<div class="footer">資料皆儲存在此瀏覽器的 <span class="mono">localStorage</span>，可離線使用。建議定期「匯出備份」。</div>
+<!-- 報單管理 -->
+<section id="tab-trade" class="card hidden">
+  <h2>進出口報單</h2>
+  <div class="grid">
+    <div class="card">
+      <h2>新增/編輯報單</h2>
+      <div class="row">
+        <div class="grow"><label>編號（自動）</label><input id="td-id" disabled /></div>
+        <div><label>廠商</label><input id="td-vendor" placeholder="必填" /></div>
+        <div><label>幣別</label>
+          <select id="td-ccy">
+            <option>USD</option><option>EUR</option><option>JPY</option><option>CNY</option><option>TWD</option>
+          </select>
+        </div>
+        <div><label>類型</label>
+          <select id="td-type">
+            <option>進口</option>
+            <option>出口</option>
+          </select>
+        </div>
+        <div><label>日期</label><input id="td-date" type="date" /></div>
+        <div><label>匯率（本幣/外幣）</label><input id="td-rate" type="number" step="0.000001" /></div>
+        <div><label>外幣金額</label><input id="td-amtF" type="number" step="0.0001" /></div>
+        <div class="grow"><label>指定水單（可不選，系統自動匹配）</label>
+          <select id="td-ws-select"><option value="">— 自動匹配 —</option></select>
+        </div>
+        <div class="grow"><label>備註</label><input id="td-note" /></div>
+      </div>
+      <div class="toolbar" style="margin-top:8px">
+        <button class="primary" id="btn-td-save">儲存/更新</button>
+        <button class="warn" id="btn-td-reset">清表單</button>
+        <button class="danger" id="btn-td-delete">刪除</button>
+        <button id="btn-td-autopick">自動匹配水單</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>報單清單</h2>
+      <div class="row">
+        <div><label>廠商</label><input id="td-q-vendor" /></div>
+        <div><label>幣別</label>
+          <select id="td-q-ccy"><option value="">全部</option><option>USD</option><option>EUR</option><option>JPY</option><option>CNY</option><option>TWD</option></select>
+        </div>
+        <div><label>類型</label><select id="td-q-type"><option value="">全部</option><option>進口</option><option>出口</option></select></div>
+        <div class="grow"><label>日期區間</label>
+          <div class="row"><input id="td-q-from" type="date"/><input id="td-q-to" type="date"/></div>
+        </div>
+        <div style="align-self:end" class="toolbar"><button id="btn-td-refresh">查詢</button></div>
+      </div>
+      <div class="hr"></div>
+      <table>
+        <thead>
+          <tr><th>編號</th><th>廠商</th><th>幣別</th><th>類型</th><th>日期</th><th>匯率</th><th>外幣金額</th><th>水單</th></tr>
+        </thead>
+        <tbody id="td-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 結果 -->
+<section id="tab-result" class="card hidden">
+  <h2>匯兌損益結果</h2>
+  <div class="toolbar" style="margin-bottom:8px">
+    <button id="btn-recompute" class="primary">全部重算</button>
+  </div>
+  <div id="result-list" class="grid"></div>
+</section>
+
+<!-- 工具/備份 -->
+<section id="tab-tools" class="card hidden">
+  <h2>工具 / 備份</h2>
+  <div class="grid">
+    <div class="card">
+      <h2>資料匯出/匯入</h2>
+      <div class="row">
+        <button id="btn-export" class="success">匯出 JSON</button>
+        <input type="file" id="file-import" accept="application/json" />
+        <button id="btn-import" class="primary">匯入 JSON</button>
+      </div>
+      <p class="small muted">離線可用；僅在本機 IndexedDB 儲存。匯出檔可自行備份。</p>
+    </div>
+    <div class="card">
+      <h2>資料庫</h2>
+      <div class="toolbar">
+        <button id="btn-db-reset" class="danger">清空資料庫</button>
+        <button id="btn-seed">寫入範例資料</button>
+      </div>
+      <p class="small muted">清空將刪除所有水單與報單。</p>
+    </div>
+  </div>
+</section>
+
+<div class="footer small">Asia/Taipei 本地運行 · IndexedDB 離線儲存 · 版本 <span id="app-ver"></span></div>
 
   </div><script>
-(function(){
-  // ------------------ Data Layer ------------------
-  const storeKey = 'fx-offline-v1';
-  const state = load() || {
-    settings:{ rateMode:'mul', // 'mul' = 本幣 = 外幣 × 匯率; 'div' = 本幣 = 外幣 ÷ 匯率
-               vendorHint:'',
-               defaultCurrency:'USD', baseCurrency:'TWD' },
-    slips:[], // 水單: {id, date, rate, amount, vendor, note}
-    decls:[], // 報單: {id, date, rate, amount, vendor, type:'進口'|'出口', linkSlipId:null, note}
-  };
-  function save(){ localStorage.setItem(storeKey, JSON.stringify(state)); }
-  function load(){ try{ return JSON.parse(localStorage.getItem(storeKey)); }catch(e){ return null; } }
-  function uid(){ return Math.random().toString(36).slice(2,10); }
-  function parseNum(x){ const n=Number(String(x).replace(/,/g,'')); return isFinite(n)?n:0; }
-  function format(n, d=2){ return (isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
-  function vendors(){ const set=new Set([...(state.slips||[]).map(x=>x.vendor), ...(state.decls||[]).map(x=>x.vendor)]); return Array.from(set).filter(Boolean).sort(); }
+/********************
+ * 版本與常數
+ ********************/
+const APP_VERSION = '1.0.0';
+const DB_NAME = 'fx-offline-db';
+const DB_VERSION = 2; // schema v2: add intendedTradeType, status
+const RATE_SCALE = 1_000_000n; // 匯率 6 位小數
+const AMT_SCALE = 10_000n;     // 金額 4 位小數（外幣）
 
-  // Match rule: pick the latest slip for the vendor on or before the decl date; if none, pick the closest after.
-  function matchSlip(vendor, dateISO){
-    const date = new Date(dateISO);
-    const list = state.slips.filter(s=>s.vendor===vendor).sort((a,b)=>new Date(a.date)-new Date(b.date));
-    if(list.length===0) return null;
-    let best = null; let bestDiff = Infinity; let preferPast=true;
-    for(const s of list){
-      const ds = new Date(s.date);
-      const diff = date - ds; // ms
-      if(diff>=0){ // past or same day
-        if(preferPast && diff < bestDiff){ bestDiff=diff; best=s; }
+const INTENT = ['未指定','進口','出口'];
+
+/********************
+ * 小工具：ID、日期、格式、十進制（BigInt 定點）
+ ********************/
+const uid = () => 'id-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const toDateNum = (s) => s ? Number(s.replaceAll('-','')) : 0; // 2025-10-08 -> 20251008
+const fmtDate = (s) => s || '';
+
+function toScaled(n, scale){ // number/string -> BigInt scaled
+  if (n === '' || n === null || n === undefined) return 0n;
+  const neg = Number(n) < 0;
+  const abs = Math.abs(Number(n));
+  const asStr = abs.toFixed(scale===RATE_SCALE?6:4); // 控制輸入精度
+  const raw = BigInt(asStr.replace('.',''));
+  return neg ? -raw : raw;
+}
+function fromScaled(bi, scale, digits){ // BigInt -> number
+  const neg = bi < 0n; const abs = neg ? -bi : bi;
+  const s = abs.toString();
+  const d = scale===RATE_SCALE?6:4;
+  const pad = d - (s.length % d);
+  const full = pad===d ? s : '0'.repeat(pad)+s;
+  const intPart = full.slice(0, full.length - d) || '0';
+  const frac = full.slice(-d).replace(/0+$/,'');
+  const str = frac ? `${intPart}.${frac}` : intPart;
+  const num = Number(str);
+  return Number(num.toFixed(digits ?? (scale===RATE_SCALE?6:4))) * (neg ? -1 : 1);
+}
+function mulDiv(a, b, div){ // (a*b)/div for BigInt, round half up
+  const prod = a*b;
+  const half = div/2n;
+  if (prod >= 0n) return (prod + half) / div; else return (prod - half) / div;
+}
+
+/********************
+ * IndexedDB 簡易封裝
+ ********************/
+let db;
+function openDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e)=>{
+      const db = req.result;
+      if (!db.objectStoreNames.contains('waterSlips')){
+        const os = db.createObjectStore('waterSlips',{keyPath:'id'});
+        os.createIndex('byVendor','vendor',{unique:false});
+        os.createIndex('byCcy','ccy',{unique:false});
+        os.createIndex('byDate','date',{unique:false});
       }
-    }
-    if(best) return best;
-    // fallback to closest future
-    for(const s of list){
-      const ds = new Date(s.date);
-      const diff = ds - date;
-      if(diff>=0 && diff < bestDiff){ bestDiff=diff; best=s; }
-    }
-    return best;
+      if (!db.objectStoreNames.contains('tradeDocs')){
+        const os2 = db.createObjectStore('tradeDocs',{keyPath:'id'});
+        os2.createIndex('byVendor','vendor',{unique:false});
+        os2.createIndex('byCcy','ccy',{unique:false});
+        os2.createIndex('byDate','date',{unique:false});
+      }
+    };
+    req.onsuccess = ()=>{ db = req.result; resolve(); };
+    req.onerror = ()=> reject(req.error);
+  });
+}
+function tx(storeNames, mode='readonly'){
+  const t = db.transaction(storeNames, mode);
+  const map = {};
+  for(const n of (Array.isArray(storeNames)?storeNames:[storeNames])) map[n]=t.objectStore(n);
+  return {t, ...map};
+}
+
+/********************
+ * 資料模型
+ ********************/
+function newWaterSlip(data){
+  return {
+    id: data?.id || uid(),
+    vendor: data?.vendor?.trim()||'',
+    ccy: data?.ccy||'USD',
+    date: data?.date||'',
+    rateScaled: toScaled(data?.rate||0, RATE_SCALE),
+    amtFScaled: toScaled(data?.amtF||0, AMT_SCALE),
+    intendedTradeType: data?.intendedTradeType||'未指定',
+    status: data?.status||'未配對',
+    note: data?.note||''
+  };
+}
+function newTradeDoc(data){
+  return {
+    id: data?.id || uid(),
+    vendor: data?.vendor?.trim()||'',
+    ccy: data?.ccy||'USD',
+    type: data?.type||'進口',
+    date: data?.date||'',
+    rateScaled: toScaled(data?.rate||0, RATE_SCALE),
+    amtFScaled: toScaled(data?.amtF||0, AMT_SCALE),
+    selectedWaterSlipId: data?.selectedWaterSlipId||'',
+    note: data?.note||''
+  };
+}
+
+/********************
+ * CRUD：水單
+ ********************/
+async function saveWaterSlip(ws){
+  await new Promise((res,rej)=>{ const {t, waterSlips} = tx('waterSlips','readwrite'); const req = waterSlips.put(ws); req.onsuccess=()=>res(); req.onerror=()=>rej(req.error); });
+}
+async function deleteWaterSlip(id){
+  await new Promise((res,rej)=>{ const {t, waterSlips} = tx('waterSlips','readwrite'); const req = waterSlips.delete(id); req.onsuccess=()=>res(); req.onerror=()=>rej(req.error); });
+}
+async function listWaterSlips(filter){
+  return new Promise((res,rej)=>{
+    const out=[]; const {waterSlips} = tx('waterSlips','readonly');
+    const req = waterSlips.openCursor();
+    req.onsuccess = ()=>{
+      const cur = req.result; if (!cur){ res(out); return; }
+      const v = cur.value;
+      let ok = true;
+      if (filter?.vendor) ok = ok && v.vendor.includes(filter.vendor);
+      if (filter?.ccy) ok = ok && v.ccy===filter.ccy;
+      if (filter?.intent) ok = ok && v.intendedTradeType===filter.intent;
+      const dn = toDateNum(v.date);
+      if (filter?.from) ok = ok && dn >= toDateNum(filter.from);
+      if (filter?.to) ok = ok && dn <= toDateNum(filter.to);
+      if (ok) out.push(v);
+      cur.continue();
+    };
+    req.onerror=()=>rej(req.error);
+  });
+}
+async function getWaterSlip(id){
+  return new Promise((res,rej)=>{ const {waterSlips}=tx('waterSlips'); const req=waterSlips.get(id); req.onsuccess=()=>res(req.result||null); req.onerror=()=>rej(req.error); });
+}
+
+/********************
+ * CRUD：報單
+ ********************/
+async function saveTradeDoc(td){
+  await new Promise((res,rej)=>{ const {tradeDocs}=tx('tradeDocs','readwrite'); const req=tradeDocs.put(td); req.onsuccess=()=>res(); req.onerror=()=>rej(req.error); });
+}
+async function deleteTradeDoc(id){
+  await new Promise((res,rej)=>{ const {tradeDocs}=tx('tradeDocs','readwrite'); const req=tradeDocs.delete(id); req.onsuccess=()=>res(); req.onerror=()=>rej(req.error); });
+}
+async function listTradeDocs(filter){
+  return new Promise((res,rej)=>{
+    const out=[]; const {tradeDocs}=tx('tradeDocs'); const req=tradeDocs.openCursor();
+    req.onsuccess=()=>{
+      const cur=req.result; if(!cur){res(out);return;}
+      const v=cur.value; let ok=true;
+      if (filter?.vendor) ok = ok && v.vendor.includes(filter.vendor);
+      if (filter?.ccy) ok = ok && v.ccy===filter.ccy;
+      if (filter?.type) ok = ok && v.type===filter.type;
+      const dn=toDateNum(v.date);
+      if (filter?.from) ok = ok && dn >= toDateNum(filter.from);
+      if (filter?.to) ok = ok && dn <= toDateNum(filter.to);
+      if (ok) out.push(v);
+      cur.continue();
+    };
+    req.onerror=()=>rej(req.error);
+  });
+}
+async function getTradeDoc(id){
+  return new Promise((res,rej)=>{ const {tradeDocs}=tx('tradeDocs'); const req=tradeDocs.get(id); req.onsuccess=()=>res(req.result||null); req.onerror=()=>rej(req.error); });
+}
+
+/********************
+ * 匹配與計算
+ ********************/
+function pickWaterSlipForTrade(trade, waterSlips){
+  const cands = waterSlips.filter(ws=>ws.vendor===trade.vendor && ws.ccy===trade.ccy && (ws.intendedTradeType===trade.type || ws.intendedTradeType==='未指定'));
+  if (cands.length===0) return '';
+  // 排序：不晚於報單日期且最近，否則距離最近
+  const tdn = toDateNum(trade.date);
+  const scored = cands.map(ws=>{
+    const dn = toDateNum(ws.date);
+    const notLater = dn <= tdn ? 0 : 1; // 0 優先
+    const dist = Math.abs(dn-tdn);
+    return {id:ws.id, notLater, dist, dn};
+  }).sort((a,b)=> a.notLater-b.notLater || a.dist-b.dist || b.dn-a.dn);
+  return scored[0]?.id || '';
+}
+
+function computePL(trade, ws){
+  // F：外幣金額（已為 scaled）
+  const F = trade.amtFScaled;
+  const Rw = ws.rateScaled; // 水單匯率
+  const Rt = trade.rateScaled; // 報單匯率
+  const baseLocalRw = mulDiv(F, Rw, RATE_SCALE);
+  const baseLocalRt = mulDiv(F, Rt, RATE_SCALE);
+  const delta = baseLocalRw - baseLocalRt; // 本幣差額（Rw-Rt）*F
+  const importRule = (Rw < Rt) ? '兌換盈餘' : (Rw > Rt ? '兌換損失' : '無損益');
+  const exportRule = (Rw < Rt) ? '兌換損失' : (Rw > Rt ? '兌換盈餘' : '無損益');
+  const dir = trade.type==='進口' ? importRule : exportRule;
+  const rel = toDateNum(ws.date) < toDateNum(trade.date) ? (trade.type==='進口'?'預付':'預收') : (trade.type==='進口'?'應付':'應收');
+  return {
+    F, Rw, Rt, baseLocalRw, baseLocalRt, delta, direction:dir, relation:rel
+  };
+}
+
+/********************
+ * UI 綁定與渲染
+ ********************/
+function setActiveTab(id){
+  for(const btn of document.querySelectorAll('.tabs button')) btn.classList.toggle('active', btn.dataset.tab===id);
+  document.querySelector('#tab-water').classList.toggle('hidden', id!=='water');
+  document.querySelector('#tab-trade').classList.toggle('hidden', id!=='trade');
+  document.querySelector('#tab-result').classList.toggle('hidden', id!=='result');
+  document.querySelector('#tab-tools').classList.toggle('hidden', id!=='tools');
+}
+
+// 水單表單讀寫
+function readWSForm(){
+  return newWaterSlip({
+    id: document.getElementById('ws-id').value || undefined,
+    vendor: document.getElementById('ws-vendor').value,
+    ccy: document.getElementById('ws-ccy').value,
+    date: document.getElementById('ws-date').value,
+    rate: document.getElementById('ws-rate').value,
+    amtF: document.getElementById('ws-amtF').value,
+    intendedTradeType: document.getElementById('ws-intent').value,
+    note: document.getElementById('ws-note').value
+  });
+}
+function writeWSForm(ws){
+  document.getElementById('ws-id').value = ws?.id||'';
+  document.getElementById('ws-vendor').value = ws?.vendor||'';
+  document.getElementById('ws-ccy').value = ws?.ccy||'USD';
+  document.getElementById('ws-date').value = ws?.date||'';
+  document.getElementById('ws-rate').value = ws? fromScaled(ws.rateScaled,RATE_SCALE,6):'';
+  document.getElementById('ws-amtF').value = ws? fromScaled(ws.amtFScaled,AMT_SCALE,4):'';
+  document.getElementById('ws-intent').value = ws?.intendedTradeType||'未指定';
+  document.getElementById('ws-note').value = ws?.note||'';
+}
+
+async function refreshWSList(){
+  const rows = await listWaterSlips({
+    vendor: document.getElementById('ws-q-vendor').value.trim(),
+    ccy: document.getElementById('ws-q-ccy').value || undefined,
+    intent: document.getElementById('ws-q-intent').value || undefined,
+    from: document.getElementById('ws-q-from').value || undefined,
+    to: document.getElementById('ws-q-to').value || undefined,
+  });
+  rows.sort((a,b)=> toDateNum(b.date)-toDateNum(a.date));
+  const tbody = document.getElementById('ws-tbody');
+  tbody.innerHTML='';
+  for(const v of rows){
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td><button data-id="${v.id}" class="pick-ws">${v.id.slice(0,6)}</button></td>
+      <td>${v.vendor}</td>
+      <td>${v.ccy}</td>
+      <td>${fmtDate(v.date)}</td>
+      <td>${fromScaled(v.rateScaled,RATE_SCALE,6).toFixed(6)}</td>
+      <td class="right mono">${fromScaled(v.amtFScaled,AMT_SCALE,4).toFixed(4)}</td>
+      <td><span class="pill">${v.intendedTradeType}</span></td>
+      <td><span class="pill ${v.status==='未配對'?'warn':'ok'}">${v.status}</span></td>`;
+    tbody.appendChild(tr);
   }
+  // 行為：點 id 載入表單
+  tbody.querySelectorAll('button.pick-ws').forEach(btn=>{
+    btn.onclick = async ()=>{ const v = await getWaterSlip(btn.dataset.id); writeWSForm(v); };
+  });
+  // 更新報單頁的水單下拉
+  await populateWSSelectForTradeForm();
+}
 
-  // Compute FX gain/loss per rules
-  function computeFx(decl){
-    const slip = decl.linkSlipId ? state.slips.find(s=>s.id===decl.linkSlipId) : matchSlip(decl.vendor, decl.date);
-    if(!slip) return { slip:null, note:'未找到對應水單', localBySlip:0, localByDecl:0, diff:0, label:'無配對', kind:'none', arap:null };
+// 報單表單
+function readTDForm(){
+  return newTradeDoc({
+    id: document.getElementById('td-id').value || undefined,
+    vendor: document.getElementById('td-vendor').value,
+    ccy: document.getElementById('td-ccy').value,
+    type: document.getElementById('td-type').value,
+    date: document.getElementById('td-date').value,
+    rate: document.getElementById('td-rate').value,
+    amtF: document.getElementById('td-amtF').value,
+    selectedWaterSlipId: document.getElementById('td-ws-select').value || '',
+    note: document.getElementById('td-note').value
+  });
+}
+function writeTDForm(td){
+  document.getElementById('td-id').value = td?.id||'';
+  document.getElementById('td-vendor').value = td?.vendor||'';
+  document.getElementById('td-ccy').value = td?.ccy||'USD';
+  document.getElementById('td-type').value = td?.type||'進口';
+  document.getElementById('td-date').value = td?.date||'';
+  document.getElementById('td-rate').value = td? fromScaled(td.rateScaled,RATE_SCALE,6):'';
+  document.getElementById('td-amtF').value = td? fromScaled(td.amtFScaled,AMT_SCALE,4):'';
+  document.getElementById('td-ws-select').value = td?.selectedWaterSlipId||'';
+  document.getElementById('td-note').value = td?.note||'';
+}
 
-    const amt = parseNum(decl.amount);
-    const rSlip = parseNum(slip.rate);
-    const rDecl = parseNum(decl.rate);
+async function populateWSSelectForTradeForm(){
+  const vendor = document.getElementById('td-vendor').value.trim();
+  const ccy = document.getElementById('td-ccy').value;
+  const type = document.getElementById('td-type').value;
+  const wsList = await listWaterSlips({vendor, ccy});
+  const sel = document.getElementById('td-ws-select');
+  const keep = sel.value;
+  sel.innerHTML = '<option value="">— 自動匹配 —</option>' + wsList
+    .filter(ws=> ws.intendedTradeType===type || ws.intendedTradeType==='未指定')
+    .sort((a,b)=> toDateNum(b.date)-toDateNum(a.date))
+    .map(ws=>`<option value="${ws.id}">${ws.id.slice(0,6)}｜${ws.date}｜${ws.intendedTradeType}｜${fromScaled(ws.amtFScaled,AMT_SCALE,4).toFixed(4)}</option>`)
+    .join('');
+  if ([...sel.options].some(o=>o.value===keep)) sel.value = keep;
+}
 
-    // local currency translation
-    const localBySlip = state.settings.rateMode==='mul' ? amt * rSlip : (rSlip? amt / rSlip : 0);
-    const localByDecl = state.settings.rateMode==='mul' ? amt * rDecl : (rDecl? amt / rDecl : 0);
-    const diff = localByDecl - localBySlip; // positive means localByDecl > localBySlip
-
-    // Label by business rule
-    let label='', kind='';
-    if(decl.type==='進口'){
-      // rule: 水單匯率 < 進口匯率 → 兌換盈餘；反之損失
-      if(rSlip < rDecl){ label='兌換盈餘'; kind='gain'; }
-      else if(rSlip > rDecl){ label='兌換損失'; kind='loss'; }
-      else { label='無差額'; kind='even'; }
-    }else{
-      // 出口: 水單匯率 < 出口匯率 → 兌換損失；反之盈餘
-      if(rSlip < rDecl){ label='兌換損失'; kind='loss'; }
-      else if(rSlip > rDecl){ label='兌換盈餘'; kind='gain'; }
-      else { label='無差額'; kind='even'; }
-    }
-
-    // 應收應付判斷：比較日期先後
-    const slipDate = new Date(slip.date);
-    const declDate = new Date(decl.date);
-    const arap = slipDate < declDate ? '預收付（先有水單）' : (slipDate > declDate ? '應收付（先有報單）' : '同日');
-
-    const steps = state.settings.rateMode==='mul'
-      ? `本幣(依水單)= 外幣金額 × 水單匯率 = ${format(amt)} × ${rSlip} = ${format(localBySlip)}\n本幣(依報單)= 外幣金額 × 報單匯率 = ${format(amt)} × ${rDecl} = ${format(localByDecl)}\n差額(報單-水單)= ${format(localByDecl)} - ${format(localBySlip)} = ${format(localByDecl-localBySlip)}`
-      : `本幣(依水單)= 外幣金額 ÷ 水單匯率 = ${format(amt)} ÷ ${rSlip} = ${format(localBySlip)}\n本幣(依報單)= 外幣金額 ÷ 報單匯率 = ${format(amt)} ÷ ${rDecl} = ${format(localByDecl)}\n差額(報單-水單)= ${format(localByDecl)} - ${format(localBySlip)} = ${format(localByDecl-localBySlip)}`;
-
-    return { slip, localBySlip, localByDecl, diff, label, kind, arap, steps };
+async function refreshTDList(){
+  const rows = await listTradeDocs({
+    vendor: document.getElementById('td-q-vendor').value.trim(),
+    ccy: document.getElementById('td-q-ccy').value || undefined,
+    type: document.getElementById('td-q-type').value || undefined,
+    from: document.getElementById('td-q-from').value || undefined,
+    to: document.getElementById('td-q-to').value || undefined,
+  });
+  rows.sort((a,b)=> toDateNum(b.date)-toDateNum(a.date));
+  const tbody = document.getElementById('td-tbody');
+  tbody.innerHTML='';
+  for(const v of rows){
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td><button data-id="${v.id}" class="pick-td">${v.id.slice(0,6)}</button></td>
+      <td>${v.vendor}</td><td>${v.ccy}</td><td>${v.type}</td>
+      <td>${fmtDate(v.date)}</td>
+      <td>${fromScaled(v.rateScaled,RATE_SCALE,6).toFixed(6)}</td>
+      <td class="right mono">${fromScaled(v.amtFScaled,AMT_SCALE,4).toFixed(4)}</td>
+      <td>${v.selectedWaterSlipId? v.selectedWaterSlipId.slice(0,6): '<span class="muted">自動</span>'}</td>`;
+    tbody.appendChild(tr);
   }
+  tbody.querySelectorAll('button.pick-td').forEach(btn=>{
+    btn.onclick = async ()=>{ const v = await getTradeDoc(btn.dataset.id); writeTDForm(v); await populateWSSelectForTradeForm(); };
+  });
+}
 
-  // ------------------ UI Helpers ------------------
-  const elTabs = document.getElementById('tabs');
-  const elPanels = document.getElementById('panel-container');
-  const tabs = [
-    { id:'slip', name:'水單管理' },
-    { id:'decl', name:'進出口報單' },
-    { id:'fx',   name:'匯差分析' },
-    { id:'data', name:'資料管理' }
+/********************
+ * 結果渲染與重算
+ ********************/
+async function recomputeAll(){
+  const trades = await listTradeDocs({});
+  const waters = await listWaterSlips({});
+  const resDiv = document.getElementById('result-list');
+  resDiv.innerHTML = '';
+  for(const td of trades){
+    const wsId = td.selectedWaterSlipId || pickWaterSlipForTrade(td, waters);
+    const ws = waters.find(w=>w.id===wsId);
+    const card = document.createElement('div');
+    card.className='card';
+    if (!ws){
+      card.innerHTML = `<h2>報單 ${td.id.slice(0,6)}｜${td.type}｜${td.vendor}｜${td.ccy}</h2>
+        <p class="muted">未找到合適的水單，請在報單頁面手動選擇或新增水單。</p>`;
+      resDiv.appendChild(card); continue;
+    }
+    const R = computePL(td, ws);
+    const dirClass = R.direction.includes('盈')? 'ok' : (R.direction.includes('損')? 'bad':'warn');
+    card.innerHTML = `
+      <h2>報單 ${td.id.slice(0,6)}｜${td.type}｜${td.vendor}｜${td.ccy}</h2>
+      <div class="row">
+        <div class="pill ${dirClass}">${R.direction}</div>
+        <div class="pill">${R.relation}</div>
+        <div class="pill">水單 ${ws.id.slice(0,6)}｜${ws.date}｜${ws.intendedTradeType}</div>
+      </div>
+      <div class="hr"></div>
+      <details open>
+        <summary>計算過程</summary>
+        <div class="row mono">
+          <div class="grow">外幣金額 F = ${fromScaled(R.F,AMT_SCALE,4).toFixed(4)}</div>
+          <div>Rw(水單匯率) = ${fromScaled(R.Rw,RATE_SCALE,6).toFixed(6)}</div>
+          <div>Rt(報單匯率) = ${fromScaled(R.Rt,RATE_SCALE,6).toFixed(6)}</div>
+        </div>
+        <div class="row mono">
+          <div class="grow">本幣@Rw = F×Rw = ${fromScaled(R.baseLocalRw,AMT_SCALE,2).toFixed(2)}</div>
+          <div class="grow">本幣@Rt = F×Rt = ${fromScaled(R.baseLocalRt,AMT_SCALE,2).toFixed(2)}</div>
+          <div class="grow">差額 Δ = ${fromScaled(R.delta,AMT_SCALE,2).toFixed(2)}</div>
+        </div>
+      </details>`;
+    resDiv.appendChild(card);
+  }
+}
+
+/********************
+ * 匯出 / 匯入 / 重置 / 範例
+ ********************/
+async function exportJSON(){
+  const data = { ver: APP_VERSION, waterSlips: await listWaterSlips({}), tradeDocs: await listTradeDocs({}) };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download = `fx-offline-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
+}
+async function importJSON(file){
+  const txt = await file.text();
+  const data = JSON.parse(txt);
+  const {t, waterSlips, tradeDocs} = tx(['waterSlips','tradeDocs'],'readwrite');
+  await Promise.all((data.waterSlips||[]).map(v=> new Promise((res,rej)=>{ const req=waterSlips.put(v); req.onsuccess=()=>res(); req.onerror=()=>rej(req.error); })));
+  await Promise.all((data.tradeDocs||[]).map(v=> new Promise((res,rej)=>{ const req=tradeDocs.put(v); req.onsuccess=()=>res(); req.onerror=()=>rej(req.error); })));
+}
+async function resetDB(){
+  db.close(); await new Promise((res)=>{ const del = indexedDB.deleteDatabase(DB_NAME); del.onsuccess=()=>res(); del.onerror=()=>res(); del.onblocked=()=>res(); });
+  await openDB();
+}
+async function seedData(){
+  const samples = [
+    newWaterSlip({vendor:'ACME', ccy:'USD', date:'2025-09-01', rate:32.123456, amtF:1000, intendedTradeType:'進口'}),
+    newWaterSlip({vendor:'ACME', ccy:'USD', date:'2025-09-10', rate:32.500000, amtF:800, intendedTradeType:'未指定'}),
+    newWaterSlip({vendor:'OMEGA', ccy:'EUR', date:'2025-09-05', rate:35.400000, amtF:500, intendedTradeType:'出口'}),
   ];
-  let activeTab = 'slip';
-  function renderTabs(){
-    elTabs.innerHTML = '';
-    tabs.forEach(t=>{
-      const b=document.createElement('button');
-      b.className = 'tab'+(activeTab===t.id?' active':'');
-      b.textContent = t.name;
-      b.onclick = ()=>{ activeTab=t.id; render(); };
-      elTabs.appendChild(b);
-    })
-  }
-
-  function inputRow(fields){
-    const row = document.createElement('div'); row.className='grid cols-3';
-    fields.forEach(f=>{
-      const wrap = document.createElement('div'); wrap.className='card';
-      const lab = document.createElement('label'); lab.textContent=f.label; wrap.appendChild(lab);
-      const inp = f.tag==='textarea'?document.createElement('textarea'):document.createElement(f.tag||'input');
-      if(f.type) inp.type=f.type; if(f.placeholder) inp.placeholder=f.placeholder; if(f.value!=null) inp.value=f.value;
-      if(f.list){ const datalist=document.createElement('datalist'); datalist.id=f.id+'-list'; f.list.forEach(v=>{ const o=document.createElement('option'); o.value=v; datalist.appendChild(o); }); document.body.appendChild(datalist); inp.setAttribute('list',datalist.id); }
-      if(f.oninput) inp.oninput = e=>f.oninput(e.target.value);
-      if(f.id) inp.id=f.id;
-      wrap.appendChild(inp); row.appendChild(wrap);
-    });
-    return row;
-  }
-
-  // ------------------ Panels ------------------
-  function panelSlip(){
-    const box = document.createElement('div'); box.className='grid';
-
-    // Quick add
-    const p = document.createElement('div'); p.className='card';
-    p.innerHTML = `<h2>新增水單</h2>`;
-    const row1 = document.createElement('div'); row1.className='grid cols-3';
-    const date = document.createElement('input'); date.type='date';
-    const rate = document.createElement('input'); rate.type='number'; rate.step='0.0001';
-    const amount = document.createElement('input'); amount.type='number'; amount.step='0.01';
-    const vendor = document.createElement('input'); vendor.placeholder='廠商/客戶'; vendor.setAttribute('list','vendor-list');
-    const vendorsList = document.createElement('datalist'); vendorsList.id='vendor-list'; vendors().forEach(v=>{ const o=document.createElement('option'); o.value=v; vendorsList.appendChild(o); });
-    const note = document.createElement('input'); note.placeholder='備註 (選填)';
-
-    row1.appendChild(wrapField('日期',date));
-    row1.appendChild(wrapField('匯率',rate));
-    row1.appendChild(wrapField('外幣金額',amount));
-    row1.appendChild(wrapField('廠商',vendor));
-    row1.appendChild(wrapField('備註',note));
-    const actions=document.createElement('div'); actions.className='right';
-    const btn = button('新增水單','primary',()=>{
-      if(!date.value||!vendor.value){ alert('請填寫 日期 與 廠商'); return; }
-      state.slips.push({id:uid(), date:date.value, rate:parseNum(rate.value), amount:parseNum(amount.value), vendor:vendor.value.trim(), note:note.value.trim()});
-      save(); render();
-    });
-    actions.appendChild(btn);
-
-    // batch add
-    const batch = document.createElement('textarea');
-    batch.placeholder = '批量新增：每行輸入「日期,匯率,金額,廠商,備註」\n例如：\n2025-01-05,31.25,10000,Acme Ltd,TT匯入\n2025-01-08,31.10,5000,Acme Ltd,部分預收';
-    const rowBatch = document.createElement('div'); rowBatch.className='row';
-    rowBatch.appendChild(batch);
-    const btnBatch = button('批量匯入水單', 'warn', ()=>{
-      const lines = batch.value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-      let ok=0, bad=0;
-      lines.forEach(line=>{
-        const [d,r,a,v, n] = line.split(',').map(x=>x!=null?x.trim():x);
-        if(d && v){ state.slips.push({id:uid(), date:d, rate:parseNum(r), amount:parseNum(a), vendor:v, note:n||''}); ok++; }
-        else bad++;
-      });
-      save(); alert(`成功 ${ok} 筆，略過 ${bad} 筆。`); render();
-    });
-    rowBatch.appendChild(btnBatch);
-
-    p.appendChild(row1); p.appendChild(actions); p.appendChild(document.createElement('hr')); p.appendChild(rowBatch); p.appendChild(vendorsList);
-    box.appendChild(p);
-
-    // list
-    const list = document.createElement('div'); list.className='card';
-    list.innerHTML = `<h2>水單歷史</h2>`;
-    const filter = document.createElement('div'); filter.className='row';
-    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
-    const fFrom = document.createElement('input'); fFrom.type='date';
-    const fTo = document.createElement('input'); fTo.type='date';
-    filter.appendChild(wrapField('廠商', fVendor));
-    filter.appendChild(wrapField('起', fFrom));
-    filter.appendChild(wrapField('迄', fTo));
-    list.appendChild(filter);
-
-    const tbl = document.createElement('table');
-    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>日期</th><th>廠商</th><th class="small">匯率</th><th class="small">外幣金額</th><th>備註</th><th></th></tr>`; tbl.appendChild(thead);
-    const tbody = document.createElement('tbody');
-    function drawBody(){
-      tbody.innerHTML='';
-      state.slips
-        .filter(s=>!fVendor.value || (s.vendor||'').toLowerCase().includes(fVendor.value.toLowerCase()))
-        .filter(s=>!fFrom.value || new Date(s.date)>=new Date(fFrom.value))
-        .filter(s=>!fTo.value || new Date(s.date)<=new Date(fTo.value))
-        .sort((a,b)=>new Date(b.date)-new Date(a.date))
-        .forEach(s=>{
-          const tr=document.createElement('tr');
-          tr.innerHTML = `<td>${s.date}</td><td>${esc(s.vendor)}</td><td>${format(s.rate,4)}</td><td>${format(s.amount)}</td><td>${esc(s.note||'')}</td>`;
-          const td=document.createElement('td');
-          const del=button('刪除','danger',()=>{ if(confirm('確定刪除？')){ state.slips=state.slips.filter(x=>x.id!==s.id); save(); render(); }});
-          td.appendChild(del); tr.appendChild(td); tbody.appendChild(tr);
-        });
-    }
-    [fVendor,fFrom,fTo].forEach(el=>el.oninput=drawBody);
-    drawBody();
-
-    tbl.appendChild(tbody); list.appendChild(tbl); box.appendChild(list);
-    return box;
-  }
-
-  function panelDecl(){
-    const box = document.createElement('div'); box.className='grid';
-
-    const p = document.createElement('div'); p.className='card'; p.innerHTML='<h2>新增進出口報單</h2>';
-    const row = document.createElement('div'); row.className='grid cols-3';
-    const date = document.createElement('input'); date.type='date';
-    const rate = document.createElement('input'); rate.type='number'; rate.step='0.0001';
-    const amount = document.createElement('input'); amount.type='number'; amount.step='0.01';
-    const vendor = document.createElement('input'); vendor.placeholder='廠商/客戶'; vendor.setAttribute('list','vendor-list');
-    const type = document.createElement('select'); type.innerHTML = '<option value="進口">進口</option><option value="出口">出口</option>';
-    const note = document.createElement('input'); note.placeholder='備註 (選填)';
-
-    row.appendChild(wrapField('日期',date));
-    row.appendChild(wrapField('匯率',rate));
-    row.appendChild(wrapField('外幣金額',amount));
-    row.appendChild(wrapField('廠商',vendor));
-    row.appendChild(wrapField('類型',type));
-    row.appendChild(wrapField('備註',note));
-
-    // optional link to slip
-    const linkWrap = document.createElement('div'); linkWrap.className='grid cols-3';
-    const link = document.createElement('select');
-    refreshSlipOptions();
-    function refreshSlipOptions(){
-      link.innerHTML = '<option value="">（自動配對）</option>' + state.slips
-        .sort((a,b)=>new Date(b.date)-new Date(a.date))
-        .map(s=>`<option value="${s.id}">${s.date}｜${esc(s.vendor)}｜匯率${s.rate}｜金額${s.amount}</option>`).join('');
-    }
-    linkWrap.appendChild(wrapField('指定對應水單 (可選)', link));
-
-    const actions=document.createElement('div'); actions.className='right';
-    const btn = button('新增報單','primary',()=>{
-      if(!date.value||!vendor.value){ alert('請填寫 日期 與 廠商'); return; }
-      state.decls.push({id:uid(), date:date.value, rate:parseNum(rate.value), amount:parseNum(amount.value), vendor:vendor.value.trim(), type:type.value, linkSlipId: link.value||null, note:note.value.trim()});
-      save(); render();
-    });
-    actions.appendChild(btn);
-
-    // batch
-    const batch = document.createElement('textarea');
-    batch.placeholder = '批量新增：每行「日期,匯率,金額,廠商,類型(進口/出口),備註」\n例如：\n2025-01-09,31.50,8000,Acme Ltd,進口,1月進口\n2025-01-12,31.20,12000,Acme Ltd,出口,1月出口';
-    const rowBatch = document.createElement('div'); rowBatch.className='row';
-    rowBatch.appendChild(batch);
-    const btnBatch = button('批量匯入報單', 'warn', ()=>{
-      const lines = batch.value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-      let ok=0, bad=0;
-      lines.forEach(line=>{
-        const [d,r,a,v,t,n] = line.split(',').map(x=>x!=null?x.trim():x);
-        if(d && v && (t==='進口'||t==='出口')){ state.decls.push({id:uid(), date:d, rate:parseNum(r), amount:parseNum(a), vendor:v, type:t, linkSlipId:null, note:n||''}); ok++; }
-        else bad++;
-      });
-      save(); alert(`成功 ${ok} 筆，略過 ${bad} 筆。`); render();
-    });
-    rowBatch.appendChild(btnBatch);
-
-    p.appendChild(row); p.appendChild(linkWrap); p.appendChild(actions); p.appendChild(document.createElement('hr')); p.appendChild(rowBatch);
-    box.appendChild(p);
-
-    // list
-    const list = document.createElement('div'); list.className='card';
-    list.innerHTML = `<h2>報單歷史</h2>`;
-    const filter = document.createElement('div'); filter.className='row';
-    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
-    const fType = document.createElement('select'); fType.innerHTML='<option value="">全部</option><option>進口</option><option>出口</option>';
-    const fFrom = document.createElement('input'); fFrom.type='date';
-    const fTo = document.createElement('input'); fTo.type='date';
-    filter.appendChild(wrapField('廠商', fVendor));
-    filter.appendChild(wrapField('類型', fType));
-    filter.appendChild(wrapField('起', fFrom));
-    filter.appendChild(wrapField('迄', fTo));
-    list.appendChild(filter);
-
-    const tbl = document.createElement('table');
-    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>日期</th><th>類型</th><th>廠商</th><th>匯率</th><th>外幣金額</th><th>對應水單</th><th></th></tr>`; tbl.appendChild(thead);
-    const tbody = document.createElement('tbody');
-    function drawBody(){
-      tbody.innerHTML='';
-      state.decls
-        .filter(s=>!fVendor.value || (s.vendor||'').toLowerCase().includes(fVendor.value.toLowerCase()))
-        .filter(s=>!fType.value || s.type===fType.value)
-        .filter(s=>!fFrom.value || new Date(s.date)>=new Date(fFrom.value))
-        .filter(s=>!fTo.value || new Date(s.date)<=new Date(fTo.value))
-        .sort((a,b)=>new Date(b.date)-new Date(a.date))
-        .forEach(s=>{
-          const tr=document.createElement('tr');
-          const slip = s.linkSlipId && state.slips.find(x=>x.id===s.linkSlipId);
-          const slipTxt = slip? `${slip.date}｜${esc(slip.vendor)}｜${format(slip.rate,4)}`:'自動配對';
-          tr.innerHTML = `<td>${s.date}</td><td>${s.type}</td><td>${esc(s.vendor)}</td><td>${format(s.rate,4)}</td><td>${format(s.amount)}</td><td class="small">${slipTxt}</td>`;
-          const td=document.createElement('td');
-          const del=button('刪除','danger',()=>{ if(confirm('確定刪除？')){ state.decls=state.decls.filter(x=>x.id!==s.id); save(); render(); }});
-          td.appendChild(del); tr.appendChild(td); tbody.appendChild(tr);
-        });
-    }
-    [fVendor,fType,fFrom,fTo].forEach(el=>el.oninput=drawBody);
-    drawBody();
-
-    tbl.appendChild(tbody); list.appendChild(tbl); box.appendChild(list);
-    return box;
-  }
-
-  function panelFx(){
-    const box = document.createElement('div'); box.className='split';
-
-    // left: analyzer
-    const left = document.createElement('div'); left.className='grid';
-    const p = document.createElement('div'); p.className='card'; p.innerHTML = '<h2>匯差分析</h2>';
-
-    const filter = document.createElement('div'); filter.className='row';
-    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
-    const fType = document.createElement('select'); fType.innerHTML='<option value="">全部</option><option>進口</option><option>出口</option>';
-    const fFrom = document.createElement('input'); fFrom.type='date';
-    const fTo = document.createElement('input'); fTo.type='date';
-    filter.appendChild(wrapField('廠商', fVendor));
-    filter.appendChild(wrapField('類型', fType));
-    filter.appendChild(wrapField('起', fFrom));
-    filter.appendChild(wrapField('迄', fTo));
-    p.appendChild(filter);
-
-    const tbl = document.createElement('table');
-    const thead = document.createElement('thead'); thead.innerHTML='<tr><th>日期</th><th>類型</th><th>廠商</th><th>金額(外幣)</th><th>報單匯率</th><th>水單匯率</th><th>差額</th><th>判斷</th></tr>';
-    tbl.appendChild(thead);
-    const tbody = document.createElement('tbody');
-
-    function draw(){
-      tbody.innerHTML='';
-      const filtered = state.decls
-        .filter(s=>!fVendor.value || (s.vendor||'').toLowerCase().includes(fVendor.value.toLowerCase()))
-        .filter(s=>!fType.value || s.type===fType.value)
-        .filter(s=>!fFrom.value || new Date(s.date)>=new Date(fFrom.value))
-        .filter(s=>!fTo.value || new Date(s.date)<=new Date(fTo.value))
-        .sort((a,b)=>new Date(b.date)-new Date(a.date));
-
-      let sumGain=0, sumLoss=0;
-      filtered.forEach(d=>{
-        const r = computeFx(d);
-        const tr=document.createElement('tr');
-        const slipRate = r.slip? r.slip.rate : NaN;
-        tr.innerHTML = `<td>${d.date}</td><td>${d.type}</td><td>${esc(d.vendor)}</td><td>${format(d.amount)}</td><td>${format(d.rate,4)}</td><td>${isFinite(slipRate)?format(slipRate,4):'<span class="muted">無</span>'}</td>`;
-        const tdDiff = document.createElement('td');
-        tdDiff.innerHTML = `<span class="mono">${format(Math.abs(r.localByDecl - r.localBySlip))}</span>`;
-        const tdLabel = document.createElement('td');
-        const pill = document.createElement('span'); pill.className='pill '+(r.kind==='gain'?'gain':(r.kind==='loss'?'loss':'')); pill.textContent=r.label;
-        tdLabel.appendChild(pill);
-        tr.appendChild(tdDiff); tr.appendChild(tdLabel);
-        tr.onclick = ()=> showDetail(d);
-        tbody.appendChild(tr);
-        if(r.kind==='gain') sumGain += Math.abs(r.localByDecl - r.localBySlip);
-        if(r.kind==='loss') sumLoss += Math.abs(r.localByDecl - r.localBySlip);
-      });
-
-      sumBar.textContent = `總盈餘：${format(sumGain)} ｜ 總損失：${format(sumLoss)}`;
-    }
-
-    [fVendor,fType,fFrom,fTo].forEach(el=>el.oninput=draw);
-    tbl.appendChild(tbody); p.appendChild(tbl);
-
-    const sumBar = document.createElement('div'); sumBar.className='hint'; p.appendChild(sumBar);
-
-    left.appendChild(p);
-
-    // right: detail
-    const right = document.createElement('div'); right.className='card sticky'; right.innerHTML='<h2>明細 / 計算過程</h2><div id="detail" class="small muted">點擊左側任一筆資料以查看</div>';
-
-    function showDetail(d){
-      const r = computeFx(d);
-      const box = document.getElementById('detail');
-      if(!r.slip){ box.innerHTML = '<span class="muted">未找到對應水單</span>'; return; }
-      box.className='small';
-      box.innerHTML = `
-      <div class="grid">
-        <div><label>報單</label><div class="mono">${d.date}｜${d.type}｜${esc(d.vendor)}｜外幣 ${format(d.amount)}｜匯率 ${format(d.rate,4)}</div></div>
-        <div><label>配對水單</label><div class="mono">${r.slip.date}｜${esc(r.slip.vendor)}｜外幣 ${format(r.slip.amount)}｜匯率 ${format(r.slip.rate,4)}</div></div>
-        <div><label>應收應付判定</label><div>${r.arap}</div></div>
-        <div><label>判斷</label><div><span class="pill ${r.kind==='gain'?'gain':'loss'}">${r.label}</span></div></div>
-        <div><label>差額絕對值（本幣）</label><div class="mono">${format(Math.abs(r.localByDecl - r.localBySlip))}</div></div>
-        <div><label>計算過程</label><pre class="mono" style="white-space:pre-wrap;background:#0a1220;border:1px solid var(--border);padding:8px;border-radius:10px">${esc(r.steps)}</pre></div></div>`;
+  const trades = [
+    newTradeDoc({vendor:'ACME', ccy:'USD', type:'進口', date:'2025-09-12', rate:32.400000, amtF:900}),
+    newTradeDoc({vendor:'ACME', ccy:'USD', type:'出口', date:'2025-09-20', rate:32.200000, amtF:500}),
+    newTradeDoc({vendor:'OMEGA', ccy:'EUR', type:'出口', date:'2025-09-08', rate:35.600000, amtF:500}),
+  ];
+  for(const v of samples) await saveWaterSlip(v);
+  for(const v of trades) await saveTradeDoc(v);
 }
 
-box.appendChild(left); box.appendChild(right);
-return box;
+/********************
+ * 事件綁定
+ ********************/
+function bindEvents(){
+  document.getElementById('app-ver').textContent = APP_VERSION;
+  // tabs
+  document.querySelectorAll('.tabs button').forEach(btn=> btn.onclick = ()=> setActiveTab(btn.dataset.tab));
 
+  // WS form
+  document.getElementById('btn-ws-save').onclick = async ()=>{
+    const ws = readWSForm();
+    if (!ws.vendor || !ws.date || ws.rateScaled===0n || ws.ccy==='') { alert('水單：廠商/日期/匯率/幣別必填'); return; }
+    await saveWaterSlip(ws); writeWSForm({}); await refreshWSList(); alert('已儲存');
+  };
+  document.getElementById('btn-ws-reset').onclick = ()=> writeWSForm({});
+  document.getElementById('btn-ws-delete').onclick = async ()=>{
+    const id = document.getElementById('ws-id').value; if(!id){alert('無選擇水單');return;}
+    await deleteWaterSlip(id); writeWSForm({}); await refreshWSList(); alert('已刪除');
+  };
+  document.getElementById('btn-ws-refresh').onclick = refreshWSList;
+
+  // TD form
+  document.getElementById('td-vendor').addEventListener('input', populateWSSelectForTradeForm);
+  document.getElementById('td-ccy').addEventListener('change', populateWSSelectForTradeForm);
+  document.getElementById('td-type').addEventListener('change', populateWSSelectForTradeForm);
+
+  document.getElementById('btn-td-autopick').onclick = async ()=>{
+    const td = readTDForm();
+    const wsList = await listWaterSlips({vendor: td.vendor, ccy: td.ccy});
+    const pick = pickWaterSlipForTrade(td, wsList);
+    document.getElementById('td-ws-select').value = pick;
+    alert(pick?`自動匹配：${pick}`:'未找到合適水單');
+  };
+
+  document.getElementById('btn-td-save').onclick = async ()=>{
+    const td = readTDForm();
+    if (!td.vendor || !td.date || td.rateScaled===0n || td.ccy==='') { alert('報單：廠商/日期/匯率/幣別必填'); return; }
+    await saveTradeDoc(td); writeTDForm({}); await refreshTDList(); alert('已儲存');
+  };
+  document.getElementById('btn-td-reset').onclick = ()=> writeTDForm({});
+  document.getElementById('btn-td-delete').onclick = async ()=>{
+    const id = document.getElementById('td-id').value; if(!id){alert('無選擇報單');return;}
+    await deleteTradeDoc(id); writeTDForm({}); await refreshTDList(); alert('已刪除');
+  };
+  document.getElementById('btn-td-refresh').onclick = refreshTDList;
+
+  // 結果
+  document.getElementById('btn-recompute').onclick = recomputeAll;
+
+  // 工具
+  document.getElementById('btn-export').onclick = exportJSON;
+  document.getElementById('btn-import').onclick = async ()=>{
+    const f = document.getElementById('file-import').files[0]; if(!f){alert('請先選擇 JSON 檔'); return;}
+    await importJSON(f); await refreshWSList(); await refreshTDList(); alert('匯入完成');
+  };
+  document.getElementById('btn-db-reset').onclick = async ()=>{ if(!confirm('確認清空資料庫？'))return; await resetDB(); await refreshWSList(); await refreshTDList(); document.getElementById('result-list').innerHTML=''; alert('已清空'); };
+  document.getElementById('btn-seed').onclick = async ()=>{ await seedData(); await refreshWSList(); await refreshTDList(); alert('已寫入範例資料'); };
 }
 
-function panelData(){ const box = document.createElement('div'); box.className='grid';
-
-// settings
-const s = document.createElement('div'); s.className='card'; s.innerHTML='<h2>系統設定</h2>';
-const mode = document.createElement('select'); mode.innerHTML='<option value="mul">本幣=外幣×匯率</option><option value="div">本幣=外幣÷匯率</option>';
-mode.value = state.settings.rateMode;
-mode.onchange = ()=>{ state.settings.rateMode=mode.value; save(); };
-
-const note = document.createElement('div'); note.className='hint';
-note.textContent = '若您的匯率是「本幣/1外幣」，請選擇乘法模式（預設）。若為「外幣/本幣」，選擇除法模式。';
-
-s.appendChild(wrapField('匯率解讀', mode));
-s.appendChild(note);
-
-// export/import
-const d = document.createElement('div'); d.className='card'; d.innerHTML='<h2>資料備份</h2>';
-const ta = document.createElement('textarea'); ta.value = JSON.stringify(state, null, 2);
-const row = document.createElement('div'); row.className='right';
-row.appendChild(button('重新載入預覽','ghost',()=>{ ta.value = JSON.stringify(state,null,2); }));
-row.appendChild(button('從文字匯入','warn',()=>{ try{ const obj=JSON.parse(ta.value); Object.assign(state,obj); save(); render(); }catch(e){ alert('JSON 格式錯誤'); } }));
-row.appendChild(button('清空所有資料','danger',()=>{ if(confirm('此動作無法復原，確定？')){ localStorage.removeItem(storeKey); location.reload(); } }));
-
-d.appendChild(ta); d.appendChild(row);
-
-box.appendChild(s); box.appendChild(d);
-return box;
-
-}
-
-// ------------------ Render Root ------------------ function render(){ renderTabs(); elPanels.innerHTML=''; const panel = activeTab==='slip' ? panelSlip() : activeTab==='decl' ? panelDecl() : activeTab==='fx' ? panelFx() : panelData(); elPanels.appendChild(panel); }
-
-// ------------------ Util DOM ------------------ function wrapField(labelText, input){ const w=document.createElement('div'); const l=document.createElement('label'); l.textContent=labelText; w.appendChild(l); w.appendChild(input); return w; } function button(text, kind, onclick){ const b=document.createElement('button'); b.className='btn '+(kind||''); b.textContent=text; b.onclick=onclick; return b; } function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({"&":"&","<":"<",">":">",""":"""}[c])); }
-
-// boot render(); })(); </script>
-
-</body>
+/********************
+ * 開始
+ ********************/
+(async function main(){
+  await openDB();
+  bindEvents();
+  await refreshWSList();
+  await refreshTDList();
+})();
+</script></body>
 </html>
