@@ -1,0 +1,490 @@
+<!DOCTYPE html><html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>離線匯差計算器｜水單 & 進出口報單</title>
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --panel:#111827; /* gray-900 */
+      --panel-2:#0b1220; /* darker */
+      --muted:#94a3b8; /* slate-400 */
+      --text:#e2e8f0; /* slate-200 */
+      --accent:#22d3ee; /* cyan-400 */
+      --accent-2:#38bdf8; /* sky-400 */
+      --ok:#34d399; /* green */
+      --bad:#fb7185; /* rose */
+      --warn:#f59e0b; /* amber */
+      --card:#111827;
+      --border:#23324d;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,#13203b 0%,transparent 60%),linear-gradient(0deg,var(--bg),#060a13);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji"}
+    h1,h2{margin:.2rem 0 1rem}
+    h1{font-size:1.3rem}
+    h2{font-size:1.1rem;color:#cbd5e1}
+    .wrap{max-width:1200px;margin:0 auto;padding:20px}
+    .grid{display:grid;gap:12px}
+    .grid.cols-2{grid-template-columns:1fr 1fr}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    .row{display:flex;gap:8px;align-items:center}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .tab{border:1px solid var(--border);background:#0b1220;color:#cbd5e1;border-radius:999px;padding:8px 12px;cursor:pointer;transition:.18s}
+    .tab.active{background:linear-gradient(90deg,#0ea5e9,#06b6d4);color:#0b1220;font-weight:700}
+    label{font-size:.85rem;color:var(--muted)}
+    input,select,textarea{width:100%;background:#0a1220;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+    textarea{min-height:100px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--border);padding:8px;text-align:left}
+    th{font-weight:600;color:#cbd5e1}
+    .btn{background:#0a1322;border:1px solid var(--border);color:#e2e8f0;border-radius:10px;padding:8px 12px;cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg,#0ea5e9,#06b6d4);border:none;color:#082f49;font-weight:700}
+    .btn.ghost{background:transparent}
+    .btn.warn{background:linear-gradient(90deg,#f59e0b,#f97316);border:none;color:#111}
+    .btn.danger{background:linear-gradient(90deg,#fb7185,#ef4444);border:none;color:#111}
+    .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:.75rem;opacity:.9}
+    .gain{background:rgba(34,211,238,.12);color:#67e8f9}
+    .loss{background:rgba(251,113,133,.12);color:#fecdd3}
+    .muted{color:var(--muted)}
+    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .right{display:flex;justify-content:flex-end;gap:8px}
+    .hint{font-size:.8rem;color:#9ca3af}
+    .sticky{position:sticky;top:8px}
+    .footer{margin-top:16px;color:#64748b;font-size:.8rem}
+    .small{font-size:.85rem}
+    .split{display:grid;grid-template-columns: 1.3fr .7fr;gap:12px}
+    @media (max-width: 900px){.grid.cols-2,.grid.cols-3,.split{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>離線匯差計算器｜水單 & 進出口報單</h1>
+    <div class="tabs" id="tabs"></div><!-- Panels -->
+<div id="panel-container" class="grid"></div>
+
+<div class="footer">資料皆儲存在此瀏覽器的 <span class="mono">localStorage</span>，可離線使用。建議定期「匯出備份」。</div>
+
+  </div><script>
+(function(){
+  // ------------------ Data Layer ------------------
+  const storeKey = 'fx-offline-v1';
+  const state = load() || {
+    settings:{ rateMode:'mul', // 'mul' = 本幣 = 外幣 × 匯率; 'div' = 本幣 = 外幣 ÷ 匯率
+               vendorHint:'',
+               defaultCurrency:'USD', baseCurrency:'TWD' },
+    slips:[], // 水單: {id, date, rate, amount, vendor, note}
+    decls:[], // 報單: {id, date, rate, amount, vendor, type:'進口'|'出口', linkSlipId:null, note}
+  };
+  function save(){ localStorage.setItem(storeKey, JSON.stringify(state)); }
+  function load(){ try{ return JSON.parse(localStorage.getItem(storeKey)); }catch(e){ return null; } }
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+  function parseNum(x){ const n=Number(String(x).replace(/,/g,'')); return isFinite(n)?n:0; }
+  function format(n, d=2){ return (isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  function vendors(){ const set=new Set([...(state.slips||[]).map(x=>x.vendor), ...(state.decls||[]).map(x=>x.vendor)]); return Array.from(set).filter(Boolean).sort(); }
+
+  // Match rule: pick the latest slip for the vendor on or before the decl date; if none, pick the closest after.
+  function matchSlip(vendor, dateISO){
+    const date = new Date(dateISO);
+    const list = state.slips.filter(s=>s.vendor===vendor).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    if(list.length===0) return null;
+    let best = null; let bestDiff = Infinity; let preferPast=true;
+    for(const s of list){
+      const ds = new Date(s.date);
+      const diff = date - ds; // ms
+      if(diff>=0){ // past or same day
+        if(preferPast && diff < bestDiff){ bestDiff=diff; best=s; }
+      }
+    }
+    if(best) return best;
+    // fallback to closest future
+    for(const s of list){
+      const ds = new Date(s.date);
+      const diff = ds - date;
+      if(diff>=0 && diff < bestDiff){ bestDiff=diff; best=s; }
+    }
+    return best;
+  }
+
+  // Compute FX gain/loss per rules
+  function computeFx(decl){
+    const slip = decl.linkSlipId ? state.slips.find(s=>s.id===decl.linkSlipId) : matchSlip(decl.vendor, decl.date);
+    if(!slip) return { slip:null, note:'未找到對應水單', localBySlip:0, localByDecl:0, diff:0, label:'無配對', kind:'none', arap:null };
+
+    const amt = parseNum(decl.amount);
+    const rSlip = parseNum(slip.rate);
+    const rDecl = parseNum(decl.rate);
+
+    // local currency translation
+    const localBySlip = state.settings.rateMode==='mul' ? amt * rSlip : (rSlip? amt / rSlip : 0);
+    const localByDecl = state.settings.rateMode==='mul' ? amt * rDecl : (rDecl? amt / rDecl : 0);
+    const diff = localByDecl - localBySlip; // positive means localByDecl > localBySlip
+
+    // Label by business rule
+    let label='', kind='';
+    if(decl.type==='進口'){
+      // rule: 水單匯率 < 進口匯率 → 兌換盈餘；反之損失
+      if(rSlip < rDecl){ label='兌換盈餘'; kind='gain'; }
+      else if(rSlip > rDecl){ label='兌換損失'; kind='loss'; }
+      else { label='無差額'; kind='even'; }
+    }else{
+      // 出口: 水單匯率 < 出口匯率 → 兌換損失；反之盈餘
+      if(rSlip < rDecl){ label='兌換損失'; kind='loss'; }
+      else if(rSlip > rDecl){ label='兌換盈餘'; kind='gain'; }
+      else { label='無差額'; kind='even'; }
+    }
+
+    // 應收應付判斷：比較日期先後
+    const slipDate = new Date(slip.date);
+    const declDate = new Date(decl.date);
+    const arap = slipDate < declDate ? '預收付（先有水單）' : (slipDate > declDate ? '應收付（先有報單）' : '同日');
+
+    const steps = state.settings.rateMode==='mul'
+      ? `本幣(依水單)= 外幣金額 × 水單匯率 = ${format(amt)} × ${rSlip} = ${format(localBySlip)}\n本幣(依報單)= 外幣金額 × 報單匯率 = ${format(amt)} × ${rDecl} = ${format(localByDecl)}\n差額(報單-水單)= ${format(localByDecl)} - ${format(localBySlip)} = ${format(localByDecl-localBySlip)}`
+      : `本幣(依水單)= 外幣金額 ÷ 水單匯率 = ${format(amt)} ÷ ${rSlip} = ${format(localBySlip)}\n本幣(依報單)= 外幣金額 ÷ 報單匯率 = ${format(amt)} ÷ ${rDecl} = ${format(localByDecl)}\n差額(報單-水單)= ${format(localByDecl)} - ${format(localBySlip)} = ${format(localByDecl-localBySlip)}`;
+
+    return { slip, localBySlip, localByDecl, diff, label, kind, arap, steps };
+  }
+
+  // ------------------ UI Helpers ------------------
+  const elTabs = document.getElementById('tabs');
+  const elPanels = document.getElementById('panel-container');
+  const tabs = [
+    { id:'slip', name:'水單管理' },
+    { id:'decl', name:'進出口報單' },
+    { id:'fx',   name:'匯差分析' },
+    { id:'data', name:'資料管理' }
+  ];
+  let activeTab = 'slip';
+  function renderTabs(){
+    elTabs.innerHTML = '';
+    tabs.forEach(t=>{
+      const b=document.createElement('button');
+      b.className = 'tab'+(activeTab===t.id?' active':'');
+      b.textContent = t.name;
+      b.onclick = ()=>{ activeTab=t.id; render(); };
+      elTabs.appendChild(b);
+    })
+  }
+
+  function inputRow(fields){
+    const row = document.createElement('div'); row.className='grid cols-3';
+    fields.forEach(f=>{
+      const wrap = document.createElement('div'); wrap.className='card';
+      const lab = document.createElement('label'); lab.textContent=f.label; wrap.appendChild(lab);
+      const inp = f.tag==='textarea'?document.createElement('textarea'):document.createElement(f.tag||'input');
+      if(f.type) inp.type=f.type; if(f.placeholder) inp.placeholder=f.placeholder; if(f.value!=null) inp.value=f.value;
+      if(f.list){ const datalist=document.createElement('datalist'); datalist.id=f.id+'-list'; f.list.forEach(v=>{ const o=document.createElement('option'); o.value=v; datalist.appendChild(o); }); document.body.appendChild(datalist); inp.setAttribute('list',datalist.id); }
+      if(f.oninput) inp.oninput = e=>f.oninput(e.target.value);
+      if(f.id) inp.id=f.id;
+      wrap.appendChild(inp); row.appendChild(wrap);
+    });
+    return row;
+  }
+
+  // ------------------ Panels ------------------
+  function panelSlip(){
+    const box = document.createElement('div'); box.className='grid';
+
+    // Quick add
+    const p = document.createElement('div'); p.className='card';
+    p.innerHTML = `<h2>新增水單</h2>`;
+    const row1 = document.createElement('div'); row1.className='grid cols-3';
+    const date = document.createElement('input'); date.type='date';
+    const rate = document.createElement('input'); rate.type='number'; rate.step='0.0001';
+    const amount = document.createElement('input'); amount.type='number'; amount.step='0.01';
+    const vendor = document.createElement('input'); vendor.placeholder='廠商/客戶'; vendor.setAttribute('list','vendor-list');
+    const vendorsList = document.createElement('datalist'); vendorsList.id='vendor-list'; vendors().forEach(v=>{ const o=document.createElement('option'); o.value=v; vendorsList.appendChild(o); });
+    const note = document.createElement('input'); note.placeholder='備註 (選填)';
+
+    row1.appendChild(wrapField('日期',date));
+    row1.appendChild(wrapField('匯率',rate));
+    row1.appendChild(wrapField('外幣金額',amount));
+    row1.appendChild(wrapField('廠商',vendor));
+    row1.appendChild(wrapField('備註',note));
+    const actions=document.createElement('div'); actions.className='right';
+    const btn = button('新增水單','primary',()=>{
+      if(!date.value||!vendor.value){ alert('請填寫 日期 與 廠商'); return; }
+      state.slips.push({id:uid(), date:date.value, rate:parseNum(rate.value), amount:parseNum(amount.value), vendor:vendor.value.trim(), note:note.value.trim()});
+      save(); render();
+    });
+    actions.appendChild(btn);
+
+    // batch add
+    const batch = document.createElement('textarea');
+    batch.placeholder = '批量新增：每行輸入「日期,匯率,金額,廠商,備註」\n例如：\n2025-01-05,31.25,10000,Acme Ltd,TT匯入\n2025-01-08,31.10,5000,Acme Ltd,部分預收';
+    const rowBatch = document.createElement('div'); rowBatch.className='row';
+    rowBatch.appendChild(batch);
+    const btnBatch = button('批量匯入水單', 'warn', ()=>{
+      const lines = batch.value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+      let ok=0, bad=0;
+      lines.forEach(line=>{
+        const [d,r,a,v, n] = line.split(',').map(x=>x!=null?x.trim():x);
+        if(d && v){ state.slips.push({id:uid(), date:d, rate:parseNum(r), amount:parseNum(a), vendor:v, note:n||''}); ok++; }
+        else bad++;
+      });
+      save(); alert(`成功 ${ok} 筆，略過 ${bad} 筆。`); render();
+    });
+    rowBatch.appendChild(btnBatch);
+
+    p.appendChild(row1); p.appendChild(actions); p.appendChild(document.createElement('hr')); p.appendChild(rowBatch); p.appendChild(vendorsList);
+    box.appendChild(p);
+
+    // list
+    const list = document.createElement('div'); list.className='card';
+    list.innerHTML = `<h2>水單歷史</h2>`;
+    const filter = document.createElement('div'); filter.className='row';
+    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
+    const fFrom = document.createElement('input'); fFrom.type='date';
+    const fTo = document.createElement('input'); fTo.type='date';
+    filter.appendChild(wrapField('廠商', fVendor));
+    filter.appendChild(wrapField('起', fFrom));
+    filter.appendChild(wrapField('迄', fTo));
+    list.appendChild(filter);
+
+    const tbl = document.createElement('table');
+    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>日期</th><th>廠商</th><th class="small">匯率</th><th class="small">外幣金額</th><th>備註</th><th></th></tr>`; tbl.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    function drawBody(){
+      tbody.innerHTML='';
+      state.slips
+        .filter(s=>!fVendor.value || (s.vendor||'').toLowerCase().includes(fVendor.value.toLowerCase()))
+        .filter(s=>!fFrom.value || new Date(s.date)>=new Date(fFrom.value))
+        .filter(s=>!fTo.value || new Date(s.date)<=new Date(fTo.value))
+        .sort((a,b)=>new Date(b.date)-new Date(a.date))
+        .forEach(s=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML = `<td>${s.date}</td><td>${esc(s.vendor)}</td><td>${format(s.rate,4)}</td><td>${format(s.amount)}</td><td>${esc(s.note||'')}</td>`;
+          const td=document.createElement('td');
+          const del=button('刪除','danger',()=>{ if(confirm('確定刪除？')){ state.slips=state.slips.filter(x=>x.id!==s.id); save(); render(); }});
+          td.appendChild(del); tr.appendChild(td); tbody.appendChild(tr);
+        });
+    }
+    [fVendor,fFrom,fTo].forEach(el=>el.oninput=drawBody);
+    drawBody();
+
+    tbl.appendChild(tbody); list.appendChild(tbl); box.appendChild(list);
+    return box;
+  }
+
+  function panelDecl(){
+    const box = document.createElement('div'); box.className='grid';
+
+    const p = document.createElement('div'); p.className='card'; p.innerHTML='<h2>新增進出口報單</h2>';
+    const row = document.createElement('div'); row.className='grid cols-3';
+    const date = document.createElement('input'); date.type='date';
+    const rate = document.createElement('input'); rate.type='number'; rate.step='0.0001';
+    const amount = document.createElement('input'); amount.type='number'; amount.step='0.01';
+    const vendor = document.createElement('input'); vendor.placeholder='廠商/客戶'; vendor.setAttribute('list','vendor-list');
+    const type = document.createElement('select'); type.innerHTML = '<option value="進口">進口</option><option value="出口">出口</option>';
+    const note = document.createElement('input'); note.placeholder='備註 (選填)';
+
+    row.appendChild(wrapField('日期',date));
+    row.appendChild(wrapField('匯率',rate));
+    row.appendChild(wrapField('外幣金額',amount));
+    row.appendChild(wrapField('廠商',vendor));
+    row.appendChild(wrapField('類型',type));
+    row.appendChild(wrapField('備註',note));
+
+    // optional link to slip
+    const linkWrap = document.createElement('div'); linkWrap.className='grid cols-3';
+    const link = document.createElement('select');
+    refreshSlipOptions();
+    function refreshSlipOptions(){
+      link.innerHTML = '<option value="">（自動配對）</option>' + state.slips
+        .sort((a,b)=>new Date(b.date)-new Date(a.date))
+        .map(s=>`<option value="${s.id}">${s.date}｜${esc(s.vendor)}｜匯率${s.rate}｜金額${s.amount}</option>`).join('');
+    }
+    linkWrap.appendChild(wrapField('指定對應水單 (可選)', link));
+
+    const actions=document.createElement('div'); actions.className='right';
+    const btn = button('新增報單','primary',()=>{
+      if(!date.value||!vendor.value){ alert('請填寫 日期 與 廠商'); return; }
+      state.decls.push({id:uid(), date:date.value, rate:parseNum(rate.value), amount:parseNum(amount.value), vendor:vendor.value.trim(), type:type.value, linkSlipId: link.value||null, note:note.value.trim()});
+      save(); render();
+    });
+    actions.appendChild(btn);
+
+    // batch
+    const batch = document.createElement('textarea');
+    batch.placeholder = '批量新增：每行「日期,匯率,金額,廠商,類型(進口/出口),備註」\n例如：\n2025-01-09,31.50,8000,Acme Ltd,進口,1月進口\n2025-01-12,31.20,12000,Acme Ltd,出口,1月出口';
+    const rowBatch = document.createElement('div'); rowBatch.className='row';
+    rowBatch.appendChild(batch);
+    const btnBatch = button('批量匯入報單', 'warn', ()=>{
+      const lines = batch.value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+      let ok=0, bad=0;
+      lines.forEach(line=>{
+        const [d,r,a,v,t,n] = line.split(',').map(x=>x!=null?x.trim():x);
+        if(d && v && (t==='進口'||t==='出口')){ state.decls.push({id:uid(), date:d, rate:parseNum(r), amount:parseNum(a), vendor:v, type:t, linkSlipId:null, note:n||''}); ok++; }
+        else bad++;
+      });
+      save(); alert(`成功 ${ok} 筆，略過 ${bad} 筆。`); render();
+    });
+    rowBatch.appendChild(btnBatch);
+
+    p.appendChild(row); p.appendChild(linkWrap); p.appendChild(actions); p.appendChild(document.createElement('hr')); p.appendChild(rowBatch);
+    box.appendChild(p);
+
+    // list
+    const list = document.createElement('div'); list.className='card';
+    list.innerHTML = `<h2>報單歷史</h2>`;
+    const filter = document.createElement('div'); filter.className='row';
+    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
+    const fType = document.createElement('select'); fType.innerHTML='<option value="">全部</option><option>進口</option><option>出口</option>';
+    const fFrom = document.createElement('input'); fFrom.type='date';
+    const fTo = document.createElement('input'); fTo.type='date';
+    filter.appendChild(wrapField('廠商', fVendor));
+    filter.appendChild(wrapField('類型', fType));
+    filter.appendChild(wrapField('起', fFrom));
+    filter.appendChild(wrapField('迄', fTo));
+    list.appendChild(filter);
+
+    const tbl = document.createElement('table');
+    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>日期</th><th>類型</th><th>廠商</th><th>匯率</th><th>外幣金額</th><th>對應水單</th><th></th></tr>`; tbl.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    function drawBody(){
+      tbody.innerHTML='';
+      state.decls
+        .filter(s=>!fVendor.value || (s.vendor||'').toLowerCase().includes(fVendor.value.toLowerCase()))
+        .filter(s=>!fType.value || s.type===fType.value)
+        .filter(s=>!fFrom.value || new Date(s.date)>=new Date(fFrom.value))
+        .filter(s=>!fTo.value || new Date(s.date)<=new Date(fTo.value))
+        .sort((a,b)=>new Date(b.date)-new Date(a.date))
+        .forEach(s=>{
+          const tr=document.createElement('tr');
+          const slip = s.linkSlipId && state.slips.find(x=>x.id===s.linkSlipId);
+          const slipTxt = slip? `${slip.date}｜${esc(slip.vendor)}｜${format(slip.rate,4)}`:'自動配對';
+          tr.innerHTML = `<td>${s.date}</td><td>${s.type}</td><td>${esc(s.vendor)}</td><td>${format(s.rate,4)}</td><td>${format(s.amount)}</td><td class="small">${slipTxt}</td>`;
+          const td=document.createElement('td');
+          const del=button('刪除','danger',()=>{ if(confirm('確定刪除？')){ state.decls=state.decls.filter(x=>x.id!==s.id); save(); render(); }});
+          td.appendChild(del); tr.appendChild(td); tbody.appendChild(tr);
+        });
+    }
+    [fVendor,fType,fFrom,fTo].forEach(el=>el.oninput=drawBody);
+    drawBody();
+
+    tbl.appendChild(tbody); list.appendChild(tbl); box.appendChild(list);
+    return box;
+  }
+
+  function panelFx(){
+    const box = document.createElement('div'); box.className='split';
+
+    // left: analyzer
+    const left = document.createElement('div'); left.className='grid';
+    const p = document.createElement('div'); p.className='card'; p.innerHTML = '<h2>匯差分析</h2>';
+
+    const filter = document.createElement('div'); filter.className='row';
+    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
+    const fType = document.createElement('select'); fType.innerHTML='<option value="">全部</option><option>進口</option><option>出口</option>';
+    const fFrom = document.createElement('input'); fFrom.type='date';
+    const fTo = document.createElement('input'); fTo.type='date';
+    filter.appendChild(wrapField('廠商', fVendor));
+    filter.appendChild(wrapField('類型', fType));
+    filter.appendChild(wrapField('起', fFrom));
+    filter.appendChild(wrapField('迄', fTo));
+    p.appendChild(filter);
+
+    const tbl = document.createElement('table');
+    const thead = document.createElement('thead'); thead.innerHTML='<tr><th>日期</th><th>類型</th><th>廠商</th><th>金額(外幣)</th><th>報單匯率</th><th>水單匯率</th><th>差額</th><th>判斷</th></tr>';
+    tbl.appendChild(thead);
+    const tbody = document.createElement('tbody');
+
+    function draw(){
+      tbody.innerHTML='';
+      const filtered = state.decls
+        .filter(s=>!fVendor.value || (s.vendor||'').toLowerCase().includes(fVendor.value.toLowerCase()))
+        .filter(s=>!fType.value || s.type===fType.value)
+        .filter(s=>!fFrom.value || new Date(s.date)>=new Date(fFrom.value))
+        .filter(s=>!fTo.value || new Date(s.date)<=new Date(fTo.value))
+        .sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+      let sumGain=0, sumLoss=0;
+      filtered.forEach(d=>{
+        const r = computeFx(d);
+        const tr=document.createElement('tr');
+        const slipRate = r.slip? r.slip.rate : NaN;
+        tr.innerHTML = `<td>${d.date}</td><td>${d.type}</td><td>${esc(d.vendor)}</td><td>${format(d.amount)}</td><td>${format(d.rate,4)}</td><td>${isFinite(slipRate)?format(slipRate,4):'<span class="muted">無</span>'}</td>`;
+        const tdDiff = document.createElement('td');
+        tdDiff.innerHTML = `<span class="mono">${format(Math.abs(r.localByDecl - r.localBySlip))}</span>`;
+        const tdLabel = document.createElement('td');
+        const pill = document.createElement('span'); pill.className='pill '+(r.kind==='gain'?'gain':(r.kind==='loss'?'loss':'')); pill.textContent=r.label;
+        tdLabel.appendChild(pill);
+        tr.appendChild(tdDiff); tr.appendChild(tdLabel);
+        tr.onclick = ()=> showDetail(d);
+        tbody.appendChild(tr);
+        if(r.kind==='gain') sumGain += Math.abs(r.localByDecl - r.localBySlip);
+        if(r.kind==='loss') sumLoss += Math.abs(r.localByDecl - r.localBySlip);
+      });
+
+      sumBar.textContent = `總盈餘：${format(sumGain)} ｜ 總損失：${format(sumLoss)}`;
+    }
+
+    [fVendor,fType,fFrom,fTo].forEach(el=>el.oninput=draw);
+    tbl.appendChild(tbody); p.appendChild(tbl);
+
+    const sumBar = document.createElement('div'); sumBar.className='hint'; p.appendChild(sumBar);
+
+    left.appendChild(p);
+
+    // right: detail
+    const right = document.createElement('div'); right.className='card sticky'; right.innerHTML='<h2>明細 / 計算過程</h2><div id="detail" class="small muted">點擊左側任一筆資料以查看</div>';
+
+    function showDetail(d){
+      const r = computeFx(d);
+      const box = document.getElementById('detail');
+      if(!r.slip){ box.innerHTML = '<span class="muted">未找到對應水單</span>'; return; }
+      box.className='small';
+      box.innerHTML = `
+      <div class="grid">
+        <div><label>報單</label><div class="mono">${d.date}｜${d.type}｜${esc(d.vendor)}｜外幣 ${format(d.amount)}｜匯率 ${format(d.rate,4)}</div></div>
+        <div><label>配對水單</label><div class="mono">${r.slip.date}｜${esc(r.slip.vendor)}｜外幣 ${format(r.slip.amount)}｜匯率 ${format(r.slip.rate,4)}</div></div>
+        <div><label>應收應付判定</label><div>${r.arap}</div></div>
+        <div><label>判斷</label><div><span class="pill ${r.kind==='gain'?'gain':'loss'}">${r.label}</span></div></div>
+        <div><label>差額絕對值（本幣）</label><div class="mono">${format(Math.abs(r.localByDecl - r.localBySlip))}</div></div>
+        <div><label>計算過程</label><pre class="mono" style="white-space:pre-wrap;background:#0a1220;border:1px solid var(--border);padding:8px;border-radius:10px">${esc(r.steps)}</pre></div></div>`;
+}
+
+box.appendChild(left); box.appendChild(right);
+return box;
+
+}
+
+function panelData(){ const box = document.createElement('div'); box.className='grid';
+
+// settings
+const s = document.createElement('div'); s.className='card'; s.innerHTML='<h2>系統設定</h2>';
+const mode = document.createElement('select'); mode.innerHTML='<option value="mul">本幣=外幣×匯率</option><option value="div">本幣=外幣÷匯率</option>';
+mode.value = state.settings.rateMode;
+mode.onchange = ()=>{ state.settings.rateMode=mode.value; save(); };
+
+const note = document.createElement('div'); note.className='hint';
+note.textContent = '若您的匯率是「本幣/1外幣」，請選擇乘法模式（預設）。若為「外幣/本幣」，選擇除法模式。';
+
+s.appendChild(wrapField('匯率解讀', mode));
+s.appendChild(note);
+
+// export/import
+const d = document.createElement('div'); d.className='card'; d.innerHTML='<h2>資料備份</h2>';
+const ta = document.createElement('textarea'); ta.value = JSON.stringify(state, null, 2);
+const row = document.createElement('div'); row.className='right';
+row.appendChild(button('重新載入預覽','ghost',()=>{ ta.value = JSON.stringify(state,null,2); }));
+row.appendChild(button('從文字匯入','warn',()=>{ try{ const obj=JSON.parse(ta.value); Object.assign(state,obj); save(); render(); }catch(e){ alert('JSON 格式錯誤'); } }));
+row.appendChild(button('清空所有資料','danger',()=>{ if(confirm('此動作無法復原，確定？')){ localStorage.removeItem(storeKey); location.reload(); } }));
+
+d.appendChild(ta); d.appendChild(row);
+
+box.appendChild(s); box.appendChild(d);
+return box;
+
+}
+
+// ------------------ Render Root ------------------ function render(){ renderTabs(); elPanels.innerHTML=''; const panel = activeTab==='slip' ? panelSlip() : activeTab==='decl' ? panelDecl() : activeTab==='fx' ? panelFx() : panelData(); elPanels.appendChild(panel); }
+
+// ------------------ Util DOM ------------------ function wrapField(labelText, input){ const w=document.createElement('div'); const l=document.createElement('label'); l.textContent=labelText; w.appendChild(l); w.appendChild(input); return w; } function button(text, kind, onclick){ const b=document.createElement('button'); b.className='btn '+(kind||''); b.textContent=text; b.onclick=onclick; return b; } function esc(s){ return String(s||'').replace(/[&<>"]/g, c=>({"&":"&","<":"<",">":">",""":"""}[c])); }
+
+// boot render(); })(); </script>
+
+</body>
+</html>
