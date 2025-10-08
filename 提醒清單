@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>REMIND / VOGUE – 綜合版</title>
+  <meta name="theme-color" content="#1e2230" />
+  <!-- 字體（首次載入後由 SW 快取） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================
+       CSS 規範：屬性排序（佈局 → 盒模型 → 排版文字 → 視覺 → 動畫）
+       移除所有行內樣式；以語義化工具類與元件類組合完成
+       ========================================== */
+
+    /* === 根變數（品牌與色彩） === */
+    :root{
+      --bg:#f5f3ef;            /* 溫潤米白 */
+      --fg:#222;               /* 炭灰 */
+      --muted:#5b5b5b;         /* 輕微加深 */
+      --border:rgba(0,0,0,.12);
+      --card:#fff;
+      --brand:#0f1a36;         /* 午夜藍 */
+      --accent:#7a1f2a;        /* 勃艮第紅 */
+      --warning-accent:#8f3a44;/* 品牌協調警示色 */
+      --shadow:0 14px 32px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.04);
+      --shadow-hover:0 18px 38px rgba(0,0,0,.12),0 4px 10px rgba(0,0,0,.06);
+    }
+
+    /* === 全域排版 === */
+    html,body{height:100%}
+    body{margin:0;font:14px/1.7 Inter,Roboto,Helvetica,Arial,"Noto Sans TC","PingFang TC","Heiti TC",sans-serif;color:var(--fg);background:var(--bg)}
+
+    /* === Header === */
+    header{position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);background:rgba(245,243,239,.85);backdrop-filter:saturate(180%) blur(8px)}
+    .header-inner{display:flex;align-items:center;gap:12px;max-width:1100px;margin:0 auto;padding:22px 24px;position:relative}
+    .header-inner::after{content:"";position:absolute;left:24px;right:24px;bottom:0;height:1px;background:linear-gradient(90deg, rgba(15,26,54,.35), rgba(122,31,42,.25), rgba(15,26,54,0))}
+    .header-inner::before{content:"";position:absolute;inset:auto 40% 0 0;height:1px;background:radial-gradient(120px 26px at 12% 120%, rgba(255,255,255,.6), rgba(255,255,255,0))}
+    .header-title{font-family:"Playfair Display",Georgia,serif;letter-spacing:.04em;line-height:1.2;font-weight:600}
+
+    /* === 容器與卡片 === */
+    .container{max-width:1100px;margin:0 auto;padding:28px 24px}
+    .card{border:1px solid var(--border);border-radius:20px;padding:22px;margin-top:22px;background:var(--card);box-shadow:var(--shadow);transition:box-shadow .25s ease-out,border-color .25s ease-out,transform .25s ease-out}
+    .card:hover{box-shadow:var(--shadow-hover);border-color:rgba(0,0,0,.18);transform:translateY(-2px) scale(1.002)}
+    .card-title{font-family:"Playfair Display",Georgia,serif;font-size:20px;margin-bottom:8px}
+
+    /* 今日卡片（漸層 + 內陰影 + 紋理占位可替換） */
+    .today-highlight{background:linear-gradient(180deg,#ffffff 0%,#fbf8f4 60%,#f7f2ea 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(0,0,0,.03)}
+
+    /* === 佈局工具 === */
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .items-center{align-items:center}
+    .right{margin-left:auto}
+    .grid-12{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .col-span-7{grid-column:span 7}
+    .col-span-2{grid-column:span 2}
+    .col-span-1{grid-column:span 1}
+    @media (max-width:860px){.grid-12{grid-template-columns:1fr}}
+
+    /* === 工具類 === */
+    .text-3xl{font-size:32px}
+    .flex{display:flex}
+    .flex-1{flex:1}
+    .gap-2{gap:8px}
+    .mt-1_5{margin-top:6px}
+    .mt-2{margin-top:8px}
+    .mt-2_5{margin-top:10px}
+    .mb-1_5{margin-bottom:6px}
+    .pb-2_5{padding-bottom:10px}
+    .pt-2_5{padding-top:10px}
+    .border-t{border-top:1px solid var(--border)}
+    .w-25{width:110px}
+    .h-50{height:200px}
+    .hidden{display:none}
+    .font-semibold{font-weight:600}
+
+    /* === 表單 === */
+    .form-control{border:1px solid rgba(0,0,0,.2);border-radius:14px;padding:9px 10px;background:#fff;transition:border-color .2s ease,box-shadow .2s ease,transform .06s ease}
+    .form-control:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(15,26,54,.12), inset 0 -2px 0 rgba(15,26,54,.24)}
+    .textarea{min-height:100px;width:100%;padding:12px}
+
+    /* === 微元件 === */
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--brand);border-radius:999px;font-size:12px;background:#fff;color:var(--brand)}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--border);border-radius:999px;font-size:11px}
+    .pill-dark{background:#000;color:#fff;border-color:#000}
+    .pill-warning{color:var(--warning-accent)}
+    .muted{color:var(--muted);font-size:12px}
+    .list-item{padding:16px 0;border-top:1px solid var(--border)}
+    .list-item:first-child{border-top:none}
+    .next-roc{font-weight:800;margin-right:4px}
+
+    /* === 對話框動畫與陰影層次 === */
+    dialog{opacity:0;transform:scale(.98);transition:opacity .2s ease,transform .2s ease;border:none}
+    dialog[open]{opacity:1;transform:scale(1)}
+    dialog::backdrop{background:rgba(0,0,0,.08)}
+    .dialog-base{border:1px solid var(--border);border-radius:18px;padding:0;max-width:560px;width:92%}
+    .card-flat{margin:0;box-shadow:none;border:0}
+    .dialog-card{box-shadow:0 28px 60px rgba(0,0,0,.18),0 6px 18px rgba(0,0,0,.08)}
+
+    /* === 按鈕 === */
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--brand);border-radius:999px;background:var(--brand);color:#fff;transition:transform .12s ease,box-shadow .25s ease,background .2s ease,color .2s ease,letter-spacing .2s ease}
+    .btn.secondary{background:transparent;color:var(--brand)}
+    .btn.ghost{border-color:var(--border);background:#fff;color:#333}
+    .btn:hover{transform:scale(.995);box-shadow:var(--shadow-hover);background:var(--accent);letter-spacing:.02em}
+    .btn.secondary:hover{background:var(--brand);color:#fff}
+    .btn.ghost:hover{background:#fff;color:var(--accent);border-color:var(--accent)}
+
+    /* === 響應式間距優化 === */
+    @media (max-width:860px){.next-row-gap{margin-top:16px}}
+
+    /* === 錯誤橫幅 === */
+    .banner-error{display:none;border:1px solid rgba(122,31,42,.35);background:rgba(122,31,42,.08);color:#52131a;border-radius:12px;padding:8px 12px}
+    .text-error{color:#8b0000}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1 class="header-title text-3xl">REMIND / VOGUE</h1>
+      <div class="spacer right"></div>
+      <button id="btn-settings" class="btn ghost" title="設定假日清單">設定</button>
+      <button id="btn-export" class="btn ghost" title="匯出 JSON">匯出</button>
+      <button id="btn-import" class="btn ghost" title="匯入 JSON">匯入</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 今日預計再次提醒（焦點卡片） -->
+    <section class="card today-highlight" id="today-card">
+      <div class="row items-center">
+        <div class="chip">今日預計再次提醒</div>
+        <div class="right"></div>
+        <div id="today-roc" class="muted"></div>
+      </div>
+      <div id="today-list" class="muted mt-2">今日無待提醒事項。</div>
+    </section>
+
+    <!-- 新增輸入區（奢華留白） -->
+    <section class="card">
+      <div class="card-title">新增提醒</div>
+      <div class="grid-12 mt-2">
+        <div class="col-span-7">
+          <textarea id="f-content" class="form-control textarea" placeholder="提醒內容"></textarea>
+        </div>
+        <div class="col-span-2">
+          <div class="muted">間隔天數</div>
+          <input id="f-interval" type="number" min="0" value="10" class="form-control" placeholder="10 / 20 / 30" />
+          <div class="muted mt-1_5">遇週末/假日自動順延</div>
+        </div>
+        <div class="col-span-2">
+          <div class="muted">是否已回覆</div>
+          <label class="flex items-center gap-2"><input id="f-replied" type="checkbox"/> 已回覆</label>
+        </div>
+        <div class="col-span-1 flex items-center right">
+          <button id="btn-add" class="btn">新增</button>
+        </div>
+      </div>
+      <div class="muted mt-1_5" id="create-note"></div>
+      <div id="error-banner" class="banner-error mt-2"></div>
+    </section>
+
+    <!-- 全部提醒（高效渲染） -->
+    <section class="card">
+      <div class="card-title">全部提醒</div>
+      <div id="list" aria-live="polite"></div>
+    </section>
+
+    <div class="muted mt-2">備註：本服務支援離線操作，讓您的時尚步調，永不中斷。民國日期 = 公元年 - 1911；台北時區。</div>
+  </main>
+
+  <!-- 設定對話框 -->
+  <dialog id="dlg-settings" class="dialog-base">
+    <form method="dialog">
+      <div class="card dialog-card card-flat">
+        <div class="font-semibold mb-1_5">假日清單（yyyy-mm-dd，每行一筆）</div>
+        <textarea id="holiday-text" class="form-control textarea h-50"></textarea>
+        <div class="row right mt-2 gap-2" style="justify-content:flex-end">
+          <button class="btn ghost" value="cancel">取消</button>
+          <button class="btn" value="ok">儲存</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+<script>
+/* =====================================================
+   IIFE 模組化封裝，避免全域汙染
+   台北時區嚴格處理；事件委派；局部 DOM 更新；
+   debounceSave() 降低 localStorage 寫入頻率；
+   holidaySet 預計算與重用；SW 註冊錯誤紀錄；
+   移除所有行內樣式，改採 CSS 類別。
+   ===================================================== */
+(function(){
+  'use strict';
+
+  /* ===== 常量與儲存鍵 ===== */
+  const STORAGE_KEY = 'vogue-reminders';
+  const HOLIDAY_KEY = 'vogue-holidays';
+  const TAIPEI_TZ = 'Asia/Taipei';
+  const TZ_OFFSET = '+08:00'; // 台灣固定 UTC+8
+
+  /* ===== 工具 ===== */
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  // 以台北時區產生今日 ISO
+  function todayISO(){
+    const now = new Date();
+    const t = new Date(now.toLocaleString('en-US',{timeZone:TAIPEI_TZ}));
+    const y=t.getFullYear(); const m=String(t.getMonth()+1).padStart(2,'0'); const d=String(t.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  // 嚴格以台北時區解析 YYYY-MM-DD
+  function parseISOInTPE(iso){ return new Date(`${iso}T00:00:00${TZ_OFFSET}`); }
+  function toROCString(iso){
+    const d = parseISOInTPE(iso);
+    if(isNaN(d)) return '--';
+    const roc = d.getFullYear()-1911;
+    const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0');
+    const wk = ['日','一','二','三','四','五','六'][d.getDay()];
+    return `${roc}-${m}-${day}（${wk}）`;
+  }
+  function addDaysISO(iso,days){
+    const d = parseISOInTPE(iso); d.setDate(d.getDate()+Number(days||0));
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${dd}`;
+  }
+  function isWeekend(iso){ const d=parseISOInTPE(iso); const g=d.getDay(); return g===0||g===6; }
+  function escapeHTML(s){ return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+  /* ===== 狀態 ===== */
+  let items = [];
+  let holidays = [];
+  let holidaySet = new Set();
+  let idIndex = new Map(); // id -> index
+  let debounceTimers = new Map(); // per-item debounce
+  let sortedDirty = true;
+  let saveTimer = null; // debounceSave 計時器
+
+  /* ===== 儲存與載入（含 try/catch + debounce） ===== */
+  function showError(msg){ const b = $('#error-banner'); b.classList.remove('hidden'); b.style.display='block'; b.textContent=msg; }
+  function hideError(){ const b = $('#error-banner'); b.classList.add('hidden'); b.style.display='none'; b.textContent=''; }
+
+  function saveNow(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(HOLIDAY_KEY, JSON.stringify(holidays));
+      hideError();
+    }catch(err){ showError('儲存失敗：'+ (err && err.message ? err.message : err)); }
+  }
+  function debounceSave(delay=500){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, delay); }
+  window.addEventListener('beforeunload', saveNow);
+
+  function load(){
+    try{ items=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')||[]; }catch{ items=[] }
+    try{ holidays=JSON.parse(localStorage.getItem(HOLIDAY_KEY)||'null'); }catch{ holidays=null }
+    if(!Array.isArray(holidays)){
+      holidays=[
+        '2025-01-01','2025-01-27','2025-01-28','2025-01-29','2025-01-30','2025-01-31',
+        '2025-02-28','2025-04-04','2025-04-05','2025-06-06','2025-09-17','2025-10-10'
+      ];
+    }
+    holidaySet = new Set(holidays);
+    rebuildIndex();
+  }
+  function rebuildIndex(){ idIndex.clear(); items.forEach((it,i)=>idIndex.set(it.id,i)); }
+
+  /* ===== 假日順延 ===== */
+  function adjustForHoliday(iso){ let x=iso; while(isWeekend(x)||holidaySet.has(x)) x=addDaysISO(x,1); return x; }
+
+  /* ===== 排序策略 ===== */
+  function ensureSorted(){ if(!sortedDirty) return; items.sort((a,b)=> a.nextDate.localeCompare(b.nextDate) || a.id.localeCompare(b.id)); rebuildIndex(); sortedDirty = false; }
+
+  /* ===== 今日區塊：增量更新 ===== */
+  function renderTodaySection(){
+    const today = todayISO();
+    $('#today-roc').textContent = toROCString(today);
+    const box = $('#today-list');
+    const todays = items.filter(it=>it.nextDate===today);
+    if(todays.length===0){ box.textContent='今日無待提醒事項。'; return; }
+    // Diff：以 id 對照現有 DOM
+    const existing = new Map([...box.children].map(el=>[el.getAttribute('data-id'), el]));
+    const nextSet = new Set(todays.map(it=>it.id));
+    // 移除不存在的
+    existing.forEach((el,id)=>{ if(!nextSet.has(id)) el.remove(); });
+    // 依序插入/更新
+    let ref = null;
+    todays.forEach(it=>{
+      let row = box.querySelector(`[data-id="${it.id}"]`);
+      if(!row){ row = renderTodayRow(it); if(ref) ref.after(row); else box.insertBefore(row, box.firstChild); }
+      else updateTodayRowDom(row, it);
+      ref = row;
+    });
+  }
+  function renderTodayRow(it){
+    const row=document.createElement('div');
+    row.className='row items-center border-t pt-2_5 pb-2_5';
+    row.setAttribute('data-id', it.id);
+    row.innerHTML=`<span class="pill pill-dark">●</span>
+      <div class="flex-1"><div class="font-semibold">${escapeHTML(it.content)}</div>
+      <div class="muted">間隔：${it.intervalDays} 天 · 已回覆：${it.replied?'是':'否'}</div></div>
+      <button class="btn secondary" data-action="reschedule">再次排程</button>`;
+    return row;
+  }
+  function updateTodayRowDom(row,it){
+    row.querySelector('.font-semibold').textContent = it.content;
+    row.querySelector('.muted').textContent = `間隔：${it.intervalDays} 天 · 已回覆：${it.replied?'是':'否'}`;
+  }
+
+  /* ===== 主列表：初始化渲染（其餘採局部更新/移動） ===== */
+  function renderMainList(init=false){
+    if(!init) return; // 僅初始化或大量重置時使用
+    ensureSorted();
+    const box = $('#list');
+    box.textContent='';
+    const frag = document.createDocumentFragment();
+    items.forEach(it=> frag.appendChild(renderItemRow(it)) );
+    box.appendChild(frag);
+  }
+  function renderItemRow(it){
+    const wrap=document.createElement('div');
+    wrap.className='list-item';
+    wrap.setAttribute('data-id', it.id);
+    wrap.innerHTML = `
+      <div class="row">
+        <input type="text" class="form-control flex-1" data-field="content" value="${escapeHTML(it.content)}" />
+        <span class="muted items-center" style="align-self:center">間隔</span>
+        <input type="number" min="0" class="form-control w-25" data-field="intervalDays" value="${it.intervalDays}" />
+        <span class="muted" style="align-self:center">已回覆</span>
+        <input type="checkbox" data-field="replied" ${it.replied?'checked':''} style="align-self:center" />
+      </div>
+      <div class="row next-row-gap mt-2">
+        <div>下次提醒： <span class="next-roc">${toROCString(it.nextDate)}</span><span class="muted">（ISO：<span class="next-iso">${it.nextDate}</span>）</span>
+          ${ (isWeekend(it.nextDate) || holidaySet.has(it.nextDate)) ? '<span class="pill pill-warning" style="margin-left:4px">已順延至工作日</span>':''}
+        </div>
+        <div class="right flex gap-2">
+          <input type="date" class="form-control" data-field="datePicker" value="${it.nextDate}" />
+          <button class="btn secondary" data-action="apply-date">套用</button>
+          <button class="btn secondary" data-action="reschedule">從今天重排</button>
+          <button class="btn ghost" data-action="delete">刪除</button>
+        </div>
+      </div>
+      <div class="muted">建立於：${toROCString(it.createdAt)}</div>
+    `;
+    return wrap;
+  }
+
+  /* ===== 單筆 DOM 更新與重插入 ===== */
+  function updateItemDom(it){
+    const el = document.querySelector(`[data-id="${it.id}"]`);
+    if(!el) return;
+    const content = el.querySelector('[data-field="content"]'); if(content) content.value = it.content;
+    const interval = el.querySelector('[data-field="intervalDays"]'); if(interval) interval.value = it.intervalDays;
+    const replied = el.querySelector('[data-field="replied"]'); if(replied) replied.checked = !!it.replied;
+    const nextISO = el.querySelector('.next-iso'); if(nextISO) nextISO.textContent = it.nextDate;
+    const nextROC = el.querySelector('.next-roc'); if(nextROC) nextROC.textContent = toROCString(it.nextDate);
+    // pill 警示狀態
+    const warn = (isWeekend(it.nextDate) || holidaySet.has(it.nextDate));
+    let pill = el.querySelector('.pill-warning');
+    if(warn && !pill){ pill = document.createElement('span'); pill.className='pill pill-warning'; pill.textContent='已順延至工作日'; nextROC.parentElement.append(' ', pill); }
+    if(!warn && pill){ pill.remove(); }
+  }
+  function addItemDomAtIndex(it, insertIndex){
+    const box = $('#list');
+    const row = renderItemRow(it);
+    const referenceNode = box.children[insertIndex];
+    box.insertBefore(row, referenceNode || null);
+  }
+  function removeItemDom(id){ const el = document.querySelector(`[data-id="${id}"]`); if(el) el.remove(); }
+  function relocateItemDom(id){
+    // 依據 items 當前排序找到新位置
+    removeItemDom(id);
+    const idx = items.findIndex(x=>x.id===id);
+    if(idx>=0) addItemDomAtIndex(items[idx], idx);
+  }
+
+  /* ===== CRUD 與商業邏輯 ===== */
+  function addItem(){
+    const content = $('#f-content').value.trim();
+    const intervalDays = Number($('#f-interval').value||0);
+    const replied = $('#f-replied').checked;
+    if(!content) return;
+    const today = todayISO();
+    const rawNext = addDaysISO(today, intervalDays);
+    const nextDate = adjustForHoliday(rawNext);
+    const id = crypto.randomUUID ? crypto.randomUUID() : 'r-'+Math.random().toString(36).slice(2)+Date.now();
+    const it = { id, content, intervalDays, nextDate, replied, createdAt: today };
+
+    // 插入到排序後正確位置（穩定）
+    let insertIndex = items.length;
+    for (let i = 0; i < items.length; i++) {
+      if (it.nextDate.localeCompare(items[i].nextDate) < 0 || (it.nextDate===items[i].nextDate && it.id.localeCompare(items[i].id) < 0)) { insertIndex = i; break; }
+    }
+    items.splice(insertIndex, 0, it);
+    rebuildIndex();
+    debounceSave();
+    addItemDomAtIndex(it, insertIndex);
+    renderTodaySection();
+
+    $('#f-content').value=''; $('#f-replied').checked=false;
+  }
+
+  function rescheduleFromToday(id){
+    const idx = idIndex.get(id); if(idx==null) return;
+    const before = items[idx].nextDate;
+    const t=todayISO();
+    const raw=addDaysISO(t, items[idx].intervalDays);
+    items[idx].nextDate = adjustForHoliday(raw);
+    const after = items[idx].nextDate;
+    debounceSave();
+    updateItemDom(items[idx]);
+    if(after !== before){
+      // 先更新資料排序，再移動 DOM
+      sortedDirty = true; ensureSorted(); relocateItemDom(id);
+    }
+    renderTodaySection();
+  }
+
+  function manualDateEdit(id, iso){
+    const idx = idIndex.get(id); if(idx==null) return;
+    const safe=/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : todayISO();
+    const before = items[idx].nextDate;
+    items[idx].nextDate = adjustForHoliday(safe);
+    const after = items[idx].nextDate;
+    debounceSave();
+    updateItemDom(items[idx]);
+    if(after !== before){ sortedDirty = true; ensureSorted(); relocateItemDom(id); }
+    renderTodaySection();
+  }
+
+  function removeItem(id){
+    if (debounceTimers.has(id)) { clearTimeout(debounceTimers.get(id)); debounceTimers.delete(id); }
+    items = items.filter(x=>x.id!==id);
+    sortedDirty = true; rebuildIndex(); debounceSave();
+    removeItemDom(id); renderTodaySection();
+  }
+
+  /* ===== 事件委派 ===== */
+  $('#list').addEventListener('input', (e)=>{
+    const row = e.target.closest('[data-id]'); if(!row) return; const id = row.getAttribute('data-id');
+    const idx = idIndex.get(id); if(idx==null) return;
+    const field = e.target.getAttribute('data-field');
+    if(field==='content'){ items[idx].content = e.target.value; debounceSave(); }
+    if(field==='intervalDays'){
+      const v = Number(e.target.value||0);
+      items[idx].intervalDays = v;
+      clearTimeout(debounceTimers.get(id));
+      const t = setTimeout(()=> rescheduleFromToday(id), 600);
+      debounceTimers.set(id, t);
+    }
+  });
+  $('#list').addEventListener('change', (e)=>{
+    const row = e.target.closest('[data-id]'); if(!row) return; const id = row.getAttribute('data-id');
+    const idx = idIndex.get(id); if(idx==null) return;
+    const field = e.target.getAttribute('data-field');
+    if(field==='replied'){ items[idx].replied = !!e.target.checked; debounceSave(); }
+  });
+  $('#list').addEventListener('click', (e)=>{
+    const row = e.target.closest('[data-id]'); if(!row) return; const id = row.getAttribute('data-id');
+    const actEl = e.target.closest('[data-action]'); if(!actEl) return; const action = actEl.getAttribute('data-action');
+    if(action==='delete') return removeItem(id);
+    if(action==='reschedule') return rescheduleFromToday(id);
+    if(action==='apply-date'){
+      const picker = row.querySelector('[data-field="datePicker"]');
+      if(picker) manualDateEdit(id, picker.value);
+    }
+  });
+  $('#today-list').addEventListener('click', (e)=>{
+    const row = e.target.closest('[data-id]'); if(!row) return; const id = row.getAttribute('data-id');
+    const act = e.target.closest('[data-action]'); if(!act) return;
+    if(act.getAttribute('data-action')==='reschedule') rescheduleFromToday(id);
+  });
+
+  /* ===== 設定（假日清單） ===== */
+  function openSettings(){
+    const dlg=$('#dlg-settings'); const ta=$('#holiday-text');
+    ta.value=(holidays||[]).join('\n'); dlg.showModal();
+    dlg.onclose=()=>{ if(dlg.returnValue==='ok'){ const list = ta.value.split(/\n+/).map(s=>s.trim()).filter(Boolean); holidays=list; holidaySet = new Set(holidays); debounceSave(); renderTodaySection(); } };
+  }
+
+  /* ===== 匯入 / 匯出 ===== */
+  function exportData(){ const data = { items, holidays }; const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.download='remind-vogue.json'; a.href=URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href); }
+  function importData(){ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(Array.isArray(data.items)) items=data.items; if(Array.isArray(data.holidays)) { holidays=data.holidays; holidaySet=new Set(holidays); } sortedDirty=true; rebuildIndex(); debounceSave(); renderTodaySection(); renderMainList(true); }catch(e){ showError('匯入失敗：'+(e&&e.message?e.message:e)); } }; r.readAsText(f); }; inp.click(); }
+
+  /* ===== 啟動 ===== */
+  load();
+  const today = todayISO();
+  $('#create-note').textContent = `建立日（系統）：${toROCString(today)}。所有新增項目的建立日與系統日同一天。`;
+  // 初次渲染推遲到空閒檔期
+  (window.requestIdleCallback || function(cb){ return setTimeout(cb, 0); })(()=>{
+    renderTodaySection();
+    renderMainList(true);
+  });
+
+  // 快捷鍵：Ctrl/Cmd + Enter 新增
+  ['f-content','f-interval'].forEach(id=>{
+    const el=document.getElementById(id); el.addEventListener('keydown',e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) addItem(); });
+  });
+  $('#btn-add').addEventListener('click', addItem);
+  $('#btn-settings').addEventListener('click', openSettings);
+  $('#btn-export').addEventListener('click', exportData);
+  $('#btn-import').addEventListener('click', importData);
+
+  /* ===== Service Worker（明確 CORE + 錯誤追蹤） ===== */
+  if('serviceWorker' in navigator){
+    const swCode = `
+      const CACHE='rv-core-v3';
+      const CORE=[ self.location.pathname ];
+      self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())); });
+      self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); self.clients.claim(); });
+      self.addEventListener('fetch',e=>{
+        const req=e.request; if(req.method!=='GET') return;
+        const url=new URL(req.url);
+        if(url.origin===location.origin){
+          e.respondWith(
+            caches.match(req).then(hit=>{
+              const net = fetch(req).then(res=>{ caches.open(CACHE).then(c=>c.put(req,res.clone())).catch(err=>console.error('SW Cache Error:', err)); return res; }).catch(()=>hit);
+              return hit || net || caches.match(self.location.pathname);
+            })
+          );
+          return;
+        }
+        e.respondWith(
+          fetch(req).then(res=>{ const copy=res.clone(); caches.open(CACHE).then(c=>c.put(req,copy)).catch(err=>console.error('SW Cache Error:', err)); return res; })
+            .catch(()=> caches.match(req))
+        );
+      });
+    `;
+    const blob = new Blob([swCode],{type:'text/javascript'});
+    const url = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(url).catch(err=>console.error('SW Register Error:', err));
+  }
+})();
+</script>
+</body>
+</html>
