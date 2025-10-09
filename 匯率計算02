@@ -98,6 +98,28 @@
     .sticky{position:sticky;top:8px}
     .footer{margin-top:16px;color:var(--muted);font-size:.8rem}
     .small{font-size:.85rem}
+    .allocation-detail-row td {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    .allocation-detail-content {
+      padding: 8px 0;
+      background: var(--panel-2);
+      border-radius: 8px;
+      margin: 8px 0;
+    }
+    .allocation-detail-content table {
+      width: calc(100% - 16px);
+      margin: 0 8px;
+    }
+    .allocation-detail-content th,
+    .allocation-detail-content td {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+    }
+    .allocation-detail-content tbody tr:nth-child(odd) {
+      background: transparent; /* No stripe for nested table */
+    }
   </style>
 </head>
 <body>
@@ -113,10 +135,10 @@
     <!-- Quick bar: Global Customer/Vendor + Allocation actions -->
     <div class="row" id="quickbar" style="margin-bottom:8px">
       <div style="flex:1" class="card">
-        <label>客戶（預設廠商/篩選）</label>
+        <label>客戶（篩選廠商）</label>
         <input id="globalVendor" list="global-vendor-list" placeholder="輸入或選擇客戶/廠商" />
         <datalist id="global-vendor-list"></datalist>
-        <div class="hint">此欄會：① 自動帶入新增表單的「廠商」；② 作為列表/分析預設篩選；可隨時清空。</div>
+        <div class="hint">此欄作為列表/分析預設篩選；可隨時清空。</div>
       </div>
       <div class="card" style="min-width:260px">
         <label>分攤快速動作（針對上方客戶）</label>
@@ -132,6 +154,10 @@
 
     <div class="footer">資料皆儲存在此瀏覽器的 <span class="mono">localStorage</span>，可離線使用。建議定期「匯出備份」。</div>
   </div>
+
+  <!-- Datalists for vendors -->
+  <datalist id="all-vendor-list"></datalist>
+  <datalist id="slip-vendor-list"></datalist>
 
 <script>
 (function(){
@@ -166,7 +192,9 @@
   function log(action, entity, entityId, detail){ state.audit.unshift({id:uid(), time:nowISO(), action, entity, entityId, detail}); if(state.audit.length>2000) state.audit.length=2000; }
   function parseNum(x){ const n=Number(String(x).replace(/,/g,'')); return isFinite(n)?n:0; }
   function format(n, d=2){ return (isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
-  function vendors(){ const set=new Set([...(state.slips||[]).map(x=>x.vendor), ...(state.decls||[]).map(x=>x.vendor)]); return Array.from(set).filter(Boolean).sort(); }
+  
+  function allVendors(){ const set=new Set([...(state.slips||[]).map(x=>x.vendor), ...(state.decls||[]).map(x=>x.vendor)]); return Array.from(set).filter(Boolean).sort(); }
+  function slipVendors(){ const set=new Set((state.slips||[]).map(x=>x.vendor)); return Array.from(set).filter(Boolean).sort(); }
 
   // Allocation helpers
   function totalAllocatedForDecl(declId){ return state.allocs.filter(a=>a.declId===declId).reduce((s,a)=>s+parseNum(a.amount),0); }
@@ -223,6 +251,7 @@
   ];
   let activeTab = 'slip';
   let selectedDeclForDetailId = null; // Store the ID of the decl to show detail for
+  let expandedSlipId = null; // Store the ID of the slip whose allocations are expanded
 
   function renderTabs(){
     elTabs.innerHTML = '';
@@ -247,18 +276,16 @@
     p.innerHTML = `<h2>新增水單</h2>`;
     const row1 = document.createElement('div'); row1.className='grid cols-3';
     const date = document.createElement('input'); date.type='date';
-    const currency = document.createElement('input'); currency.placeholder='幣別 (如: USD)'; currency.value = state.settings.defaultCurrency; // Added currency input
+    const currency = document.createElement('input'); currency.placeholder='幣別 (如: USD)'; currency.value = state.settings.defaultCurrency;
     const rate = document.createElement('input'); rate.type='number'; rate.step='0.0001';
     const amount = document.createElement('input'); amount.type='number'; amount.step='0.01';
-    const vendor = document.createElement('input'); vendor.placeholder='廠商/客戶'; vendor.setAttribute('list','vendor-list');
-    const vendorsList = document.createElement('datalist'); vendorsList.id='vendor-list'; vendors().forEach(v=>{ const o=document.createElement('option'); o.value=v; vendorsList.appendChild(o); });
+    const vendor = document.createElement('input'); vendor.placeholder='廠商/客戶'; vendor.setAttribute('list','all-vendor-list'); vendor.id='newSlipVendor';
     const note = document.createElement('input'); note.placeholder='備註 (選填)';
 
-    // default vendor from quickbar
-    const gv = (localStorage.getItem(GLOBAL_VENDOR_KEY)||'').trim(); if(gv) vendor.value=gv;
+    // Removed globalVendor auto-population here as per requirement
 
     row1.appendChild(wrapField('日期',date));
-    row1.appendChild(wrapField('幣別',currency)); // Added currency field
+    row1.appendChild(wrapField('幣別',currency));
     row1.appendChild(wrapField('匯率',rate));
     row1.appendChild(wrapField('外幣金額',amount));
     row1.appendChild(wrapField('廠商',vendor));
@@ -266,7 +293,7 @@
     const actions=document.createElement('div'); actions.className='right';
     const btn = button('新增水單','primary',()=>{
       if(!date.value||!vendor.value||!currency.value){ alert('請填寫 日期、幣別 與 廠商'); return; }
-      const obj={id:uid(), date:date.value, currency:currency.value.toUpperCase().trim(), rate:parseNum(rate.value), amount:parseNum(amount.value), vendor:vendor.value.trim(), note:note.value.trim()}; // Save currency
+      const obj={id:uid(), date:date.value, currency:currency.value.toUpperCase().trim(), rate:parseNum(rate.value), amount:parseNum(amount.value), vendor:vendor.value.trim(), note:note.value.trim()};
       state.slips.push(obj); log('新增','水單',obj.id, JSON.stringify(obj));
       save(); render();
     });
@@ -276,7 +303,7 @@
     batch.placeholder = `批量新增：每行輸入「日期,幣別,匯率,金額,廠商,備註」
 例如：
 2025-01-05,USD,31.25,10000,Acme Ltd,TT匯入
-2025-01-08,JPY,0.215,500000,Acme Ltd,部分預收`; // Updated batch placeholder for currency
+2025-01-08,JPY,0.215,500000,Acme Ltd,部分預收`;
     const rowBatch = document.createElement('div'); rowBatch.className='row';
     rowBatch.appendChild(batch);
     const btnBatch = button('批量匯入水單', 'warn', ()=>{
@@ -291,13 +318,13 @@
     });
     rowBatch.appendChild(btnBatch);
 
-    p.appendChild(row1); p.appendChild(actions); p.appendChild(document.createElement('hr')); p.appendChild(rowBatch); p.appendChild(vendorsList);
+    p.appendChild(row1); p.appendChild(actions); p.appendChild(document.createElement('hr')); p.appendChild(rowBatch);
     box.appendChild(p);
 
     const list = document.createElement('div'); list.className='card';
     list.innerHTML = `<h2>水單歷史</h2>`;
     const filter = document.createElement('div'); filter.className='row';
-    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
+    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商'; fVendor.setAttribute('list','all-vendor-list'); fVendor.id='slipFilterVendor';
     const fFrom = document.createElement('input'); fFrom.type='date';
     const fTo = document.createElement('input'); fTo.type='date';
     filter.appendChild(wrapField('廠商', fVendor));
@@ -306,7 +333,7 @@
     list.appendChild(filter);
 
     const tbl = document.createElement('table');
-    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>日期</th><th>廠商</th><th class="small">幣別</th><th class="small">匯率</th><th class="small">外幣金額</th><th>可用金額</th><th>備註</th><th></th></tr>`; tbl.appendChild(thead); // Added currency to header
+    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>日期</th><th>廠商</th><th class="small">幣別</th><th class="small">匯率</th><th class="small">外幣金額</th><th>可用金額</th><th>備註</th><th>動作</th></tr>`; tbl.appendChild(thead);
     const tbody = document.createElement('tbody');
     function drawBody(){
       tbody.innerHTML='';
@@ -317,10 +344,61 @@
         .sort((a,b)=>new Date(b.date)-new Date(a.date))
         .forEach(s=>{
           const tr=document.createElement('tr');
-          tr.innerHTML = `<td>${s.date}</td><td>${esc(s.vendor)}</td><td>${esc(s.currency||'N/A')}</td><td>${format(s.rate,4)}</td><td>${format(s.amount)}</td><td>${format(slipAvailable(s))}</td><td>${esc(s.note||'')}</td>`; // Display currency
+          tr.setAttribute('data-slip-id', s.id);
+          tr.innerHTML = `<td>${s.date}</td><td>${esc(s.vendor)}</td><td>${esc(s.currency||'N/A')}</td><td>${format(s.rate,4)}</td><td>${format(s.amount)}</td><td>${format(slipAvailable(s))}</td><td>${esc(s.note||'')}</td>`;
           const td=document.createElement('td');
+          const viewAllocBtn = button('查看分攤','ghost',()=>{
+            if (expandedSlipId === s.id) {
+              expandedSlipId = null;
+            } else {
+              expandedSlipId = s.id;
+            }
+            render(); // Re-render to show/hide the allocation detail
+          });
           const del=button('刪除','danger',()=>{ if(confirm('確定刪除？')){ log('刪除', '水單', s.id, JSON.stringify(s)); state.slips=state.slips.filter(x=>x.id!==s.id); state.allocs=state.allocs.filter(a=>a.slipId!==s.id); save(); render(); }});
+          td.appendChild(viewAllocBtn);
           td.appendChild(del); tr.appendChild(td); tbody.appendChild(tr);
+
+          // Add allocation detail row if this slip is expanded
+          if (expandedSlipId === s.id) {
+            const allocDetailRow = document.createElement('tr');
+            allocDetailRow.className = 'allocation-detail-row';
+            allocDetailRow.innerHTML = `<td colspan="8">
+              <div class="allocation-detail-content card">
+                <h4>已分配至報單：</h4>
+                <table style="width:100%">
+                  <thead><tr><th>報單日期</th><th>廠商</th><th>類型</th><th>分攤金額(外幣)</th><th></th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </td>`;
+            const allocTbody = allocDetailRow.querySelector('tbody');
+            const relevantAllocs = state.allocs.filter(a => a.slipId === s.id);
+            if (relevantAllocs.length === 0) {
+              allocTbody.innerHTML = `<tr><td colspan="5" class="muted">無分攤紀錄</td></tr>`;
+            } else {
+              relevantAllocs.forEach(alloc => {
+                const decl = state.decls.find(d => d.id === alloc.declId);
+                if (decl) {
+                  const allocTr = document.createElement('tr');
+                  allocTr.innerHTML = `
+                    <td>${decl.date}</td>
+                    <td>${esc(decl.vendor)}</td>
+                    <td>${decl.type}</td>
+                    <td>${format(alloc.amount)} ${decl.currency||'N/A'}</td>
+                  `;
+                  const viewDeclTd = document.createElement('td');
+                  const viewDeclBtn = button('查看報單','ghost',()=>{
+                    activeTab='fx'; selectedDeclForDetailId = decl.id; render();
+                  });
+                  viewDeclTd.appendChild(viewDeclBtn);
+                  allocTr.appendChild(viewDeclTd);
+                  allocTbody.appendChild(allocTr);
+                }
+              });
+            }
+            tbody.appendChild(allocDetailRow);
+          }
         });
     }
     [fVendor,fFrom,fTo].forEach(el=>el.oninput=drawBody);
@@ -337,29 +415,32 @@
     const p = document.createElement('div'); p.className='card'; p.innerHTML='<h2>新增進出口報單</h2>';
     const row = document.createElement('div'); row.className='grid cols-3';
     const date = document.createElement('input'); date.type='date';
-    const currency = document.createElement('input'); currency.placeholder='幣別 (如: USD)'; currency.value = state.settings.defaultCurrency; // Added currency input
+    const currency = document.createElement('input'); currency.placeholder='幣別 (如: USD)'; currency.value = state.settings.defaultCurrency;
     const rate = document.createElement('input'); rate.type='number'; rate.step='0.0001';
     const amount = document.createElement('input'); amount.type='number'; amount.step='0.01';
-    const vendor = document.createElement('input'); vendor.placeholder='廠商/客戶'; vendor.setAttribute('list','vendor-list');
+    const vendor = document.createElement('input'); vendor.placeholder='廠商/客戶'; vendor.setAttribute('list','slip-vendor-list'); vendor.id='newDeclVendor'; // Use slip-vendor-list
     const type = document.createElement('select'); type.innerHTML = '<option value="進口">進口</option><option value="出口">出口</option>';
     const note = document.createElement('input'); note.placeholder='備註 (選填)';
 
-    const gv = (localStorage.getItem(GLOBAL_VENDOR_KEY)||'').trim(); if(gv) vendor.value=gv;
+    // Removed globalVendor auto-population here as per requirement
 
     row.appendChild(wrapField('日期',date));
-    row.appendChild(wrapField('幣別',currency)); // Added currency field
+    row.appendChild(wrapField('幣別',currency));
     row.appendChild(wrapField('匯率',rate));
     row.appendChild(wrapField('外幣金額',amount));
     row.appendChild(wrapField('廠商',vendor));
     row.appendChild(wrapField('類型',type));
     row.appendChild(wrapField('備註',note));
 
-    // Removed "指定對應水單 (可選)" as multiple allocations are now primary
-
     const actions=document.createElement('div'); actions.className='right';
     const btn = button('新增報單','primary',()=>{
       if(!date.value||!vendor.value||!currency.value){ alert('請填寫 日期、幣別 與 廠商'); return; }
-      const obj={id:uid(), date:date.value, currency:currency.value.toUpperCase().trim(), rate:parseNum(rate.value), amount:parseNum(amount.value), vendor:vendor.value.trim(), type:type.value, note:note.value.trim()}; // Removed linkSlipId
+      // Check if vendor exists in slipVendors
+      if (!slipVendors().includes(vendor.value.trim())) {
+        alert('請從現有的水單廠商中選擇，或先到水單管理新增該廠商。');
+        return;
+      }
+      const obj={id:uid(), date:date.value, currency:currency.value.toUpperCase().trim(), rate:parseNum(rate.value), amount:parseNum(amount.value), vendor:vendor.value.trim(), type:type.value, note:note.value.trim()};
       state.decls.push(obj); log('新增','報單',obj.id, JSON.stringify(obj));
       save(); render();
     });
@@ -369,18 +450,21 @@
     batch.placeholder = `批量新增：每行「日期,幣別,匯率,金額,廠商,類型(進口/出口),備註」
 例如：
 2025-01-09,USD,31.50,8000,Acme Ltd,進口,1月進口
-2025-01-12,JPY,0.218,1200000,Acme Ltd,出口,1月出口`; // Updated batch placeholder for currency
+2025-01-12,JPY,0.218,1200000,Acme Ltd,出口,1月出口`;
     const rowBatch = document.createElement('div'); rowBatch.className='row';
     rowBatch.appendChild(batch);
     const btnBatch = button('批量匯入報單', 'warn', ()=>{
       const lines = batch.value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
       let ok=0, bad=0;
+      const validSlipVendors = new Set(slipVendors()); // Get valid vendors once
       lines.forEach(line=>{
         const [d,c,r,a,v,t,n] = line.split(',').map(x=>x!=null?x.trim():x);
-        if(d && c && v && (t==='進口'||t==='出口')){ const obj={id:uid(), date:d, currency:c.toUpperCase(), rate:parseNum(r), amount:parseNum(a), vendor:v, type:t, note:n||''}; state.decls.push(obj); ok++; log('批量新增','報單',obj.id, JSON.stringify(obj)); } // Removed linkSlipId
-        else bad++;
+        if(d && c && v && (t==='進口'||t==='出口') && validSlipVendors.has(v)){
+          const obj={id:uid(), date:d, currency:c.toUpperCase(), rate:parseNum(r), amount:parseNum(a), vendor:v, type:t, note:n||''};
+          state.decls.push(obj); ok++; log('批量新增','報單',obj.id, JSON.stringify(obj));
+        } else bad++;
       });
-      save(); alert(`成功 ${ok} 筆，略過 ${bad} 筆。`); render();
+      save(); alert(`成功 ${ok} 筆，略過 ${bad} 筆 (可能因廠商名稱不在水單紀錄中)。`); render();
     });
     rowBatch.appendChild(btnBatch);
 
@@ -391,7 +475,7 @@
     const list = document.createElement('div'); list.className='card';
     list.innerHTML = `<h2>報單歷史</h2>`;
     const filter = document.createElement('div'); filter.className='row';
-    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
+    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商'; fVendor.setAttribute('list','all-vendor-list'); fVendor.id='declFilterVendor';
     const fType = document.createElement('select'); fType.innerHTML='<option value="">全部</option><option>進口</option><option>出口</option>';
     const fFrom = document.createElement('input'); fFrom.type='date';
     const fTo = document.createElement('input'); fTo.type='date';
@@ -402,7 +486,7 @@
     list.appendChild(filter);
 
     const tbl = document.createElement('table');
-    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>日期</th><th>類型</th><th>廠商</th><th class="small">幣別</th><th>匯率</th><th>外幣金額</th><th>已分攤</th><th>分攤水單</th><th></th></tr>`; tbl.appendChild(thead); // Changed "對應水單" to "分攤水單", added currency
+    const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>日期</th><th>類型</th><th>廠商</th><th class="small">幣別</th><th>匯率</th><th>外幣金額</th><th>已分攤</th><th>分攤水單</th><th></th></tr>`; tbl.appendChild(thead);
     const tbody = document.createElement('tbody');
     function drawBody(){
       tbody.innerHTML='';
@@ -415,13 +499,13 @@
         .forEach(s=>{
           const tr=document.createElement('tr');
           const totalAllocated = totalAllocatedForDecl(s.id);
-          const slipTxt = totalAllocated > 0 ? `已分攤 (${format(totalAllocated)} ${s.currency||'外幣'})` : '未分攤'; // Updated to reflect allocations
-          tr.innerHTML = `<td>${s.date}</td><td>${s.type}</td><td>${esc(s.vendor)}</td><td>${esc(s.currency||'N/A')}</td><td>${format(s.rate,4)}</td><td>${format(s.amount)}</td><td>${format(totalAllocated)}</td><td class="small">${slipTxt}</td>`; // Display currency and allocated status
+          const slipTxt = totalAllocated > 0 ? `已分攤 (${format(totalAllocated)} ${s.currency||'外幣'})` : '未分攤';
+          tr.innerHTML = `<td>${s.date}</td><td>${s.type}</td><td>${esc(s.vendor)}</td><td>${esc(s.currency||'N/A')}</td><td>${format(s.rate,4)}</td><td>${format(s.amount)}</td><td>${format(totalAllocated)}</td><td class="small">${slipTxt}</td>`;
           const td=document.createElement('td');
           const del=button('刪除','danger',()=>{ if(confirm('確定刪除？')){ log('刪除','報單',s.id, JSON.stringify(s)); state.decls=state.decls.filter(x=>x.id!==s.id); state.allocs=state.allocs.filter(a=>a.declId!==s.id); save(); render(); }});
           td.appendChild(del); tr.appendChild(td); tbody.appendChild(tr);
-          tr.onclick=()=>{ activeTab='fx'; selectedDeclForDetailId = s.id; render(); }; // Set the ID to show detail for
-          tr.setAttribute('data-decl-id', s.id); // Add data attribute for easier selection
+          tr.onclick=()=>{ activeTab='fx'; selectedDeclForDetailId = s.id; render(); };
+          tr.setAttribute('data-decl-id', s.id);
         });
     }
     [fVendor,fType,fFrom,fTo].forEach(el=>el.oninput=drawBody);
@@ -439,7 +523,7 @@
     const p = document.createElement('div'); p.className='card'; p.innerHTML = '<h2>匯差分析</h2>';
 
     const filter = document.createElement('div'); filter.className='row';
-    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商';
+    const fVendor = document.createElement('input'); fVendor.placeholder='搜尋廠商'; fVendor.setAttribute('list','all-vendor-list'); fVendor.id='fxFilterVendor';
     const fType = document.createElement('select'); fType.innerHTML='<option value="">全部</option><option>進口</option><option>出口</option>';
     const fFrom = document.createElement('input'); fFrom.type='date';
     const fTo = document.createElement('input'); fTo.type='date';
@@ -450,7 +534,7 @@
     p.appendChild(filter);
 
     const tbl = document.createElement('table');
-    const thead = document.createElement('thead'); thead.innerHTML='<tr><th>日期</th><th>類型</th><th>廠商</th><th class="small">幣別</th><th>金額(外幣)</th><th>報單匯率</th><th>分攤水單數</th><th>差額</th><th>判斷</th></tr>'; // Added currency, changed header
+    const thead = document.createElement('thead'); thead.innerHTML='<tr><th>日期</th><th>類型</th><th>廠商</th><th class="small">幣別</th><th>金額(外幣)</th><th>報單匯率</th><th>分攤水單數</th><th>差額</th><th>判斷</th></tr>';
     tbl.appendChild(thead);
     const tbody = document.createElement('tbody');
 
@@ -468,15 +552,15 @@
         const r = computeFx(d);
         const tr=document.createElement('tr');
         const numSlipsAllocated = state.allocs.filter(a=>a.declId===d.id).length;
-        tr.innerHTML = `<td>${d.date}</td><td>${d.type}</td><td>${esc(d.vendor)}</td><td>${esc(d.currency||'N/A')}</td><td>${format(d.amount)}</td><td>${format(d.rate,4)}</td><td>${numSlipsAllocated || '-'}</td>`; // Display currency, numSlips
+        tr.innerHTML = `<td>${d.date}</td><td>${d.type}</td><td>${esc(d.vendor)}</td><td>${esc(d.currency||'N/A')}</td><td>${format(d.amount)}</td><td>${format(d.rate,4)}</td><td>${numSlipsAllocated || '-'}</td>`;
         const tdDiff = document.createElement('td');
-        tdDiff.innerHTML = `<span class="mono">${format(Math.abs(r.diff))}</span>`; // Keep absolute difference here
+        tdDiff.innerHTML = `<span class="mono">${format(Math.abs(r.diff))}</span>`;
         const tdLabel = document.createElement('td');
         const pill = document.createElement('span'); pill.className='pill '+(r.kind==='gain'?'gain':(r.kind==='loss'?'loss':'')); pill.textContent=r.label;
         tdLabel.appendChild(pill);
         tr.appendChild(tdDiff); tr.appendChild(tdLabel);
-        tr.onclick = ()=> showDetail(d); // Direct call to showDetail as we are on the FX panel
-        tr.setAttribute('data-decl-id', d.id); // Add data attribute for easier selection from other panels
+        tr.onclick = ()=> showDetail(d);
+        tr.setAttribute('data-decl-id', d.id);
         tbody.appendChild(tr);
         if(r.kind==='gain') sumGain += Math.abs(r.diff);
         if(r.kind==='loss') sumLoss += Math.abs(r.diff);
@@ -502,7 +586,6 @@
       if(!r){ box.textContent='發生錯誤'; return; }
       box.className='small';
       const currencySymbol = d.currency || '外幣';
-      // Updated slipInfo to reflect multiple allocations
       const slipInfo = state.allocs.filter(a=>a.declId===d.id).length > 0 ? `已分攤多筆水單` : '尚未分攤';
       box.innerHTML = `
       <div class="grid">
@@ -515,7 +598,7 @@
       </div>`;
 
       // 分攤配置 UI
-      const sameVendorSlips = state.slips.filter(s=>s.vendor===d.vendor && s.currency===d.currency).sort((a,b)=>new Date(a.date)-new Date(b.date)); // Filter by currency too
+      const sameVendorSlips = state.slips.filter(s=>s.vendor===d.vendor && s.currency===d.currency).sort((a,b)=>new Date(a.date)-new Date(b.date));
       const currentAllocs = state.allocs.filter(a=>a.declId===d.id);
       const totalAvailDecl = declAvailable(d);
       allocBox.innerHTML = '';
@@ -524,12 +607,12 @@
       const hint = document.createElement('div'); hint.className='hint'; hint.textContent='可為此報單分配多筆水單與分攤外幣金額。若未設定分攤，則匯差結果為零。'; wrap.appendChild(hint);
 
       const tbl = document.createElement('table');
-      tbl.innerHTML = '<thead><tr><th>水單日期</th><th>幣別</th><th>匯率</th><th>水單可用(外幣)</th><th>分攤金額(外幣)</th><th></th></tr></thead>'; // Added currency to header
+      tbl.innerHTML = '<thead><tr><th>水單日期</th><th>幣別</th><th>匯率</th><th>水單可用(外幣)</th><th>分攤金額(外幣)</th><th></th></tr></thead>';
       const tbody = document.createElement('tbody');
       currentAllocs.forEach(a=>{
         const slip = state.slips.find(s=>s.id===a.slipId); if(!slip) return;
         const tr=document.createElement('tr');
-        tr.innerHTML = `<td>${slip.date}</td><td>${esc(slip.currency||'N/A')}</td><td>${format(slip.rate,4)}</td><td>${format(slipAvailable(slip))}</td>`; // Display currency
+        tr.innerHTML = `<td>${slip.date}</td><td>${esc(slip.currency||'N/A')}</td><td>${format(slip.rate,4)}</td><td>${format(slipAvailable(slip))}</td>`;
         const tdAmt = document.createElement('td');
         const inp = document.createElement('input'); inp.type='number'; inp.step='0.01'; inp.value=a.amount; inp.onchange=()=>{ a.amount=parseNum(inp.value); log('修改分攤','分攤',a.id, `新金額 ${a.amount}`); save(); render(); showDetail(d); };
         tdAmt.appendChild(inp); tr.appendChild(tdAmt);
@@ -543,29 +626,28 @@
       // Add new allocation controls
       const addRow = document.createElement('div'); addRow.className='row';
       const sel = document.createElement('select');
-      sel.innerHTML = sameVendorSlips.map(s=>`<option value="${s.id}">${s.date}｜${esc(s.currency||'N/A')}｜可用${format(slipAvailable(s))}｜匯率${format(s.rate,4)}</option>`).join(''); // Display currency in options
+      sel.innerHTML = sameVendorSlips.map(s=>`<option value="${s.id}">${s.date}｜${esc(s.currency||'N/A')}｜可用${format(slipAvailable(s))}｜匯率${format(s.rate,4)}</option>`).join('');
       const addAmt = document.createElement('input'); addAmt.type='number'; addAmt.step='0.01'; addAmt.placeholder='分攤外幣金額';
       addRow.appendChild(wrapField('選擇水單', sel));
       addRow.appendChild(wrapField('金額(外幣)', addAmt));
       const addBtn = button('新增分攤','primary',()=>{
         const slip = state.slips.find(s=>s.id===sel.value);
         if(!slip){ alert('請選擇水單'); return; }
-        if(slip.currency !== d.currency){ alert('水單與報單幣別不符，無法分攤。'); return; } // Currency check
+        if(slip.currency !== d.currency){ alert('水單與報單幣別不符，無法分攤。'); return; }
         const want = parseNum(addAmt.value);
         if(want<=0){ alert('金額需大於 0'); return; }
         const max = Math.min(slipAvailable(slip), declAvailable(d));
-        if(want>max){ alert(`超過可分配金額，最大可分配：${format(max)} ${currencySymbol}`); return; } // Display currency
+        if(want>max){ alert(`超過可分配金額，最大可分配：${format(max)} ${currencySymbol}`); return; }
         const obj={id:uid(), declId:d.id, slipId:slip.id, amount:want};
         state.allocs.push(obj); log('新增分攤','分攤',obj.id, JSON.stringify(obj)); save(); render(); showDetail(d);
       });
       addRow.appendChild(addBtn);
       wrap.appendChild(addRow);
 
-      const info = document.createElement('div'); info.className='hint'; info.textContent = `此報單剩餘可分配：${format(totalAvailDecl)} ${currencySymbol}`; // Display currency
+      const info = document.createElement('div'); info.className='hint'; info.textContent = `此報單剩餘可分配：${format(totalAvailDecl)} ${currencySymbol}`;
       wrap.appendChild(info);
 
       // Wire quickbar buttons to current vendor
-      // These buttons will act globally or on current global vendor, not specific to this decl detail
       const fifoBtn = document.getElementById('fifoAlloc'); if(fifoBtn) fifoBtn.onclick = ()=>{ const v=(localStorage.getItem(GLOBAL_VENDOR_KEY)||'').trim(); autoFIFO(v||null); };
       const clearBtn = document.getElementById('clearAlloc'); if(clearBtn) clearBtn.onclick = ()=>{ if(confirm('確定清空所有分攤？此操作無法撤銷。')){ state.allocs=[]; log('清空','分攤','-','全部清除'); save(); render(); } };
 
@@ -589,7 +671,7 @@
         let need = declAvailable(d);
         while(need>0 && si<slips.length){
           const s = slips[si];
-          if (s.currency !== d.currency) { // Skip if currencies don't match
+          if (s.currency !== d.currency) {
               si++;
               continue;
           }
@@ -646,7 +728,7 @@
     note.textContent = '主題自動調整文字顏色；匯率模式依您公司習慣調整。';
 
     s.appendChild(wrapField('匯率解讀', mode));
-    s.appendChild(wrapField('預設外幣幣別', defaultCurrencyInput)); // Added default currency setting
+    s.appendChild(wrapField('預設外幣幣別', defaultCurrencyInput));
     s.appendChild(note);
 
     const d = document.createElement('div'); d.className='card'; d.innerHTML='<h2>資料備份</h2>';
@@ -664,12 +746,30 @@
 
   // ------------------ Render Root ------------------
   function render(){
+    // Update global vendor datalists
+    const globalVendorsList = document.getElementById('global-vendor-list');
+    if(globalVendorsList){ globalVendorsList.innerHTML = allVendors().map(v=>`<option value="${v}"></option>`).join(''); }
+
+    const allVendorsDatalist = document.getElementById('all-vendor-list');
+    if(allVendorsDatalist){ allVendorsDatalist.innerHTML = allVendors().map(v=>`<option value="${v}"></option>`).join(''); }
+    
+    const slipVendorsDatalist = document.getElementById('slip-vendor-list');
+    if(slipVendorsDatalist){ slipVendorsDatalist.innerHTML = slipVendors().map(v=>`<option value="${v}"></option>`).join(''); }
+
     // quickbar vendor list + default
-    const gl = document.getElementById('global-vendor-list'); if(gl){ gl.innerHTML = vendors().map(v=>`<option value="${v}"></option>`).join(''); }
     const gv = document.getElementById('globalVendor'); if(gv){
       const savedGV = localStorage.getItem(GLOBAL_VENDOR_KEY)||''; if(gv.value!==savedGV) gv.value=savedGV;
       gv.oninput = ()=>{ localStorage.setItem(GLOBAL_VENDOR_KEY, gv.value.trim()); render(); };
     }
+
+    // Set filters to global vendor
+    const slipFilterVendor = document.getElementById('slipFilterVendor');
+    if (slipFilterVendor) { slipFilterVendor.value = localStorage.getItem(GLOBAL_VENDOR_KEY) || ''; }
+    const declFilterVendor = document.getElementById('declFilterVendor');
+    if (declFilterVendor) { declFilterVendor.value = localStorage.getItem(GLOBAL_VENDOR_KEY) || ''; }
+    const fxFilterVendor = document.getElementById('fxFilterVendor');
+    if (fxFilterVendor) { fxFilterVendor.value = localStorage.getItem(GLOBAL_VENDOR_KEY) || ''; }
+
 
     renderTabs();
     elPanels.innerHTML='';
@@ -685,8 +785,6 @@
     if (activeTab === 'fx' && selectedDeclForDetailId) {
       const decl = state.decls.find(d => d.id === selectedDeclForDetailId);
       if (decl) {
-        // showDetail is defined within panelFx, so we need to trigger the row click
-        // after the panel is rendered.
         setTimeout(() => {
           const detailDeclRow = elPanels.querySelector(`table tbody tr[data-decl-id="${decl.id}"]`);
           if (detailDeclRow) {
