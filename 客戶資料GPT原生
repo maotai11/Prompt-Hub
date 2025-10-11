@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>離線客戶資料庫＆營業稅｜分頁＋列印＋IndexedDB（含備註編輯/單客/全客匯出Excel）</title>
+<title>客戶資料庫</title>
 <style>
   :root{
     --bg:#0f1216; --card:#141820; --muted:#8aa0b2; --text:#e8eef4; --acc:#3aa0ff; --warn:#ffb020; --danger:#ff5a6a;
