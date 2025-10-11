@@ -17,44 +17,89 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>發票折讓紀錄儀表板（離線）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0f1115; --fg:#e8eaf0; --muted:#a9b0c3; --accent:#6ec1ff;
+    --bg:#0B0E12; /* 更深邃的背景 */
+    --fg:#F0F2F5; /* 略帶暖意的文字 */
+    --muted:#9DA7BD; /* 柔和靜音色 */
+    --accent:#5C6BC0; /* 新的品牌主色 */
+    --highlight-gold:#D4AF37; /* 輔助高亮色：舊金黃 */
+    --fg-strong:#FFFFFF; /* 強化標題文字色 */
     --ok:#27ae60; --warn:#f39c12; --err:#e74c3c; --card:#171a21; --line:#232736;
-    --chip:#1e2430; --focus:#3b82f6; --hl:#263248;
+    --chip:#1e2430; --focus: var(--accent); /* 與新 accent 色一致 */
+    /* --hl removed, now uses rgba(accent) directly */
     --red:#ff6b6b; --green:#51cf66; --yellow:#ffd43b;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0; background:var(--bg); color:var(--fg);
-       font:14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC","PingFang TC","Microsoft JhengHei","Helvetica Neue", Arial;}
+       font:14px/1.45 'Inter', "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang TC","Microsoft JhengHei","Helvetica Neue", Arial;}
   header.toolbar{position:sticky; top:0; z-index:9; background:linear-gradient(180deg,#11141b,#0f1115);
                  border-bottom:1px solid var(--line); padding:10px;}
   .toolbar .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-  .toolbar h1{font-size:16px; margin:0 12px 0 0; color:#fff}
+  .toolbar h1{
+    font-size: 28px; /* 大幅提升 */
+    font-weight: 300;
+    letter-spacing: 0.05em; /* 增加字距 */
+    margin: 0 20px 0 0; /* 增加右側留白 */
+    color: var(--fg-strong); /* 使用更鮮明的文字色 */
+    font-family: 'Playfair Display', serif; /* 新字體 */
+  }
   button{background:var(--chip); color:var(--fg); border:1px solid var(--line);
-         padding:8px 12px; border-radius:10px; cursor:pointer; transition:.15s}
-  button:hover{background:#242b3a} button[disabled]{opacity:.5; cursor:not-allowed}
+         padding:8px 12px; border-radius:10px; cursor:pointer;
+         transition: background 0.25s ease-out, transform 0.25s ease-out, box-shadow 0.25s ease-out;} /* 優化動畫 */
+  button:hover{
+    background: #2D3447; /* 調整為更具層次的 hover 色 */
+    transform: translateY(-2px); /* 輕微上浮效果 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* 增加陰影深度 */
+  }
+  button[disabled]{
+    opacity:.4; /* 調低透明度 */
+    cursor: not-allowed;
+    filter: grayscale(80%) blur(0.5px); /* 灰階模糊效果 */
+  }
   .btn-warn{border-color:var(--warn); color:var(--warn)}
   .btn-err{border-color:var(--err); color:var(--err)}
   .btn-ok{border-color:var(--ok); color:var(--ok)}
-  .layout{display:grid; grid-template-columns: 1fr 420px; gap:12px; padding:12px; max-width:1400px; margin:0 auto}
+  .layout{display:grid; grid-template-columns: 1fr 420px; gap:24px; padding:12px; max-width:1400px; margin:0 auto} /* 增加主布局間距 */
   @media (max-width:1100px){ .layout{grid-template-columns:1fr} }
-  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px} /* 增加卡片內邊距 */
+  .card h2, .card h3 {
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0 0 24px; /* 增加下方間距 */
+    color: var(--fg-strong); /* 強化標題色 */
+    font-family: 'Inter', sans-serif; /* 新字體 */
+  }
   .grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
   .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
-  .field{display:flex; flex-direction:column; gap:6px}
+  .field{display:flex; flex-direction:column; gap:10px} /* 增加 field 內間距 */
   .field label{font-size:12px; color:var(--muted)}
   input[type="text"], input[type="number"], input[type="date"], select{
     background:#0c0f14; border:1px solid var(--line); color:var(--fg);
-    border-radius:8px; padding:8px 10px; width:100%;
+    border-radius:10px; /* 統一圓角與按鈕一致 */
+    padding:12px 14px; /* 增加輸入框高度與內邊距 */
+    width:100%;
   }
   input:focus, select:focus{outline:2px solid var(--focus); border-color:transparent}
   .hint{font-size:12px; color:var(--muted)} .error{font-size:12px; color:var(--err)}
   table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums lining-nums}
-  th, td{border-bottom:1px dashed #252a39; padding:8px; text-align:left}
+  th, td{
+    border-bottom:1px dotted var(--line); /* 更輕盈的分隔線 */
+    padding:12px 8px; /* 增加表格行高 */
+    text-align:left
+  }
   thead th{position:sticky; top:0; background:var(--card); z-index:1}
-  tbody tr.selected{background:var(--hl)}
+  tbody tr { /* 為行選取和差異高亮添加過渡 */
+    transition: background 0.2s ease, border-left 0.2s ease;
+  }
+  tbody tr.selected{
+    background: rgba(92, 107, 192, 0.15); /* 使用 accent 的半透明版本 */
+    border-left: 4px solid var(--accent); /* 左側邊框強調選取 */
+  }
   .controls{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0}
   .rightcol{display:flex; flex-direction:column; gap:12px}
   .list{max-height:560px; overflow:auto; border-radius:10px}
@@ -63,20 +108,32 @@
   .badge{background:#21283a; color:#c9d4ff; padding:2px 6px; border-radius:6px; font-size:12px}
   .pill{background:#1d2a21; color:#8dffaa; padding:2px 6px; border-radius:6px; font-size:12px}
   .muted{color:var(--muted)} .ok{color:var(--ok)} .warn{color:var(--warn)}
-  .diff-add{outline:2px solid var(--green)} .diff-del{outline:2px solid var(--red)} .diff-chg{outline:2px solid var(--yellow)}
+  .diff-add{outline:2px solid var(--green); background-color: rgba(81, 207, 102, 0.08);} /* 差異背景色 */
+  .diff-del{outline:2px solid var(--red); background-color: rgba(255, 107, 107, 0.08);} /* 差異背景色 */
+  .diff-chg{outline:2px solid var(--yellow); background-color: rgba(255, 212, 59, 0.08);} /* 差異背景色 */
   .flex{display:flex; gap:10px; align-items:center}
   .space{flex:1}
-  .totalbar{display:flex; gap:12px; flex-wrap:wrap; align-items:center; padding:8px; border:1px dashed var(--line); border-radius:10px; background:#111521}
+  .totalbar{display:flex; gap:12px; flex-wrap:wrap; align-items:center; padding:16px; border:1px dashed var(--line); border-radius:10px; background:#111521} /* 增加 padding */
+  .totalbar strong { /* 關鍵數據高亮 */
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent); /* 使用品牌主色 */
+  }
+  .totalbar strong#lblDelta.ok { color: var(--ok); } /* 確保狀態色優先 */
+  .totalbar strong#lblDelta.warn { color: var(--warn); } /* 確保狀態色優先 */
   .toast{position:fixed; right:16px; bottom:16px; min-width:220px; max-width:340px;
-         background:#141a26; border:1px solid var(--line); color:var(--fg); padding:12px 14px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.35);
-         opacity:0; transform:translateY(8px); pointer-events:none; transition:.2s}
-  .toast.show{opacity:1; transform:none; pointer-events:auto}
+         background:rgba(23, 26, 33, 0.95); /* 更精緻的背景 (card-rgb) */
+         border:1px solid var(--line); color:var(--fg); padding:12px 14px; border-radius:12px;
+         box-shadow:0 12px 40px rgba(0,0,0,0.45); /* 強化陰影 */
+         opacity:0; transform:translateY(8px); pointer-events:none;
+         transition: opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);} /* 優化動畫 */
+  .toast.show{opacity:1; transform:translateY(0); pointer-events:auto} /* 修正 transform */
   .hl-badge{background:#282f44; color:#9ecbff; padding:2px 6px; border-radius:8px; font-size:12px}
   .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:#11161f; border:1px solid #2a3144; padding:1px 6px; border-radius:6px}
   .sticky-sub{position:sticky; top:54px; background:var(--card); z-index:1; padding:8px 0}
   /* 當日清單 */
   .today-box{margin-top:12px; border:1px solid var(--line); border-radius:10px; max-height:220px; overflow:auto}
-  .today-item{display:flex; gap:8px; align-items:center; padding:8px 10px; border-bottom:1px dashed #252a39; cursor:pointer}
+  .today-item{display:flex; gap:12px; align-items:center; padding:12px 14px; border-bottom:1px dashed #252a39; cursor:pointer} /* 增加 padding 和 gap */
   .today-item:hover{background:#161b25}
 </style>
 </head>
@@ -101,7 +158,7 @@
 <div class="layout">
   <!-- 左側：主單 + 明細 + 當日清單 -->
   <section class="card">
-    <h2 style="margin:4px 0 10px">主單</h2>
+    <h2>主單</h2>
     <div class="grid3">
       <div class="field">
         <label>發票年（民國）<span class="hl-badge">自動轉西元</span></label>
@@ -183,7 +240,7 @@
 
     <section class="today" style="margin-top:14px">
       <div class="flex">
-        <h3 style="margin:0">當日清單（依目前主單日期）</h3>
+        <h3>當日清單（依目前主單日期）</h3>
         <span class="space"></span>
         <span class="hint">點擊可載入回主單</span>
       </div>
@@ -194,7 +251,7 @@
   <!-- 右側：歷史 + 篩選 + 差異 -->
   <aside class="rightcol">
     <section class="card">
-      <h3 style="margin:4px 0 8px">歷史紀錄（localStorage）</h3>
+      <h3>歷史紀錄（localStorage）</h3>
       <div class="grid2">
         <div class="field">
           <label>快速搜尋（發票號/名稱）</label>
@@ -230,7 +287,7 @@
     </section>
 
     <section class="card" id="diffPanel">
-      <h3 style="margin:4px 0 8px">差異比較（目前表單 vs. 選取紀錄）</h3>
+      <h3>差異比較（目前表單 vs. 選取紀錄）</h3>
       <div class="hint">切換列表單選即時比較；不同欄位將外框高亮。</div>
       <div id="diffMsg" class="muted" style="margin-top:8px">尚未選取紀錄。</div>
     </section>
