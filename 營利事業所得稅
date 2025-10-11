@@ -81,7 +81,7 @@
             margin-bottom: 1rem;
         }
         .chart-container {
-            position: relative; 
+            position: relative;
             width: 100%; 
             max-width: 800px; 
             margin-left: auto; 
@@ -113,7 +113,6 @@
             <p class="text-gray-600 mt-2">整合四種申報方式、租稅抵減與最低稅負制 (113年度營利事業各業所得額暨同業利潤標準)</p>
         </header>
 
-        <!-- Basic Information -->
         <section id="basic-info-section" class="form-section">
             <h2>步驟一：營運與收支細節</h2>
             <p class="text-gray-600 mb-6 -mt-4">請填寫基礎財務數據，這將用於比較三種擴大申報方式下的預估所得額。</p>
@@ -155,14 +154,11 @@
             </div>
         </section>
 
-        <!-- Declaration Method Comparison -->
         <section id="declaration-method-section" class="form-section">
             <h2>步驟二：申報所得額基礎比較與行業篩選</h2>
             <p class="text-gray-600 mb-6 -mt-4">請透過下方篩選器與關鍵字，找出您的行業別，以套用 **書審率 (R)**、**所得額率 (I)** 及 **同業淨利率 (N)**。</p>
             
-            <!-- Industry Search & Selection -->
             <div class="mb-6">
-                <!-- Rate Filters -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
                         <label for="filter-code" class="block text-xs font-medium text-gray-500 mb-1">標準代號 (開頭)</label>
@@ -182,23 +178,46 @@
                     </div>
                 </div>
 
-                <!-- Keyword Search -->
-                <label for="industry-search" class="block text-sm font-medium text-gray-700 mb-1">行業關鍵字搜尋 (名稱或代號)</label>
-                <div class="relative">
-                    <input type="text" id="industry-search" class="form-input pr-32" placeholder="請輸入關鍵字，例如: KTV, 汽車美容, 軟體設計">
-                    <div id="selected-rate-info" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm font-semibold text-blue-600 pointer-events-none bg-blue-50 rounded-r-md px-3 py-1 border border-blue-200">
-                        R: 0.0% / I: 0.0% / N: 0.0%
+                <div class="flex items-center justify-between mb-2">
+                    <label for="industry-search" class="block text-sm font-medium text-gray-700">行業關鍵字搜尋 (名稱或代號)</label>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="manual-rate-toggle" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <label for="manual-rate-toggle" class="ml-2 block text-sm text-gray-900">自由輸入稅率</label>
                     </div>
                 </div>
-                <!-- Search Results Dropdown -->
-                <div id="industry-results" class="absolute z-10 w-full md:w-1/2 mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden">
-                    <!-- Search results here -->
+
+                <div id="industry-search-container">
+                    <div class="relative">
+                        <input type="text" id="industry-search" class="form-input pr-32" placeholder="請輸入關鍵字，例如: KTV, 汽車美容, 軟體設計">
+                        <div id="selected-rate-info" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm font-semibold text-blue-600 pointer-events-none bg-blue-50 rounded-r-md px-3 py-1 border border-blue-200">
+                            R: 0.0% / I: 0.0% / N: 0.0%
+                        </div>
+                    </div>
+                    <div id="industry-results" class="absolute z-10 w-full md:w-1/2 mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden">
+                        </div>
+                </div>
+
+                <div id="manual-rate-container" class="hidden mt-2">
+                    <p class="text-xs text-gray-500 mb-2">請直接輸入適用的百分比稅率，例如輸入 6 代表 6%。</p>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label for="manual-rate-R" class="block text-xs font-medium text-gray-500 mb-1">書審率 R (%)</label>
+                            <input type="number" id="manual-rate-R" class="form-input" value="0">
+                        </div>
+                        <div>
+                            <label for="manual-rate-I" class="block text-xs font-medium text-gray-500 mb-1">所得額率 I (%)</label>
+                            <input type="number" id="manual-rate-I" class="form-input" value="0">
+                        </div>
+                        <div>
+                            <label for="manual-rate-N" class="block text-xs font-medium text-gray-500 mb-1">同業淨利率 N (%)</label>
+                            <input type="number" id="manual-rate-N" class="form-input" value="0">
+                        </div>
+                    </div>
                 </div>
                 <input type="hidden" id="selected-industry-rates" value="0,0,0">
             </div>
 
             <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <!-- Paper Review (書審) -->
                 <div id="card-paper-review" class="comparison-card flex flex-col">
                     <h3 class="font-bold text-center text-blue-800">1. 擴大書審</h3>
                     <p class="text-xs text-center text-gray-500 mb-4">公式: (A+B) $\times$ 書審率 (R)</p>
@@ -209,7 +228,6 @@
                     </div>
                     <button data-income-source="paper-review-income" class="use-income-btn mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition">以此所得額計算</button>
                 </div>
-                <!-- Income Standard (所得額) -->
                 <div id="card-income-standard" class="comparison-card flex flex-col">
                     <h3 class="font-bold text-center text-green-800">2. 所得額標準</h3>
                     <p class="text-xs text-center text-gray-500 mb-4">公式: A $\times$ 所得額率 (I) + B - C</p>
@@ -220,7 +238,6 @@
                     </div>
                     <button data-income-source="income-standard-income" class="use-income-btn mt-4 w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition">以此所得額計算</button>
                 </div>
-                <!-- Industry Profit Standard (同業利潤) -->
                 <div id="card-industry-profit" class="comparison-card flex flex-col">
                     <h3 class="font-bold text-center text-purple-800">3. 同業利潤</h3>
                     <p class="text-xs text-center text-gray-500 mb-4">公式: A $\times$ 同業淨利率 (N) + B - C</p>
@@ -231,7 +248,6 @@
                     </div>
                     <button data-income-source="industry-profit-income" class="use-income-btn mt-4 w-full bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 transition">以此所得額計算</button>
                 </div>
-                <!-- CPA Audited / Manual -->
                 <div id="card-manual" class="comparison-card flex flex-col">
                     <h3 class="font-bold text-center text-gray-800">4. 查帳/會計師簽證</h3>
                     <p class="text-xs text-center text-gray-500 mb-4">依實際帳簿所得計算 (A+B)-(成本/費用/損失)</p>
@@ -249,7 +265,6 @@
             </div>
         </section>
 
-        <!-- Core Tax Calculation -->
         <section class="form-section">
             <h2>步驟三：營所稅與最低稅負 (AMT) 試算</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -270,8 +285,7 @@
                         <p class="text-lg font-bold text-blue-700">20%</p>
                     </div>
                 </div>
-                <!-- AMT Section -->
-                 <div class="md:col-span-3 mt-4">
+                <div class="md:col-span-3 mt-4">
                     <h3 class="text-lg font-semibold border-b pb-2 mb-4">最低稅負 (AMT) 計算</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
@@ -294,11 +308,9 @@
             </div>
         </section>
 
-        <!-- Tax Credits and Deductions -->
         <section class="form-section">
             <h2>步驟四：租稅優惠與抵減計算</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Tax Credit (抵減稅額) -->
                 <div>
                     <h3 class="text-lg font-semibold mb-3 text-red-600">A. 投資抵減稅額 (抵減上限 30%)</h3>
                     <p class="text-sm text-gray-600 mb-4">輸入各項可抵減營所稅的金額。總抵減額不得超過步驟三計算之**一般營所稅應納稅額**的 30%。</p>
@@ -321,7 +333,6 @@
                     </div>
                 </div>
 
-                <!-- Add-on Deductions (加成減除) & UAET -->
                 <div>
                     <h3 class="text-lg font-semibold mb-3 text-indigo-600">B. 加成減除與未分配盈餘 (UAET)</h3>
                     <p class="text-sm text-gray-600 mb-4">輸入加成減除的費用，此類費用可減少課稅所得額。</p>
@@ -360,7 +371,6 @@
             </div>
         </section>
         
-        <!-- Final Summary -->
         <section class="form-section bg-gray-800 text-white">
             <h2 class="text-white border-gray-600">步驟五：年度總應繳稅負</h2>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
@@ -394,7 +404,8 @@
     </div>
 <script>
 let incomeComparisonChart;
-let currentRates = { R: 0, I: 0, N: 0 }; // State to hold the selected rates
+let currentRates = { R: 0, I: 0, N: 0 };
+// State to hold the selected rates
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Data (Extracted Sample from 113年度營利事業各業所得額暨同業利潤標準 PDF) ---
@@ -446,10 +457,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { code: '9521-00', name: '電腦及其週邊設備維修', R: 0.06, I: 0.15, N: 0.22 },
         { code: '9499-00', name: '未分類其他組織', R: 0.04, I: 0.05, N: 0.06 },
     ];
-
     // --- DOM Elements ---
     const allInputs = document.querySelectorAll('input:not(#industry-search), select');
-    const formFilterInputs = document.querySelectorAll('.form-input-filter'); // New filter inputs
+    const formFilterInputs = document.querySelectorAll('.form-input-filter');
     const companyTypeSelect = document.getElementById('company-type');
     const partnershipNotice = document.getElementById('partnership-notice');
     const totalRevenueInput = document.getElementById('total-revenue');
@@ -463,15 +473,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const taxableIncomeInput = document.getElementById('taxable-income');
     const useIncomeBtns = document.querySelectorAll('.use-income-btn');
     const comparisonCards = document.querySelectorAll('.comparison-card');
+    const manualIncomeInput = document.getElementById('manual-income');
     
-    // Fixed: manualIncomeInput is now defined
-    const manualIncomeInput = document.getElementById('manual-income'); 
-
-    // Filter Inputs (New)
+    // Filter Inputs
     const filterCodeInput = document.getElementById('filter-code');
     const filterRateRInput = document.getElementById('filter-rate-R');
     const filterRateIInput = document.getElementById('filter-rate-I');
     const filterRateNInput = document.getElementById('filter-rate-N');
+
+    // ** NEW **: Manual Rate Input Elements
+    const manualRateToggle = document.getElementById('manual-rate-toggle');
+    const industrySearchContainer = document.getElementById('industry-search-container');
+    const manualRateContainer = document.getElementById('manual-rate-container');
+    const manualRateRInput = document.getElementById('manual-rate-R');
+    const manualRateIInput = document.getElementById('manual-rate-I');
+    const manualRateNInput = document.getElementById('manual-rate-N');
 
     // Credit/Deduction Inputs
     const rdCreditInput = document.getElementById('rd-credit');
@@ -481,7 +497,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const sportsDonationInput = document.getElementById('sports-donation');
     const militarySalaryInput = document.getElementById('military-salary');
     const amtExemptIncomeInput = document.getElementById('amt-exempt-income');
-    
     // --- Data & Constants ---
     const TAX_CONSTANTS = {
         PSIT_RATE: 0.20,
@@ -492,15 +507,12 @@ document.addEventListener('DOMContentLoaded', () => {
         AMT_DEDUCTION: 6700000, 
         TAX_CREDIT_CAP: 0.30, 
     };
-
     // --- Calculation Helpers ---
     const calculatePSITRate = (income) => {
         if (income <= TAX_CONSTANTS.PSIT_EXEMPT_THRESHOLD) return 0;
         if (income <= TAX_CONSTANTS.PSIT_PROGRESSIVE_THRESHOLD) {
-            // 課稅所得額 12萬以上，20萬以下適用半數累進稅率 ( (所得額 - 12萬) * 0.5 )
             return (income - TAX_CONSTANTS.PSIT_EXEMPT_THRESHOLD) * 0.5;
         }
-        // 超過 20萬，適用 20%
         return income * TAX_CONSTANTS.PSIT_RATE;
     };
 
@@ -510,55 +522,38 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const formatCurrency = (num) => `NT$ ${Math.round(num).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-
     // --- Search & Selection Logic ---
 
     const filterIndustries = (query) => {
         const lowerCaseQuery = query.toLowerCase().trim();
-        
-        // Get filter values (convert percentage to decimal for R, I, N comparison)
         const filterCode = filterCodeInput.value.toLowerCase().trim();
-        // R rate >= user input (e.g., if user inputs 6, R must be 0.06 or higher)
         const filterRateR = (parseFloat(filterRateRInput.value) / 100) || 0; 
-        // I rate <= user input
         const filterRateI = (parseFloat(filterRateIInput.value) / 100) || Infinity;
-        // N rate <= user input
         const filterRateN = (parseFloat(filterRateNInput.value) / 100) || Infinity;
 
-
         const filteredResults = INDUSTRY_DATA.filter(item => {
-            // 1. Keyword Search (Code or Name)
-            const keywordMatch = (lowerCaseQuery.length < 2) || // If query is too short, treat as match
+            const keywordMatch = (lowerCaseQuery.length < 2) || 
                                  item.code.includes(lowerCaseQuery) || 
                                  item.name.toLowerCase().includes(lowerCaseQuery);
-
             if (!keywordMatch) return false;
-
-            // 2. Code Filter
             if (filterCode && !item.code.startsWith(filterCode)) return false;
-
-            // 3. Rate Filters
             if (filterRateR && item.R < filterRateR) return false;
             if (filterRateI !== Infinity && item.I > filterRateI) return false;
             if (filterRateN !== Infinity && item.N > filterRateN) return false;
-
             return true;
         });
 
-        // If no keyword is entered AND no filters are set, hide the results.
         if (lowerCaseQuery.length < 2 && !filterCode && !filterRateRInput.value && !filterRateIInput.value && !filterRateNInput.value) {
             return [];
         }
-
-        return filteredResults.slice(0, 15); // Limit to top 15 results
+        return filteredResults.slice(0, 15);
     };
 
     const renderResults = (results) => {
         industryResultsDiv.innerHTML = '';
-        
         if (results.length === 0) {
             industryResultsDiv.innerHTML = '<div class="p-4 text-center text-gray-500">查無結果或請輸入更多關鍵字/調整篩選條件。</div>';
-            industryResultsDiv.classList.remove('hidden'); // Show message if no results match
+            industryResultsDiv.classList.remove('hidden');
             return;
         }
 
@@ -570,9 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
             itemDiv.addEventListener('click', () => selectIndustry(item));
             industryResultsDiv.appendChild(itemDiv);
         });
-
         industryResultsDiv.classList.remove('hidden');
-        // Manually adjust the position/width of the results container to match the input if necessary
         const inputRect = industrySearchInput.getBoundingClientRect();
         industryResultsDiv.style.width = inputRect.width + 'px';
     };
@@ -584,7 +577,6 @@ document.addEventListener('DOMContentLoaded', () => {
         runAllCalculations();
     };
     
-    // Debounce function to prevent excessive filtering/rendering
     let debounceTimer;
     const debouncedFilter = () => {
         clearTimeout(debounceTimer);
@@ -597,7 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
     industrySearchInput.addEventListener('input', debouncedFilter);
     formFilterInputs.forEach(input => input.addEventListener('input', debouncedFilter));
 
-    // Reset rates if search is completely cleared
     industrySearchInput.addEventListener('input', (e) => {
         if (e.target.value.trim() === '') {
             currentRates = { R: 0, I: 0, N: 0 };
@@ -605,14 +596,12 @@ document.addEventListener('DOMContentLoaded', () => {
             runAllCalculations();
         }
     });
-
+    
     document.addEventListener('click', (e) => {
-        // Hide results if clicking outside of the search input and results panel
         if (!industryResultsDiv.contains(e.target) && e.target !== industrySearchInput) {
             industryResultsDiv.classList.add('hidden');
         }
     });
-
 
     // --- Main Calculation & UI Update Logic ---
     const runAllCalculations = () => {
@@ -620,12 +609,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const revenue = parseFloat(totalRevenueInput.value) || 0;
         const nonOpIncome = parseFloat(nonOperatingIncomeInput.value) || 0;
         const nonOpExpenses = parseFloat(nonOperatingExpensesInput.value) || 0;
-        const rates = currentRates;
+        
+        // ** MODIFIED **: Determine which rates to use
+        let rates;
+        if (manualRateToggle.checked) {
+            const r = parseFloat(manualRateRInput.value) / 100 || 0;
+            const i = parseFloat(manualRateIInput.value) / 100 || 0;
+            const n = parseFloat(manualRateNInput.value) / 100 || 0;
+            rates = { R: r, I: i, N: n };
+        } else {
+            rates = currentRates;
+        }
 
         // Handle partnership case
         if (companyTypeSelect.value === 'partnership') {
             partnershipNotice.classList.remove('hidden');
-            // Disable or fade other sections for visual clarity
             document.querySelectorAll('.form-section:not(#basic-info-section)').forEach(s => s.classList.add('opacity-50', 'pointer-events-none'));
             return;
         } else {
@@ -634,59 +632,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 2. Declaration Method Comparison (步驟二)
-        
-        // Update Rates Display (for comparison cards)
+        // Update Rates Display
         selectedRateInfoSpan.textContent = `R: ${(rates.R * 100).toFixed(1)}% / I: ${(rates.I * 100).toFixed(1)}% / N: ${(rates.N * 100).toFixed(1)}%`;
         document.getElementById('paper-review-rate').textContent = `${(rates.R * 100).toFixed(1)}%`;
         document.getElementById('income-standard-rate').textContent = `${(rates.I * 100).toFixed(1)}%`;
         document.getElementById('industry-profit-rate').textContent = `${(rates.N * 100).toFixed(1)}%`;
 
-        // 書審公式: (營業淨收入＋非營業收入) × 書審率 
         const paperReviewIncome = Math.max(0, (revenue + nonOpIncome) * rates.R);
         const paperReviewTax = calculatePSITRate(paperReviewIncome);
         document.getElementById('paper-review-income').textContent = formatCurrency(paperReviewIncome);
         document.getElementById('paper-review-tax').textContent = formatCurrency(paperReviewTax);
-        
-        // 所得額標準公式: 營業淨收入 × 所得額率 ＋ 非營業收入 － 非營業費用
+
         const incomeStandardIncome = Math.max(0, (revenue * rates.I) + nonOpIncome - nonOpExpenses);
         const incomeStandardTax = calculatePSITRate(incomeStandardIncome);
         document.getElementById('income-standard-income').textContent = formatCurrency(incomeStandardIncome);
         document.getElementById('income-standard-tax').textContent = formatCurrency(incomeStandardTax);
-
-        // 同業利潤標準公式: 營業淨收入 × 同業淨利率 ＋ 非營業收入 － 非營業費用
+        
         const industryProfitIncome = Math.max(0, (revenue * rates.N) + nonOpIncome - nonOpExpenses);
         const industryProfitTax = calculatePSITRate(industryProfitIncome);
         document.getElementById('industry-profit-income').textContent = formatCurrency(industryProfitIncome);
         document.getElementById('industry-profit-tax').textContent = formatCurrency(industryProfitTax);
 
-        // 查帳/簽證 (直接輸入)
         const manualIncome = parseFloat(manualIncomeInput.value) || 0;
         const manualTax = calculatePSITRate(manualIncome);
         document.getElementById('manual-tax').textContent = formatCurrency(manualTax);
-
-        // Update Chart
         updateComparisonChart(paperReviewIncome, incomeStandardIncome, industryProfitIncome, manualIncome);
-
+        
         // 3. PSIT, AMT Calculation (步驟三)
         let taxableIncome = parseFloat(taxableIncomeInput.value) || 0;
-        
-        // C. 加成減除影響課稅所得額 (在查帳/簽證基礎上調整)
         const sportsDonation = parseFloat(sportsDonationInput.value) || 0;
         const militarySalary = parseFloat(militarySalaryInput.value) || 0;
         const totalAddonDeduction = sportsDonation + militarySalary;
-        
-        // 將加成減除視為在「課稅所得額」基礎上的額外減項
         let adjustedTaxableIncome = Math.max(0, taxableIncome - totalAddonDeduction);
-
         const settlementTaxBeforeCredit = calculatePSITRate(adjustedTaxableIncome);
         document.getElementById('settlement-tax-result').textContent = formatCurrency(settlementTaxBeforeCredit);
         
-        // AMT Calculation
         const amtExemptIncome = parseFloat(amtExemptIncomeInput.value) || 0;
-        // AMT基礎是課稅所得額加上特定免稅所得 (adjustedTaxableIncome is used here)
-        const amtBase = adjustedTaxableIncome + amtExemptIncome; 
+        const amtBase = adjustedTaxableIncome + amtExemptIncome;
         document.getElementById('amt-base-result').textContent = formatCurrency(amtBase);
-        
         const amtTax = Math.max(0, (amtBase - TAX_CONSTANTS.AMT_DEDUCTION) * TAX_CONSTANTS.AMT_RATE);
         document.getElementById('amt-tax-result').textContent = formatCurrency(amtTax);
         document.getElementById('amt-due').textContent = formatCurrency(amtTax);
@@ -695,33 +678,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const rdCredit = parseFloat(rdCreditInput.value) || 0;
         const machineCredit = parseFloat(machineCreditInput.value) || 0;
         const totalCredit = rdCredit + machineCredit;
-        
         const creditLimit = settlementTaxBeforeCredit * TAX_CONSTANTS.TAX_CREDIT_CAP;
         const creditUsed = Math.min(totalCredit, creditLimit);
-        
         document.getElementById('credit-limit').textContent = formatCurrency(creditLimit);
         document.getElementById('total-credit-used').textContent = formatCurrency(creditUsed);
-        
         const psitAfterCredit = Math.max(0, settlementTaxBeforeCredit - creditUsed);
         document.getElementById('psit-after-credit').textContent = formatCurrency(psitAfterCredit);
 
         // 4. UAET Calculation (步驟四 C)
         const uaetNetProfit = parseFloat(uaetNetProfitInput.value) || 0;
         const uaetSubstantialInvestment = parseFloat(uaetSubstantialInvestmentInput.value) || 0;
-
-        // UAET 稅基 = 稅後淨利 - 實質投資 (簡化計算，未考慮其他法定項目)
         const uaetBase = Math.max(0, uaetNetProfit - uaetSubstantialInvestment);
         const uaetTax = calculateUAET(uaetBase);
-        
         document.getElementById('uaet-base-result').textContent = formatCurrency(uaetBase);
         document.getElementById('uaet-tax-result').textContent = formatCurrency(uaetTax);
         document.getElementById('final-uaet-due').textContent = formatCurrency(uaetTax);
 
         // 5. Final Summary (步驟五)
-        // 最終營所稅取 (一般營所稅-抵減額) 與 (基本稅額 AMT) 兩者較高者
-        const finalPSIT = Math.max(psitAfterCredit, amtTax); 
+        const finalPSIT = Math.max(psitAfterCredit, amtTax);
         document.getElementById('final-psit-due').textContent = formatCurrency(finalPSIT);
-        
         const totalTaxLiability = finalPSIT + uaetTax;
         document.getElementById('total-tax-liability').textContent = formatCurrency(totalTaxLiability);
     };
@@ -758,9 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         beginAtZero: true,
                         title: { display: true, text: '所得額 (NT$)' },
                         ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString();
-                            }
+                            callback: function(value) { return value.toLocaleString(); }
                         }
                     },
                     x: { grid: { display: false } }
@@ -777,40 +750,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners ---
     initializeComparisonChart();
-    
-    // Listeners for all financial inputs and selectors (excluding the search input)
     allInputs.forEach(input => {
         input.addEventListener('input', runAllCalculations);
     });
-
-    // Listeners for using comparison income
     useIncomeBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             const sourceId = e.target.dataset.incomeSource;
             const sourceElement = document.getElementById(sourceId);
             let incomeValue = 0;
-
             if (sourceElement.tagName === 'INPUT') {
                 incomeValue = parseFloat(sourceElement.value) || 0;
             } else { 
-                // Extract number from formatted span text
                 incomeValue = parseFloat(sourceElement.textContent.replace(/[NT$,\s]/g, '')) || 0;
             }
-            
             taxableIncomeInput.value = Math.round(incomeValue);
-            taxableIncomeInput.dispatchEvent(new Event('input')); // Trigger recalculation
-            
+            taxableIncomeInput.dispatchEvent(new Event('input'));
             comparisonCards.forEach(c => c.classList.remove('highlight'));
             sourceElement.closest('.comparison-card').classList.add('highlight');
-
             taxableIncomeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
     });
 
+    // ** NEW **: Listener for manual rate toggle and inputs
+    manualRateToggle.addEventListener('change', () => {
+        const isManual = manualRateToggle.checked;
+        industrySearchContainer.classList.toggle('hidden', isManual);
+        manualRateContainer.classList.toggle('hidden', !isManual);
+        
+        // When switching to manual, reset search and clear old selection
+        if (isManual) {
+            industrySearchInput.value = '';
+            currentRates = { R: 0, I: 0, N: 0 };
+            industryResultsDiv.classList.add('hidden');
+        }
+        runAllCalculations();
+    });
+
+    [manualRateRInput, manualRateIInput, manualRateNInput].forEach(input => {
+        input.addEventListener('input', runAllCalculations);
+    });
+
     // --- Initial Run ---
     runAllCalculations();
-    // Show initial search results list (all) for easy selection
     debouncedFilter();
 });
 </script>
