@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>年度分攤計算工具</title>
+    <title>進階分攤計算工具 (年/月)</title>
     <style>
         :root {
             --primary-color: #007bff;
+            --secondary-color: #6c757d;
             --danger-color: #dc3545;
             --success-color: #28a745;
+            --info-color: #17a2b8;
             --light-gray: #f8f9fa;
             --dark-gray: #343a40;
             --border-color: #dee2e6;
@@ -46,8 +48,16 @@
             background-color: #e9ecef;
             border-radius: 5px;
         }
-        .form-group {
+        .form-group, .form-row {
             margin-bottom: 20px;
+        }
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
         }
         .form-group label {
             display: block;
@@ -55,7 +65,7 @@
             font-weight: 600;
             color: #495057;
         }
-        .form-group input {
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid var(--border-color);
@@ -63,7 +73,11 @@
             box-sizing: border-box;
             font-size: 1em;
         }
-        .form-group input:focus {
+        .form-group textarea {
+            min-height: 70px;
+            resize: vertical;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
@@ -89,20 +103,10 @@
             cursor: pointer;
             transition: background-color 0.2s, opacity 0.2s;
         }
-        #calculateBtn {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        #calculateBtn:hover {
-            background-color: #0056b3;
-        }
-        #exportBtn {
-            background-color: var(--success-color);
-            color: white;
-        }
-        #exportBtn:hover {
-            background-color: #218838;
-        }
+        #calculateBtn { background-color: var(--primary-color); color: white; }
+        #calculateBtn:hover { background-color: #0056b3; }
+        #exportBtn { background-color: var(--success-color); color: white; }
+        #exportBtn:hover { background-color: #218838; }
         button:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
@@ -119,11 +123,7 @@
             cursor: pointer;
             font-weight: bold;
         }
-        details div {
-            padding: 15px;
-            font-size: 0.9em;
-            line-height: 1.6;
-        }
+        details div { padding: 15px; font-size: 0.9em; line-height: 1.6; }
         #results {
             margin-top: 30px;
             border-top: 2px solid var(--border-color);
@@ -139,13 +139,8 @@
             padding: 10px 12px;
             text-align: right;
         }
-        th {
-            background-color: var(--light-gray);
-            font-weight: 600;
-        }
-        th:first-child, td:first-child {
-            text-align: center;
-        }
+        th { background-color: var(--light-gray); font-weight: 600; }
+        th:first-child, td:first-child { text-align: center; }
         .summary {
             margin-top: 20px;
             padding: 15px;
@@ -155,13 +150,33 @@
             display: flex;
             justify-content: space-between;
         }
+        .toggle-switch { display: flex; align-items: center; gap: 10px; }
+        .copy-button {
+            background-color: var(--info-color);
+            color: white;
+            font-size: 0.9em;
+            padding: 8px 12px;
+            flex-grow: 0;
+        }
+        .copy-button:hover { background-color: #138496; }
+        #calculationBreakdown {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>年度分攤計算</h1>
-        <p class="description">輸入金額、起日、迄日，系統按“起含、迄不含、日曆年、實際天數、四捨五入到2位、尾差併入最後一年”計算各年度分攤金額並可匯出。</p>
+        <h1>進階分攤計算工具</h1>
+        <p class="description">輸入金額、起日、迄日，系統按“起訖均含、日曆年/月、實際天數、四捨五入到2位、尾差併入最後一期”計算分攤金額並可匯出。</p>
         
         <form id="calcForm" onsubmit="event.preventDefault(); calculateAmortization();">
             <div class="form-group">
@@ -170,16 +185,25 @@
                 <div id="amountError" class="error-message"></div>
             </div>
 
-            <div class="form-group">
-                <label for="startDate">起始日期 (含)</label>
-                <input type="date" id="startDate" required>
-                <div id="startDateError" class="error-message"></div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDate">起始日期 (含)</label>
+                    <input type="date" id="startDate" required>
+                    <div id="startDateError" class="error-message"></div>
+                </div>
+                <div class="form-group">
+                    <label for="endDate">結束日期 (含)</label>
+                    <input type="date" id="endDate" required>
+                    <div id="endDateError" class="error-message"></div>
+                </div>
             </div>
 
             <div class="form-group">
-                <label for="endDate">結束日期 (不含)</label>
-                <input type="date" id="endDate" required>
-                <div id="endDateError" class="error-message"></div>
+                <label for="periodType">分攤單位</label>
+                <select id="periodType">
+                    <option value="yearly">按年分攤</option>
+                    <option value="monthly">按月分攤</option>
+                </select>
             </div>
             
             <div class="button-group">
@@ -192,109 +216,112 @@
             <summary>高級設定（固定規則）</summary>
             <div>
                 <ul>
-                    <li><b>年度口徑：</b>日曆年 (Calendar Year)</li>
-                    <li><b>天數口徑：</b>起日包含，迄日不包含</li>
-                    <li><b>計日規則：</b>依該年度實際天數 (自動處理閏年 365/366 天)</li>
-                    <li><b>捨入與尾差：</b>金額四捨五入至小數點後 2 位，總計尾差併入最後一個年度</li>
+                    <li><b>年度/月份口徑：</b>日曆年/月 (Calendar Year/Month)</li>
+                    <li><b>天數口徑：</b>起始日與結束日均包含在內</li>
+                    <li><b>計日規則：</b>依該分攤單位內實際天數 (自動處理閏年)</li>
+                    <li><b>捨入與尾差：</b>金額四捨五入至小數點後 2 位，總計尾差併入最後一個分攤單位</li>
                 </ul>
             </div>
         </details>
 
         <div id="results" style="display: none;">
             <h2>計算結果</h2>
+            
+            <div class="form-group">
+                <label for="notes">備註 (此內容將包含在匯出的 CSV 檔案中)</label>
+                <textarea id="notes" placeholder="可在此輸入本次計算的相關備註..."></textarea>
+            </div>
+            
             <div id="resultsTableContainer"></div>
             <div id="resultsSummary" class="summary"></div>
+
+            <div class="form-group toggle-switch">
+                <input type="checkbox" id="showBreakdownToggle">
+                <label for="showBreakdownToggle">顯示計算過程</label>
+            </div>
+            <div id="calculationBreakdown" style="display: none;"></div>
+            
+            <div class="button-group" id="copyButtonsContainer">
+                <button type="button" id="copySummaryBtn" class="copy-button">複製組合摘要</button>
+                <button type="button" id="copyDetailsBtn" class="copy-button">複製完整明細</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // DOM Elements
+        // --- DOM Elements ---
         const amountInput = document.getElementById('amount');
         const startDateInput = document.getElementById('startDate');
         const endDateInput = document.getElementById('endDate');
+        const periodTypeSelect = document.getElementById('periodType');
         const calculateBtn = document.getElementById('calculateBtn');
         const exportBtn = document.getElementById('exportBtn');
+        const notesInput = document.getElementById('notes');
+        
         const resultsDiv = document.getElementById('results');
+        const tableContainer = document.getElementById('resultsTableContainer');
+        const summaryContainer = document.getElementById('resultsSummary');
+        
+        const showBreakdownToggle = document.getElementById('showBreakdownToggle');
+        const breakdownDiv = document.getElementById('calculationBreakdown');
+        const copySummaryBtn = document.getElementById('copySummaryBtn');
+        const copyDetailsBtn = document.getElementById('copyDetailsBtn');
+
         const amountError = document.getElementById('amountError');
         const startDateError = document.getElementById('startDateError');
         const endDateError = document.getElementById('endDateError');
-        const tableContainer = document.getElementById('resultsTableContainer');
-        const summaryContainer = document.getElementById('resultsSummary');
 
-        let calculationResult = null; // Store result for CSV export
+        let calculationResult = null;
 
         // --- Core Functions ---
         
-        // Calculate days between two dates using UTC to avoid timezone issues.
-        const daysBetween = (date1, date2) => {
+        // Calculate INCLUSIVE days between two UTC dates
+        const daysBetweenInclusive = (d1, d2) => {
+            if (d1 > d2) return 0;
             const oneDay = 86400000; // 24 * 60 * 60 * 1000
-            return Math.round((date2.getTime() - date1.getTime()) / oneDay);
+            return Math.round((d2.getTime() - d1.getTime()) / oneDay) + 1;
         };
 
         const validateInputs = () => {
             let isValid = true;
-            
-            // Reset errors
             amountError.textContent = '';
             startDateError.textContent = '';
             endDateError.textContent = '';
 
-            // 1. Validate Amount
             let amount = parseFloat(amountInput.value);
             if (isNaN(amount) || amount <= 0) {
                 amountError.textContent = '金額必須是大於 0 的數字。';
                 isValid = false;
             }
 
-            // 2. Validate Dates
             const startDateStr = startDateInput.value;
             const endDateStr = endDateInput.value;
-
-            if (!startDateStr) {
-                startDateError.textContent = '起始日期為必填項。';
-                isValid = false;
-            }
-            if (!endDateStr) {
-                endDateError.textContent = '結束日期為必填項。';
+            if (!startDateStr || !endDateStr) {
+                if (!startDateStr) startDateError.textContent = '起始日期為必填項。';
+                if (!endDateStr) endDateError.textContent = '結束日期為必填項。';
                 isValid = false;
             }
 
             if (!isValid) return { isValid: false };
 
-            // Parse dates as UTC midnight
             const startDate = new Date(startDateStr);
             const endDate = new Date(endDateStr);
 
-            if (isNaN(startDate.getTime())) {
-                startDateError.textContent = '起始日期格式不正確。';
-                isValid = false;
-            }
-            if (isNaN(endDate.getTime())) {
-                endDateError.textContent = '結束日期格式不正確。';
+            if (startDate > endDate) {
+                endDateError.textContent = '結束日期必須晚於或等於起始日期。';
                 isValid = false;
             }
             
-            if (!isValid) return { isValid: false };
-            
-            if (startDate >= endDate) {
-                endDateError.textContent = '結束日期必須晚於起始日期。';
-                isValid = false;
-            }
-
-            // 3. Check year span
             const startYear = startDate.getFullYear();
             const endYear = endDate.getFullYear();
-            if (endYear - startYear > 50) {
-                startDateError.textContent = '日期跨度過大，不可超過 50 年。';
-                endDateError.textContent = '日期跨度過大，不可超過 50 年。';
+            if (endYear - startYear > 100) { // Increased limit
+                startDateError.textContent = '日期跨度過大，不可超過 100 年。';
                 isValid = false;
             }
 
             if (!isValid) return { isValid: false };
 
-            // Pre-round amount to 2 decimal places
             const finalAmount = parseFloat(amount.toFixed(2));
-
             return {
                 isValid: true,
                 amount: finalAmount,
@@ -304,7 +331,6 @@
         };
 
         const calculateAmortization = () => {
-            // Hide previous results and disable export button
             resultsDiv.style.display = 'none';
             exportBtn.disabled = true;
             calculationResult = null;
@@ -316,141 +342,243 @@
             }
             
             const { amount, startDate, endDate } = validation;
+            const periodType = periodTypeSelect.value;
             
-            // Convert to UTC to perform calculations
-            const startUTC = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
-            const endUTC = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()));
+            const startUTC = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
+            const endUTC = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
             
-            const totalDays = daysBetween(startUTC, endUTC);
-            if (totalDays <= 0) return; // Should be caught by validation, but as a safeguard.
+            const totalDays = daysBetweenInclusive(startUTC, endUTC);
+            if (totalDays <= 0) return;
 
-            const resultsData = [];
+            let resultsData = [];
             let roundedTotal = 0;
 
-            const startYear = startUTC.getUTCFullYear();
-            // The service period ends one day before the end date.
-            const tempEnd = new Date(endUTC.getTime() - 86400000);
-            const endYear = tempEnd.getUTCFullYear();
-            
-            for (let year = startYear; year <= endYear; year++) {
-                const yearStart = new Date(Date.UTC(year, 0, 1));
-                const yearEnd = new Date(Date.UTC(year + 1, 0, 1));
-
-                const effectiveStart = startUTC > yearStart ? startUTC : yearStart;
-                const effectiveEnd = endUTC < yearEnd ? endUTC : yearEnd;
+            if (periodType === 'yearly') {
+                const startYear = startUTC.getUTCFullYear();
+                const endYear = endUTC.getUTCFullYear();
                 
-                const daysInYear = daysBetween(effectiveStart, effectiveEnd);
-                if (daysInYear <= 0) continue;
+                for (let year = startYear; year <= endYear; year++) {
+                    const yearStart = new Date(Date.UTC(year, 0, 1));
+                    const yearEnd = new Date(Date.UTC(year, 11, 31));
 
-                const rawAmount = amount * (daysInYear / totalDays);
-                const roundedAmount = parseFloat(rawAmount.toFixed(2));
-                
-                resultsData.push({
-                    year,
-                    days: daysInYear,
-                    percentage: (daysInYear / totalDays * 100),
-                    amount: roundedAmount
-                });
-                roundedTotal += roundedAmount;
+                    const effectiveStart = startUTC > yearStart ? startUTC : yearStart;
+                    const effectiveEnd = endUTC < yearEnd ? endUTC : yearEnd;
+                    
+                    const daysInPeriod = daysBetweenInclusive(effectiveStart, effectiveEnd);
+                    if (daysInPeriod <= 0) continue;
+
+                    const rawAmount = amount * (daysInPeriod / totalDays);
+                    const roundedAmount = parseFloat(rawAmount.toFixed(2));
+                    
+                    resultsData.push({
+                        label: year.toString(),
+                        days: daysInPeriod,
+                        amount: roundedAmount
+                    });
+                    roundedTotal += roundedAmount;
+                }
+            } else { // monthly
+                let currentDate = new Date(startUTC);
+                while(currentDate <= endUTC) {
+                    const year = currentDate.getUTCFullYear();
+                    const month = currentDate.getUTCMonth();
+                    
+                    const monthStart = new Date(Date.UTC(year, month, 1));
+                    const monthEnd = new Date(Date.UTC(year, month + 1, 0));
+
+                    const effectiveStart = currentDate > monthStart ? currentDate : monthStart;
+                    const effectiveEnd = endUTC < monthEnd ? endUTC : monthEnd;
+                    
+                    const daysInPeriod = daysBetweenInclusive(effectiveStart, effectiveEnd);
+                    
+                    if (daysInPeriod > 0) {
+                        const rawAmount = amount * (daysInPeriod / totalDays);
+                        const roundedAmount = parseFloat(rawAmount.toFixed(2));
+                        
+                        resultsData.push({
+                            label: `${year}-${String(month + 1).padStart(2, '0')}`,
+                            days: daysInPeriod,
+                            amount: roundedAmount
+                        });
+                        roundedTotal += roundedAmount;
+                    }
+                    
+                    currentDate = new Date(Date.UTC(year, month + 1, 1));
+                }
             }
 
-            // Handle rounding difference (tail difference)
+            // Handle rounding difference
             if (resultsData.length > 0) {
                 const diff = parseFloat((amount - roundedTotal).toFixed(2));
                 resultsData[resultsData.length - 1].amount += diff;
+                resultsData[resultsData.length - 1].isAdjusted = true; // Mark as adjusted
             }
             
-            // Store for export and display
             calculationResult = {
                 data: resultsData,
                 totalDays,
-                totalAmount: amount
+                totalAmount: amount,
+                periodType: periodType,
+                startDate: startDate.toLocaleDateString('sv'),
+                endDate: endDate.toLocaleDateString('sv')
             };
             displayResults(calculationResult);
         };
 
         const displayResults = (result) => {
-            const { data, totalDays, totalAmount } = result;
+            const { data, totalDays, totalAmount, periodType } = result;
+            const periodLabel = periodType === 'yearly' ? '年度' : '月份';
 
-            // Build Table
             let tableHTML = `
                 <table>
                     <thead>
                         <tr>
-                            <th>年度</th>
-                            <th>該年度天數</th>
+                            <th>${periodLabel}</th>
+                            <th>該單位天數</th>
                             <th>占比 (%)</th>
                             <th>分攤金額</th>
                         </tr>
                     </thead>
-                    <tbody>
-            `;
+                    <tbody>`;
             let finalSum = 0;
             data.forEach(item => {
                 finalSum += item.amount;
+                const percentage = (item.days / totalDays * 100).toFixed(2);
                 tableHTML += `
                     <tr>
-                        <td>${item.year}</td>
+                        <td>${item.label}</td>
                         <td>${item.days}</td>
-                        <td>${item.percentage.toFixed(2)}%</td>
+                        <td>${percentage}%</td>
                         <td>${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                `;
+                    </tr>`;
             });
-            tableHTML += `
-                    </tbody>
-                </table>
-            `;
+            tableHTML += `</tbody></table>`;
             tableContainer.innerHTML = tableHTML;
 
-            // Build Summary
             summaryContainer.innerHTML = `
                 <span>總天數：${totalDays} 天</span>
-                <span>金額合計：${finalSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            `;
+                <span>金額合計：${finalSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
 
             resultsDiv.style.display = 'block';
             exportBtn.disabled = false;
+            updateBreakdown(); // Initial update for breakdown visibility
+        };
+
+        const updateBreakdown = () => {
+            if (!calculationResult || !showBreakdownToggle.checked) {
+                breakdownDiv.style.display = 'none';
+                return;
+            }
+
+            const { data, totalDays, totalAmount, startDate, endDate } = calculationResult;
+            let breakdownText = `總金額: ${totalAmount.toLocaleString()}\n期間: ${startDate} 至 ${endDate} (共 ${totalDays} 天)\n`;
+            breakdownText += '------------------------------------\n';
+
+            data.forEach(item => {
+                const rawAmount = totalAmount * (item.days / totalDays);
+                breakdownText += `${item.label}:\n`;
+                breakdownText += `  天數: ${item.days} 天\n`;
+                breakdownText += `  公式: ${totalAmount.toLocaleString()} × ${item.days} ÷ ${totalDays} = ${rawAmount.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}\n`;
+                breakdownText += `  金額: ${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                if (item.isAdjusted) {
+                     breakdownText += ` (含尾差調整)\n\n`;
+                } else {
+                     breakdownText += `\n\n`;
+                }
+            });
+            breakdownDiv.textContent = breakdownText;
+            breakdownDiv.style.display = 'block';
+        };
+
+        const generateCopyText = (type) => {
+            if (!calculationResult) return '';
+            const { data, totalAmount, periodType } = calculationResult;
+            const notes = notesInput.value;
+
+            if (type === 'summary') {
+                const summary = data.map(item => `${item.label}: ${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`).join('；');
+                return `${summary} (總計 ${totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})})`;
+            }
+            
+            if (type === 'details') {
+                let details = `分攤計算明細 (${periodType === 'yearly' ? '年' : '月'})\n`;
+                details += `總金額: ${totalAmount.toLocaleString()}\n`;
+                details += `期間: ${calculationResult.startDate} 至 ${calculationResult.endDate} (共 ${calculationResult.totalDays} 天)\n\n`;
+                details += `[分攤表]\n`;
+                data.forEach(item => {
+                    const percentage = (item.days / calculationResult.totalDays * 100).toFixed(2);
+                    details += `${item.label}\t天數:${item.days}\t占比:${percentage}%\t金額:${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n`;
+                });
+                if (notes) {
+                    details += `\n[備註]\n${notes}`;
+                }
+                return details;
+            }
+            return '';
+        };
+
+        const copyToClipboard = async (text) => {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('已成功複製到剪貼簿！');
+            } catch (err) {
+                console.error('複製失敗:', err);
+                alert('複製失敗，請手動選取複製。');
+            }
         };
 
         const exportToCSV = () => {
-            if (!calculationResult || calculationResult.data.length === 0) return;
+            if (!calculationResult) return;
+            const { data, periodType, totalDays, totalAmount, startDate, endDate } = calculationResult;
+            const notes = notesInput.value.replace(/"/g, '""'); // Escape double quotes for CSV
 
-            const { data, totalDays } = calculationResult;
+            let csvContent = '\uFEFF'; // BOM for UTF-8
+            
+            // --- Header Info ---
+            csvContent += `總金額,"${totalAmount}"\n`;
+            csvContent += `期間,"${startDate} 至 ${endDate}"\n`;
+            csvContent += `總天數,"${totalDays}"\n`;
+            if (notes) {
+                csvContent += `備註,"${notes}"\n`;
+            }
+            csvContent += '\n'; // Spacer
 
-            let csvContent = '\uFEFF'; // BOM for UTF-8 Excel compatibility
-            csvContent += '年度,該年度天數,占比(%),分攤金額\n';
-
+            // --- Table ---
+            const periodLabel = periodType === 'yearly' ? '年度' : '月份';
+            csvContent += `${periodLabel},該單位天數,占比(%),分攤金額\n`;
             data.forEach(item => {
-                const percentage = item.percentage.toFixed(2);
+                const percentage = (item.days / totalDays * 100).toFixed(2);
                 const amount = item.amount.toFixed(2);
-                csvContent += `${item.year},${item.days},${percentage},${amount}\n`;
+                csvContent += `${item.label},${item.days},${percentage},${amount}\n`;
             });
             
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', '年度分攤計算結果.csv');
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', '分攤計算結果.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         };
-
 
         // --- Event Listeners ---
-        exportBtn.addEventListener('click', exportToCSV);
-
-        // Re-enable calculate button on input change
-        const enableCalcButton = () => {
-            calculateBtn.disabled = false;
-        };
+        const enableCalcButton = () => { calculateBtn.disabled = false; };
         amountInput.addEventListener('input', enableCalcButton);
         startDateInput.addEventListener('input', enableCalcButton);
         endDateInput.addEventListener('input', enableCalcButton);
+        periodTypeSelect.addEventListener('change', () => {
+            // Re-calculate if results are already shown
+            if (resultsDiv.style.display === 'block') {
+                calculateAmortization();
+            }
+        });
+
+        exportBtn.addEventListener('click', exportToCSV);
+        showBreakdownToggle.addEventListener('change', updateBreakdown);
+        copySummaryBtn.addEventListener('click', () => copyToClipboard(generateCopyText('summary')));
+        copyDetailsBtn.addEventListener('click', () => copyToClipboard(generateCopyText('details')));
 
     </script>
 </body>
