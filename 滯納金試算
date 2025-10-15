@@ -3,171 +3,210 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>台灣稅務滯納金／滯納利息試算（離線版）</title>
+<title>滯納金／滯納利息試算（離線）</title>
 <style>
-  /* ===== Vogue 風格：黑白高對比、粗標題、細正文、寬行距 ===== */
   :root{
-    --bg:#ffffff; --fg:#111111; --muted:#666; --line:#e8e8e8; --accent:#d9c9a3; /* 淡金米 */
+    --bg:#FAFAF7; --fg:#111; --muted:#666; --line:#e6e4df; --accent:#d9c9a3;
   }
-  html,body{background:var(--bg);color:var(--fg);margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Helvetica,Arial,"Noto Sans TC",sans-serif;line-height:1.6;}
-  .wrap{max-width:1024px;margin:0 auto;padding:40px 24px;}
-  header h1{font-size:42px;letter-spacing:.06em;margin:0 0 8px;font-weight:900;text-transform:uppercase;}
-  header p{color:var(--muted);margin:0 0 24px;}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-  .card{border:1px solid var(--line);border-radius:20px;padding:20px;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.025)}
-  .card h2{font-size:18px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.08em;font-weight:800}
-  .field{display:flex;flex-direction:column;margin:10px 0}
+  html,body{background:var(--bg);color:var(--fg);margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Helvetica,Arial,"Noto Sans TC",sans-serif;line-height:1.7;font-size:16px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:48px 24px;}
+  header h1{font-size:44px;letter-spacing:.04em;margin:0 0 8px;font-weight:900;text-transform:uppercase;}
+  header p{color:var(--muted);margin:0 0 28px;}
+  .tabs{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+  .tab{border-bottom:3px solid transparent;padding:4px 2px;cursor:pointer;font-weight:800;letter-spacing:.06em}
+  .tab.active{border-color:#111}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .card{border:1px solid var(--line);border-radius:22px;padding:24px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+  .card h2{font-size:20px;margin:0 0 14px;text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+  .section{margin-top:28px}
+  .field{display:flex;flex-direction:column;margin:12px 0}
   .field label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#333;margin-bottom:6px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
   .field input[type="text"], .field input[type="number"], .field input[type="date"], .field select, .field textarea{
-    appearance:none;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px;background:#fff;outline:none;
+    appearance:none;border:1px solid var(--line);border-radius:14px;padding:13px 14px;font-size:16px;background:#fff;outline:none;width:100%;
   }
-  .pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:8px 12px;gap:10px}
-  .switch{position:relative;width:44px;height:24px;border-radius:999px;background:#ddd;cursor:pointer;flex:0 0 auto}
-  .switch::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
-  .switch.on{background:#111}.switch.on::after{transform:translateX(20px)}
-  .hint{font-size:12px;color:var(--muted)}
-  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
-  button{appearance:none;border:1px solid var(--fg);background:#111;color:#fff;border-radius:999px;padding:10px 16px;font-size:14px;cursor:pointer}
+  .pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:10px 14px;gap:10px}
+  .switch{position:relative;width:50px;height:28px;border-radius:999px;background:#d0cfc9;cursor:pointer;flex:0 0 auto}
+  .switch::after{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
+  .switch.on{background:#111}.switch.on::after{transform:translateX(22px)}
+  .hint{font-size:13px;color:var(--muted)}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+  button{appearance:none;border:1px solid #111;background:#111;color:#fff;border-radius:999px;padding:12px 18px;font-size:15px;cursor:pointer}
   button.ghost{background:#fff;color:#111;border-color:#111}
-  .result-hero{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
-  .badge{background:var(--fg);color:#fff;padding:6px 10px;border-radius:999px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-  .big{font-size:32px;font-weight:900;letter-spacing:.03em}
+  .result-hero{display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap}
+  .badge{background:#111;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+  .big{font-size:36px;font-weight:900;letter-spacing:.02em}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-  table{width:100%;border-collapse:collapse;border-spacing:0;margin-top:10px}
-  th,td{border-bottom:1px solid var(--line);padding:10px 6px;text-align:left;font-size:14px}
+  table{width:100%;border-collapse:collapse;border-spacing:0;margin-top:12px}
+  th,td{border-bottom:1px solid var(--line);padding:12px 8px;text-align:left;font-size:15px}
   th{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#333}
   .muted{color:var(--muted)}
-  .section{margin-top:28px}
-  .tabs{display:flex;gap:10px;margin-bottom:10px}
-  .tab{border-bottom:2px solid transparent;padding-bottom:6px;cursor:pointer;font-weight:700;letter-spacing:.05em}
-  .tab.active{border-color:#111}
-  .note{background:#faf9f6;border:1px solid var(--line);border-left:6px solid var(--accent);padding:12px;border-radius:10px}
-  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .note{background:#faf9f6;border:1px solid var(--line);border-left:6px solid var(--accent);padding:14px;border-radius:12px}
+  @media (max-width:960px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>滯納金／滯納利息 試算</h1>
-    <p>離線版・Vogue 風格・台灣法規邏輯：每逾 <strong>3</strong> 日加徵 <strong>1%</strong>（上限 <strong>10%</strong>），利息按年利率逐日計算並跨年分段。</p>
+    <p>邏輯：限繳日遇週六、週日或例假日順延至次一營業日；逾期自限繳迄日之次日起連續計天（不扣假日）。滯納金每逾3日加徵1%，最高10%；利息按規定稅目、起算點與年度利率分段計入。所有金額計至元，捨去小數。</p>
   </header>
 
-  <!-- Tabs -->
   <div class="tabs" id="tabs">
     <div class="tab active" data-panel="calcPanel">試算</div>
     <div class="tab" data-panel="learnPanel">教學</div>
     <div class="tab" data-panel="lawPanel">法規摘要</div>
   </div>
 
-  <!-- Panels -->
+  <!-- 試算 -->
   <section id="calcPanel">
     <div class="grid">
-      <!-- 左：輸入 -->
+      <!-- 輸入 -->
       <div class="card">
         <h2>輸入介面</h2>
+
         <div class="field">
           <label>稅目</label>
           <select id="taxType">
-            <option value="所得稅">所得稅</option>
+            <option value="綜合所得稅">綜合所得稅</option>
+            <option value="營利事業所得稅">營利事業所得稅</option>
             <option value="營業稅">營業稅</option>
-            <option value="其他">其他</option>
+            <option value="貨物稅">貨物稅</option>
+            <option value="遺產稅">遺產稅</option>
+            <option value="贈與稅">贈與稅</option>
+            <option value="菸酒稅">菸酒稅</option>
+            <option value="特種貨物及勞務稅">特種貨物及勞務稅</option>
+            <option value="其他">其他（不加計利息）</option>
           </select>
         </div>
 
-        <div class="field">
-          <label>本稅金額（NT$）</label>
-          <input type="number" id="principal" min="0" step="0.01" placeholder="例如 100000">
+        <div class="row">
+          <div class="field" style="flex:1 1 220px">
+            <label>本稅金額（NT$）</label>
+            <input type="number" id="principal" min="0" step="1" placeholder="例如 100000">
+          </div>
+          <div class="field" style="flex:1 1 220px">
+            <label>繳款書列印滯納金（選填，用於比對）</label>
+            <input type="number" id="printedPenalty" min="0" step="1" placeholder="空白則不比對">
+          </div>
         </div>
 
-        <div class="field">
-          <label>原繳納期限</label>
-          <input type="date" id="dueDate">
-          <div class="actions">
+        <div class="row">
+          <div class="field" style="flex:1 1 220px">
+            <label>原限繳日期</label>
+            <input type="date" id="dueDate">
+          </div>
+          <div class="field" style="flex:1 1 220px">
+            <label>是否有改訂／展延日期</label>
+            <div class="row" style="align-items:center">
+              <span class="pill">
+                <span>啟用</span>
+                <span class="switch" id="amendSwitch" tabindex="0" role="switch" aria-checked="false"></span>
+              </span>
+              <input type="date" id="amendedDate" disabled>
+            </div>
+            <div class="hint">若啟用，將以改訂／展延日期作為限繳日期。</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field" style="flex:1 1 220px">
+            <label>經收日（實際繳納日）</label>
+            <input type="date" id="payDate">
+          </div>
+          <div class="field" style="flex:1 1 220px">
+            <label>案件類型</label>
+            <select id="caseType">
+              <option value="overdue">逾期繳納（一般）</option>
+              <option value="self">自動補報補繳（48-1）</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>順延與例假日</h2>
+          <div class="row" style="align-items:center">
             <span class="pill">
-              <span>假日順延（僅週末）</span>
-              <span class="switch on" id="wkndSwitch" tabindex="0" role="switch" aria-checked="true"></span>
-            </span>
-            <span class="pill">
-              <span>顯示計算過程</span>
-              <span class="switch on" id="showSteps" tabindex="0" role="switch" aria-checked="true"></span>
+              <span>週末＋例假日順延</span>
+              <span class="switch on" id="shiftSwitch" tabindex="0" role="switch" aria-checked="true"></span>
             </span>
           </div>
-          <div class="hint">若期限落在週六/週日，將自動順延至下個工作日後再起算逾期。</div>
+          <div class="field">
+            <label>例假日清單（每行一個 YYYY-MM-DD）</label>
+            <textarea id="holidays" rows="3" placeholder="例如：&#10;2025-01-01&#10;2025-02-28"></textarea>
+            <div class="hint">只影響「限繳日期是否順延」；逾期日數計算期間內的例假日不予扣除。</div>
+          </div>
         </div>
 
-        <div class="field">
-          <label>實際繳納日</label>
-          <input type="date" id="payDate">
-        </div>
-
-        <!-- 年利率群組（可多筆，跨年分段） -->
         <div class="section">
           <h2>年利率（可多筆，跨年分段）</h2>
-          <div class="hint">完全離線：請自行輸入各年度利率（％）。未填的年度視為 0%（不計息）。</div>
+          <div class="hint">依各年度 1/1 郵政一年期定存固定利率。未填之年度視為 0%。</div>
           <table id="rateTable">
             <thead><tr><th>年度</th><th>年利率（%）</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
-          <div class="actions">
-            <button class="ghost" id="addRate">＋新增年度利率</button>
-          </div>
+          <div class="actions"><button class="ghost" id="addRate">＋新增年度利率</button></div>
         </div>
 
         <div class="field">
           <label>備註（列印顯示）</label>
-          <textarea id="note" rows="3" placeholder="此欄會顯示在結果下方，僅做紀錄用"></textarea>
+          <textarea id="note" rows="3" placeholder="此欄會顯示在結果下方"></textarea>
         </div>
 
         <div class="actions">
           <button id="calcBtn">開始試算</button>
           <button class="ghost" id="resetBtn">清空</button>
+          <span class="pill">
+            <span>顯示計算過程</span>
+            <span class="switch on" id="showSteps" tabindex="0" role="switch" aria-checked="true"></span>
+          </span>
         </div>
 
-        <div class="hint">小數規則：<strong>無條件捨去至小數第 2 位</strong>。</div>
+        <div class="hint">金額一律「計至元止，無條件捨去」。</div>
       </div>
 
-      <!-- 右：結果 -->
+      <!-- 結果 -->
       <div class="card">
         <h2>結果</h2>
         <div class="result-hero">
-          <span class="badge" id="badgeTax">所得稅</span>
+          <span class="badge" id="badgeTax">—</span>
           <div><span class="muted">合計應繳</span><div class="big mono" id="grandTotal">—</div></div>
         </div>
+
         <div class="section">
           <table>
             <tbody>
               <tr><th>本稅</th><td class="mono" id="principalOut">—</td></tr>
               <tr><th>滯納金</th><td class="mono" id="penaltyOut">—</td></tr>
               <tr><th>滯納利息</th><td class="mono" id="interestOut">—</td></tr>
-              <tr><th>逾期天數</th><td class="mono" id="overdueDaysOut">—</td></tr>
+              <tr><th>逾期日數</th><td class="mono" id="overdueDaysOut">—</td></tr>
+              <tr><th>限繳日期（有效）</th><td class="mono" id="effectiveDueOut">—</td></tr>
             </tbody>
           </table>
+          <div class="hint" id="printedCompare" style="margin-top:6px"></div>
         </div>
 
-        <!-- 明細：滯納金每 3 日一階（不同％數） -->
         <div class="section" id="penaltyDetailsWrap" style="display:none">
-          <h2>滯納金階梯明細（每 3 日 1%）</h2>
+          <h2>滯納金階梯明細（3日1%，至多10階）</h2>
           <table id="penaltyTable">
-            <thead><tr>
-              <th>#</th><th>%</th><th>起日</th><th>迄日</th><th>天數</th><th>金額</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th>#</th><th>本階%</th><th>累加%</th><th>起日</th><th>迄日</th><th>天數</th><th>本階金額</th><th>累加金額</th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
-          <div class="hint">最高加徵至 10%（逾期超過 30 日亦僅計至 10%）。</div>
+          <div class="hint">合計以法定公式計算：本稅 ×（累加%）後整元捨去。</div>
         </div>
 
-        <!-- 明細：利息按年度分段 -->
         <div class="section" id="interestDetailsWrap" style="display:none">
           <h2>利息分段明細（按年度）</h2>
           <table id="interestTable">
-            <thead><tr>
-              <th>年度</th><th>區間</th><th>天數</th><th>年利率%</th><th>利息金額</th>
-            </tr></thead>
+            <thead><tr><th>年度</th><th>區間</th><th>天數</th><th>年利率%</th><th>利息金額</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
 
-        <!-- 備註 -->
         <div class="section" id="noteWrap" style="display:none">
           <div class="note" id="noteOut"></div>
         </div>
@@ -180,65 +219,66 @@
     <div class="card">
       <h2>使用教學</h2>
       <ol>
-        <li>輸入本稅金額、原繳納期限與實際繳納日。</li>
-        <li>若逾期跨越不同年份，請於「年利率」加入各年度利率（％）。</li>
-        <li>按下「開始試算」，結果區會顯示合計、本稅、滯納金、滯納利息與逾期天數。</li>
-        <li>展開「滯納金階梯明細」可看到每 3 天 1% 的各階段日期區間與金額；展開「利息分段明細」可看到各年度的日期區間、利率與利息金額。</li>
-        <li>需要週末順延可維持預設開啟；若不需要，可關閉「假日順延」。</li>
-        <li>小數一律採「無條件捨去」至小數第 2 位。</li>
+        <li>輸入本稅、原限繳日期、經收日；如有改訂／展延，啟用並填入新日期。</li>
+        <li>需要順延請保持「週末＋例假日順延」開啟，並輸入例假日清單。</li>
+        <li>年利率按年度新增（跨年會自動分段）。</li>
+        <li>按「開始試算」，可展開階梯與利息明細；金額皆捨去到元。</li>
+        <li>若稅目為「其他」，利息不計。</li>
+        <li>案件類型：一般逾期之利息自第31日起；自動補報補繳之利息自限繳次日起。</li>
       </ol>
     </div>
   </section>
 
-  <!-- 法規摘要（離線文字） -->
+  <!-- 法規摘要 -->
   <section id="lawPanel" style="display:none">
     <div class="card">
-      <h2>法規摘要（台灣）</h2>
+      <h2>法規摘要</h2>
       <ul>
-        <li>滯納金：自繳納期限屆滿之次日起，每逾 <strong>3 日</strong>加徵應納稅額 <strong>1%</strong>，最高 <strong>10%</strong>。</li>
-        <li>滯納利息：自滯納期限屆滿之次日起按日計息，年利率以中華郵政一年期定存利率為準（本工具需手動輸入；跨年分段計算）。</li>
-        <li>假日順延：若到期日遇週末，順延至下一個工作日後再起算逾期（本工具提供週末簡化模式）。</li>
-        <li>本工具為離線試算，實際金額以稅捐稽徵機關核定為準。</li>
+        <li>限繳日：如遇週六、週日或例假日，順延至次一營業日。</li>
+        <li>逾期日數：自限繳迄日次日起至經收日止，期間例假日不扣除。</li>
+        <li>滯納金：每逾3日加徵1%，未滿3日不加徵，上限10%。</li>
+        <li>利息（適用稅目）：營所、綜所、營業、貨物、遺產、贈與、菸酒、特銷等。一般逾期自第31日起算；自動補報補繳自次日起算。跨年按年度利率分段。</li>
+        <li>計算至元止，小數點後捨去。</li>
+        <li>財務罰鍰、滯報金、怠報金、行政救濟加計利息、核定補徵利息均不加計滯納金與利息（此工具不計入）。</li>
       </ul>
     </div>
   </section>
-
 </div>
 
 <script>
-/* ===== 小工具：日期與金額 ===== */
-const $ = sel => document.querySelector(sel);
-const $$ = sel => document.querySelectorAll(sel);
-
+/* 工具 */
+const $ = s=>document.querySelector(s);
+const $$ = s=>document.querySelectorAll(s);
 function parseDate(v){ if(!v) return null; const d=new Date(v+"T00:00:00"); return isNaN(d)?null:d; }
 function fmtDate(d){ return d? d.toISOString().slice(0,10) : "—"; }
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
-function daysDiffInclusive(a,b){ // 包含起訖兩端：例如同一天=1
-  const ms = (Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()) - Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()));
-  return Math.floor(ms/86400000)+1;
-}
-function floor2(n){ // 無條件捨去至小數第 2 位，處理負值也一致
-  const sign = n<0?-1:1; n=Math.abs(n);
-  return sign * Math.floor(n*100)/100;
-}
-function money(n){ if(n===null||isNaN(n)) return "—"; return "NT$ "+floor2(n).toLocaleString("zh-TW",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function daysDiffInclusive(a,b){ const ms = (Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()) - Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())); return Math.floor(ms/86400000)+1; }
+function toMoney(n){ if(n==null||isNaN(n)) return "—"; return "NT$ "+Math.floor(n).toLocaleString("zh-TW"); }
+function toInt(n){ return Math.floor(n); }
+function isWeekend(d){ const g=d.getDay(); return g===0||g===6; }
 
-/* ===== 介面：Tab 切換與 Switch ===== */
-$("#tabs").addEventListener("click",(e)=>{
+/* 互動 */
+$("#tabs").addEventListener("click",e=>{
   const t=e.target.closest(".tab"); if(!t) return;
   $$(".tab").forEach(el=>el.classList.remove("active")); t.classList.add("active");
   ["calcPanel","learnPanel","lawPanel"].forEach(id=>$("#"+id).style.display="none");
   $("#"+t.dataset.panel).style.display="block";
 });
-[$("#wkndSwitch"), $("#showSteps")].forEach(sw=>{
-  sw.addEventListener("click",()=>{ sw.classList.toggle("on"); sw.setAttribute("aria-checked", sw.classList.contains("on")?"true":"false"); });
+function toggleSwitch(sw){ sw.classList.toggle("on"); sw.setAttribute("aria-checked", sw.classList.contains("on")?"true":"false"); }
+$("#amendSwitch").addEventListener("click",()=>{
+  toggleSwitch($("#amendSwitch"));
+  const on=$("#amendSwitch").classList.contains("on");
+  $("#amendedDate").disabled=!on;
+  if(!on) $("#amendedDate").value="";
 });
+$("#shiftSwitch").addEventListener("click",()=>toggleSwitch($("#shiftSwitch")));
+$("#showSteps").addEventListener("click",()=>toggleSwitch($("#showSteps")));
 
-/* ===== 年利率：動態列 ===== */
+/* 年利率 */
 const rateTBody = $("#rateTable tbody");
 function addRateRow(y="", r=""){
   const tr=document.createElement("tr");
-  tr.innerHTML=`
+  tr.innerHTML = `
     <td><input type="number" class="year" min="1900" max="2999" step="1" placeholder="YYYY" value="${y}"></td>
     <td><input type="number" class="rate" step="0.0001" placeholder="例如 1.375" value="${r}"></td>
     <td><button type="button" class="ghost del">刪除</button></td>
@@ -247,177 +287,219 @@ function addRateRow(y="", r=""){
   rateTBody.appendChild(tr);
 }
 $("#addRate").addEventListener("click",()=>addRateRow());
-// 預置兩行：當前年與前年（空值，純方便填寫）
+// 預置兩年
 (function seedRates(){
-  const now=new Date(); addRateRow(String(now.getFullYear()),"");
-  addRateRow(String(now.getFullYear()-1),"");
+  const now=new Date(); addRateRow(String(now.getFullYear()),""); addRateRow(String(now.getFullYear()-1),"");
 })();
 
-/* ===== 計算核心 ===== */
-function adjustDueForWeekend(due, weekendShiftOn){
-  // 若開啟週末順延：到期日遇 Sat/Sun → 順延至下一個工作日（週一或之後）
-  if(!weekendShiftOn) return due;
-  let d=new Date(due);
-  while(d.getDay()===0 || d.getDay()===6){ // Sun=0,Sat=6
-    d=addDays(d,1);
+/* 例假日集合 */
+function parseHolidays(){
+  const txt = $("#holidays").value.trim();
+  const set = new Set();
+  if(!txt) return set;
+  txt.split(/\r?\n|,|，/).map(s=>s.trim()).filter(Boolean).forEach(d=>{
+    const x=parseDate(d); if(x) set.add(fmtDate(x));
+  });
+  return set;
+}
+
+/* 限繳日期（有效）：改訂優先＋週末/例假日順延 */
+function computeEffectiveDue(){
+  const base = ($("#amendSwitch").classList.contains("on") ? parseDate($("#amendedDate").value) : parseDate($("#dueDate").value));
+  if(!base) return null;
+  if(!$("#shiftSwitch").classList.contains("on")) return base;
+  const hol = parseHolidays();
+  let d=new Date(base);
+  while(isWeekend(d) || hol.has(fmtDate(d))){
+    d = addDays(d,1);
   }
   return d;
 }
 
-function computeOverdueWindow(due, pay, weekendShiftOn){
-  // 逾期自「到期日（可能順延）之次日」起算；若支付日 <= 順延後到期日 → 未逾期
-  const adjDue = adjustDueForWeekend(due, weekendShiftOn);
-  const start = addDays(adjDue, 1);
-  if(pay < start) return null; // 未逾期
+/* 逾期窗口：自有效限繳日次日起至經收日止（未逾期則 null） */
+function computeOverdueWindow(effectiveDue, pay){
+  if(!effectiveDue || !pay) return null;
+  const start = addDays(effectiveDue,1);
+  if(pay < start) return null;
   return {start, end: pay};
 }
 
-function floorPercentSteps(days){
-  // 每滿 3 天加 1%，上限 10%
-  const steps = Math.min(10, Math.floor(days/3));
-  return steps;
-}
-
+/* 滯納金步數與區間（每滿3日為一階；至多10階） */
 function splitPenaltyBlocks(win){
-  // 回傳每一個 3 日區間的日期塊（僅到計得的步數；不含未滿 3 日的殘餘）
   const totalDays = daysDiffInclusive(win.start, win.end);
-  const steps = floorPercentSteps(totalDays);
-  const blocks = [];
+  const steps = Math.min(10, Math.floor(totalDays/3));
+  const blocks=[];
   for(let i=0;i<steps;i++){
     const s = addDays(win.start, i*3);
-    const e = addDays(s, 2); // 每階 3 天
-    blocks.push({idx:i+1, start:s, end:e, days:3, pct:(i+1)}); // pct=1..10（代表 1%..10%）
+    const e = addDays(s, 2);
+    blocks.push({idx:i+1, start:s, end:e, days:3, pct:(i+1)}); // pct 累加%
   }
   return {blocks, totalDays, steps};
 }
 
-function yearRangeOverlap(y, start, end){
-  const ys = new Date(Date.UTC(y,0,1));
-  const ye = new Date(Date.UTC(y,11,31));
-  // 將 start/end 轉 UTC 零時避免 DST
+/* 年度重疊 */
+function yearOverlap(y, start, end){
+  const ys = new Date(Date.UTC(y,0,1)), ye=new Date(Date.UTC(y,11,31));
   const s = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
   const e = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()));
   const ms = Math.max(ys.getTime(), s.getTime());
   const me = Math.min(ye.getTime(), e.getTime());
   if(ms>me) return null;
-  const a = new Date(ms); const b=new Date(me);
+  const a = new Date(ms), b=new Date(me);
   const days = daysDiffInclusive(a,b);
   return {year:y, start:a, end:b, days};
 }
 
+/* 年利率表 */
 function collectRates(){
   const map = new Map();
   rateTBody.querySelectorAll("tr").forEach(tr=>{
     const y = tr.querySelector(".year").value.trim();
     const r = tr.querySelector(".rate").value.trim();
-    if(y && !isNaN(+y)){
-      map.set(+y, isNaN(+r)?0:(+r));
-    }
+    if(y && !isNaN(+y)){ map.set(+y, isNaN(+r)?0:(+r)); }
   });
   return map;
 }
 
-function calc(){
-  // 讀入
-  const taxType = $("#taxType").value;
-  const principal = +($("#principal").value || 0);
-  const due = parseDate($("#dueDate").value);
-  const pay = parseDate($("#payDate").value);
-  const weekendOn = $("#wkndSwitch").classList.contains("on");
-  const showSteps = $("#showSteps").classList.contains("on");
-  const note = $("#note").value.trim();
-  $("#badgeTax").textContent = taxType;
+/* 稅目是否計息 */
+const interestEligible = new Set(["營利事業所得稅","綜合所得稅","營業稅","貨物稅","遺產稅","贈與稅","菸酒稅","特種貨物及勞務稅"]);
 
-  // 清空輸出
-  $("#principalOut").textContent = money(principal);
+/* 主計算 */
+function calc(){
+  const taxType = $("#taxType").value;
+  const principal = toInt(+($("#principal").value||0));
+  const pay = parseDate($("#payDate").value);
+  const printedPenaltyInput = $("#printedPenalty").value.trim();
+  const printedPenalty = printedPenaltyInput? toInt(+printedPenaltyInput): null;
+  const note = $("#note").value.trim();
+  $("#badgeTax").textContent = taxType || "—";
+  $("#principalOut").textContent = toMoney(principal);
   $("#penaltyOut").textContent = "—";
   $("#interestOut").textContent = "—";
   $("#grandTotal").textContent = "—";
   $("#overdueDaysOut").textContent = "—";
+  $("#effectiveDueOut").textContent = "—";
+  $("#printedCompare").textContent = "";
   $("#penaltyDetailsWrap").style.display="none";
   $("#interestDetailsWrap").style.display="none";
   $("#noteWrap").style.display = note? "block":"none";
   $("#noteOut").textContent = note;
 
-  if(!(principal>0) || !due || !pay){
-    alert("請輸入本稅金額、原繳納期限與實際繳納日");
+  const effectiveDue = computeEffectiveDue();
+  if(!principal || !effectiveDue || !pay){
+    alert("請輸入本稅金額、限繳日期（或改訂日期）與經收日");
     return;
   }
+  $("#effectiveDueOut").textContent = fmtDate(effectiveDue);
 
-  // 逾期窗口
-  const win = computeOverdueWindow(due, pay, weekendOn);
+  const win = computeOverdueWindow(effectiveDue, pay);
   if(!win){
     $("#overdueDaysOut").textContent = "0（未逾期）";
-    $("#penaltyOut").textContent = money(0);
-    $("#interestOut").textContent = money(0);
-    $("#grandTotal").textContent = money(principal);
+    $("#penaltyOut").textContent = toMoney(0);
+    $("#interestOut").textContent = toMoney(0);
+    $("#grandTotal").textContent = toMoney(principal);
     return;
   }
 
-  // 總逾期天數
   const overdueDays = daysDiffInclusive(win.start, win.end);
   $("#overdueDaysOut").textContent = String(overdueDays);
 
-  /* 滯納金：每 3 日 1%，上限 10% —— 並輸出每一階的日期區間與金額 */
+  /* 滯納金 */
   const {blocks, steps} = splitPenaltyBlocks(win);
-  let penalty = 0;
-  const pBody = $("#penaltyTable tbody");
-  pBody.innerHTML="";
-  blocks.forEach(b=>{
-    const pct = b.pct; // 1..10 → 1%..10%
-    const amt = floor2(principal * 0.01); // 每階固定 1% 本稅
-    penalty += amt;
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>${b.idx}</td>
-      <td>${pct}%</td>
-      <td class="mono">${fmtDate(b.start)}</td>
-      <td class="mono">${fmtDate(b.end)}</td>
-      <td class="mono">${b.days}</td>
-      <td class="mono">${money(amt)}</td>
-    `;
-    pBody.appendChild(tr);
-  });
-  $("#penaltyDetailsWrap").style.display = showSteps && steps>0 ? "block":"none";
-  $("#penaltyOut").textContent = money(penalty);
+  const cumulativePct = steps; // 1% * steps
+  const penaltyTotal = toInt(principal * cumulativePct / 100); // 整元捨去
+  $("#penaltyOut").textContent = toMoney(penaltyTotal);
 
-  /* 利息：按年度分段 */
-  const rmap = collectRates(); // Map<year, rate%>
-  const iBody = $("#interestTable tbody");
-  iBody.innerHTML="";
-  let interest = 0;
+  // 階梯表（含累加）
+  const showSteps = $("#showSteps").classList.contains("on");
+  const pBody = $("#penaltyTable tbody"); pBody.innerHTML="";
+  if(showSteps && steps>0){
+    let cumAmt=0;
+    const perStepBase = toInt(principal * 0.01); // 本階基準（資訊用）
+    // 為避免本階加總與法定合計不一致，最後一階做校正
+    const targetTotal = penaltyTotal;
+    for(let i=0;i<blocks.length;i++){
+      const b=blocks[i];
+      let stepAmt = perStepBase;
+      if(i===blocks.length-1){ stepAmt = Math.max(0, targetTotal - cumAmt); }
+      cumAmt += stepAmt;
 
-  // 逐年重疊
-  for(let y=win.start.getFullYear(); y<=win.end.getFullYear(); y++){
-    const seg = yearRangeOverlap(y, win.start, win.end);
-    if(!seg) continue;
-    const rate = (rmap.get(y)||0);
-    const iAmt = floor2(principal * (rate/100) / 365 * seg.days);
-    interest += iAmt;
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>${y}</td>
-      <td class="mono">${fmtDate(seg.start)} ~ ${fmtDate(seg.end)}</td>
-      <td class="mono">${seg.days}</td>
-      <td class="mono">${rate || 0}</td>
-      <td class="mono">${money(iAmt)}</td>
-    `;
-    iBody.appendChild(tr);
+      const tr=document.createElement("tr");
+      tr.innerHTML = `
+        <td>${b.idx}</td>
+        <td>${1}%</td>
+        <td>${b.pct}%</td>
+        <td class="mono">${fmtDate(b.start)}</td>
+        <td class="mono">${fmtDate(b.end)}</td>
+        <td class="mono">${b.days}</td>
+        <td class="mono">${toMoney(stepAmt)}</td>
+        <td class="mono">${toMoney(cumAmt)}</td>
+      `;
+      pBody.appendChild(tr);
+    }
+    $("#penaltyDetailsWrap").style.display="block";
   }
-  $("#interestDetailsWrap").style.display = showSteps ? "block":"none";
-  $("#interestOut").textContent = money(interest);
 
-  // 合計
-  const total = principal + penalty + interest;
-  $("#grandTotal").textContent = money(total);
+  /* 與繳款書列印滯納金比對（提示） */
+  if(printedPenalty!=null){
+    if(printedPenalty===penaltyTotal){
+      $("#printedCompare").textContent = "比對：與繳款書滯納金相同，得依繳款書合計收款。";
+    }else{
+      $("#printedCompare").textContent = "比對：與繳款書滯納金不符，請以重新核算後之滯納金與本稅合計數收款。";
+    }
+  }
+
+  /* 利息 */
+  let interest = 0;
+  const iBody = $("#interestTable tbody"); iBody.innerHTML="";
+  const eligible = interestEligible.has(taxType);
+  if(eligible){
+    const rmap = collectRates();
+    // 起算點：一般=第31日起；自動補報補繳=次日起
+    const caseType = $("#caseType").value; 
+    const interestStart = (caseType==="self") ? addDays(effectiveDue,1) : addDays(effectiveDue,31);
+    if(pay >= interestStart){
+      const isWin = {start: interestStart, end: pay};
+      for(let y=isWin.start.getFullYear(); y<=isWin.end.getFullYear(); y++){
+        const seg = yearOverlap(y, isWin.start, isWin.end);
+        if(!seg) continue;
+        const rate = (rmap.get(y)||0);
+        const iAmt = toInt(principal * (rate/100) / 365 * seg.days);
+        interest += iAmt;
+        const tr=document.createElement("tr");
+        tr.innerHTML = `
+          <td>${y}</td>
+          <td class="mono">${fmtDate(seg.start)} ~ ${fmtDate(seg.end)}</td>
+          <td class="mono">${seg.days}</td>
+          <td class="mono">${rate || 0}</td>
+          <td class="mono">${toMoney(iAmt)}</td>
+        `;
+        iBody.appendChild(tr);
+      }
+      $("#interestDetailsWrap").style.display = $("#showSteps").classList.contains("on") ? "block":"none";
+    }else{
+      $("#interestDetailsWrap").style.display="none";
+    }
+  }else{
+    $("#interestDetailsWrap").style.display="none";
+  }
+  $("#interestOut").textContent = toMoney(interest);
+
+  /* 合計 */
+  const total = principal + penaltyTotal + interest;
+  $("#grandTotal").textContent = toMoney(total);
 }
 
-/* ===== 事件 ===== */
+/* 綁定 */
 $("#calcBtn").addEventListener("click", calc);
 $("#resetBtn").addEventListener("click", ()=>{
   $("#principal").value="";
+  $("#printedPenalty").value="";
   $("#dueDate").value="";
+  $("#amendedDate").value="";
+  $("#amendSwitch").classList.remove("on"); $("#amendSwitch").setAttribute("aria-checked","false"); $("#amendedDate").disabled=true;
   $("#payDate").value="";
+  $("#holidays").value="";
   $("#note").value="";
   $("#penaltyTable tbody").innerHTML="";
   $("#interestTable tbody").innerHTML="";
@@ -426,6 +508,8 @@ $("#resetBtn").addEventListener("click", ()=>{
   $("#interestOut").textContent="—";
   $("#grandTotal").textContent="—";
   $("#overdueDaysOut").textContent="—";
+  $("#effectiveDueOut").textContent="—";
+  $("#printedCompare").textContent="";
   $("#noteWrap").style.display="none";
 });
 </script>
