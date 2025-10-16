@@ -1,9 +1,10 @@
-<!doctype html><html lang="zh-Hant">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; img-src 'self' data:;">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Offline Estimator — v2.1</title>
+<title>Offline Estimator — v2.1 (112買賣 對齊版)</title>
 <style>
 :root{--bg:#0b0c10;--panel:#11131a;--card:#161925;--border:#232838;--txt:#e8eaef;--muted:#9aa3b2;--accent:#7be495;--ink:#092312;--ok:#30d158;--bad:#ef5350;--chip:#0f1220}
 *{box-sizing:border-box}
@@ -51,11 +52,11 @@ input[type=number]{text-align:right}
     <div class="hr"></div>
 
     <div class="grid">
-      <label>類別</label><select id="cat"><option value="sole">行號</option><option value="corp">一般公司</option></select>
-      <label>A1 客戶代碼</label><input id="code" placeholder="#3673">
-      <label>A3 客戶名稱</label><input id="name" placeholder="三福">
-      <label>C19 年度（民國 YYY）</label><input id="year" type="number" step="1" value="114">
-      <label>A10 入帳日期</label><input id="bookDate" placeholder="114/10/16 或 2025-10-16">
+      <label>類別</label><select id="cat"><option value="sole">行號</option><option value="corp" selected>一般公司</option></select>
+      <label>A1 客戶代碼</label><input id="code" placeholder="#3673" value="#2767">
+      <label>A3 客戶名稱</label><input id="name" placeholder="三福" value="亞伯蘭">
+      <label>C19 年度（民國 YYY）</label><input id="year" type="number" step="1" value="112">
+      <label>A10 入帳日期</label><input id="bookDate" placeholder="114/10/16 或 2025-10-16" value="112/12/08">
       <label>C34 告知聯絡人</label><input id="contact">
       <label>H34 告知日期</label><input id="noticeDate" placeholder="114/10/16 或 2025-10-16">
     </div>
@@ -64,9 +65,9 @@ input[type=number]{text-align:right}
     <div class="card">
       <h3>收入（I 區）</h3>
       <div class="grid">
-        <label>I4（01–08）</label><input id="i4" type="number" step="1" value="0">
+        <label>I4（01–08）</label><input id="i4" type="number" step="1" value="5518250">
         <label>I5（09–10）</label><input id="i5" type="number" step="1" value="0">
-        <label>I6（11–12 估）</label><input id="i6" type="number" step="1" value="0">
+        <label>I6（11–12 估）</label><input id="i6" type="number" step="1" value="314200">
         <label>M6（業外收入合計）</label><input id="m6" type="number" step="1" value="0">
       </div>
       <div class="small">I7 = I4 + I5 + I6（本期認列）</div>
@@ -75,13 +76,13 @@ input[type=number]{text-align:right}
     <div class="card">
       <h3>比率 / 規則</h3>
       <div class="grid">
-        <label>N5（書審 %）</label><input id="n5" type="number" step="0.01" value="6">
+        <label>N5（書審 %）</label><input id="n5" type="number" step="0.01" value="4">
         <label>N14（所得 %）</label><input id="n14" type="number" step="0.01" value="6">
-        <label>G9（去年成本率 %）</label><input id="g9" type="number" step="0.01" value="76">
-        <label>K9（去年毛利率 %）</label><input id="k9" type="number" step="0.01" value="24">
+        <label>G9（去年成本率 %）</label><input id="g9" type="number" step="0.01" value="74.57">
+        <label>K9（去年毛利率 %）</label><input id="k9" type="number" step="0.01" value="25.43">
         <label>N10（暫繳，僅一般公司）</label><input id="advTax" type="number" step="1" value="0">
       </div>
-      <div class="small">G11 = I7 × G9%；K11 = I7 × K9%；M7 = INT((I7 + M6) × N5%)。</div>
+      <div class="small">G11 = I7 × G9%；K11 = I7 × K9%；M7 = FLOOR((I7 + M6) × N5%)。</div>
     </div>
 
     <div class="card">
@@ -91,11 +92,20 @@ input[type=number]{text-align:right}
     </div>
 
     <div class="card">
-      <h3>G / K 明細（名目＋金額；可動態加列）</h3>
+      <h3>G / K 明細（缺口名目＋金額；可動態加列）</h3>
       <div class="row" style="margin-bottom:6px">
-        <select id="preset"><option>薪資</option><option>租金</option><option>執行</option><option>存貨調整</option><option>1–10 進貨</option><option>11–12 進貨</option><option>1–10 費用</option><option>11–12 費用</option><option>租金(發票)</option></select>
-        <button class="btn" id="btnAddG">＋ G 列</button>
-        <button class="btn" id="btnAddK">＋ K 列</button>
+        <select id="preset">
+          <option>薪資</option>
+          <option>租金</option>
+          <option>執業</option>
+          <option>1–10 進貨</option>
+          <option>11–12 進貨</option>
+          <option>1–10 費用</option>
+          <option>11–12 費用</option>
+          <option>租金(發票)</option>
+        </select>
+        <button class="btn" id="btnAddG">＋ G 列（成本缺口）</button>
+        <button class="btn" id="btnAddK">＋ K 列（費用缺口）</button>
         <button class="btn ghost" id="btnClearGK">清空 G/K</button>
       </div>
       <table class="table" id="tblGK"><thead><tr><th style="width:56px">區</th><th>名目</th><th class="right" style="width:140px">金額</th><th style="width:70px"></th></tr></thead><tbody></tbody></table>
@@ -133,9 +143,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const $=s=>document.querySelector(s);
 
   // ---------- State ----------
-  const S={cat:'sole',code:'',name:'',year:114,bookDate:'',contact:'',noticeDate:'',
-           i4:0,i5:0,i6:0,m6:0,n5:6,n14:6,g9:76,k9:24,advTax:0,A:[],C:[],GK:[],legacyL6:0};
-  ['薪資','租金','執行'].forEach(n=>S.GK.push({zone:'K',name:n,amt:0}));
+  const S={cat:'corp',code:'#2767',name:'亞伯蘭',year:112,bookDate:'112/12/08',contact:'',noticeDate:'',
+           i4:5518250,i5:0,i6:314200,m6:0,n5:4,n14:6,g9:74.57,k9:25.43,advTax:0,A:[],C:[],GK:[],legacyL6:0};
+  // 預設 112買賣 的缺口明細
+  S.GK = [
+    {zone:'G',name:'1–10進貨',amt:3771371},
+    {zone:'G',name:'11–12進',amt:0},
+    {zone:'K',name:'薪資',amt:882000},
+    {zone:'K',name:'租金',amt:36000},
+    {zone:'K',name:'執業',amt:22000},
+    {zone:'K',name:'1–10費用',amt:251640},
+    {zone:'K',name:'11–12費用',amt:0},
+    {zone:'K',name:'1–12租',amt:0}
+  ];
 
   // ---------- Utils ----------
   const fmtInt=n=>new Intl.NumberFormat('zh-Hant-TW',{maximumFractionDigits:0,useGrouping:true}).format(Math.trunc(Number(n)||0));
@@ -185,8 +205,13 @@ document.addEventListener('DOMContentLoaded', () => {
   tblGK.addEventListener('input',e=>{const t=e.target, i=+t.dataset.idx; if(t.dataset.field==='name') S.GK[i].name=t.value; else if(t.dataset.field==='amt') S.GK[i].amt=Number(t.value||0);});
   tblGK.addEventListener('click',e=>{const b=e.target.closest('button[data-del]'); if(!b) return; S.GK.splice(+b.dataset.del,1); renderGK();});
 
-  // ---------- 稅額 ----------
-  function taxA(TI){TI=Math.trunc(Number(TI)||0); if(TI<=120000) return 0; if(TI<=200000) return Math.trunc((TI-120000)/2); return Math.trunc(TI*0.2);}
+  // ---------- 稅額（統一 20%） ----------
+  function calcTax(TI){
+    TI = Math.trunc(TI);
+    if (TI <= 0) return 0;
+    // 根據知識庫 112年使用 20%
+    return Math.trunc(TI * 0.20);
+  }
 
   // ---------- 預覽 ----------
   function renderPreview(){
@@ -195,8 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const extra=Math.trunc((S.m6||0) || (S.legacyL6||0));
     const base=Math.trunc(I7+extra);
 
-    const TI_book=Math.trunc(base*((S.n5||0)/100));
-    const TI_income=Math.trunc(base*((S.n14||0)/100));
+    // M7 = INT((I7+M6) * N5%) → 無條件捨去
+    const TI_book=Math.floor(base*((S.n5||0)/100));
+    const TI_income=Math.floor(base*((S.n14||0)/100));
     const route=(TI_book>=TI_income)?'書審':'所得';
     const K22=Math.max(TI_book,TI_income);
 
@@ -208,14 +234,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const K21=sumK;
     const K23=Math.trunc(K21-K22);
 
-    const tax=taxA(K22);
+    const tax=calcTax(K22);
     const due=(S.cat==='corp')?Math.trunc(tax-(S.advTax||0)):tax;
 
     const m7Class=(route==='書審')?'':'soft';
     const m15Class=(route==='所得')?'':'soft';
     const k23Class=(K23>0)?'k23-red':(K23<0?'k23-green':'');
 
-    const lines=[]; if(sumG>0) lines.push(`成本缺口：${fmtAcct(sumG)}`); if(sumK>0) lines.push(`費用缺口：${fmtAcct(sumK)}`);
+    const lines=[];
+    if(sumG>0) lines.push(`成本缺口：${fmtAcct(sumG)}`);
+    if(sumK>0) lines.push(`費用缺口：${fmtAcct(sumK)}`);
     const preview=$('#previewTable');
     preview.innerHTML=`
       <div class="row">
@@ -258,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cen=concat(central),end=concat([s2b('PK'),u16(0),u16(0),u16(files.length),u16(files.length),u32(cen.length),u32(off),u16(0)]);
   return new Blob([concat(parts),cen,end],{type:'application/zip'});}
 
-  const xmlEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const xmlEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'<').replace(/>/g,'>');
   const cStr=(ref,txt)=>`<c r="${ref}" t="inlineStr"><is><t>${xmlEsc(txt)}</t></is></c>`;
   const cNum=(ref,val)=>`<c r="${ref}" t="n"><v>${Math.trunc(Number(val)||0)}</v></c>`;
 
@@ -305,8 +333,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const I7=Math.trunc((S.i4||0)+(S.i5||0)+(S.i6||0));
     const extra=Math.trunc((S.m6||0) || (S.legacyL6||0));
     const base=Math.trunc(I7+extra);
-    const TI_book=Math.trunc(base*((S.n5||0)/100));
-    const TI_income=Math.trunc(base*((S.n14||0)/100));
+    const TI_book=Math.floor(base*((S.n5||0)/100)); // INT = floor for positive
+    const TI_income=Math.floor(base*((S.n14||0)/100));
     const route=(TI_book>=TI_income)?'書審':'所得';
     const K22=Math.max(TI_book,TI_income);
     const G11_amt=Math.trunc(I7*((S.g9||0)/100));
@@ -314,32 +342,85 @@ document.addEventListener('DOMContentLoaded', () => {
     const sumG=S.GK.filter(x=>x.zone==='G').reduce((a,b)=>a+Math.trunc(b.amt||0),0);
     const sumK=S.GK.filter(x=>x.zone==='K').reduce((a,b)=>a+Math.trunc(b.amt||0),0);
     const K21=sumK, K23=Math.trunc(K21-K22);
-    const tax=(K22<=120000)?0:(K22<=200000?Math.trunc((K22-120000)/2):Math.trunc(K22*0.2));
+    const tax=calcTax(K22);
     const due=(S.cat==='corp')?Math.trunc(tax-(S.advTax||0)):tax;
 
-    const textCells={F1:`${y}年預估費用`,A19:`${y-1}`,C19:`${y}`,A1:S.code||'',A3:S.name||'',
-      A10:toROC(S.bookDate)||'',C34:S.contact||'',H34:toROC(S.noticeDate)||'',N5:`${(S.n5||0).toFixed(2)}%`,
-      N14:`${(S.n14||0).toFixed(2)}%`,G9:`${(S.g9||0).toFixed(2)}%`,K9:`${(S.k9||0).toFixed(2)}%`,M22:route,
-      D22:(sumG>0?`成本缺口：${fmtAcct(sumG)}`:''),D23:(sumK>0?`費用缺口：${fmtAcct(sumK)}`:''),D24:''};
-    const numCells={I4:S.i4||0,I5:S.i5||0,I6:S.i6||0,I7:I7,M6:extra,M7:TI_book,M15:TI_income,
-      G11:G11_amt,K11:K11_amt,N9:tax,N11:due,K22:K22,G19:sumG,K21:sumK,K23:K23};
+    const textCells={
+      'F1': `${y}年預估費用`,
+      'A19': `${y-1}`,
+      'C19': `${y}`,
+      'A1': S.code||'',
+      'A3': S.name||'',
+      'A10': toROC(S.bookDate)||'',
+      'C34': S.contact||'',
+      'H34': toROC(S.noticeDate)||'',
+      'N5': `${(S.n5||0).toFixed(2)}%`,
+      'N14': `${(S.n14||0).toFixed(2)}%`,
+      'G9': `${(S.g9||0).toFixed(2)}%`,
+      'K9': `${(S.k9||0).toFixed(2)}%`,
+      'M22': route,
+      'D22': (sumG>0?`成本缺口：${fmtAcct(sumG)}`:''),
+      'D23': (sumK>0?`費用缺口：${fmtAcct(sumK)}`:''),
+      'D24': ''
+    };
+    const numCells={
+      'I4': S.i4||0,
+      'I5': S.i5||0,
+      'I6': S.i6||0,
+      'I7': I7,
+      'M6': extra,
+      'M7': TI_book,
+      'M15': TI_income,
+      'G11': G11_amt,
+      'K11': K11_amt,
+      'N9': tax,
+      'N11': due,
+      'K22': K22,
+      'G19': sumG,
+      'K21': sumK,
+      'K23': K23
+    };
     if(S.cat==='corp') numCells['N10']=S.advTax||0;
 
     const widths={};
     const all={...textCells, ...Object.fromEntries(Object.keys(numCells).map(k=>[k,String(numCells[k])]))};
-    Object.entries(all).forEach(([ref,val])=>{const col=ref.match(/^([A-Z]+)/)[1]; const w=Math.min(50, Math.max(8, Math.ceil(String(val).length*0.9)+2)); widths[col]=Math.max(widths[col]||8,w);});
+    Object.entries(all).forEach(([ref,val])=>{
+      const col=ref.match(/^([A-Z]+)/)[1];
+      const w=Math.min(50, Math.max(8, Math.ceil(String(val).length*0.9)+2));
+      widths[col]=Math.max(widths[col]||8,w);
+    });
 
-    const rows=new Map(); const push=(a1,xml)=>{const r=parseInt(a1.match(/^[A-Z]+(\d+)$/)[1],10); if(!rows.has(r)) rows.set(r,[]); rows.get(r).push(xml);};
-    const cStr2=(ref,txt)=>`<c r="${ref}" t="inlineStr"><is><t>${String(txt).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</t></is></c>`;
+    const rows=new Map();
+    const push=(a1,xml)=>{
+      const r=parseInt(a1.match(/^[A-Z]+(\d+)$/)[1],10);
+      if(!rows.has(r)) rows.set(r,[]);
+      rows.get(r).push(xml);
+    };
+    const cStr2=(ref,txt)=>`<c r="${ref}" t="inlineStr"><is><t>${String(txt).replace(/&/g,'&amp;').replace(/</g,'<').replace(/>/g,'>')}</t></is></c>`;
     const cNum2=(ref,val)=>`<c r="${ref}" t="n"><v>${Math.trunc(Number(val)||0)}</v></c>`;
+
     Object.entries(textCells).forEach(([ref, val])=>push(ref, cStr2(ref, val)));
     Object.entries(numCells).forEach(([ref, val])=>push(ref, cNum2(ref, val)));
+
     let rA=20; S.A.forEach(x=>push(`A${rA++}`, cStr2(`A${rA-1}`, x.text||'')));
     let rC=20; S.C.forEach(x=>push(`C${rC++}`, cStr2(`C${rC-1}`, x.text||'')));
-    let rg=12; S.GK.filter(x=>x.zone==='G').forEach(x=>{push(`F${rg}`, cStr2(`F${rg}`, x.name||'')); push(`G${rg}`, cNum2(`G${rg}`, x.amt||0)); rg++;});
-    let rk=12; S.GK.filter(x=>x.zone==='K').forEach(x=>{push(`J${rk}`, cStr2(`J${rk}`, x.name||'')); push(`K${rk}`, cNum2(`K${rk}`, x.amt||0)); rk++;});
 
-    const colTags=Object.keys(widths).sort().map(col=>{let idx=0;for(let i=0;i<col.length;i++){idx=idx*26+(col.charCodeAt(i)-64);}return `<col min="${idx}" max="${idx}" width="${widths[col]}" bestFit="1" customWidth="1"/>`;}).join('');
+    let rg=12; S.GK.filter(x=>x.zone==='G').forEach(x=>{
+      push(`F${rg}`, cStr2(`F${rg}`, x.name||''));
+      push(`G${rg}`, cNum2(`G${rg}`, x.amt||0));
+      rg++;
+    });
+    let rk=12; S.GK.filter(x=>x.zone==='K').forEach(x=>{
+      push(`J${rk}`, cStr2(`J${rk}`, x.name||''));
+      push(`K${rk}`, cNum2(`K${rk}`, x.amt||0));
+      rk++;
+    });
+
+    const colTags=Object.keys(widths).sort().map(col=>{
+      let idx=0;
+      for(let i=0;i<col.length;i++){idx=idx*26+(col.charCodeAt(i)-64);}
+      return `<col min="${idx}" max="${idx}" width="${widths[col]}" bestFit="1" customWidth="1"/>`;
+    }).join('');
     const lines=[...rows.keys()].sort((a,b)=>a-b).map(r=>`<row r="${r}">${rows.get(r).join('')}</row>`).join('');
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -348,7 +429,13 @@ document.addEventListener('DOMContentLoaded', () => {
     </worksheet>`;
   }
 
-  function downloadBlob(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
+  function downloadBlob(b,name){
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(b);
+    a.download=name;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  }
 
   function exportXLSX(backup=false){
     const files=[
@@ -366,7 +453,8 @@ document.addEventListener('DOMContentLoaded', () => {
       {name:'docProps/core.xml',data:s2b(genCore())}
     ];
     const blob=zipStore(files);
-    const y=String(S.year||'YYY'); const today=toROC(new Date().toISOString().slice(0,10)).replace(/\//g,'-');
+    const y=String(S.year||'YYY');
+    const today=toROC(new Date().toISOString().slice(0,10)).replace(/\//g,'-');
     const base=`${(S.name||'Unnamed')}_${y}預估費用_${today}`;
     downloadBlob(blob, backup?`${base}_backup.xlsx`:`${base}.xlsx`);
   }
