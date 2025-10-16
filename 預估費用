@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; img-src 'self' data:;" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>離線預估工具（單檔版｜點擊預覽）</title>
+<style>
+  :root { --bg:#0b0c10; --card:#151820; --muted:#6b7280; --line:#2a2f3a; --acc:#4ade80; --red:#ef4444; --green:#10b981; --txt:#e5e7eb; --sub:#cbd5e1; }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+  .wrap{display:flex;min-height:100%;gap:14px;padding:14px;box-sizing:border-box;}
+  .col{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 8px 20px rgba(0,0,0,.15)}
+  .grid{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center}
+  input,select,textarea{width:100%;background:#0f1220;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--txt);outline:none}
+  input[type="number"]{text-align:right}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btn{background:#111827;border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:10px;cursor:pointer}
+  .btn:hover{background:#0f1625}
+  .btn.primary{background:var(--acc);color:#04240f;border:0;font-weight:700}
+  .btn.ghost{background:transparent;border:1px dashed var(--line)}
+  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--sub)}
+  .muted{color:var(--muted)}
+  .h{font-weight:800;margin:0 0 10px 0}
+  .table{width:100%;border-collapse:collapse}
+  .table th,.table td{border-bottom:1px dashed var(--line);padding:6px 8px;vertical-align:middle}
+  .right{text-align:right}
+  .ok{color:var(--green);font-weight:700}
+  .bad{color:var(--red);font-weight:700}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  .kpi{display:flex;gap:10px;flex-wrap:wrap}
+  .kpi .chip{background:#0e1422;border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:160px}
+  .tiny{font-size:12px}
+  .section{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- 左側：輸入 -->
+  <div class="col">
+    <div class="card">
+      <h2 class="h">基本資料</h2>
+      <div class="grid">
+        <label>類別</label>
+        <select id="cat">
+          <option value="sole">行號</option>
+          <option value="corp">一般公司</option>
+        </select>
+
+        <label>客戶代碼</label><input id="custCode" placeholder="如 #3673">
+        <label>客戶名稱</label><input id="custName" placeholder="如 三福">
+        <label>年度（民國）</label><input id="yearROC" type="number" min="1" step="1" value="114">
+        <label>入帳日期</label><input id="bookDate" placeholder="114/10/16 或 2025-10-16">
+        <label>告知聯絡人</label><input id="contact">
+        <label>告知日期</label><input id="noticeDate" placeholder="114/10/16 或 2025-10-16">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="saveLocal">儲存（本機）</button>
+        <button class="btn ghost" id="loadLocal">載入（本機）</button>
+        <span class="pill">完全離線，本機儲存</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="h">收入拆分（本期認列）</h2>
+      <div class="grid">
+        <label>01–08 月收入 I4</label><input id="i4" type="number" step="1" value="0">
+        <label>09–10 月收入 I5</label><input id="i5" type="number" step="1" value="0">
+        <label>11–12 月收入（估） I6</label><input id="i6" type="number" step="1" value="0">
+        <label>業外收入（合計） M6</label><input id="m6" type="number" step="1" value="0">
+      </div>
+      <p class="tiny muted">系統：I7 = I4 + I5 + I6（跨期收入一律本期認列）</p>
+    </div>
+
+    <div class="card">
+      <h2 class="h">進貨／費用三分法（合計）</h2>
+      <div class="grid">
+        <label>進貨 已扣抵 B6</label><input id="b6" type="number" step="1" value="0">
+        <label>進貨 未扣抵 B7</label><input id="b7" type="number" step="1" value="0">
+        <label>進貨 留抵 B8</label><input id="b8" type="number" step="1" value="0">
+
+        <label>費用 已扣抵 C6</label><input id="c6" type="number" step="1" value="0">
+        <label>費用 未扣抵 C7</label><input id="c7" type="number" step="1" value="0">
+        <label>費用 留抵 C8</label><input id="c8" type="number" step="1" value="0">
+      </div>
+      <p class="tiny muted">B9 = B6+B7+B8；C9 = C6+C7+C8（系統計）</p>
+    </div>
+
+    <div class="card" id="rates">
+      <h2 class="h">比率（規則中心可帶入；此處可改）</h2>
+      <div class="grid">
+        <label>N5 書審（%）</label><input id="rateN5" type="number" step="0.01" value="6">
+        <label>N14 所得（%）</label><input id="rateN14" type="number" step="0.01" value="6">
+        <label>本年 成本率（%） G11</label><input id="rateCost" type="number" step="0.01" value="76">
+        <label>本年 毛利率（%） K11</label><input id="rateGross" type="number" step="0.01" value="24">
+        <label>去年 成本率（%） G9（展示）</label><input id="lastCost" type="number" step="0.01" value="76">
+        <label>去年 毛利率（%） K9（展示）</label><input id="lastGross" type="number" step="0.01" value="24">
+        <label>部頒 成本率（%） C15（參考）</label><input id="refCost" type="number" step="0.01" value="83">
+        <label>部頒 毛利率（%） C17（參考）</label><input id="refGross" type="number" step="0.01" value="17">
+      </div>
+      <div class="tiny muted">提醒：G11 + K11 建議 = 100%（僅提醒不擋）</div>
+    </div>
+
+    <div class="card">
+      <h2 class="h">A19 / C19 區塊（年度列，向下新增）</h2>
+      <div class="row">
+        <button class="btn" onclick="addYearRow('A')">＋ 新增 A 列</button>
+        <button class="btn" onclick="addYearRow('C')">＋ 新增 C 列</button>
+        <button class="btn ghost" onclick="clearYearRows()">清空年度列</button>
+        <span class="muted tiny">長字自動縮字，避免亂版</span>
+      </div>
+      <table class="table" id="tblYear"><thead>
+        <tr><th>欄</th><th>名稱</th><th class="right">金額</th><th></th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+
+    <div class="card">
+      <h2 class="h">G 區（成本） / K 區（費用）</h2>
+      <div class="row">
+        <select id="presetGK">
+          <option>存貨調整</option><option>1–10 進貨</option><option>11–12 進貨</option>
+          <option>1–10 費用</option><option>11–12 費用</option><option>租金(發票)</option>
+        </select>
+        <button class="btn" onclick="addGKRow('G')">＋ G列（成本）</button>
+        <button class="btn" onclick="addGKRow('K')">＋ K列（費用）</button>
+        <button class="btn ghost" onclick="clearGK()">清空 G/K</button>
+      </div>
+      <table class="table" id="tblGK"><thead>
+        <tr><th>區</th><th>名稱</th><th class="right">金額</th><th></th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+
+    <div class="card" id="advCard">
+      <h2 class="h">暫繳（一般公司）</h2>
+      <div class="grid">
+        <label>N10 暫繳</label><input id="advTax" type="number" step="1" value="0">
+      </div>
+      <p class="tiny muted">行號不顯示暫繳；一般公司顯示並計入應繳 = 稅額 − 暫繳</p>
+    </div>
+
+    <div class="card">
+      <h2 class="h">備註</h2>
+      <textarea id="notes" rows="4" placeholder="自由多行文字；不參與計算"></textarea>
+    </div>
+
+    <div class="card">
+      <h2 class="h">匯入 / 匯出</h2>
+      <div class="row">
+        <button class="btn" onclick="exportCSVTemplate()">匯出範本（CSV）</button>
+        <label class="btn">匯入範本（CSV）
+          <input type="file" accept=".csv" style="display:none" onchange="importCSV(event)">
+        </label>
+        <button class="btn" onclick="exportJSON()">備用留存（匯出 JSON）</button>
+        <label class="btn">匯入備份（JSON）
+          <input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+        </label>
+      </div>
+      <p class="tiny muted">CSV 為批次欄位範本；JSON 為完整備份（含 A/C 與 G/K 動態列）。皆可離線操作。</p>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <button class="btn primary" id="btnPreview">預覽（點擊更新右側摘要）</button>
+        <span class="pill">Console 乾淨，無外部連結</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右側：點擊預覽結果 -->
+  <div class="col">
+    <div class="card">
+      <h2 class="h">摘要（點擊左側「預覽」更新）</h2>
+      <div class="kpi">
+        <div class="chip"><div class="tiny muted">民國年度</div><div class="mono" id="kYear">—</div></div>
+        <div class="chip"><div class="tiny muted">K22 路徑採用</div><div class="mono" id="kRoute">—</div></div>
+        <div class="chip"><div class="tiny muted">K22 課稅所得（較高）</div><div class="mono" id="kTI">—</div></div>
+        <div class="chip"><div class="tiny muted">稅額（分段 A）</div><div class="mono" id="kTax">—</div></div>
+        <div class="chip"><div class="tiny muted">K23（K11 路徑）</div><div class="mono" id="kK11">—</div></div>
+        <div class="chip" id="chipDue" style="display:none"><div class="tiny muted">應繳（稅額−暫繳）</div><div class="mono" id="kDue">—</div></div>
+      </div>
+      <div class="section tiny">
+        去年 成本/毛利：<span id="kLastRates">—</span>
+        <span class="tag" id="kSum100">G11+K11 檢核</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="h">缺口摘要（D22）</h2>
+      <div class="grid">
+        <div>成本側</div><div id="gapCost" class="mono">—</div>
+        <div>費用側</div><div id="gapExp" class="mono">—</div>
+      </div>
+      <div class="section mono" id="gapSum">—</div>
+    </div>
+
+    <div class="card">
+      <h2 class="h">資料檢視</h2>
+      <table class="table" id="tblPreview"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = s=>document.querySelector(s);
+  const $$ = s=>document.querySelectorAll(s);
+  const fmtInt = n => new Intl.NumberFormat('zh-Hant-TW',{maximumFractionDigits:0,useGrouping:true}).format(Math.trunc(Number(n)||0));
+  const fmtAcct = n => { const v=Math.trunc(Number(n)||0); const s=fmtInt(Math.abs(v)); return v<0?`(${s})`:s; };
+  const toROC = d=>{
+    if(!d) return '';
+    if(/^\d{3}\/\d{1,2}\/\d{1,2}$/.test(d)) return d;
+    const m=d.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/); if(!m) return d;
+    return `${(parseInt(m[1],10)-1911)}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`;
+  };
+
+  const S = {
+    cat:'sole', code:'', name:'', year:114, bookDate:'', contact:'', noticeDate:'',
+    i4:0,i5:0,i6:0,m6:0, b6:0,b7:0,b8:0, c6:0,c7:0,c8:0,
+    rateN5:6, rateN14:6, rateCost:76, rateGross:24,
+    lastCost:76, lastGross:24, refCost:83, refGross:17,
+    yearRows:[], gkRows:[], advanceTax:0, notes:''
+  };
+
+  // 綁定（變更即更新狀態，但不自動預覽）
+  const bind = (id, key, isNum=false)=>{
+    const el = $('#'+id);
+    const handler = ()=>{ S[key] = isNum ? Number(el.value||0) : el.value; };
+    el.addEventListener('input', handler); handler();
+  };
+  bind('cat','cat'); bind('custCode','code'); bind('custName','name');
+  bind('yearROC','year',true); bind('bookDate','bookDate'); bind('contact','contact'); bind('noticeDate','noticeDate');
+  bind('i4','i4',true); bind('i5','i5',true); bind('i6','i6',true); bind('m6','m6',true);
+  bind('b6','b6',true); bind('b7','b7',true); bind('b8','b8',true);
+  bind('c6','c6',true); bind('c7','c7',true); bind('c8','c8',true);
+  bind('rateN5','rateN5',true); bind('rateN14','rateN14',true);
+  bind('rateCost','rateCost',true); bind('rateGross','rateGross',true);
+  bind('lastCost','lastCost',true); bind('lastGross','lastGross',true);
+  bind('refCost','refCost',true); bind('refGross','refGross',true);
+  bind('advTax','advanceTax',true);
+  $('#notes').addEventListener('input', ()=>{ S.notes = $('#notes').value||''; });
+
+  // 年度列
+  const tblYear = $('#tblYear tbody');
+  window.addYearRow = col=>{
+    S.yearRows.push({col,name: (col==='A'?'A列項目':'C列項目'), amt:0});
+    renderYear();
+  };
+  window.clearYearRows = ()=>{ S.yearRows=[]; renderYear(); };
+  window.appUpdateYearName = (i,v)=>{ S.yearRows[i].name=v; };
+  window.appUpdateYearAmt  = (i,v)=>{ S.yearRows[i].amt=Number(v||0); };
+  window.appDelYear = i=>{ S.yearRows.splice(i,1); renderYear(); };
+  function renderYear(){
+    tblYear.innerHTML='';
+    S.yearRows.forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.col}</td>
+        <td><input value="${r.name}" oninput="appUpdateYearName(${i}, this.value)" style="font-size:12px"></td>
+        <td class="right"><input type="number" step="1" value="${r.amt}" oninput="appUpdateYearAmt(${i}, this.value)"></td>
+        <td><button class="btn tiny" onclick="appDelYear(${i})">刪</button></td>`;
+      tblYear.appendChild(tr);
+    });
+  }
+
+  // G/K 區
+  const tblGK = $('#tblGK tbody');
+  window.addGKRow = zone=>{
+    const preset=$('#presetGK').value;
+    S.gkRows.push({zone,name:preset,amt:0}); renderGK();
+  };
+  window.clearGK = ()=>{ S.gkRows=[]; renderGK(); };
+  window.appUpdateGKName=(i,v)=>{ S.gkRows[i].name=v; };
+  window.appUpdateGKAmt =(i,v)=>{ S.gkRows[i].amt=Number(v||0); };
+  window.appDelGK = i=>{ S.gkRows.splice(i,1); renderGK(); };
+  function renderGK(){
+    tblGK.innerHTML='';
+    S.gkRows.forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.zone}</td>
+        <td><input value="${r.name}" oninput="appUpdateGKName(${i}, this.value)" style="font-size:12px"></td>
+        <td class="right"><input type="number" step="1" value="${r.amt}" oninput="appUpdateGKAmt(${i}, this.value)"></td>
+        <td><button class="btn tiny" onclick="appDelGK(${i})">刪</button></td>`;
+      tblGK.appendChild(tr);
+    });
+  }
+
+  // 預覽（點擊觸發）
+  $('#btnPreview').addEventListener('click', ()=>{ try { preview(); } catch(e){ alert('預覽錯誤：'+e.message); } });
+
+  function taxA(TI){
+    TI = Math.trunc(Number(TI)||0);
+    if(TI<=120000) return 0;
+    if(TI<=200000) return Math.trunc((TI-120000)/2);
+    return Math.trunc(TI*0.2);
+  }
+
+  function preview(){
+    // 類別 / 暫繳顯示
+    $('#chipDue').style.display = (S.cat==='corp') ? 'block' : 'none';
+    $('#advCard').style.display = (S.cat==='corp') ? 'block' : 'none';
+
+    // 年度
+    const y = Number(S.year||0);
+    $('#kYear').textContent = `${y}（A19=${y-1} / C19=${y}）`;
+
+    // I7 與總收入（含業外）
+    const I7 = Math.trunc((S.i4||0)+(S.i5||0)+(S.i6||0));
+    const totalIncome = Math.trunc(I7 + (S.m6||0));
+
+    // 路徑一：N5（書審）
+    const TI_N5   = Math.trunc(totalIncome * ((S.rateN5||0)/100));
+    // 路徑二：N14（所得）
+    const TI_N14  = Math.trunc(totalIncome * ((S.rateN14||0)/100));
+    // K22 = 二者較高
+    const TI_K22  = Math.max(TI_N5, TI_N14);
+    const routeK22 = (TI_N5 >= TI_N14) ? '書審' : '所得';
+    const taxK22 = taxA(TI_K22);
+
+    // K23：以 K11（本年毛利率）路徑的課稅所得（毛利口徑）
+    const TI_K23 = Math.trunc(I7 * ((S.rateGross||0)/100));
+
+    // 應繳（一般公司）
+    let due = taxK22;
+    if(S.cat==='corp'){ due = Math.trunc(taxK22 - (S.advanceTax||0)); }
+
+    // G/K 合計 → 缺口文案
+    const sumG = S.gkRows.filter(r=>r.zone==='G').reduce((a,b)=>a+Math.trunc(b.amt||0),0);
+    const sumK = S.gkRows.filter(r=>r.zone==='K').reduce((a,b)=>a+Math.trunc(b.amt||0),0);
+    const gapCostVal = sumG, gapExpVal = sumK, totalGap = Math.trunc(gapCostVal + gapExpVal);
+
+    // 檢核：G11+K11
+    const sumRates = (Number(S.rateCost||0)+Number(S.rateGross||0));
+    $('#kSum100').textContent = Math.abs(sumRates-100)<0.001 ? 'G11+K11 = 100%（OK）' : `提醒：G11+K11 = ${sumRates.toFixed(2)}%`;
+
+    // 摘要渲染
+    $('#kRoute').textContent = routeK22;
+    $('#kTI').textContent    = fmtAcct(TI_K22);
+    $('#kTax').textContent   = fmtAcct(taxK22);
+    $('#kK11').textContent   = fmtAcct(TI_K23);
+    if(S.cat==='corp'){ $('#kDue').textContent = fmtAcct(due); }
+
+    const elCost = $('#gapCost'), elExp=$('#gapExp'), elSum=$('#gapSum');
+    elCost.textContent = gapCostVal>0 ? `成本缺口：${fmtAcct(gapCostVal)}` : `成本不缺`;
+    elCost.className = 'mono ' + (gapCostVal>0 ? 'bad' : 'ok');
+    elExp.textContent  = gapExpVal>0  ? `費用缺口：${fmtAcct(gapExpVal)}`  : `費用不缺`;
+    elExp.className = 'mono ' + (gapExpVal>0 ? 'bad' : 'ok');
+    elSum.textContent = `成+費缺 = ${fmtAcct(totalGap)}　【路徑：${routeK22}（K22）】`;
+    elSum.className = 'mono ' + (totalGap>0 ? 'bad' : 'ok');
+
+    // 去年率顯示
+    $('#kLastRates').textContent = `${(S.lastCost||0).toFixed(2)}% / ${(S.lastGross||0).toFixed(2)}%`;
+
+    // 表格檢視
+    const rows = [
+      ['類別', (S.cat==='corp'?'一般公司':'行號')],
+      ['客戶', `${S.code||''} ${S.name||''}`],
+      ['年度（民國）', `${S.year||''}`],
+      ['入帳日', toROC(S.bookDate||'')],
+      ['I4 / I5 / I6', `${fmtAcct(S.i4)} / ${fmtAcct(S.i5)} / ${fmtAcct(S.i6)}`],
+      ['I7（合計）', fmtAcct(I7)],
+      ['業外收入 M6', fmtAcct(S.m6)],
+      ['N5% / N14%', `${(S.rateN5||0).toFixed(2)}% / ${(S.rateN14||0).toFixed(2)}%`],
+      ['K22 課稅所得（較高）', `${fmtAcct(TI_K22)}（採用：${routeK22}）`],
+      ['K23（K11 毛利口徑）', fmtAcct(TI_K23)],
+      ['稅額（A 式分段，依 K22）', fmtAcct(taxK22)],
+      ...(S.cat==='corp' ? [['應繳（稅額−暫繳）', fmtAcct(due)]] : []),
+      ['本年 成本/毛利（G11/K11）', `${(S.rateCost||0).toFixed(2)}% / ${(S.rateGross||0).toFixed(2)}%`],
+      ['去年 成本/毛利（G9/K9）', `${(S.lastCost||0).toFixed(2)}% / ${(S.lastGross||0).toFixed(2)}%`],
+      ['部頒參考（C15/C17）', `${(S.refCost||0).toFixed(2)}% / ${(S.refGross||0).toFixed(2)}%`],
+      ['備註', S.notes||'']
+    ];
+    const pv=$('#tblPreview'); pv.innerHTML='';
+    rows.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td class="muted">${r[0]}</td><td class="mono right">${r[1]}</td>`; pv.appendChild(tr); });
+  }
+
+  // 匯出範本（CSV）— 單筆；多筆重複列
+  window.exportCSVTemplate = ()=>{
+    const headers = [
+      '類別(sole/corp)','客戶代碼','客戶名稱','年度(民國)','入帳日期','告知聯絡人','告知日期',
+      'I4','I5','I6','M6','B6','B7','B8','C6','C7','C8',
+      'N5(%)_書審','N14(%)_所得','G11(%)_本年成本','K11(%)_本年毛利','G9(%)_去年成本','K9(%)_去年毛利','C15(%)_參考成本','C17(%)_參考毛利',
+      '暫繳(N10)','備註',
+      'A區列（名稱:金額;...）','C區列（名稱:金額;...）',
+      'G區列（名稱:金額;...）','K區列（名稱:金額;...）'
+    ];
+    const ser = arr => (arr||[]).map(x=>`${x.name}:${Math.trunc(Number(x.amt)||0)}`).join(';');
+    const row = [
+      S.cat,S.code,S.name,S.year,toROC(S.bookDate),S.contact,toROC(S.noticeDate),
+      S.i4,S.i5,S.i6,S.m6,S.b6,S.b7,S.b8,S.c6,S.c7,S.c8,
+      S.rateN5,S.rateN14,S.rateCost,S.rateGross,S.lastCost,S.lastGross,S.refCost,S.refGross,
+      S.advanceTax,S.notes||'',
+      ser(S.yearRows.filter(x=>x.col==='A')), ser(S.yearRows.filter(x=>x.col==='C')),
+      ser(S.gkRows.filter(x=>x.zone==='G')), ser(S.gkRows.filter(x=>x.zone==='K'))
+    ];
+    const csv = headers.join(',')+'\n'+row.map(v=>String(v).includes(',')?`"${String(v).replace(/"/g,'""')}"`:v).join(',');
+    const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='批次範本.csv'; a.click();
+  };
+
+  // 匯入 CSV（單筆）
+  window.importCSV = ev=>{
+    const f=ev.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const lines=reader.result.split(/\r?\n/).filter(Boolean); if(lines.length<2) throw new Error('CSV 無資料');
+        const parseLine = line=>{
+          const out=[]; let cur='',inQ=false;
+          for(let i=0;i<line.length;i++){
+            const ch=line[i];
+            if(ch=='"'){ if(inQ && line[i+1]=='"'){ cur+='"'; i++; } else { inQ=!inQ; } }
+            else if(ch==',' && !inQ){ out.push(cur); cur=''; }
+            else { cur+=ch; }
+          }
+          out.push(cur); return out;
+        };
+        const h=parseLine(lines[0]); const v=parseLine(lines[1]);
+        const get = name => v[h.indexOf(name)]??'';
+        const parsePairs = s => (s||'').split(';').filter(Boolean).map(t=>{ const m=t.split(':'); return {name:m[0]||'', amt:Number(m[1]||0)}; });
+
+        S.cat=get('類別(sole/corp)')||'sole'; $('#cat').value=S.cat;
+        S.code=get('客戶代碼')||''; $('#custCode').value=S.code;
+        S.name=get('客戶名稱')||''; $('#custName').value=S.name;
+        S.year=Number(get('年度(民國)')||114); $('#yearROC').value=S.year;
+        S.bookDate=get('入帳日期')||''; $('#bookDate').value=S.bookDate;
+        S.contact=get('告知聯絡人')||''; $('#contact').value=S.contact;
+        S.noticeDate=get('告知日期')||''; $('#noticeDate').value=S.noticeDate;
+        S.i4=Number(get('I4')||0); $('#i4').value=S.i4;
+        S.i5=Number(get('I5')||0); $('#i5').value=S.i5;
+        S.i6=Number(get('I6')||0); $('#i6').value=S.i6;
+        S.m6=Number(get('M6')||0); $('#m6').value=S.m6;
+        S.b6=Number(get('B6')||0); $('#b6').value=S.b6;
+        S.b7=Number(get('B7')||0); $('#b7').value=S.b7;
+        S.b8=Number(get('B8')||0); $('#b8').value=S.b8;
+        S.c6=Number(get('C6')||0); $('#c6').value=S.c6;
+        S.c7=Number(get('C7')||0); $('#c7').value=S.c7;
+        S.c8=Number(get('C8')||0); $('#c8').value=S.c8;
+
+        S.rateN5=Number(get('N5(%)_書審')||6); $('#rateN5').value=S.rateN5;
+        S.rateN14=Number(get('N14(%)_所得')||6); $('#rateN14').value=S.rateN14;
+        S.rateCost=Number(get('G11(%)_本年成本')||76); $('#rateCost').value=S.rateCost;
+        S.rateGross=Number(get('K11(%)_本年毛利')||24); $('#rateGross').value=S.rateGross;
+        S.lastCost=Number(get('G9(%)_去年成本')||76); $('#lastCost').value=S.lastCost;
+        S.lastGross=Number(get('K9(%)_去年毛利')||24); $('#lastGross').value=S.lastGross;
+        S.refCost=Number(get('C15(%)_參考成本')||83); $('#refCost').value=S.refCost;
+        S.refGross=Number(get('C17(%)_參考毛利')||17); $('#refGross').value=S.refGross;
+
+        S.advanceTax=Number(get('暫繳(N10)')||0); $('#advTax').value=S.advanceTax;
+        S.notes=get('備註')||''; $('#notes').value=S.notes;
+
+        S.yearRows = parsePairs(get('A區列（名稱:金額;...）')).map(x=>({...x,col:'A'}))
+                    .concat(parsePairs(get('C區列（名稱:金額;...）')).map(x=>({...x,col:'C'})));
+        S.gkRows   = parsePairs(get('G區列（名稱:金額;...）')).map(x=>({...x,zone:'G'}))
+                    .concat(parsePairs(get('K區列（名稱:金額;...）')).map(x=>({...x,zone:'K'})));
+        renderYear(); renderGK();
+        alert('CSV 匯入完成（請按「預覽」查看結果）');
+      }catch(e){ alert('CSV 讀取錯誤：'+e.message); }
+      ev.target.value='';
+    };
+    reader.readAsText(f,'utf-8');
+  };
+
+  // 備用留存 JSON
+  window.exportJSON = ()=>{
+    const data = JSON.stringify(S,null,2);
+    const blob = new Blob([data],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='預估資料備份.json'; a.click();
+  };
+  window.importJSON = ev=>{
+    const f=ev.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const obj=JSON.parse(reader.result);
+        Object.assign(S,obj);
+        // 還原到輸入欄位
+        $('#cat').value=S.cat; $('#custCode').value=S.code; $('#custName').value=S.name;
+        $('#yearROC').value=S.year; $('#bookDate').value=S.bookDate; $('#contact').value=S.contact; $('#noticeDate').value=S.noticeDate;
+        $('#i4').value=S.i4; $('#i5').value=S.i5; $('#i6').value=S.i6; $('#m6').value=S.m6;
+        $('#b6').value=S.b6; $('#b7').value=S.b7; $('#b8').value=S.b8;
+        $('#c6').value=S.c6; $('#c7').value=S.c7; $('#c8').value=S.c8;
+        $('#rateN5').value=S.rateN5; $('#rateN14').value=S.rateN14;
+        $('#rateCost').value=S.rateCost; $('#rateGross').value=S.rateGross;
+        $('#lastCost').value=S.lastCost; $('#lastGross').value=S.lastGross;
+        $('#refCost').value=S.refCost; $('#refGross').value=S.refGross;
+        $('#advTax').value=S.advanceTax; $('#notes').value=S.notes||'';
+        renderYear(); renderGK();
+        alert('JSON 匯入完成（請按「預覽」查看結果）');
+      }catch(e){ alert('JSON 解析錯誤：'+e.message); }
+      ev.target.value='';
+    };
+    reader.readAsText(f,'utf-8');
+  };
+
+  // 本機儲存/載入
+  $('#saveLocal').onclick = ()=>{ localStorage.setItem('offline-estimator', JSON.stringify(S)); alert('已儲存於本機'); };
+  $('#loadLocal').onclick = ()=>{
+    const raw=localStorage.getItem('offline-estimator'); if(!raw){ alert('本機尚無資料'); return; }
+    try{
+      const obj=JSON.parse(raw); Object.assign(S,obj);
+      // 回填
+      $('#cat').value=S.cat; $('#custCode').value=S.code; $('#custName').value=S.name;
+      $('#yearROC').value=S.year; $('#bookDate').value=S.bookDate; $('#contact').value=S.contact; $('#noticeDate').value=S.noticeDate;
+      $('#i4').value=S.i4; $('#i5').value=S.i5; $('#i6').value=S.i6; $('#m6').value=S.m6;
+      $('#b6').value=S.b6; $('#b7').value=S.b7; $('#b8').value=S.b8;
+      $('#c6').value=S.c6; $('#c7').value=S.c7; $('#c8').value=S.c8;
+      $('#rateN5').value=S.rateN5; $('#rateN14').value=S.rateN14;
+      $('#rateCost').value=S.rateCost; $('#rateGross').value=S.rateGross;
+      $('#lastCost').value=S.lastCost; $('#lastGross').value=S.lastGross;
+      $('#refCost').value=S.refCost; $('#refGross').value=S.refGross;
+      $('#advTax').value=S.advanceTax; $('#notes').value=S.notes||'';
+      renderYear(); renderGK(); alert('已載入（請按「預覽」查看結果）');
+    }catch(e){ alert('載入失敗：'+e.message); }
+  };
+
+  // 預設先畫空表
+  renderYear(); renderGK();
+
+  // 全域錯誤捕獲，避免污染 Console
+  window.addEventListener('error', e=>{ console.warn('捕獲例外：', e.message); });
+})();
+</script>
+</body>
+</html>
