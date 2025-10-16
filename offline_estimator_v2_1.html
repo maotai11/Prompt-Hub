@@ -1,0 +1,435 @@
+<!doctype html><html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; img-src 'self' data:;">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline Estimator — v2.1</title>
+<style>
+:root{--bg:#0b0c10;--panel:#11131a;--card:#161925;--border:#232838;--txt:#e8eaef;--muted:#9aa3b2;--accent:#7be495;--ink:#092312;--ok:#30d158;--bad:#ef5350;--chip:#0f1220}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.6 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+.container{max-width:1280px;margin:0 auto;padding:18px}
+.hidden{display:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hr{height:1px;background:var(--border);margin:12px 0}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+h2{margin:0 0 8px}
+.small{font-size:12px;color:var(--muted)}
+.btn{background:#1b1f2e;border:1px solid var(--border);color:var(--txt);padding:9px 13px;border-radius:12px;cursor:pointer;font-weight:600}
+.btn:hover{background:#171b29}
+.btn.primary{background:var(--accent);color:var(--ink);border:0}
+.btn.ghost{background:transparent;border:1px dashed var(--border)}
+.pill{padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--chip);color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:140px 1fr;gap:10px 12px;align-items:center}
+input,select,textarea{width:100%;background:#0f1220;border:1px solid var(--border);border-radius:12px;padding:9px 11px;color:var(--txt);outline:none}
+input[type=number]{text-align:right}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px dashed var(--border);padding:6px 8px;vertical-align:middle}
+.table th{color:var(--muted);font-weight:600}
+.right{text-align:right}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,Menlo,monospace}
+.soft{opacity:.55}
+.k23-red{color:#ef5350;font-weight:800}
+.k23-green{color:#30d158;font-weight:800}
+.preview-table{width:100%;border-collapse:collapse;background:#0e1220}
+.preview-table th,.preview-table td{border:1px solid #2a2f43;padding:6px 8px}
+.preview-table th{background:#0f1322;color:#b2bbcc}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="row">
+    <button class="btn primary" id="btnTabEdit">編輯（Page 1）</button>
+    <button class="btn" id="btnTabPreview">預覽（Page 2）</button>
+    <span class="pill">離線 / 無外聯 / Console 0 issue</span>
+  </div>
+
+  <!-- Page 1 -->
+  <section id="pageEdit" class="panel">
+    <h2>輸入頁（編輯模式）</h2>
+    <div class="hr"></div>
+
+    <div class="grid">
+      <label>類別</label><select id="cat"><option value="sole">行號</option><option value="corp">一般公司</option></select>
+      <label>A1 客戶代碼</label><input id="code" placeholder="#3673">
+      <label>A3 客戶名稱</label><input id="name" placeholder="三福">
+      <label>C19 年度（民國 YYY）</label><input id="year" type="number" step="1" value="114">
+      <label>A10 入帳日期</label><input id="bookDate" placeholder="114/10/16 或 2025-10-16">
+      <label>C34 告知聯絡人</label><input id="contact">
+      <label>H34 告知日期</label><input id="noticeDate" placeholder="114/10/16 或 2025-10-16">
+    </div>
+
+    <div class="hr"></div>
+    <div class="card">
+      <h3>收入（I 區）</h3>
+      <div class="grid">
+        <label>I4（01–08）</label><input id="i4" type="number" step="1" value="0">
+        <label>I5（09–10）</label><input id="i5" type="number" step="1" value="0">
+        <label>I6（11–12 估）</label><input id="i6" type="number" step="1" value="0">
+        <label>M6（業外收入合計）</label><input id="m6" type="number" step="1" value="0">
+      </div>
+      <div class="small">I7 = I4 + I5 + I6（本期認列）</div>
+    </div>
+
+    <div class="card">
+      <h3>比率 / 規則</h3>
+      <div class="grid">
+        <label>N5（書審 %）</label><input id="n5" type="number" step="0.01" value="6">
+        <label>N14（所得 %）</label><input id="n14" type="number" step="0.01" value="6">
+        <label>G9（去年成本率 %）</label><input id="g9" type="number" step="0.01" value="76">
+        <label>K9（去年毛利率 %）</label><input id="k9" type="number" step="0.01" value="24">
+        <label>N10（暫繳，僅一般公司）</label><input id="advTax" type="number" step="1" value="0">
+      </div>
+      <div class="small">G11 = I7 × G9%；K11 = I7 × K9%；M7 = INT((I7 + M6) × N5%)。</div>
+    </div>
+
+    <div class="card">
+      <h3>年度說明列（A/C，可動態加列；僅顯示「說明」）</h3>
+      <div class="row"><button class="btn" id="btnAddA">＋ A 區列</button><button class="btn" id="btnAddC">＋ C 區列</button><button class="btn ghost" id="btnClearAC">清空</button></div>
+      <table class="table" id="tblAC"><thead><tr><th style="width:56px">區</th><th>說明文字</th><th style="width:70px"></th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="card">
+      <h3>G / K 明細（名目＋金額；可動態加列）</h3>
+      <div class="row" style="margin-bottom:6px">
+        <select id="preset"><option>薪資</option><option>租金</option><option>執行</option><option>存貨調整</option><option>1–10 進貨</option><option>11–12 進貨</option><option>1–10 費用</option><option>11–12 費用</option><option>租金(發票)</option></select>
+        <button class="btn" id="btnAddG">＋ G 列</button>
+        <button class="btn" id="btnAddK">＋ K 列</button>
+        <button class="btn ghost" id="btnClearGK">清空 G/K</button>
+      </div>
+      <table class="table" id="tblGK"><thead><tr><th style="width:56px">區</th><th>名目</th><th class="right" style="width:140px">金額</th><th style="width:70px"></th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="hr"></div>
+    <div class="row">
+      <button class="btn primary" id="btnPreview">預覽（切換至 Page 2）</button>
+      <button class="btn" id="btnExport">匯出 Excel（XLSX UTF-8）</button>
+      <button class="btn ghost" id="btnExportBackup">匯出 Backup（XLSX UTF-8）</button>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn" id="btnExportCSV">匯出範本（CSV）</button>
+      <label class="btn">匯入範本（CSV）<input id="inCSV" type="file" accept=".csv" style="display:none"></label>
+      <button class="btn" id="btnExportJSON">匯出備份（JSON）</button>
+      <label class="btn">匯入備份（JSON）<input id="inJSON" type="file" accept=".json" style="display:none"></label>
+    </div>
+  </section>
+
+  <!-- Page 2 -->
+  <section id="pagePreview" class="panel hidden">
+    <div class="row">
+      <h2>預覽頁（Excel 視覺）</h2>
+      <button class="btn" id="btnBack">返回編輯</button>
+      <button class="btn" id="btnExport2">匯出 Excel</button>
+    </div>
+    <div class="hr"></div>
+    <div id="previewTable" class="card small">尚未產生預覽</div>
+  </section>
+</div>
+
+<script>
+"use strict";
+document.addEventListener('DOMContentLoaded', () => {
+  const $=s=>document.querySelector(s);
+
+  // ---------- State ----------
+  const S={cat:'sole',code:'',name:'',year:114,bookDate:'',contact:'',noticeDate:'',
+           i4:0,i5:0,i6:0,m6:0,n5:6,n14:6,g9:76,k9:24,advTax:0,A:[],C:[],GK:[],legacyL6:0};
+  ['薪資','租金','執行'].forEach(n=>S.GK.push({zone:'K',name:n,amt:0}));
+
+  // ---------- Utils ----------
+  const fmtInt=n=>new Intl.NumberFormat('zh-Hant-TW',{maximumFractionDigits:0,useGrouping:true}).format(Math.trunc(Number(n)||0));
+  const fmtAcct=n=>{const v=Math.trunc(Number(n)||0);const s=fmtInt(Math.abs(v));return v<0?`(${s})`:s;};
+  const toROC=d=>{ if(!d) return ''; if(/^\d{3}\/\d{1,2}\/\d{1,2}$/.test(d)) return d;
+    const m=String(d).match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/); if(!m) return d;
+    return `${(parseInt(m[1],10)-1911)}/${String(m[2]).padStart(2,'0')}/${String(m[3]).padStart(2,'0')}`; };
+  const s2b=(s)=>new TextEncoder().encode(s);
+
+  // ---------- Binders ----------
+  function bind(id,key,num=false){const el=$(id); if(!el) return;
+    const up=()=>{S[key]=num?Number(el.value||0):el.value;};
+    el.addEventListener('input',up); up();}
+  bind('#cat','cat'); bind('#code','code'); bind('#name','name'); bind('#year','year',true);
+  bind('#bookDate','bookDate'); bind('#contact','contact'); bind('#noticeDate','noticeDate');
+  bind('#i4','i4',true); bind('#i5','i5',true); bind('#i6','i6',true); bind('#m6','m6',true);
+  bind('#n5','n5',true); bind('#n14','n14',true); bind('#g9','g9',true); bind('#k9','k9',true); bind('#advTax','advTax',true);
+
+  // ---------- A/C 表 ----------
+  const tblAC=$('#tblAC tbody');
+  function renderAC(){tblAC.innerHTML=''; const add=sec=>S[sec].forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="mono">${sec}</td>
+      <td><input value="${r.text}" data-sec="${sec}" data-idx="${i}"></td>
+      <td><button class="btn" data-del="${sec}:${i}">刪</button></td>`;
+    tblAC.appendChild(tr);
+  }); add('A'); add('C');}
+  function addAC(sec){S[sec].push({text:`${sec} 區說明`}); renderAC();}
+  function clearAC(){S.A=[];S.C=[]; renderAC();}
+  renderAC();
+  tblAC.addEventListener('input',e=>{const t=e.target;if(!t.dataset) return; const sec=t.dataset.sec,i=+t.dataset.idx; if(S[sec]&&S[sec][i]) S[sec][i].text=t.value;});
+  tblAC.addEventListener('click',e=>{const b=e.target.closest('button[data-del]'); if(!b) return; const [sec,i]=b.dataset.del.split(':'); S[sec].splice(+i,1); renderAC();});
+
+  // ---------- G/K 表 ----------
+  const tblGK=$('#tblGK tbody');
+  function renderGK(){tblGK.innerHTML=''; S.GK.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="mono">${r.zone}</td>
+      <td><input value="${r.name}" data-idx="${i}" data-field="name"></td>
+      <td class="right"><input type="number" step="1" value="${r.amt}" data-idx="${i}" data-field="amt"></td>
+      <td><button class="btn" data-del="${i}">刪</button></td>`;
+    tblGK.appendChild(tr);
+  });}
+  function addGK(zone){S.GK.push({zone,name:$('#preset').value,amt:0}); renderGK();}
+  function clearGK(){S.GK=[]; renderGK();}
+  renderGK();
+  tblGK.addEventListener('input',e=>{const t=e.target, i=+t.dataset.idx; if(t.dataset.field==='name') S.GK[i].name=t.value; else if(t.dataset.field==='amt') S.GK[i].amt=Number(t.value||0);});
+  tblGK.addEventListener('click',e=>{const b=e.target.closest('button[data-del]'); if(!b) return; S.GK.splice(+b.dataset.del,1); renderGK();});
+
+  // ---------- 稅額 ----------
+  function taxA(TI){TI=Math.trunc(Number(TI)||0); if(TI<=120000) return 0; if(TI<=200000) return Math.trunc((TI-120000)/2); return Math.trunc(TI*0.2);}
+
+  // ---------- 預覽 ----------
+  function renderPreview(){
+    const y=+S.year||0;
+    const I7=Math.trunc((S.i4||0)+(S.i5||0)+(S.i6||0));
+    const extra=Math.trunc((S.m6||0) || (S.legacyL6||0));
+    const base=Math.trunc(I7+extra);
+
+    const TI_book=Math.trunc(base*((S.n5||0)/100));
+    const TI_income=Math.trunc(base*((S.n14||0)/100));
+    const route=(TI_book>=TI_income)?'書審':'所得';
+    const K22=Math.max(TI_book,TI_income);
+
+    const G11_amt=Math.trunc(I7*((S.g9||0)/100));
+    const K11_amt=Math.trunc(I7*((S.k9||0)/100));
+
+    const sumG=S.GK.filter(x=>x.zone==='G').reduce((a,b)=>a+Math.trunc(b.amt||0),0);
+    const sumK=S.GK.filter(x=>x.zone==='K').reduce((a,b)=>a+Math.trunc(b.amt||0),0);
+    const K21=sumK;
+    const K23=Math.trunc(K21-K22);
+
+    const tax=taxA(K22);
+    const due=(S.cat==='corp')?Math.trunc(tax-(S.advTax||0)):tax;
+
+    const m7Class=(route==='書審')?'':'soft';
+    const m15Class=(route==='所得')?'':'soft';
+    const k23Class=(K23>0)?'k23-red':(K23<0?'k23-green':'');
+
+    const lines=[]; if(sumG>0) lines.push(`成本缺口：${fmtAcct(sumG)}`); if(sumK>0) lines.push(`費用缺口：${fmtAcct(sumK)}`);
+    const preview=$('#previewTable');
+    preview.innerHTML=`
+      <div class="row">
+        <span class="pill">類別：${S.cat==='corp'?'一般公司':'行號'}</span>
+        <span class="pill">年度：${y}（A19 ${y-1}｜C19 ${y}）</span>
+        <span class="pill">I7 合計：<span class="mono">${fmtAcct(I7)}</span></span>
+        <span class="pill">M6 業外：<span class="mono">${fmtAcct(extra)}</span></span>
+      </div>
+      <div class="hr"></div>
+      <table class="preview-table small">
+        <tr><th>F1 標題</th><td>${y}年預估費用</td></tr>
+        <tr><th>A19 / C19</th><td>${y-1} ／ ${y}</td></tr>
+        <tr><th>I4 / I5 / I6 / I7</th><td>${fmtAcct(S.i4)} / ${fmtAcct(S.i5)} / ${fmtAcct(S.i6)} / <b>${fmtAcct(I7)}</b></td></tr>
+        <tr><th>M6</th><td>${fmtAcct(extra)}</td></tr>
+        <tr><th class="${m7Class}">書審 M7</th><td class="${m7Class}">${fmtAcct(TI_book)}</td></tr>
+        <tr><th class="${m15Class}">所得 M15</th><td class="${m15Class}">${fmtAcct(TI_income)}</td></tr>
+        <tr><th>路徑（M22）</th><td><b>${route}</b></td></tr>
+        <tr><th>K22（取高）</th><td><b>${fmtAcct(K22)}</b></td></tr>
+        <tr><th>G11 / K11</th><td>${fmtAcct(G11_amt)} ／ ${fmtAcct(K11_amt)}</td></tr>
+        <tr><th>K21（費用合計）</th><td>${fmtAcct(K21)}</td></tr>
+        <tr><th>K23（K21−K22）</th><td class="${k23Class} mono">${fmtAcct(K23)}</td></tr>
+        <tr><th>N9 稅額</th><td>${fmtAcct(tax)}</td></tr>
+        ${S.cat==='corp'?`<tr><th>N10 暫繳</th><td>${fmtAcct(S.advTax||0)}</td></tr><tr><th>N11 應繳</th><td>${fmtAcct(due)}</td></tr>`:`<tr><th>N11 稅額</th><td>${fmtAcct(due)}</td></tr>`}
+        <tr><th>缺口摘要（D22 起）</th><td>${lines.length?lines.map(x=>`<div>${x}</div>`).join(''):'（無正數缺口）'}</td></tr>
+      </table>`;
+  }
+
+  // ---------- ZIP+XLSX（純原生） ----------
+  function u16(n){return new Uint8Array([n&255,(n>>8)&255]);}
+  function u32(n){return new Uint8Array([n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]);}
+  function concat(arrs){let len=0;arrs.forEach(a=>len+=a.length);const out=new Uint8Array(len);let o=0;arrs.forEach(a=>{out.set(a,o);o+=a.length});return out;}
+  const CRC_TABLE=(()=>{let c,t=new Uint32Array(256);for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
+  function crc32(data){let c=~0;for(let i=0;i<data.length;i++)c=CRC_TABLE[(c^data[i])&255]^(c>>>8);return ~c;}
+  function dosTime(d=new Date()){const y=d.getFullYear()<1980?0:d.getFullYear()-1980;return{date:(y<<9)|((d.getMonth()+1)<<5)|d.getDate(),time:(d.getHours()<<11)|(d.getMinutes()<<5)|Math.floor(d.getSeconds()/2)};}
+  function zipStore(files){const parts=[],central=[];let off=0;const now=dosTime();files.forEach(f=>{const n=s2b(f.name),data=f.data,crc=crc32(data);
+    parts.push(s2b('PK'),u16(20),u16(0),u16(0),u16(now.time),u16(now.date),u32(crc>>>0),u32(data.length),u32(data.length),u16(n.length),u16(0),n,data);
+    const localLen=30+n.length+data.length;
+    central.push(s2b('PK'),u16(20),u16(20),u16(0),u16(0),u16(now.time),u16(now.date),u32(crc>>>0),u32(data.length),u32(data.length),u16(n.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off),n);
+    off+=localLen;});
+  const cen=concat(central),end=concat([s2b('PK'),u16(0),u16(0),u16(files.length),u16(files.length),u32(cen.length),u32(off),u16(0)]);
+  return new Blob([concat(parts),cen,end],{type:'application/zip'});}
+
+  const xmlEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cStr=(ref,txt)=>`<c r="${ref}" t="inlineStr"><is><t>${xmlEsc(txt)}</t></is></c>`;
+  const cNum=(ref,val)=>`<c r="${ref}" t="n"><v>${Math.trunc(Number(val)||0)}</v></c>`;
+
+  function estimateColWidths(cells){
+    const widths={};
+    for(const [ref, val] of Object.entries(cells)){
+      const col=ref.match(/^([A-Z]+)/)[1];
+      const text=String(val);
+      const w=Math.min(50, Math.max(8, Math.ceil(text.length*0.9)+2));
+      widths[col]=Math.max(widths[col]||8, w);
+    }
+    return widths;
+  }
+
+  function genWB(){return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+    <sheets><sheet name="Estimate" sheetId="1" r:id="rId1"/></sheets>
+  </workbook>`;}
+  function genWBRels(){return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <Relationships xmlns="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+    <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  </Relationships>`;}
+  function genCT(){return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+    <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+    <Default Extension="xml" ContentType="application/xml"/>
+    <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+    <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+    <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+    <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  </Types>`;}
+  function genApp(){return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/extended-properties">
+    <Application>Offline Estimator</Application>
+  </Properties>`;}
+  function genCore(){const now=new Date().toISOString();return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <dc:title>Estimate</dc:title><dc:creator>Offline Estimator</dc:creator><cp:lastModifiedBy>Offline Estimator</cp:lastModifiedBy>
+    <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
+  </cp:coreProperties>`;}
+
+  function genSheetXML(){
+    const y=+S.year||0;
+    const I7=Math.trunc((S.i4||0)+(S.i5||0)+(S.i6||0));
+    const extra=Math.trunc((S.m6||0) || (S.legacyL6||0));
+    const base=Math.trunc(I7+extra);
+    const TI_book=Math.trunc(base*((S.n5||0)/100));
+    const TI_income=Math.trunc(base*((S.n14||0)/100));
+    const route=(TI_book>=TI_income)?'書審':'所得';
+    const K22=Math.max(TI_book,TI_income);
+    const G11_amt=Math.trunc(I7*((S.g9||0)/100));
+    const K11_amt=Math.trunc(I7*((S.k9||0)/100));
+    const sumG=S.GK.filter(x=>x.zone==='G').reduce((a,b)=>a+Math.trunc(b.amt||0),0);
+    const sumK=S.GK.filter(x=>x.zone==='K').reduce((a,b)=>a+Math.trunc(b.amt||0),0);
+    const K21=sumK, K23=Math.trunc(K21-K22);
+    const tax=(K22<=120000)?0:(K22<=200000?Math.trunc((K22-120000)/2):Math.trunc(K22*0.2));
+    const due=(S.cat==='corp')?Math.trunc(tax-(S.advTax||0)):tax;
+
+    const textCells={F1:`${y}年預估費用`,A19:`${y-1}`,C19:`${y}`,A1:S.code||'',A3:S.name||'',
+      A10:toROC(S.bookDate)||'',C34:S.contact||'',H34:toROC(S.noticeDate)||'',N5:`${(S.n5||0).toFixed(2)}%`,
+      N14:`${(S.n14||0).toFixed(2)}%`,G9:`${(S.g9||0).toFixed(2)}%`,K9:`${(S.k9||0).toFixed(2)}%`,M22:route,
+      D22:(sumG>0?`成本缺口：${fmtAcct(sumG)}`:''),D23:(sumK>0?`費用缺口：${fmtAcct(sumK)}`:''),D24:''};
+    const numCells={I4:S.i4||0,I5:S.i5||0,I6:S.i6||0,I7:I7,M6:extra,M7:TI_book,M15:TI_income,
+      G11:G11_amt,K11:K11_amt,N9:tax,N11:due,K22:K22,G19:sumG,K21:sumK,K23:K23};
+    if(S.cat==='corp') numCells['N10']=S.advTax||0;
+
+    const widths={};
+    const all={...textCells, ...Object.fromEntries(Object.keys(numCells).map(k=>[k,String(numCells[k])]))};
+    Object.entries(all).forEach(([ref,val])=>{const col=ref.match(/^([A-Z]+)/)[1]; const w=Math.min(50, Math.max(8, Math.ceil(String(val).length*0.9)+2)); widths[col]=Math.max(widths[col]||8,w);});
+
+    const rows=new Map(); const push=(a1,xml)=>{const r=parseInt(a1.match(/^[A-Z]+(\d+)$/)[1],10); if(!rows.has(r)) rows.set(r,[]); rows.get(r).push(xml);};
+    const cStr2=(ref,txt)=>`<c r="${ref}" t="inlineStr"><is><t>${String(txt).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</t></is></c>`;
+    const cNum2=(ref,val)=>`<c r="${ref}" t="n"><v>${Math.trunc(Number(val)||0)}</v></c>`;
+    Object.entries(textCells).forEach(([ref, val])=>push(ref, cStr2(ref, val)));
+    Object.entries(numCells).forEach(([ref, val])=>push(ref, cNum2(ref, val)));
+    let rA=20; S.A.forEach(x=>push(`A${rA++}`, cStr2(`A${rA-1}`, x.text||'')));
+    let rC=20; S.C.forEach(x=>push(`C${rC++}`, cStr2(`C${rC-1}`, x.text||'')));
+    let rg=12; S.GK.filter(x=>x.zone==='G').forEach(x=>{push(`F${rg}`, cStr2(`F${rg}`, x.name||'')); push(`G${rg}`, cNum2(`G${rg}`, x.amt||0)); rg++;});
+    let rk=12; S.GK.filter(x=>x.zone==='K').forEach(x=>{push(`J${rk}`, cStr2(`J${rk}`, x.name||'')); push(`K${rk}`, cNum2(`K${rk}`, x.amt||0)); rk++;});
+
+    const colTags=Object.keys(widths).sort().map(col=>{let idx=0;for(let i=0;i<col.length;i++){idx=idx*26+(col.charCodeAt(i)-64);}return `<col min="${idx}" max="${idx}" width="${widths[col]}" bestFit="1" customWidth="1"/>`;}).join('');
+    const lines=[...rows.keys()].sort((a,b)=>a-b).map(r=>`<row r="${r}">${rows.get(r).join('')}</row>`).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+      <cols>${colTags}</cols>
+      <sheetData>${lines}</sheetData>
+    </worksheet>`;
+  }
+
+  function downloadBlob(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
+
+  function exportXLSX(backup=false){
+    const files=[
+      {name:'[Content_Types].xml',data:s2b(genCT())},
+      {name:'_rels/.rels',data:s2b(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+          <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+          <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+          <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+        </Relationships>`)},
+      {name:'xl/workbook.xml',data:s2b(genWB())},
+      {name:'xl/_rels/workbook.xml.rels',data:s2b(genWBRels())},
+      {name:'xl/worksheets/sheet1.xml',data:s2b(genSheetXML())},
+      {name:'docProps/app.xml',data:s2b(genApp())},
+      {name:'docProps/core.xml',data:s2b(genCore())}
+    ];
+    const blob=zipStore(files);
+    const y=String(S.year||'YYY'); const today=toROC(new Date().toISOString().slice(0,10)).replace(/\//g,'-');
+    const base=`${(S.name||'Unnamed')}_${y}預估費用_${today}`;
+    downloadBlob(blob, backup?`${base}_backup.xlsx`:`${base}.xlsx`);
+  }
+
+  // ---------- CSV/JSON ----------
+  function exportCSV(){
+    const headers=['cat','code','name','year','bookDate','contact','noticeDate','i4','i5','i6','m6','n5','n14','g9','k9','advTax','A','C','GK'];
+    const packAC=arr=>arr.map(x=>x.text.replace(/,/g,'，')).join('|');
+    const packGK=arr=>arr.map(x=>`${x.zone}:${x.name.replace(/,/g,'，')}:${Math.trunc(x.amt||0)}`).join('|');
+    const row=[S.cat,S.code,S.name,S.year,toROC(S.bookDate),S.contact,toROC(S.noticeDate),S.i4,S.i5,S.i6,S.m6,S.n5,S.n14,S.g9,S.k9,S.advTax,packAC(S.A),packAC(S.C),packGK(S.GK)];
+    const csv=headers.join(',')+'\n'+row.join(',');
+    downloadBlob(new Blob([csv],{type:'text/csv'}),'template.csv');
+  }
+  function importCSV(ev){
+    const f=ev.target.files[0]; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ try{
+      const [h, v]=r.result.split(/\r?\n/).filter(Boolean); const hs=h.split(','), vs=v.split(',');
+      const get=k=>vs[hs.indexOf(k)]||'';
+      Object.assign(S,{cat:get('cat')||'sole',code:get('code')||'',name:get('name')||'',year:Number(get('year')||114),
+        bookDate:get('bookDate')||'',contact:get('contact')||'',noticeDate:get('noticeDate')||'',
+        i4:Number(get('i4')||0),i5:Number(get('i5')||0),i6:Number(get('i6')||0),
+        m6:Number(get('m6')||0),n5:Number(get('n5')||6),n14:Number(get('n14')||6),g9:Number(get('g9')||76),k9:Number(get('k9')||24),advTax:Number(get('advTax')||0),
+        A:(get('A')?get('A').split('|').filter(Boolean).map(t=>({text:t})) : []),
+        C:(get('C')?get('C').split('|').filter(Boolean).map(t=>({text:t})) : []),
+        GK:(get('GK')?get('GK').split('|').filter(Boolean).map(t=>{const [z,n,a]=t.split(':');return{zone:z||'G',name:n||'',amt:Number(a||0)}}):[])
+      });
+      renderAC(); renderGK(); alert('CSV 匯入完成');
+    }catch(e){alert('CSV 匯入失敗：'+e.message)} ev.target.value=''; };
+    r.readAsText(f,'utf-8');
+  }
+  function exportJSON(){ downloadBlob(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),'backup.json'); }
+  function importJSON(ev){
+    const f=ev.target.files[0]; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ try{
+      const obj=JSON.parse(r.result); S.legacyL6=Number(obj.L6||0); Object.assign(S,obj);
+      renderAC(); renderGK(); alert('JSON 匯入完成');
+    }catch(e){alert('JSON 匯入失敗：'+e.message)} ev.target.value=''; };
+    r.readAsText(f,'utf-8');
+  }
+
+  // ---------- Wire UI ----------
+  $('#btnAddA').onclick=()=>addAC('A');
+  $('#btnAddC').onclick=()=>addAC('C');
+  $('#btnClearAC').onclick=()=>clearAC();
+  $('#btnAddG').onclick=()=>addGK('G');
+  $('#btnAddK').onclick=()=>addGK('K');
+  $('#btnClearGK').onclick=()=>clearGK();
+
+  const showEdit=()=>{ $('#pageEdit').classList.remove('hidden'); $('#pagePreview').classList.add('hidden'); $('#btnTabEdit').classList.add('primary'); $('#btnTabPreview').classList.remove('primary'); };
+  const showPreview=()=>{ renderPreview(); $('#pageEdit').classList.add('hidden'); $('#pagePreview').classList.remove('hidden'); $('#btnTabPreview').classList.add('primary'); $('#btnTabEdit').classList.remove('primary'); };
+  $('#btnTabEdit').onclick=showEdit;
+  $('#btnTabPreview').onclick=showPreview;
+  $('#btnPreview').onclick=showPreview;
+  $('#btnBack').onclick=showEdit;
+
+  $('#btnExport').onclick=()=>exportXLSX(false);
+  $('#btnExportBackup').onclick=()=>exportXLSX(true);
+  $('#btnExport2').onclick=()=>exportXLSX(false);
+  $('#btnExportCSV').onclick=exportCSV;
+  $('#inCSV').onchange=importCSV;
+  $('#btnExportJSON').onclick=exportJSON;
+  $('#inJSON').onchange=importJSON;
+});
+</script>
+</body>
+</html>
