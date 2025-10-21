@@ -1,9 +1,8 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
+<!DOCTYPE html><html lang="zh-Hant">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>離線商品進銷與價格下限管控（單檔 HTML）</title>
+<title>離線商品進銷與價格下限管控（單檔 HTML，Fixed）</title>
 <style>
 :root{
   --bg: #F4F5F7;          /* Fog Gray */
@@ -37,155 +36,35 @@
   --ink:#0B0B0C;
   --muted:#6B7280;
   --grid:#F1F5F9;
-}
+}*{box-sizing:border-box} html,body{height:100%} body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.5; }
 
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  background:var(--bg);
-  color:var(--ink);
-  font-family:var(--sans);
-  line-height:1.5;
-}
+/* App 框架 */ .appbar{ position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--surface); border-bottom:1px solid var(--border); } .appbar .title{font-weight:700; letter-spacing:.3px} .appbar .search{ flex:1; display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--border); padding:8px 10px; border-radius:12px; } .appbar input[type=search]{ border:none; outline:none; background:transparent; width:100%; font-size:14px; } .appbar .actions{display:flex; gap:8px} .btn{ appearance:none; border:1px solid var(--cta); background:var(--cta); color:#fff; border-radius:10px; padding:8px 12px; cursor:pointer; transition:all .15s ease-in-out; font-weight:600; font-size:14px; } .btn.secondary{ background:transparent; color:var(--cta); border-color:var(--cta)} .btn.ghost{ background:transparent; color:var(--ink); border-color:var(--border)} .btn:disabled{ background:var(--cta-disabled); border-color:var(--cta-disabled); cursor:not-allowed} .btn:hover:not(:disabled){ transform:translateY(-1px); box-shadow:var(--shadow); background:var(--cta-hover)} .badge{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border); background:var(--surface)} .badge.ok{color:var(--ok); border-color:var(--ok)} .badge.warn{color:var(--warn); border-color:var(--warn)} .badge.info{color:var(--info); border-color:var(--info)}
 
-/* App 框架 */
-.appbar{
-  position:sticky; top:0; z-index:10;
-  display:flex; align-items:center; gap:12px;
-  padding:12px 16px;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-}
-.appbar .title{font-weight:700; letter-spacing:.3px}
-.appbar .search{
-  flex:1; display:flex; align-items:center; gap:8px;
-  background:var(--bg); border:1px solid var(--border);
-  padding:8px 10px; border-radius:12px;
-}
-.appbar input[type=search]{
-  border:none; outline:none; background:transparent; width:100%; font-size:14px;
-}
-.appbar .actions{display:flex; gap:8px}
-.btn{
-  appearance:none; border:1px solid var(--cta);
-  background:var(--cta); color:#fff; border-radius:10px;
-  padding:8px 12px; cursor:pointer; transition:all .15s ease-in-out;
-  font-weight:600; font-size:14px;
-}
-.btn.secondary{ background:transparent; color:var(--cta); border-color:var(--cta)}
-.btn.ghost{ background:transparent; color:var(--ink); border-color:var(--border)}
-.btn:disabled{ background:var(--cta-disabled); border-color:var(--cta-disabled); cursor:not-allowed}
-.btn:hover:not(:disabled){ transform:translateY(-1px); box-shadow:var(--shadow); background:var(--cta-hover)}
-.badge{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border); background:var(--surface)}
-.badge.ok{color:var(--ok); border-color:var(--ok)}
-.badge.warn{color:var(--warn); border-color:var(--warn)}
-.badge.info{color:var(--info); border-color:var(--info)}
+.layout{ display:grid; grid-template-columns:260px 1fr; gap:16px; padding:16px; align-items:start; } @media (max-width: 960px){ .layout{ grid-template-columns:1fr } .sidenav{ position:sticky; top:56px } } .sidenav{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; } .navlink{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600} .navlink.active, .navlink:hover{ background:var(--bg)}
 
-.layout{
-  display:grid; grid-template-columns:260px 1fr; gap:16px;
-  padding:16px; align-items:start;
-}
-@media (max-width: 960px){
-  .layout{ grid-template-columns:1fr }
-  .sidenav{ position:sticky; top:56px }
-}
-.sidenav{
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  padding:12px;
-}
-.navlink{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600}
-.navlink.active, .navlink:hover{ background:var(--bg)}
+.main{ display:grid; gap:16px; } .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow: var(--shadow); } .card .hd{ padding:12px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; } .card .bd{ padding:14px } .grid{ display:grid; gap:12px; } .grid.cols-2{ grid-template-columns:1fr 1fr } .grid.cols-3{ grid-template-columns:repeat(3, 1fr) } @media (max-width: 960px){ .grid.cols-2, .grid.cols-3{ grid-template-columns:1fr } }
 
-.main{
-  display:grid; gap:16px;
-}
-.card{
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  box-shadow: var(--shadow);
-}
-.card .hd{
-  padding:12px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;
-}
-.card .bd{ padding:14px }
-.grid{
-  display:grid; gap:12px;
-}
-.grid.cols-2{ grid-template-columns:1fr 1fr }
-.grid.cols-3{ grid-template-columns:repeat(3, 1fr) }
-@media (max-width: 960px){
-  .grid.cols-2, .grid.cols-3{ grid-template-columns:1fr }
-}
+/* 表單 */ .field{ display:grid; gap:6px } .label{ font-size:12px; color:var(--muted) } .input, select, textarea{ border:1px solid var(--border); background:#fff; color:var(--ink); border-radius:10px; padding:10px 12px; font-family:var(--sans); font-size:14px; outline:none; } .input[aria-invalid="true"]{ border-color:var(--warn); box-shadow:0 0 0 3px rgba(224,49,49,.15) } .helper{ font-size:12px; color:var(--muted) } .helper.warn{ color:var(--warn) } .inline{ display:flex; gap:10px; align-items:end } hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
 
-/* 表單 */
-.field{ display:grid; gap:6px }
-.label{ font-size:12px; color:var(--muted) }
-.input, select, textarea{
-  border:1px solid var(--border); background:#fff; color:var(--ink);
-  border-radius:10px; padding:10px 12px; font-family:var(--sans); font-size:14px; outline:none;
-}
-.input[aria-invalid="true"]{ border-color:var(--warn); box-shadow:0 0 0 3px rgba(224,49,49,.15) }
-.helper{ font-size:12px; color:var(--muted) }
-.helper.warn{ color:var(--warn) }
-.inline{ display:flex; gap:10px; align-items:end }
-hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
+/* 表格 */ .table{ width:100%; border-collapse:separate; border-spacing:0 } .table th, .table td{ padding:10px 12px; border-bottom:1px solid var(--grid); font-size:14px; text-align:left } .table th{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px } .table tr:nth-child(odd) td{ background:linear-gradient(to right, rgba(0,0,0,0.02), transparent) } .num{ font-family:var(--mono); text-align:right } .tag{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border) } .tag.floor{ border-color:var(--ink) } .tag.adjusted{ border-color:var(--info); color:var(--info) } .tag.blocked{ border-color:var(--warn); color:var(--warn) } .kbd{font-family:var(--mono); font-size:12px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:var(--bg)}
 
-/* 表格 */
-.table{ width:100%; border-collapse:separate; border-spacing:0 }
-.table th, .table td{ padding:10px 12px; border-bottom:1px solid var(--grid); font-size:14px; text-align:left }
-.table th{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px }
-.table tr:nth-child(odd) td{ background:linear-gradient(to right, rgba(0,0,0,0.02), transparent) }
-.num{ font-family:var(--mono); text-align:right }
-.tag{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border) }
-.tag.floor{ border-color:var(--ink) }
-.tag.adjusted{ border-color:var(--info); color:var(--info) }
-.tag.blocked{ border-color:var(--warn); color:var(--warn) }
-.kbd{font-family:var(--mono); font-size:12px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:var(--bg)}
+/* Toast */ .toast{ position:fixed; top:16px; right:16px; z-index:1000; display:flex; flex-direction:column; gap:8px; } .toast .item{ background:var(--surface); border:1px solid var(--border); border-left:6px solid var(--ok); padding:10px 12px; border-radius:12px; min-width:280px; box-shadow:var(--shadow) } .toast .item.error{ border-left-color:var(--warn) } .toast .item.info{ border-left-color:var(--info) }
 
-/* Toast */
-.toast{
-  position:fixed; top:16px; right:16px; z-index:1000; display:flex; flex-direction:column; gap:8px;
-}
-.toast .item{
-  background:var(--surface); border:1px solid var(--border); border-left:6px solid var(--ok);
-  padding:10px 12px; border-radius:12px; min-width:280px; box-shadow:var(--shadow)
-}
-.toast .item.error{ border-left-color:var(--warn) }
-.toast .item.info{ border-left-color:var(--info) }
+/* Skeleton */ .skeleton{ height:12px; background:linear-gradient(90deg, #f0f3f7, #e6eaf0, #f0f3f7); background-size:200% 100%; animation:shine 1.2s infinite } @keyframes shine{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-/* Skeleton */
-.skeleton{ height:12px; background:linear-gradient(90deg, #f0f3f7, #e6eaf0, #f0f3f7); background-size:200% 100%; animation:shine 1.2s infinite }
-@keyframes shine{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+/* Sparklines */ .sparkline{ width:100%; height:36px }
 
-/* Sparklines */
-.sparkline{ width:100%; height:36px }
+/* 狀態燈 / .status-dot{ width:10px; height:10px; border-radius:999px; display:inline-block; vertical-align:middle } .status-idb{ background:#16a34a } / 綠 / .status-ls{ background:#f59e0b }  / 黃 / .status-off{ background:#ef4444 } / 紅 */
 
-/* 狀態燈 */
-.status-dot{ width:10px; height:10px; border-radius:999px; display:inline-block; vertical-align:middle }
-.status-idb{ background:#16a34a } /* 綠 */
-.status-ls{ background:#f59e0b }  /* 黃 */
-.status-off{ background:#ef4444 } /* 紅 */
+/* 小字 */ .small{ font-size:12px; color:var(--muted) } .right{ text-align:right }
 
-/* 小字 */
-.small{ font-size:12px; color:var(--muted) }
-.right{ text-align:right }
+/* 對話框 */ .dialog-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:2000 } .dialog{ background:#fff; border-radius:16px; border:1px solid var(--border); width:min(720px, 96vw); box-shadow:var(--shadow) } .dialog .hd{ padding:14px; border-bottom:1px solid var(--border); font-weight:700 } .dialog .bd{ padding:14px; display:grid; gap:12px } .dialog .ft{ padding:14px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end }
 
-/* 對話框 */
-.dialog-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:2000 }
-.dialog{ background:#fff; border-radius:16px; border:1px solid var(--border); width:min(720px, 96vw); box-shadow:var(--shadow) }
-.dialog .hd{ padding:14px; border-bottom:1px solid var(--border); font-weight:700 }
-.dialog .bd{ padding:14px; display:grid; gap:12px }
-.dialog .ft{ padding:14px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end }
+/* 可聚焦區塊 */ [tabindex="0"]{ outline:none } [tabindex="0"]:focus{ box-shadow:0 0 0 3px rgba(47,128,237,.25); border-radius:8px } </style>
 
-/* 可聚焦區塊 */
-[tabindex="0"]{ outline:none }
-[tabindex="0"]:focus{ box-shadow:0 0 0 3px rgba(47,128,237,.25); border-radius:8px }
-</style>
 </head>
 <body>
-<div class="toast" id="toast"></div>
-
-<header class="appbar" role="banner" aria-label="頂部工具列">
+<div class="toast" id="toast"></div><header class="appbar" role="banner" aria-label="頂部工具列">
   <div class="title">📦 離線進銷與價格下限</div>
   <div class="search" role="search">
     <span class="small">快速搜尋</span>
@@ -198,9 +77,7 @@ hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
     <button class="btn ghost" id="btnImport" title="I 匯入">匯入</button>
     <button class="btn ghost" id="btnSettings">設定</button>
   </div>
-</header>
-
-<div class="layout">
+</header><div class="layout">
   <nav class="sidenav" aria-label="側邊導航">
     <div class="navlink active" data-tab="dashboard">Dashboard</div>
     <div class="navlink" data-tab="products">商品</div>
@@ -214,9 +91,7 @@ hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
       <span class="status-dot status-ls" id="dotLS" title="LocalStorage" style="display:none"></span>
       <span class="status-dot status-off" id="dotOFF" title="不可用" style="display:none"></span>
     </div>
-  </nav>
-
-  <main class="main" id="view">
+  </nav>  <main class="main" id="view">
     <!-- Dashboard -->
     <section class="card" data-panel="dashboard">
       <div class="hd">
@@ -259,138 +134,134 @@ hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
           </div>
         </div>
       </div>
-    </section>
+    </section><!-- Products -->
+<section class="card" data-panel="products" hidden>
+  <div class="hd">
+    <div>商品清單</div>
+    <div>
+      <button class="btn secondary" id="btnNewProduct">新增商品</button>
+    </div>
+  </div>
+  <div class="bd">
+    <table class="table" id="tblProducts" aria-label="商品清單表">
+      <thead>
+        <tr>
+          <th>代碼</th><th>名稱</th><th>單位</th>
+          <th class="right">庫存</th>
+          <th class="right">floor</th>
+          <th class="right">近30日均價</th>
+          <th>動作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
 
-    <!-- Products -->
-    <section class="card" data-panel="products" hidden>
-      <div class="hd">
-        <div>商品清單</div>
-        <div>
-          <button class="btn secondary" id="btnNewProduct">新增商品</button>
-        </div>
-      </div>
-      <div class="bd">
-        <table class="table" id="tblProducts" aria-label="商品清單表">
-          <thead>
-            <tr>
-              <th>代碼</th><th>名稱</th><th>單位</th>
-              <th class="right">庫存</th>
-              <th class="right">floor</th>
-              <th class="right">近30日均價</th>
-              <th>動作</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+<!-- Purchases -->
+<section class="card" data-panel="purchases" hidden>
+  <div class="hd">
+    <div>進貨紀錄</div>
+    <div class="inline">
+      <button class="btn secondary" id="btnAddPurchase2">新增進貨</button>
+      <button class="btn ghost" id="btnPastePurchase">批次貼上</button>
+    </div>
+  </div>
+  <div class="bd">
+    <table class="table" id="tblPurchases">
+      <thead>
+        <tr>
+          <th>日期</th><th>商品</th>
+          <th class="right">數量</th><th class="right">單價</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
 
-    <!-- Purchases -->
-    <section class="card" data-panel="purchases" hidden>
-      <div class="hd">
-        <div>進貨紀錄</div>
-        <div class="inline">
-          <button class="btn secondary" id="btnAddPurchase2">新增進貨</button>
-          <button class="btn ghost" id="btnPastePurchase">批次貼上</button>
-        </div>
-      </div>
-      <div class="bd">
-        <table class="table" id="tblPurchases">
-          <thead>
-            <tr>
-              <th>日期</th><th>商品</th>
-              <th class="right">數量</th><th class="right">單價</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+<!-- Sales -->
+<section class="card" data-panel="sales" hidden>
+  <div class="hd">
+    <div>銷貨紀錄</div>
+    <div><button class="btn" id="btnAddSale2">新增銷貨</button></div>
+  </div>
+  <div class="bd">
+    <table class="table" id="tblSales">
+      <thead>
+        <tr>
+          <th>日期</th><th>商品</th>
+          <th class="right">數量</th><th class="right">金額</th><th class="right">推導單價</th>
+          <th>備註</th><th>狀態</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
 
-    <!-- Sales -->
-    <section class="card" data-panel="sales" hidden>
-      <div class="hd">
-        <div>銷貨紀錄</div>
-        <div><button class="btn" id="btnAddSale2">新增銷貨</button></div>
-      </div>
-      <div class="bd">
-        <table class="table" id="tblSales">
-          <thead>
-            <tr>
-              <th>日期</th><th>商品</th>
-              <th class="right">數量</th><th class="right">金額</th><th class="right">推導單價</th>
-              <th>備註</th><th>狀態</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+<!-- Audits -->
+<section class="card" data-panel="audits" hidden>
+  <div class="hd">
+    <div>異動紀錄</div>
+  </div>
+  <div class="bd">
+    <table class="table" id="tblAudits">
+      <thead>
+        <tr>
+          <th>時間</th><th>商品</th><th class="right">原金額</th><th class="right">調整後</th><th class="right">usedFloor</th><th>策略</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
 
-    <!-- Audits -->
-    <section class="card" data-panel="audits" hidden>
-      <div class="hd">
-        <div>異動紀錄</div>
-      </div>
-      <div class="bd">
-        <table class="table" id="tblAudits">
-          <thead>
-            <tr>
-              <th>時間</th><th>商品</th><th class="right">原金額</th><th class="right">調整後</th><th class="right">usedFloor</th><th>策略</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Settings -->
-    <section class="card" data-panel="settings" hidden>
-      <div class="hd">
-        <div>設定</div>
-      </div>
-      <div class="bd">
-        <div class="grid cols-2">
-          <div class="card">
-            <div class="hd">價格與庫存策略</div>
-            <div class="bd grid">
-              <div class="field">
-                <label class="label">價格策略</label>
-                <select id="pricePolicy" aria-label="價格策略">
-                  <option value="autoAdjust">自動調整</option>
-                  <option value="block">阻擋</option>
-                </select>
-                <div class="helper">derivedPrice < floor 時：自動調整為 floor×數量；或阻擋</div>
-              </div>
-              <div class="field">
-                <label class="label">庫存管控</label>
-                <label><input type="checkbox" id="inventoryControl" checked /> 啟用（超賣時阻擋）</label>
-              </div>
-              <div class="field">
-                <label class="label">主題</label>
-                <select id="themeSel">
-                  <option value="luxe">極簡靜奢（預設）</option>
-                  <option value="industrial">工業理性</option>
-                  <option value="editorial">現代書報</option>
-                </select>
-              </div>
-            </div>
+<!-- Settings -->
+<section class="card" data-panel="settings" hidden>
+  <div class="hd">
+    <div>設定</div>
+  </div>
+  <div class="bd">
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="hd">價格與庫存策略</div>
+        <div class="bd grid">
+          <div class="field">
+            <label class="label">價格策略</label>
+            <select id="pricePolicy" aria-label="價格策略">
+              <option value="autoAdjust">自動調整</option>
+              <option value="block">阻擋</option>
+            </select>
+            <div class="helper">derivedPrice &lt; floor 時：自動調整為 floor×數量；或阻擋</div>
           </div>
-          <div class="card">
-            <div class="hd">資料維護</div>
-            <div class="bd grid">
-              <button class="btn ghost" id="btnClear">清除本機資料</button>
-              <div class="small">此動作將刪除 IndexedDB / LocalStorage 的所有資料（需二次確認）。</div>
-            </div>
+          <div class="field">
+            <label class="label">庫存管控</label>
+            <label><input type="checkbox" id="inventoryControl" checked /> 啟用（超賣時阻擋）</label>
+          </div>
+          <div class="field">
+            <label class="label">主題</label>
+            <select id="themeSel">
+              <option value="luxe">極簡靜奢（預設）</option>
+              <option value="industrial">工業理性</option>
+              <option value="editorial">現代書報</option>
+            </select>
           </div>
         </div>
       </div>
-    </section>
+      <div class="card">
+        <div class="hd">資料維護</div>
+        <div class="bd grid">
+          <button class="btn ghost" id="btnClear">清除本機資料</button>
+          <div class="small">此動作將刪除 IndexedDB / LocalStorage 的所有資料（需二次確認）。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
   </main>
-</div>
-
-<!-- 對話框：新增/編輯商品 -->
-<div class="dialog-backdrop" id="dlgProduct">
+</div><!-- 對話框：新增/編輯商品 --><div class="dialog-backdrop" id="dlgProduct">
   <div class="dialog" role="dialog" aria-labelledby="dlgProductTitle">
     <div class="hd" id="dlgProductTitle">商品</div>
     <div class="bd grid cols-2">
@@ -412,10 +283,7 @@ hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
       <button class="btn" id="btnSaveProduct">儲存</button>
     </div>
   </div>
-</div>
-
-<!-- 對話框：新增進貨 -->
-<div class="dialog-backdrop" id="dlgPurchase">
+</div><!-- 對話框：新增進貨 --><div class="dialog-backdrop" id="dlgPurchase">
   <div class="dialog" role="dialog" aria-labelledby="dlgPurchaseTitle">
     <div class="hd" id="dlgPurchaseTitle">新增進貨</div>
     <div class="bd grid cols-2">
@@ -445,10 +313,7 @@ hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
       <button class="btn" id="btnSavePurchase">建立</button>
     </div>
   </div>
-</div>
-
-<!-- 對話框：新增銷貨 -->
-<div class="dialog-backdrop" id="dlgSale">
+</div><!-- 對話框：新增銷貨 --><div class="dialog-backdrop" id="dlgSale">
   <div class="dialog" role="dialog" aria-labelledby="dlgSaleTitle">
     <div class="hd" id="dlgSaleTitle">新增銷貨</div>
     <div class="bd grid cols-2">
@@ -481,16 +346,11 @@ hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
       <button class="btn" id="btnSaveSale">建立</button>
     </div>
   </div>
-</div>
-
-<!-- 對話框：批次貼上進貨 -->
-<div class="dialog-backdrop" id="dlgPaste">
+</div><!-- 對話框：批次貼上進貨 --><div class="dialog-backdrop" id="dlgPaste">
   <div class="dialog" role="dialog" aria-labelledby="dlgPasteTitle">
     <div class="hd" id="dlgPasteTitle">批次貼上進貨（代碼,數量,單價,日期?）</div>
     <div class="bd">
-      <textarea id="pasteArea" rows="8" class="input" placeholder="例如：
-S-001, 10, 12.5, 2025-10-01
-S-002, 3, 99.9"></textarea>
+      <textarea id="pasteArea" rows="8" class="input" placeholder="例如：&#10;S-001, 10, 12.5, 2025-10-01&#10;S-002, 3, 99.9"></textarea>
       <div class="small">將逗號分隔資料貼上；日期可省略。</div>
     </div>
     <div class="ft">
@@ -498,12 +358,7 @@ S-002, 3, 99.9"></textarea>
       <button class="btn" id="btnDoPaste">寫入</button>
     </div>
   </div>
-</div>
-
-<!-- 匯入檔案 input -->
-<input type="file" id="fileInput" accept="application/json" hidden />
-
-<script>
+</div><!-- 匯入檔案 input --><input type="file" id="fileInput" accept="application/json" hidden /><script>
 /* ========== 小工具 ========== */
 const $$ = sel => document.querySelector(sel);
 const $$$ = sel => Array.from(document.querySelectorAll(sel));
@@ -542,7 +397,7 @@ const DB_VER = 1;
 let useLocal = false;
 
 function idbOpen(){
-  return new Promise((resolve,reject)=>{
+  return new Promise((resolve)=>{
     if(!('indexedDB' in window)) { useLocal = true; updateDots(); return resolve(null) }
     const req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = e=>{
@@ -773,7 +628,7 @@ $$('#btnSaveProduct')?.addEventListener('click', async()=>{
   const code = $$('#pCode').value.trim();
   const name = $$('#pName').value.trim();
   if(!code || !name){ toast('請填寫代碼與名稱','error'); return }
-  const id = await upsertProductByCode(code, name, $$('#pUnit').value.trim());
+  await upsertProductByCode(code, name, $$('#pUnit').value.trim());
   await ensureProductOptions(); await renderProducts();
   closeDlg('#dlgProduct'); toast('商品已儲存');
 });
@@ -878,13 +733,34 @@ $$('#btnSaveSale')?.addEventListener('click', async()=>{
 
   if(settings.inventoryControl){
     const stock = calcStock(purchases, sales, pid);
-    if(qty > stock){ toast(`可售庫存僅剩 ${fmt3(stock)}，仍差 ${fmt3(qty - stock)}`,'error'); return }
+    if(qty > stock){
+      // 寫入審計（修正：記錄庫存阻擋事件）
+      await add('audits', {
+        ts: new Date().toISOString(),
+        productId: pid,
+        origAmount: round(origAmount,2),
+        newAmount: round(origAmount,2),
+        usedFloor: round(floor??0,4),
+        policy: 'inventoryBlock'
+      });
+      toast(`可售庫存僅剩 ${fmt3(stock)}，仍差 ${fmt3(qty - stock)}`,'error');
+      return;
+    }
   }
 
   if(derived < floor){
     if(settings.priceFloorPolicy==='autoAdjust'){
       amount = minAmt; adjusted = true;
     }else{
+      // 寫入審計（修正：記錄價格阻擋事件）
+      await add('audits', {
+        ts: new Date().toISOString(),
+        productId: pid,
+        origAmount: round(origAmount,2),
+        newAmount: round(origAmount,2),
+        usedFloor: round(floor,4),
+        policy: 'block'
+      });
       toast(`低於最低進貨成本，請至少輸入 $${fmt2(minAmt)}`,'error');
       return;
     }
@@ -998,7 +874,7 @@ async function renderProducts(){
     });
   rows.forEach(r=>tbody.appendChild(r));
 
-  // 編輯
+  // 編輯（保留原行為：依 code 更新；若修改 code 會建立新商品）
   $$('.btnEdit').forEach(b=> b.addEventListener('click', async()=>{
     const id = Number(b.dataset.id);
     const p = (await listProducts()).find(x=>x.id===id);
@@ -1075,7 +951,7 @@ async function renderDashboard(){
   $$('#todayAvg').textContent = fmt2(qSum? (aSum/qSum):0);
 
   const noFloor = products.filter(p=> calcFloor(purchases,p.id)==null).length;
-  const blocked = audits.filter(a=>a.policy==='block').length;
+  const blocked = audits.filter(a=>a.policy==='block' || a.policy==='inventoryBlock').length;
   const adjusted = audits.filter(a=>a.policy==='autoAdjust').length;
   $$('#noFloorCount').textContent = noFloor;
   $$('#blockedCount').textContent = blocked;
@@ -1155,6 +1031,5 @@ async function init(){
   await refreshAll();
   toast('已載入（離線可用）','info');
 } window.addEventListener('DOMContentLoaded', init);
-</script>
-</body>
+</script></body>
 </html>
