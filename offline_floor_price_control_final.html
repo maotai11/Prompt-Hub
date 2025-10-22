@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 
@@ -617,7 +616,6 @@
       </div>
     </nav>
     <main class="main" id="view">
-      <!-- Dashboard -->
       <section class="card" data-panel="dashboard">
         <div class="hd">
           <div>今日概覽</div>
@@ -666,11 +664,11 @@
             </div>
           </div>
         </div>
-      </section><!-- Products -->
-      <section class="card" data-panel="products" hidden>
+      </section><section class="card" data-panel="products" hidden>
         <div class="hd">
           <div>商品清單</div>
-          <div>
+          <div class="inline">
+            <button class="btn ghost" id="btnPasteProducts">批次貼上</button>
             <button class="btn secondary" id="btnNewProduct">新增商品</button>
           </div>
         </div>
@@ -692,7 +690,6 @@
         </div>
       </section>
 
-      <!-- Purchases -->
       <section class="card" data-panel="purchases" hidden>
         <div class="hd">
           <div>進貨紀錄</div>
@@ -716,7 +713,6 @@
         </div>
       </section>
 
-      <!-- Sales -->
       <section class="card" data-panel="sales" hidden>
         <div class="hd">
           <div>銷貨紀錄</div>
@@ -740,7 +736,6 @@
         </div>
       </section>
 
-      <!-- Audits -->
       <section class="card" data-panel="audits" hidden>
         <div class="hd">
           <div>異動紀錄</div>
@@ -762,7 +757,6 @@
         </div>
       </section>
 
-      <!-- Settings -->
       <section class="card" data-panel="settings" hidden>
         <div class="hd">
           <div>設定</div>
@@ -806,8 +800,7 @@
       </section>
 
     </main>
-  </div><!-- 對話框：新增/編輯商品 -->
-  <div class="dialog-backdrop" id="dlgProduct">
+  </div><div class="dialog-backdrop" id="dlgProduct">
     <div class="dialog" role="dialog" aria-labelledby="dlgProductTitle">
       <div class="hd" id="dlgProductTitle">商品</div>
       <div class="bd grid cols-2">
@@ -829,8 +822,7 @@
         <button class="btn" id="btnSaveProduct">儲存</button>
       </div>
     </div>
-  </div><!-- 對話框：新增進貨 -->
-  <div class="dialog-backdrop" id="dlgPurchase">
+  </div><div class="dialog-backdrop" id="dlgPurchase">
     <div class="dialog" role="dialog" aria-labelledby="dlgPurchaseTitle">
       <div class="hd" id="dlgPurchaseTitle">新增進貨</div>
       <div class="bd grid cols-2">
@@ -867,8 +859,7 @@
         <button class="btn" id="btnSavePurchase">建立</button>
       </div>
     </div>
-  </div><!-- 對話框：新增銷貨 -->
-  <div class="dialog-backdrop" id="dlgSale">
+  </div><div class="dialog-backdrop" id="dlgSale">
     <div class="dialog" role="dialog" aria-labelledby="dlgSaleTitle">
       <div class="hd" id="dlgSaleTitle">新增銷貨</div>
       <div class="bd grid cols-2">
@@ -908,8 +899,7 @@
         <button class="btn" id="btnSaveSale">建立</button>
       </div>
     </div>
-  </div><!-- 對話框：批次貼上進貨 -->
-  <div class="dialog-backdrop" id="dlgPaste">
+  </div><div class="dialog-backdrop" id="dlgPaste">
     <div class="dialog" role="dialog" aria-labelledby="dlgPasteTitle">
       <div class="hd" id="dlgPasteTitle">批次貼上進貨（代碼,數量,單價,日期?）</div>
       <div class="bd">
@@ -922,7 +912,22 @@
         <button class="btn" id="btnDoPaste">寫入</button>
       </div>
     </div>
-  </div><!-- 匯入檔案 input --><input type="file" id="fileInput" accept="application/json" hidden />
+  </div>
+  <div class="dialog-backdrop" id="dlgPasteProducts">
+    <div class="dialog" role="dialog" aria-labelledby="dlgPasteProductsTitle">
+      <div class="hd" id="dlgPasteProductsTitle">批次貼上商品（代碼,名稱,單位?）</div>
+      <div class="bd">
+        <textarea id="pasteAreaProducts" rows="8" class="input"
+          placeholder="例如：&#10;S-001, 範例商品A, 件&#10;S-002, 範例商品B, 個&#10;S-003, 範例商品C"></textarea>
+        <div class="small">將逗號分隔資料貼上；單位可省略。代碼若已存在則會更新名稱與單位。</div>
+      </div>
+      <div class="ft">
+        <button class="btn ghost" data-close="#dlgPasteProducts">取消</button>
+        <button class="btn" id="btnDoPasteProducts">寫入</button>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="fileInput" accept="application/json" hidden />
   <script>
     (function () {
       'use strict';
@@ -1261,14 +1266,22 @@
       /* 商品對話框 */
       $$('#btnNewProduct')?.addEventListener('click', () => {
         $$('#pCode').value = ''; $$('#pName').value = ''; $$('#pUnit').value = '';
+        $$('#dlgProductTitle').textContent = '新增商品'; // [修正] 確保標題正確
         openDlg('#dlgProduct');
       });
+      // [新增] 批次新增商品按鈕
+      $$('#btnPasteProducts')?.addEventListener('click', () => {
+        $$('#pasteAreaProducts').value = ''; // 清空
+        openDlg('#dlgPasteProducts');
+      });
+
       $$('#btnSaveProduct')?.addEventListener('click', async () => {
         const code = $$('#pCode').value.trim();
         const name = $$('#pName').value.trim();
         if (!code || !name) { toast('請填寫代碼與名稱', 'error'); return }
         await upsertProductByCode(code, name, $$('#pUnit').value.trim());
-        await ensureProductOptions(); await renderProducts();
+        // [修正] 改為呼叫 refreshAll() 來確保所有資料一致
+        await refreshAll();
         closeDlg('#dlgProduct'); toast('商品已儲存');
       });
 
@@ -1391,7 +1404,7 @@
         await refreshAll();
       });
 
-      /* 批次貼上 */
+      /* 批次貼上 - 進貨 */
       $$('#btnDoPaste')?.addEventListener('click', async () => {
         const t = $$('#pasteArea').value.trim();
         if (!t) { closeDlg('#dlgPaste'); return }
@@ -1409,9 +1422,38 @@
           ok++;
         }
         toast(`批次完成：成功 ${ok} 筆，失敗 ${fail} 筆`, fail ? 'info' : 'success');
+        $$('#pasteArea').value = ''; // 清空
         closeDlg('#dlgPaste');
         await refreshAll();
       });
+
+      /* [新增] 批次貼上 - 商品 */
+      $$('#btnDoPasteProducts')?.addEventListener('click', async () => {
+        const t = $$('#pasteAreaProducts').value.trim();
+        if (!t) { closeDlg('#dlgPasteProducts'); return }
+        const lines = t.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+        let ok = 0, fail = 0;
+        for (const line of lines) {
+          const [code, name, unit] = line.split(',').map(s => s.trim());
+          // 代碼和名稱為必填
+          if (!code || !name) {
+            fail++;
+            continue;
+          }
+          try {
+            await upsertProductByCode(code, name, unit || '');
+            ok++;
+          } catch (e) {
+            console.error('Batch product add error:', e);
+            fail++;
+          }
+        }
+        toast(`批次新增商品：成功 ${ok} 筆，失敗 ${fail} 筆`, fail ? 'info' : 'success');
+        $$('#pasteAreaProducts').value = ''; // 清空
+        closeDlg('#dlgPasteProducts');
+        await refreshAll();
+      });
+
 
       /* 銷貨 */
       function openSale() {
@@ -1422,9 +1464,8 @@
       }
       $$('#saleProduct')?.addEventListener('change', async (e) => {
         const pid = Number(e.target.value);
-        const purchases = await listPurchases();
-        const sales = await listSales();
-        const stock = calcStock(purchases, sales, pid);
+        // [優化] 使用快取數據
+        const stock = cachedData.computed.get(pid)?.stock ?? calcStock(cachedData.purchases, cachedData.sales, pid);
         $$('#saleStock').textContent = fmt3(stock);
         updateDerivedHelper();
       });
@@ -1438,7 +1479,7 @@
         const qty = Number($$('#saleQty').value);
         const amtExpr = $$('#saleAmt').value;
         const amount = parseMoneyExpr(amtExpr);
-        // 使用快取數據而非重新查詢
+        // 使用快取數據
         const computed = cachedData.computed.get(pid);
         const floor = computed ? computed.floor : null;
         const derived = (qty > 0 && amount > 0) ? round(amount / qty, 4) : 0;
@@ -1465,17 +1506,16 @@
         if (!pid) { toast('請選擇商品', 'error'); return }
         if (!(qty > 0) || !(amount > 0) || !isFinite(amount)) { toast('數量與金額需大於0', 'error'); return }
 
-        const purchases = await listPurchases();
-        const sales = await listSales();
-        const floor = calcFloor(purchases, pid);
+        // [優化] 使用快取數據
+        const floor = cachedData.computed.get(pid)?.floor ?? calcFloor(cachedData.purchases, pid);
         if (floor == null) { toast('尚無進貨成本，無法銷貨', 'error'); closeDlg('#dlgSale'); switchTab('purchases'); return }
-        const settings = await getSettings();
+        const settings = cachedData.settings; // [優化] 使用快取
         const derived = round(amount / qty, 4);
         let adjusted = false, origAmount = amount;
         const minAmt = round(floor * qty, 2);
 
         if (settings.inventoryControl) {
-          const stock = calcStock(purchases, sales, pid);
+          const stock = cachedData.computed.get(pid)?.stock ?? calcStock(cachedData.purchases, cachedData.sales, pid);
           if (qty > stock) {
             // 寫入審計（修正：記錄庫存阻擋事件）
             await add('audits', {
@@ -1575,11 +1615,12 @@
               tx1.objectStore(s).clear();
             }
             await new Promise(res => tx1.oncomplete = res);
-            for (const p of (json.data.products || [])) await add('products', p);
-            for (const p of (json.data.purchases || [])) await add('purchases', p);
-            for (const p of (json.data.sales || [])) await add('sales', p);
-            for (const p of (json.data.audits || [])) await add('audits', p);
-            for (const s of (json.data.settings || [])) await put('settings', s);
+            // [修正] 匯入時移除 id，讓 IDB 重新生成，避免 id 衝突
+            for (const p of (json.data.products || [])) { delete p.id; await add('products', p); }
+            for (const p of (json.data.purchases || [])) { delete p.id; await add('purchases', p); }
+            for (const p of (json.data.sales || [])) { delete p.id; await add('sales', p); }
+            for (const p of (json.data.audits || [])) { delete p.id; await add('audits', p); }
+            for (const s of (json.data.settings || [])) { await put('settings', s); }
           }
           toast('匯入完成');
           await refreshAll();
@@ -1621,7 +1662,9 @@
       }
 
       async function renderPurchases() {
-        const [purchases, products] = await Promise.all([listPurchases(), listProducts()]);
+        // [優化] 使用快取數據
+        const purchases = cachedData.purchases;
+        const products = cachedData.products;
         const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
         const tbody = $$('#tblPurchases tbody');
         tbody.innerHTML = '';
@@ -1638,7 +1681,9 @@
       }
 
       async function renderSales() {
-        const [sales, products] = await Promise.all([listSales(), listProducts()]);
+        // [優化] 使用快取數據
+        const sales = cachedData.sales;
+        const products = cachedData.products;
         const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
         const tbody = $$('#tblSales tbody');
         tbody.innerHTML = '';
@@ -1658,7 +1703,9 @@
       }
 
       async function renderAudits() {
-        const [audits, products] = await Promise.all([listAudits(), listProducts()]);
+        // [優化] 使用快取數據
+        const audits = cachedData.audits;
+        const products = cachedData.products;
         const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
         const tbody = $$('#tblAudits tbody');
         tbody.innerHTML = '';
@@ -1677,8 +1724,12 @@
       }
 
       async function renderDashboard() {
-        const [sales, products, purchases, audits] = await Promise.all([listSales(), listProducts(), listPurchases(), listAudits()]);
+        // [優化] 使用快取數據
+        const sales = cachedData.sales;
+        const products = cachedData.products;
+        const audits = cachedData.audits;
         const today = new Date().toISOString().slice(0, 10);
+
         const sToday = sales.filter(s => (s.date || '').slice(0, 10) === today);
         const qSum = sToday.reduce((a, b) => a + Number(b.qty), 0);
         const aSum = sToday.reduce((a, b) => a + Number(b.amount), 0);
@@ -1686,15 +1737,16 @@
         $$('#todayAmt').textContent = fmt2(aSum);
         $$('#todayAvg').textContent = fmt2(qSum ? (aSum / qSum) : 0);
 
-        const noFloor = products.filter(p => calcFloor(purchases, p.id) == null).length;
+        // [優化] 使用快取數據
+        const noFloor = products.filter(p => cachedData.computed.get(p.id)?.floor == null).length;
         const blocked = audits.filter(a => a.policy === 'block' || a.policy === 'inventoryBlock').length;
         const adjusted = audits.filter(a => a.policy === 'autoAdjust').length;
         $$('#noFloorCount').textContent = noFloor;
         $$('#blockedCount').textContent = blocked;
         $$('#adjustedCount').textContent = adjusted;
 
-        // 低庫存 Top N（依庫存升序）
-        const list = products.map(p => ({ p, stock: calcStock(purchases, sales, p.id) })).sort((a, b) => a.stock - b.stock).slice(0, 5);
+        // [優化] 使用快取數據
+        const list = products.map(p => ({ p, stock: cachedData.computed.get(p.id)?.stock ?? 0 })).sort((a, b) => a.stock - b.stock).slice(0, 5);
         const tbody = $$('#lowStockTable tbody'); tbody.innerHTML = '';
         list.forEach(({ p, stock }) => {
           const tr = document.createElement('tr');
@@ -1776,7 +1828,9 @@
       async function init() {
         db = await idbOpen();
         updateDots();
-        const s = await getSettings();
+        // [優化] 載入設定後快取
+        cachedData.settings = await getSettings();
+        const s = cachedData.settings;
         // 套用主題
         setTheme(s.theme);
         $$('#themeSel').value = s.theme;
@@ -1789,7 +1843,7 @@
         // 初次引導：若無商品，放入示例 1 筆
         const products = await listProducts();
         if (products.length === 0) {
-          await add(STORES.PRODUCTS, { id: 1, code: 'S-001', name: '示例商品', unit: '件' });
+          await add(STORES.PRODUCTS, { code: 'S-001', name: '示例商品', unit: '件' });
         }
 
         await refreshAll();
@@ -1807,6 +1861,7 @@
             $$('#pCode').value = p.code;
             $$('#pName').value = p.name;
             $$('#pUnit').value = p.unit || '';
+            $$('#dlgProductTitle').textContent = '編輯商品'; // [修正] 確保標題正確
             openDlg('#dlgProduct');
           }
         });
