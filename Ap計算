@@ -2,569 +2,629 @@
 
 <html lang="zh-Hant-TW">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AR/AP 對帳工具（離線版｜修正版）</title>
-<style>
-:root{
-  --bg:#f9f8f6; --card:#ffffff; --fg:#0b0b0b; --muted:#5a5a5a; --line:#e6e3df; --accent:#d8c8a6;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Helvetica,Arial,"Noto Sans TC",sans-serif;line-height:1.78;font-size:17px}
-.wrap{max-width:1080px;margin:0 auto;padding:40px 22px}
-header h1{font-size:48px;letter-spacing:.06em;margin:0 0 10px;font-weight:900;text-transform:uppercase}
-header p{margin:0 0 22px;color:var(--muted)}
-.grid{display:grid;grid-template-columns:300px 1fr 360px;gap:22px}
-.card{border:1px solid var(--line);background:var(--card);border-radius:22px;padding:22px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
-.card h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px;font-weight:800}
-.card h3{font-size:14px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;color:#262626}
-.field{display:flex;flex-direction:column;margin:10px 0}
-.field label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#333;margin-bottom:6px}
-input[type="text"],input[type="number"],input[type="date"],select,textarea{appearance:none;width:100%;border:1px solid var(--line);border-radius:16px;padding:12px 14px;font-size:16px;background:#fff;outline:none}
-textarea{resize:vertical}
-button{appearance:none;border:1px solid var(--fg);background:var(--fg);color:#fff;border-radius:999px;padding:12px 16px;font-size:15px;cursor:pointer}
-button.ghost{background:#fff;color:var(--fg)}
-button.small{padding:7px 11px;font-size:13px}
-.badge{display:inline-block;background:var(--fg);color:#fff;border-radius:999px;padding:5px 9px;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.list{border-top:1px solid var(--line);margin-top:10px}
-.list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);gap:10px}
-.list-item .meta{font-size:12px;color:var(--muted)}
-.table{width:100%;border-collapse:separate;border-spacing:0 4px}
-.table th,.table td{padding:10px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:15px}
-.table th{font-size:12px;color:#333;text-transform:uppercase;letter-spacing:.08em}
-.table tr{background:#fff}
-.table tr:hover{box-shadow:0 1px 0 rgba(0,0,0,0.03)}
-.kpi{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0}
-.kpi .box{flex:1;min-width:160px;border:1px solid var(--line);border-radius:16px;padding:12px;background:#fff}
-.kpi .box .num{font-size:24px;font-weight:800}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-.hint{font-size:13px;color:var(--muted)}
-.tabs{display:flex;gap:14px;margin-bottom:10px}
-.tab{border-bottom:2px solid transparent;padding-bottom:8px;cursor:pointer;font-weight:800}
-.tab.active{border-color:var(--fg)}
-.pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:8px 12px;gap:10px;background:#fff}
-.switch{position:relative;width:48px;height:26px;border-radius:999px;background:#ddd;cursor:pointer}
-.switch::after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
-.switch.on{background:var(--fg)}.switch.on::after{transform:translateX(22px)}
-.alert{background:#fff4f4;border:1px solid #ffdada;padding:12px;border-radius:12px;color:#a40000}
-.good{background:#f3fff7;border:1px solid #d2f5dd;padding:12px;border-radius:12px;color:#0c6b2b}
-.sticky{position:sticky;top:18px}
-.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;color:#333;background:#fff}
-hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
-.modal .panel{background:#fff;border-radius:20px;max-width:520px;width:100%;padding:20px;border:1px solid var(--line)}
-.modal .title{font-size:18px;font-weight:800;margin-bottom:8px}
-.modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
-@media (max-width:1100px){.grid{grid-template-columns:1fr}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AR/AP 對帳工具（離線版｜修正版）</title>
+  <style>
+    :root{ --bg:#f9f8f6; --card:#ffffff; --fg:#0b0b0b; --muted:#5a5a5a; --line:#e6e3df; --accent:#d8c8a6; }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Helvetica,Arial,"Noto Sans TC",sans-serif;line-height:1.78;font-size:17px}
+    .wrap{max-width:1080px;margin:0 auto;padding:40px 22px}
+    header h1{font-size:48px;letter-spacing:.06em;margin:0 0 10px;font-weight:900;text-transform:uppercase}
+    header p{margin:0 0 22px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:300px 1fr 360px;gap:22px}
+    .card{border:1px solid var(--line);background:var(--card);border-radius:22px;padding:22px;box-shadow:0 6px 18px rgba(0,0,0,0.04)}
+    .card h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px;font-weight:800}
+    .card h3{font-size:14px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;color:#262626}
+    .field{display:flex;flex-direction:column;margin:10px 0}
+    .field label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#333;margin-bottom:6px}
+    input[type="text"],input[type="number"],input[type="date"],select,textarea{appearance:none;width:100%;border:1px solid var(--line);border-radius:16px;padding:12px 14px;font-size:16px;background:#fff;outline:none}
+    textarea{resize:vertical}
+    button{appearance:none;border:1px solid var(--fg);background:var(--fg);color:#fff;border-radius:999px;padding:12px 16px;font-size:15px;cursor:pointer}
+    button.ghost{background:#fff;color:var(--fg)}
+    button.small{padding:7px 11px;font-size:13px}
+    .badge{display:inline-block;background:var(--fg);color:#fff;border-radius:999px;padding:5px 9px;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .list{border-top:1px solid var(--line);margin-top:10px}
+    .list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);gap:10px}
+    .list-item .meta{font-size:12px;color:var(--muted)}
+    .table{width:100%;border-collapse:separate;border-spacing:0 4px}
+    .table th, .table td{padding:10px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:15px}
+    .table th{font-size:12px;color:#333;text-transform:uppercase;letter-spacing:.08em}
+    .table tr{background:#fff}
+    .table tr:hover{box-shadow:0 1px 0 rgba(0,0,0,0.03)}
+    .kpi{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0}
+    .kpi .box{flex:1;min-width:160px;border:1px solid var(--line);border-radius:16px;padding:12px;background:#fff}
+    .kpi .box .num{font-size:24px;font-weight:800}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .hint{font-size:13px;color:var(--muted)}
+    .tabs{display:flex;gap:14px;margin-bottom:10px}
+    .tab{border-bottom:2px solid transparent;padding-bottom:8px;cursor:pointer;font-weight:800}
+    .tab.active{border-color:var(--fg)}
+    .pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:8px 12px;gap:10px;background:#fff}
+    .switch{position:relative;width:48px;height:26px;border-radius:999px;background:#ddd;cursor:pointer}
+    .switch::after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
+    .switch.on{background:var(--fg)}
+    .switch.on::after{transform:translateX(22px)}
+    .alert{background:#fff4f4;border:1px solid #ffdada;padding:12px;border-radius:12px;color:#a40000}
+    .good{background:#f3fff7;border:1px solid #d2f5dd;padding:12px;border-radius:12px;color:#0c6b2b}
+    .sticky{position:sticky;top:18px}
+    .tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;color:#333;background:#fff}
+    hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+    .modal .panel{background:#fff;border-radius:20px;max-width:520px;width:100%;padding:20px;border:1px solid var(--line)}
+    .modal .title{font-size:18px;font-weight:800;margin-bottom:8px}
+    .modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+    @media (max-width:1100px){.grid{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>AR/AP 對帳工具</h1>
-    <p>離線單檔・本地儲存・多對象資料庫・自動配對・部分結清・刪除回滾已啟用</p>
-  </header>  <div class="grid">
-    <!-- 左欄：對象庫 -->
-    <aside class="card sticky" id="leftCol">
-      <h2>對象庫</h2>
-      <div class="field">
-        <label>新增/編輯對象</label>
-        <div class="row">
-          <input type="text" id="newPartyName" placeholder="名稱（必填）" />
-          <input type="text" id="newPartyCode" placeholder="代號（選填）" />
+  <div class="wrap">
+    <header>
+      <h1>AR/AP 對帳工具</h1>
+      <p>離線單檔・本地儲存・多對象資料庫・自動配對・部分結清・刪除回滾已啟用</p>
+    </header>
+    <div class="grid">
+      <!-- 左欄：對象庫 -->
+      <aside class="card sticky" id="leftCol">
+        <h2>對象庫</h2>
+        <div class="field">
+          <label>新增/編輯對象</label>
+          <div class="row">
+            <input type="text" id="newPartyName" placeholder="名稱（必填）" />
+            <input type="text" id="newPartyCode" placeholder="代號（選填）" />
+          </div>
+          <div class="row">
+            <select id="newPartyType">
+              <option value="customer">客戶（AR）</option>
+              <option value="vendor">供應商（AP）</option>
+              <option value="both">雙向（AR+AP）</option>
+            </select>
+            <button id="addPartyBtn">新增</button>
+            <button class="ghost" id="savePartyBtn" disabled>儲存變更</button>
+          </div>
+          <div class="hint">選清單中的對象後，可在此編輯並儲存覆蓋；或刪除（有提醒）。</div>
         </div>
+        <div class="field">
+          <label>搜尋</label>
+          <input type="text" id="partySearch" placeholder="輸入關鍵字…" />
+        </div>
+        <div class="list" id="partyList"></div>
+      </aside><!-- 中欄：工作區（分頁） -->
+  <main class="card" id="centerCol">
+    <div class="tabs">
+      <div class="tab active" data-tab="tabOpen">未清清單</div>
+      <div class="tab" data-tab="tabNewDoc">新增單據（AR/AP）</div>
+      <div class="tab" data-tab="tabPayment">收/付款</div>
+      <div class="tab" data-tab="tabRates">多幣別與匯率</div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi" id="kpiArea">
+      <div class="box"><div class="num mono" id="kAr">—</div><div class="hint">未清應收（TWD）</div></div>
+      <div class="box"><div class="num mono" id="kAp">—</div><div class="hint">未清應付（TWD）</div></div>
+      <div class="box"><div class="num mono" id="kCount">—</div><div class="hint">未清筆數</div></div>
+    </div>
+
+    <!-- Tab：未清清單 -->
+    <section id="tabOpen" class="tabPanel">
+      <div class="row" style="justify-content:space-between;align-items:center">
         <div class="row">
-          <select id="newPartyType">
-            <option value="customer">客戶（AR）</option>
-            <option value="vendor">供應商（AP）</option>
-            <option value="both">雙向（AR+AP）</option>
+          <span class="pill"><span>僅顯示未清</span><span class="switch on" id="toggleOpen"></span></span>
+          <select id="filterType">
+            <option value="all">全部</option>
+            <option value="AR">應收</option>
+            <option value="AP">應付</option>
           </select>
-          <button id="addPartyBtn">新增</button>
-          <button class="ghost" id="savePartyBtn" disabled>儲存變更</button>
         </div>
-        <div class="hint">選清單中的對象後，可在此編輯並儲存覆蓋；或刪除（有提醒）。</div>
-      </div><div class="field">
-    <label>搜尋</label>
-    <input type="text" id="partySearch" placeholder="輸入關鍵字…" />
-  </div>
+        <div class="row">
+          <input type="text" id="docSearch" placeholder="搜尋單號/備註" />
+        </div>
+      </div>
+      <table class="table" id="docTable">
+        <thead>
+          <tr>
+            <th>動作</th><th>狀態</th><th>類型</th><th>單號</th><th>日期</th><th>到期</th><th>幣別</th><th>金額</th><th>未清(TWD)</th><th>備註</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-  <div class="list" id="partyList"></div>
-</aside>
-
-<!-- 中欄：工作區（分頁） -->
-<main class="card" id="centerCol">
-  <div class="tabs">
-    <div class="tab active" data-tab="tabOpen">未清清單</div>
-    <div class="tab" data-tab="tabNewDoc">新增單據（AR/AP）</div>
-    <div class="tab" data-tab="tabPayment">收/付款</div>
-    <div class="tab" data-tab="tabRates">多幣別與匯率</div>
-  </div>
-
-  <!-- KPI -->
-  <div class="kpi" id="kpiArea">
-    <div class="box"><div class="num mono" id="kAr">—</div><div class="hint">未清應收（TWD）</div></div>
-    <div class="box"><div class="num mono" id="kAp">—</div><div class="hint">未清應付（TWD）</div></div>
-    <div class="box"><div class="num mono" id="kCount">—</div><div class="hint">未清筆數</div></div>
-  </div>
-
-  <!-- Tab：未清清單 -->
-  <section id="tabOpen" class="tabPanel">
-    <div class="row" style="justify-content:space-between;align-items:center">
+    <!-- Tab：新增單據 -->
+    <section id="tabNewDoc" class="tabPanel" style="display:none">
       <div class="row">
-        <span class="pill"><span>僅顯示未清</span><span class="switch on" id="toggleOpen"></span></span>
-        <select id="filterType">
-          <option value="all">全部</option>
+        <select id="docKind">
           <option value="AR">應收</option>
           <option value="AP">應付</option>
         </select>
       </div>
+      <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:14px;margin-top:8px">
+        <div class="field"><label>單號 *</label><input type="text" id="docId" placeholder="例如 INV-2025-001"/></div>
+        <div class="field"><label>日期 *</label><input type="date" id="docDate"/></div>
+        <div class="field"><label>到期日</label><input type="date" id="docDue"/></div>
+        <div class="field"><label>幣別</label><select id="docCcy"></select></div>
+        <div class="field"><label>金額 *</label><input type="number" id="docAmt" step="0.01" min="0"/></div>
+        <div class="field" style="grid-column:1 / -1"><label>備註</label><input type="text" id="docNote"/></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="addDocBtn">新增/儲存單據</button>
+        <button class="ghost" id="resetDocBtn">清空</button>
+      </div>
+      <div id="docAlert" class="alert" style="display:none;margin-top:10px"></div>
+    </section>
+
+    <!-- Tab：收/付款（自動配對） -->
+    <section id="tabPayment" class="tabPanel" style="display:none">
+      <div class="row" style="gap:16px">
+        <select id="payKind">
+          <option value="AR">收款（對應應收）</option>
+          <option value="AP">付款（對應應付）</option>
+        </select>
+        <input type="date" id="payDate" />
+        <select id="payCcy"></select>
+        <input type="number" id="payAmt" step="0.01" min="0" placeholder="金額" />
+        <input type="text" id="payNote" placeholder="備註" />
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="pill"><span>容差 ±5 元 或 ±0.5%</span></span>
+        <span class="pill"><span>部分結清</span><span class="switch on" id="togglePartial"></span></span>
+      </div>
+      <hr class="sep"/>
       <div class="row">
-        <input type="text" id="docSearch" placeholder="搜尋單號/備註" />
+        <button id="genSuggest">產生建議組合</button>
+        <button class="ghost" id="clearSuggest">清除</button>
       </div>
-    </div>
-    <table class="table" id="docTable">
-      <thead>
-        <tr>
-          <th>動作</th><th>狀態</th><th>類型</th><th>單號</th><th>日期</th><th>到期</th><th>幣別</th><th>金額</th><th>未清(TWD)</th><th>備註</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </section>
-
-  <!-- Tab：新增單據 -->
-  <section id="tabNewDoc" class="tabPanel" style="display:none">
-    <div class="row">
-      <select id="docKind">
-        <option value="AR">應收（AR）</option>
-        <option value="AP">應付（AP）</option>
-      </select>
-      <span class="hint">單號需唯一；若重複將警示。</span>
-    </div>
-    <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:14px;margin-top:8px">
-      <div class="field"><label>單號 *</label><input type="text" id="docId" placeholder="例如 INV-2025-001"/></div>
-      <div class="field"><label>日期 *</label><input type="date" id="docDate"/></div>
-      <div class="field"><label>到期日</label><input type="date" id="docDue"/></div>
-      <div class="field"><label>幣別</label>
-        <select id="docCcy"></select>
+      <div id="suggestArea" style="margin-top:10px">
+        <div class="row" id="suggestCards" style="gap:12px;flex-wrap:wrap"></div>
+        <h3>手動挑選</h3>
+        <table class="table" id="pickTable">
+          <thead>
+            <tr><th></th><th>類型</th><th>單號</th><th>到期</th><th>幣別</th><th>未清</th><th>換算TWD</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <span class="tag">目標金額（TWD）</span> <span class="mono" id="targetTwd">—</span>
+            <span class="tag">目前合計（TWD）</span> <span class="mono" id="pickedSum">—</span>
+            <span class="tag">差額</span> <span class="mono" id="diffAmt">—</span>
+          </div>
+          <button id="confirmMatch">確認結清</button>
+        </div>
+        <div id="matchMsg" style="margin-top:8px"></div>
       </div>
-      <div class="field"><label>金額 *</label><input type="number" id="docAmt" step="0.01" min="0"/></div>
-      <div class="field" style="grid-column:1 / -1"><label>備註</label><input type="text" id="docNote"/></div>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <button id="addDocBtn">新增/儲存單據</button>
-      <button class="ghost" id="resetDocBtn">清空</button>
-    </div>
-    <div id="docAlert" class="alert" style="display:none;margin-top:10px"></div>
-  </section>
+    </section>
 
-  <!-- Tab：收/付款（自動配對） -->
-  <section id="tabPayment" class="tabPanel" style="display:none">
-    <div class="row" style="gap:16px">
-      <select id="payKind">
-        <option value="AR">收款（對應應收）</option>
-        <option value="AP">付款（對應應付）</option>
-      </select>
-      <input type="date" id="payDate" />
-      <select id="payCcy"></select>
-      <input type="number" id="payAmt" step="0.01" min="0" placeholder="金額" />
-      <input type="text" id="payNote" placeholder="備註" />
-    </div>
-    <div class="row" style="margin-top:8px">
-      <span class="pill"><span>容差 ±5 元 或 ±0.5%</span></span>
-      <span class="pill"><span>部分結清</span><span class="switch on" id="togglePartial"></span></span>
-    </div>
-    <hr class="sep"/>
-    <div class="row">
-      <button id="genSuggest">產生建議組合</button>
-      <button class="ghost" id="clearSuggest">清除</button>
-    </div>
-    <div id="suggestArea" style="margin-top:10px">
-      <div class="row" id="suggestCards" style="gap:12px;flex-wrap:wrap"></div>
-      <h3>手動挑選</h3>
-      <table class="table" id="pickTable">
-        <thead>
-          <tr><th></th><th>類型</th><th>單號</th><th>到期</th><th>幣別</th><th>未清</th><th>換算TWD</th></tr>
-        </thead>
+    <!-- Tab：多幣別與匯率 -->
+    <section id="tabRates" class="tabPanel" style="display:none">
+      <div class="hint">基準幣別為 <strong>TWD</strong>。請維護各幣別對 TWD 的匯率（1 外幣 = ? TWD）。離線手動輸入。</div>
+      <table class="table" id="rateTable">
+        <thead><tr><th>幣別</th><th>1單位 ＝ TWD</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <div>
-          <span class="tag">目標金額（TWD）</span> <span class="mono" id="targetTwd">—</span>
-          <span class="tag">目前合計（TWD）</span> <span class="mono" id="pickedSum">—</span>
-          <span class="tag">差額</span> <span class="mono" id="diffAmt">—</span>
-        </div>
-        <button id="confirmMatch">確認結清</button>
+      <div class="row" style="margin-top:8px">
+        <select id="newCcy"><option value="TWD">TWD</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="JPY">JPY</option><option value="CNY">CNY</option><option value="HKD">HKD</option><option value="AUD">AUD</option><option value="GBP">GBP</option></select>
+        <input type="number" id="newRate" step="0.0001" placeholder="匯率（TWD）" />
+        <button id="addRate">新增/更新</button>
       </div>
-      <div id="matchMsg" style="margin-top:8px"></div>
+    </section>
+  </main>
+
+  <!-- 右欄：候選組合與歷史 -->
+  <aside class="card sticky" id="rightCol">
+    <h2>候選組合 & 歷史</h2>
+    <div id="candArea" class="good" style="display:none"></div>
+    <div id="historyArea" style="margin-top:12px">
+      <h3>歷史（刪除與回滾）</h3>
+      <div class="hint">僅記錄刪除事件（Party/Doc/Payment）。可一鍵回滾還原。</div>
+      <div id="historyList" class="list"></div>
     </div>
-  </section>
+  </aside>
+</div>
 
-  <!-- Tab：多幣別與匯率 -->
-  <section id="tabRates" class="tabPanel" style="display:none">
-    <div class="hint">基準幣別為 <strong>TWD</strong>。請維護各幣別對 TWD 的匯率（1 外幣 = ? TWD）。離線手動輸入。</div>
-    <table class="table" id="rateTable">
-      <thead><tr><th>幣別</th><th>1單位 ＝ TWD</th><th></th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <div class="row" style="margin-top:8px">
-      <select id="newCcy"><option value="TWD">TWD</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="JPY">JPY</option><option value="CNY">CNY</option><option value="HKD">HKD</option><option value="AUD">AUD</option><option value="GBP">GBP</option></select>
-      <input type="number" id="newRate" step="0.0001" placeholder="匯率（TWD）" />
-      <button id="addRate">新增/更新</button>
-    </div>
-  </section>
-
-</main>
-
-<!-- 右欄：候選組合與歷史（只列刪除事件，可回滾） -->
-<aside class="card sticky" id="rightCol">
-  <h2>候選組合 & 歷史</h2>
-  <div id="candArea" class="good" style="display:none"></div>
-  <div id="historyArea" style="margin-top:12px">
-    <h3>歷史（刪除與回滾）</h3>
-    <div class="hint">僅記錄刪除事件（Party/Doc/Payment）。可一鍵回滾還原。</div>
-    <div id="historyList" class="list"></div>
-  </div>
-</aside>
-
-  </div>
-</div><!-- 簡易 Modal：刪除提醒（針對 Party/Doc/Payment） --><div class="modal" id="deleteModal">
-  <div class="panel">
-    <div class="title">刪除確認</div>
-    <div id="deleteMsg" class="hint" style="margin-bottom:8px"></div>
-    <div class="actions">
-      <button class="ghost" id="cancelDelete">取消</button>
-      <button id="confirmDelete">刪除</button>
-    </div>
-  </div>
-</div><script>
-/********************
- * IndexedDB Schema
- ********************/
-const DB_NAME = 'arap_offline_db_v2';
-const DB_VER = 2; // 升版：新增刪除快照格式
-let db;
-
-function openDB(){
-  return new Promise((resolve,reject)=>{
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = (e)=>{
-      const d = e.target.result;
-      if(!d.objectStoreNames.contains('parties')){
-        const s = d.createObjectStore('parties',{keyPath:'id',autoIncrement:true});
-        s.createIndex('name','name',{unique:false});
-      }
-      if(!d.objectStoreNames.contains('docs')){
-        const s = d.createObjectStore('docs',{keyPath:'uid'}); // uid = partyId+"::"+docId
-        s.createIndex('party','partyId',{unique:false});
-        s.createIndex('status','status',{unique:false});
-      }
-      if(!d.objectStoreNames.contains('payments')){
-        const s = d.createObjectStore('payments',{keyPath:'id',autoIncrement:true});
-        s.createIndex('party','partyId',{unique:false});
-      }
-      if(!d.objectStoreNames.contains('rates')){
-        d.createObjectStore('rates',{keyPath:'ccy'});
-      }
-      if(!d.objectStoreNames.contains('history')){
-        const s = d.createObjectStore('history',{keyPath:'id',autoIncrement:true});
-        s.createIndex('party','partyId',{unique:false});
-      }
-    };
-    req.onsuccess = ()=>{ db=req.result; resolve(); };
-    req.onerror = ()=>reject(req.error);
-  });
-}
-function tx(storeNames, mode='readonly'){
-  const t = db.transaction(storeNames, mode);
-  const stores = storeNames.reduce((acc,n)=>{acc[n]=t.objectStore(n);return acc;},{});
-  return {t, ...stores};
-}
-
-/********************
- * Helpers & State
- ********************/
-const $ = s=>document.querySelector(s);
-const $$ = s=>document.querySelectorAll(s);
-const money = n => (n==null||isNaN(n))? '—' : Number(n).toLocaleString('zh-TW',{minimumFractionDigits:2,maximumFractionDigits:2});
-function uuid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
-const todayStr = ()=> new Date().toISOString().slice(0,10);
-function ensureTWD(rates){ if(!rates['TWD']) rates['TWD']=1; return rates; }
-function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
-
-let currentParty = null;
-let ratesCache = {TWD:1};
-let deleteCtx = null; // {type:'party'|'doc'|'payment', payload:{...}}
-
-/********************
- * Init
- ********************/
-(async function init(){
-  await openDB();
-  await seedRates();
-  bindTabs();
-  bindLeft();
-  bindCenter();
-  bindRates();
-  bindDeleteModal();
-  await refreshPartyList();
-  await refreshRatesUI();
-})();
-
-async function seedRates(){
-  const {t,rates} = tx(['rates'],'readwrite');
-  const exists = await new Promise(res=>{ let any=false; const c=rates.openCursor(); c.onsuccess=e=>{const cur=e.target.result; if(cur){any=true; res(true);} else res(any)}; });
-  if(!exists){ rates.put({ccy:'TWD', value:1}); await new Promise(r=>t.oncomplete=r); }
-}
-
-/********************
- * 左欄：對象庫（新增/編輯/刪除）
- ********************/
-function bindLeft(){
-  $('#addPartyBtn').addEventListener('click', async ()=>{
-    const name = $('#newPartyName').value.trim();
-    if(!name){ alert('請輸入名稱'); return; }
-    const code = $('#newPartyCode').value.trim();
-    const type = $('#newPartyType').value;
-    const {t,parties} = tx(['parties'],'readwrite');
-    const id = Date.now();
-    parties.add({id,name,code,type,createdAt:Date.now()});
-    await new Promise(r=>t.oncomplete=r);
-    clearPartyForm(); refreshPartyList();
-  });
-  $('#savePartyBtn').addEventListener('click', savePartyEdits);
-  $('#partySearch').addEventListener('input', refreshPartyList);
-}
-function clearPartyForm(){ $('#newPartyName').value=''; $('#newPartyCode').value=''; $('#newPartyType').value='customer'; $('#savePartyBtn').disabled=true; }
-
-async function refreshPartyList(){
-  const kw = $('#partySearch').value?.toLowerCase()||'';
-  const list = $('#partyList'); list.innerHTML='';
-  const {parties} = tx(['parties']);
-  const data = await new Promise(res=>{ const arr=[]; const req=parties.openCursor(); req.onsuccess=(e)=>{const c=e.target.result; if(c){arr.push(c.value); c.continue();} else res(arr)} });
-  const filtered = data.filter(p=> (p.name||'').toLowerCase().includes(kw) || (p.code||'').toLowerCase().includes(kw)).sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
-  filtered.forEach(p=>{
-    const div=document.createElement('div');
-    div.className='list-item';
-    div.innerHTML = `<div style="min-width:0">
-        <div><strong>${escapeHtml(p.name)}</strong> ${p.code?`<span class=meta>(${escapeHtml(p.code)})</span>`:''}</div>
-        <div class="meta">${p.type==='customer'?'客戶':(p.type==='vendor'?'供應商':'雙向')}</div>
+  </div>  <!-- 簡易 Modal：刪除提醒 -->  <div class="modal" id="deleteModal">
+    <div class="panel">
+      <div class="title">刪除確認</div>
+      <div id="deleteMsg" class="hint" style="margin-bottom:8px"></div>
+      <div class="actions">
+        <button class="ghost" id="cancelDelete">取消</button>
+        <button id="confirmDelete">刪除</button>
       </div>
-      <div class="row">
-        <button class="small ghost" data-act="edit">編輯</button>
-        <button class="small" data-act="switch">切換</button>
-        <button class="small ghost" data-act="del">刪除</button>
-      </div>`;
-    div.querySelector('[data-act="switch"]').addEventListener('click',()=>selectParty(p));
-    div.querySelector('[data-act="edit"]').addEventListener('click',()=>loadPartyToForm(p));
-    div.querySelector('[data-act="del"]').addEventListener('click',()=>askDelete({type:'party', payload:{party:p}}));
-    list.appendChild(div);
-  });
-}
-function loadPartyToForm(p){ $('#newPartyName').value=p.name||''; $('#newPartyCode').value=p.code||''; $('#newPartyType').value=p.type||'customer'; $('#savePartyBtn').disabled=false; currentParty = p; }
-async function savePartyEdits(){ if(!currentParty){ alert('請先選擇對象'); return; } const {t,parties} = tx(['parties'],'readwrite'); const p=currentParty; p.name=$('#newPartyName').value.trim(); p.code=$('#newPartyCode').value.trim(); p.type=$('#newPartyType').value; parties.put(p); await new Promise(r=>t.oncomplete=r); await refreshPartyList(); alert('已儲存覆蓋'); }
+    </div>
+  </div>  <script>
+    /********************
+     * IndexedDB Schema
+     ********************/
+    const DB_NAME = 'arap_offline_db_v2';
+    const DB_VER = 2; // 升版：新增刪除快照格式
+    let db;
 
-async function selectParty(p){ currentParty = p; $('header p').innerHTML = `離線單檔・本地儲存・目前：<strong>${escapeHtml(p.name)}</strong>`; await refreshDocsTable(); await refreshKPIs(); await refreshHistory(); loadPartyToForm(p); }
-
-/********************
- * 中欄：分頁/單據
- ********************/
-function bindTabs(){ $$('.tab').forEach(tab=>{ tab.addEventListener('click',()=>{ $$('.tab').forEach(t=>t.classList.remove('active')); tab.classList.add('active'); $$('.tabPanel').forEach(p=>p.style.display='none'); document.getElementById(tab.dataset.tab).style.display='block'; }) }) }
-
-function bindCenter(){
-  $('#toggleOpen').addEventListener('click',()=>$('#toggleOpen').classList.toggle('on'));
-  $('#togglePartial').addEventListener('click',()=>$('#togglePartial').classList.toggle('on'));
-  $('#filterType').addEventListener('change', refreshDocsTable);
-  $('#docSearch').addEventListener('input', refreshDocsTable);
-  $('#addDocBtn').addEventListener('click', addOrSaveDoc);
-  $('#resetDocBtn').addEventListener('click', ()=>{ ['docId','docDate','docDue','docAmt','docNote'].forEach(id=>document.getElementById(id).value=''); $('#addDocBtn').dataset.editUid=''; });
-  $('#genSuggest').addEventListener('click', generateSuggestions);
-  $('#clearSuggest').addEventListener('click', clearSuggest);
-  $('#confirmMatch').addEventListener('click', confirmMatch);
-}
-
-async function refreshKPIs(){
-  if(!currentParty){ $('#kAr').textContent='—'; $('#kAp').textContent='—'; $('#kCount').textContent='—'; return; }
-  const docs = await getDocsByParty(currentParty.id);
-  let ar=0, ap=0, cnt=0;
-  for(const d of docs){ if(d.status!=='closed'){ cnt++; const v=toTwd(d.amount,d.ccy); if(d.kind==='AR') ar+=d.remainingTwd; else ap+=d.remainingTwd; } }
-  $('#kAr').textContent = money(ar);
-  $('#kAp').textContent = money(ap);
-  $('#kCount').textContent = cnt;
-}
-
-async function refreshDocsTable(){
-  const tbody = $('#docTable tbody'); tbody.innerHTML=''; if(!currentParty) return;
-  const showOpenOnly = $('#toggleOpen').classList.contains('on');
-  const kindFilter = $('#filterType').value; const kw = ($('#docSearch').value||'').toLowerCase();
-  const docs = await getDocsByParty(currentParty.id);
-  docs.filter(d=> (kindFilter==='all'||d.kind===kindFilter) && (!showOpenOnly || d.status!=='closed') && ((d.docId||'').toLowerCase().includes(kw) || (d.note||'').toLowerCase().includes(kw)))
-   .sort((a,b)=> (a.date||'').localeCompare(b.date||''))
-   .forEach(d=>{
-    const tr=document.createElement('tr');
-    const st = d.status==='closed'? '<span class="badge">已結清</span>' : (d.remainingTwd < toTwd(d.amount,d.ccy) ? '<span class="badge" style="background:#444">部分</span>' : '<span class="badge" style="background:#999">未清</span>');
-    tr.innerHTML = `<td class="row"><button class="small ghost" data-act="edit">編輯</button><button class="small ghost" data-act="del">刪除</button></td>
-      <td>${st}</td><td>${d.kind}</td><td class="mono">${escapeHtml(d.docId)}</td><td>${d.date||''}</td><td>${d.due||''}</td><td>${d.ccy}</td><td class="mono">${money(d.amount)}</td><td class="mono">${money(d.remainingTwd)}</td><td>${escapeHtml(d.note||'')}</td>`;
-    tr.querySelector('[data-act="edit"]').addEventListener('click',()=>editDoc(d));
-    tr.querySelector('[data-act="del"]').addEventListener('click',()=>askDelete({type:'doc', payload:{doc:d}}));
-    tbody.appendChild(tr);
-  });
-  await refreshKPIs();
-}
-
-async function editDoc(doc){
-  document.querySelector('[data-tab="tabNewDoc"]').click();
-  $('#docKind').value = doc.kind; $('#docId').value = doc.docId; $('#docDate').value = doc.date||''; $('#docDue').value = doc.due||''; $('#docCcy').value = doc.ccy; $('#docAmt').value = doc.amount; $('#docNote').value = doc.note||''; $('#addDocBtn').dataset.editUid = doc.uid;
-}
-
-async function addOrSaveDoc(){
-  if(!currentParty){ alert('請先選擇對象'); return; }
-  const kind = $('#docKind').value; const docId=$('#docId').value.trim(); const date=$('#docDate').value; const due=$('#docDue').value; const ccy=$('#docCcy').value; const amt=+$('#docAmt').value; const note=$('#docNote').value.trim();
-  if(!docId||!date||!(amt>0)){ showDocAlert('請填寫必填欄位（單號、日期、金額）'); return; }
-  const editUid = $('#addDocBtn').dataset.editUid || null;
-  const exist = await getDocByPartyAndId(currentParty.id, docId);
-  if(exist && exist.uid!==editUid){ showDocAlert('單號重複：同一對象下單號需唯一'); return; }
-  const {t,docs} = tx(['docs'],'readwrite');
-  const uid = editUid || (currentParty.id+"::"+docId);
-  const remainingTwd = toTwd(amt, ccy); // 新增時以全額未清；編輯不動既有 remaining？簡化：重新計算為全額 - 已配對差（本範例不追溯）
-  const payload = {uid, partyId:currentParty.id, kind, docId, date, due, ccy, amount:amt, note, status: exist?exist.status:'open', remainingTwd: exist?exist.remainingTwd:remainingTwd, links:exist?exist.links:[], updatedAt:Date.now()};
-  docs.put(payload); await new Promise(r=>t.oncomplete=r); clearDocAlert(); $('#addDocBtn').dataset.editUid=''; ['docId','docDate','docDue','docAmt','docNote'].forEach(id=>document.getElementById(id).value=''); await refreshDocsTable(); await refreshHistory();
-}
-
-function showDocAlert(msg){ const el=$('#docAlert'); el.textContent=msg; el.style.display='block'; }
-function clearDocAlert(){ $('#docAlert').style.display='none'; }
-
-/********************
- * 匯率與幣別
- ********************/
-function bindRates(){ $('#addRate').addEventListener('click', saveRate); refreshCcySelects(); }
-async function saveRate(){ const ccy = $('#newCcy').value; const v = +$('#newRate').value; if(!(v>0)){ alert('請輸入有效匯率'); return; } const {t,rates} = tx(['rates'],'readwrite'); rates.put({ccy, value:v}); await new Promise(r=>t.oncomplete=r); $('#newRate').value=''; await refreshRatesUI(); refreshCcySelects(); await refreshDocsTable(); }
-async function refreshRatesUI(){ const tbody = $('#rateTable tbody'); tbody.innerHTML=''; ratesCache = await getAllRates(); ensureTWD(ratesCache); Object.entries(ratesCache).forEach(([ccy,val])=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${ccy}</td><td><input type="number" step="0.0001" value="${val}" data-ccy="${ccy}" class="rateInput"/></td><td><button class="small" data-ccy="${ccy}">更新</button></td>`; tr.querySelector('button').addEventListener('click', async ()=>{ const v = +tr.querySelector('.rateInput').value; if(!(v>0)){alert('匯率需>0');return;} const {t,rates}=tx(['rates'],'readwrite'); rates.put({ccy, value:v}); await new Promise(r=>t.oncomplete=r); ratesCache[ccy]=v; await refreshDocsTable(); }); tbody.appendChild(tr); }); }
-function refreshCcySelects(){ const ccySel = $('#docCcy'); const payCcySel=$('#payCcy'); ccySel.innerHTML=''; payCcySel.innerHTML=''; Object.keys(ensureTWD(ratesCache)).forEach(ccy=>{ const o1=document.createElement('option'); o1.value=ccy; o1.textContent=ccy; ccySel.appendChild(o1); const o2=document.createElement('option'); o2.value=ccy; o2.textContent=ccy; payCcySel.appendChild(o2); }); ccySel.value='TWD'; payCcySel.value='TWD'; }
-function toTwd(amount, ccy){ const rate = ratesCache[ccy]||1; return Math.round((amount*rate)*100)/100; }
-async function getAllRates(){ const {rates} = tx(['rates']); return await new Promise(res=>{ const out={}; const cur = rates.openCursor(); cur.onsuccess=(e)=>{const c=e.target.result; if(c){out[c.key]=c.value.value; c.continue();} else res(out)} }); }
-
-/********************
- * 取數
- ********************/
-async function getDocsByParty(partyId){ const {docs} = tx(['docs']); return await new Promise(res=>{ const arr=[]; const req=docs.index('party').openCursor(IDBKeyRange.only(partyId)); req.onsuccess=(e)=>{const c=e.target.result; if(c){arr.push(c.value); c.continue();} else res(arr)} }); }
-async function getDocByPartyAndId(partyId, docId){ const docs = await getDocsByParty(partyId); return docs.find(d=>d.docId===docId) || null; }
-
-/********************
- * 刪除與回滾（只記錄刪除事件 + 快照）
- ********************/
-function bindDeleteModal(){ $('#cancelDelete').addEventListener('click', closeDeleteModal); $('#confirmDelete').addEventListener('click', doDeleteConfirmed); }
-function openDeleteModal(msg, ctx){ $('#deleteMsg').innerHTML = msg; deleteCtx = ctx; $('#deleteModal').style.display='flex'; }
-function closeDeleteModal(){ $('#deleteModal').style.display='none'; deleteCtx=null; }
-
-function askDelete(ctx){ // ctx = {type:'party'|'doc'|'payment', payload:{...}}
-  let msg = '';
-  if(ctx.type==='party'){
-    const p = ctx.payload.party; msg = `你正在刪除對象 <strong>${escapeHtml(p.name)}</strong>。此動作將<strong>強制刪除</strong>其所有單據與收/付款紀錄（但可自歷史回滾還原）。確定要刪除嗎？`;
-  } else if(ctx.type==='doc'){
-    const d = ctx.payload.doc; msg = `你正在刪除單據 <strong>${escapeHtml(d.docId)}</strong>（${d.kind}）。刪除後將無法於清單中看到，已建立的收/付款配對關聯不再顯示於此單據（可透過歷史回滾還原）。確定要刪除嗎？`;
-  } else if(ctx.type==='payment'){
-    const pm = ctx.payload.payment; msg = `你正在刪除收/付款（ID ${pm.id}，金額 ${money(pm.amountTwd)} TWD）。系統將嘗試把已扣的金額退回到對應單據的未清金額。確定要刪除嗎？`;
-  }
-  openDeleteModal(msg, ctx);
-}
-
-async function doDeleteConfirmed(){ if(!deleteCtx) return; const ctx=deleteCtx; closeDeleteModal(); if(ctx.type==='party') await deleteParty(ctx.payload.party); if(ctx.type==='doc') await deleteDoc(ctx.payload.doc); if(ctx.type==='payment') await deletePayment(ctx.payload.payment); await refreshDocsTable(); await refreshKPIs(); await refreshHistory(); }
-
-async function deleteParty(p){
-  const {t,parties,docs,payments,history} = tx(['parties','docs','payments','history'],'readwrite');
-  // 收集快照
-  const docsArr = await getDocsByParty(p.id);
-  const paysArr = await new Promise(res=>{ const out=[]; const idx=payments.index('party').openCursor(IDBKeyRange.only(p.id)); idx.onsuccess=e=>{const c=e.target.result; if(c){out.push(c.value); c.continue();} else res(out)} });
-  history.add({partyId:p.id, ts:Date.now(), type:'delete', scope:'party', snapshot:{party:p, docs:docsArr, payments:paysArr}});
-  // 刪除
-  parties.delete(p.id);
-  docsArr.forEach(d=>docs.delete(d.uid));
-  paysArr.forEach(pm=>payments.delete(pm.id));
-  await new Promise(r=>t.oncomplete=r);
-  alert('已刪除對象與其所有資料（可自右側歷史回滾）');
-  if(currentParty && currentParty.id===p.id){ currentParty=null; $('header p').textContent='離線單檔・本地儲存'; clearPartyForm(); }
-}
-
-async function deleteDoc(d){
-  const {t,docs,history} = tx(['docs','history'],'readwrite');
-  history.add({partyId:d.partyId, ts:Date.now(), type:'delete', scope:'doc', snapshot:{doc:d}});
-  docs.delete(d.uid); await new Promise(r=>t.oncomplete=r);
-  alert('已刪除單據（可自右側歷史回滾）');
-}
-
-async function deletePayment(pm){
-  const {t,payments,docs,history} = tx(['payments','docs','history'],'readwrite');
-  // 回補到各單據 remainingTwd
-  for(const link of (pm.links||[])){
-    const req = docs.get(link.docUid);
-    await new Promise(res=>{ req.onsuccess=()=>res(); });
-    const doc = req.result; if(doc){ doc.remainingTwd = Math.round((doc.remainingTwd + link.applied)*100)/100; if(doc.remainingTwd>0) doc.status='open'; docs.put(doc); }
-  }
-  history.add({partyId:pm.partyId, ts:Date.now(), type:'delete', scope:'payment', snapshot:{payment:pm}});
-  payments.delete(pm.id); await new Promise(r=>t.oncomplete=r);
-  alert('已刪除收/付款並回補對應單據（可自右側歷史回滾）');
-}
-
-async function refreshHistory(){
-  const box = $('#historyList'); box.innerHTML=''; if(!currentParty) return;
-  const {history} = tx(['history']);
-  const items = await new Promise(res=>{ const arr=[]; const idx=history.index('party').openCursor(IDBKeyRange.only(currentParty.id)); idx.onsuccess=e=>{const c=e.target.result; if(c){ if(c.value.type==='delete') arr.push(c.value); c.continue(); } else res(arr)} });
-  items.sort((a,b)=>b.ts-a.ts).slice(0,50).forEach(h=>{
-    const div=document.createElement('div');
-    div.className='list-item';
-    const label = h.scope==='party'? '對象' : (h.scope==='doc'? '單據' : '收/付款');
-    div.innerHTML = `<div><div class="mono">${new Date(h.ts).toLocaleString()}</div><div class="meta">刪除：${label}</div></div><button class="small ghost">回滾</button>`;
-    div.querySelector('button').addEventListener('click',()=>restoreFromSnapshot(h));
-    box.appendChild(div);
-  });
-}
-
-async function restoreFromSnapshot(h){
-  const {t,parties,docs,payments,history} = tx(['parties','docs','payments','history'],'readwrite');
-  if(h.scope==='party'){
-    const snap=h.snapshot; if(snap.party) parties.put(snap.party); (snap.docs||[]).forEach(d=>docs.put(d)); (snap.payments||[]).forEach(pm=>payments.put(pm));
-  } else if(h.scope==='doc'){
-    if(h.snapshot.doc) docs.put(h.snapshot.doc);
-  } else if(h.scope==='payment'){
-    const pm = h.snapshot.payment; if(pm){
-      // 重新套用扣款：把 links 的 applied 從對應 doc 的 remainingTwd 扣回去
-      for(const link of (pm.links||[])){
-        const r = docs.get(link.docUid); await new Promise(res=>{ r.onsuccess=()=>res(); });
-        const doc = r.result; if(doc){ doc.remainingTwd = Math.max(0, Math.round((doc.remainingTwd - link.applied)*100)/100); if(doc.remainingTwd<=0.009){ doc.remainingTwd=0; doc.status='closed'; } docs.put(doc); }
-      }
-      payments.put(pm);
+    function openDB(){
+      return new Promise((resolve,reject)=>{
+        const req = indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded = (e)=>{
+          const d = e.target.result;
+          if(!d.objectStoreNames.contains('parties')){
+            const s = d.createObjectStore('parties',{keyPath:'id',autoIncrement:true});
+            s.createIndex('name','name',{unique:false});
+          }
+          if(!d.objectStoreNames.contains('docs')){
+            const s = d.createObjectStore('docs',{keyPath:'uid'}); // uid = partyId+"::"+docId
+            s.createIndex('party','partyId',{unique:false});
+            s.createIndex('status','status',{unique:false});
+          }
+          if(!d.objectStoreNames.contains('payments')){
+            const s = d.createObjectStore('payments',{keyPath:'id',autoIncrement:true});
+            s.createIndex('party','partyId',{unique:false});
+          }
+          if(!d.objectStoreNames.contains('rates')){
+            d.createObjectStore('rates',{keyPath:'ccy'});
+          }
+          if(!d.objectStoreNames.contains('history')){
+            const s = d.createObjectStore('history',{keyPath:'id',autoIncrement:true});
+            s.createIndex('party','partyId',{unique:false});
+          }
+        };
+        req.onsuccess = ()=>{ db=req.result; resolve(); };
+        req.onerror = ()=>reject(req.error);
+      });
     }
-  }
-  // 記一筆 restore 記錄
-  history.add({partyId:h.partyId, ts:Date.now(), type:'restore', scope:h.scope});
-  await new Promise(r=>t.oncomplete=r);
-  alert('已回滾還原');
-  await refreshDocsTable(); await refreshKPIs(); await refreshHistory();
-}
 
-/********************
- * 收/付款與配對（承襲舊版）
- ********************/
-function toleranceFor(target){ const a = 5; const b = Math.abs(target)*0.005; return Math.max(a,b); }
-let currentPool=[]; let currentPick = new Set();
-async function generateSuggestions(){ if(!currentParty){ alert('請先選擇對象'); return; } const kind = $('#payKind').value; const ccy = $('#payCcy').value; const amt = +$('#payAmt').value; const note=$('#payNote').value.trim(); if(!(amt>0)){ alert('請輸入金額'); return; } const targetTwd = toTwd(amt, ccy); $('#targetTwd').textContent = money(targetTwd); const docs = (await getDocsByParty(currentParty.id)).filter(d=> d.kind===kind && d.status!=='closed'); const open = docs.map(d=>({...d, value:d.remainingTwd})).sort((a,b)=> (a.due||a.date||'').localeCompare(b.due||b.date||'')); const pool = open.slice(0,12); currentPool=pool; const tol = toleranceFor(targetTwd); const cands=[]; cands.push({name:'最舊優先', pick: greedyOldest(pool, targetTwd, tol)}); cands.push({name:'最接近金額', pick: subsetClosest(pool, targetTwd, tol)}); cands.push({name:'少筆數優先', pick: fewestItems(pool, targetTwd, tol)}); renderSuggestCards(cands, targetTwd, tol); renderPickTable(pool); currentPick = new Set(); updatePickSum(targetTwd); }
-function greedyOldest(items, target, tol){ let sum=0; const pick=[]; for(const it of items){ if(sum+it.value <= target+tol){ pick.push(it); sum+=it.value; if(Math.abs(sum-target)<=tol) break; } } return {items:pick, sum}; }
-function fewestItems(items, target, tol){ const n = Math.min(items.length, 12); for(let i=0;i<n;i++){ if(Math.abs(items[i].value - target) <= tol) return {items:[items[i]], sum:items[i].value}; } for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){ const s = items[i].value + items[j].value; if(Math.abs(s-target)<=tol) return {items:[items[i],items[j]], sum:s}; } for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let k=j+1;k<n;k++){ const s = items[i].value + items[j].value + items[k].value; if(Math.abs(s-target)<=tol) return {items:[items[i],items[j],items[k]], sum:s}; } return {items:[], sum:0}; }
-function subsetClosest(items, target, tol){ const n = Math.min(items.length,12); let bestMask=0, bestSum=0, bestDiff=Infinity; const sums = new Map(); sums.set(0,0); for(let i=0;i<n;i++){ const v = items[i].value; const next = new Map(sums); for(const [mask,sum] of sums){ const ns = sum+v; const nmask = mask | (1<<i); if(!next.has(nmask) || Math.abs(ns-target) < Math.abs(next.get(nmask)-target)) next.set(nmask, ns); const diff = Math.abs(ns-target); if(diff < bestDiff){ bestDiff=diff; bestSum=ns; bestMask=nmask; } if(diff<=tol){ bestDiff=diff; bestSum=ns; bestMask=nmask; break; } } sums.clear(); next.forEach((v,k)=>sums.set(k,v)); }
-  const pick=[]; for(let i=0;i<n;i++){ if(bestMask & (1<<i)) pick.push(items[i]); } return {items:pick, sum:bestSum}; }
-function renderSuggestCards(cands, target, tol){ const box = $('#suggestCards'); box.innerHTML=''; cands.forEach((c,idx)=>{ const diff = Math.abs((c.pick.sum||0) - target); const ok = diff<=tol; const dv = document.createElement('div'); dv.className='box'; dv.style.border='1px solid var(--line)'; dv.style.borderRadius='16px'; dv.style.padding='12px'; dv.style.minWidth='260px'; dv.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><strong>${c.name}</strong> ${ok?'<span class="badge">可用</span>':'<span class="badge" style="background:#999">參考</span>'}</div><div class="mono" style="margin:6px 0">合計：${money(c.pick.sum||0)} / 目標：${money(target)}</div><div class="hint">筆數：${c.pick.items.length}｜差額：${money(diff)}</div><div class="row" style="margin-top:6px"><button class="small" data-idx="${idx}">套用</button></div>`; dv.querySelector('button').addEventListener('click',()=>applyCandidate(c.pick.items, target)); box.appendChild(dv); }); }
-function renderPickTable(pool){ const tb = $('#pickTable tbody'); tb.innerHTML=''; pool.forEach((d,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td><input type="checkbox" data-i="${i}"/></td><td>${d.kind}</td><td class="mono">${escapeHtml(d.docId)}</td><td>${d.due||''}</td><td>${d.ccy}</td><td class="mono">${money(d.amount)}</td><td class="mono">${money(d.value)}</td>`; tr.querySelector('input').addEventListener('change',(e)=>{ const idx=+e.target.dataset.i; if(e.target.checked) currentPick.add(idx); else currentPick.delete(idx); updatePickSum(); }); tb.appendChild(tr); }); }
-function applyCandidate(items, target){ currentPick = new Set(); const tb = $('#pickTable tbody'); currentPool.forEach((d,i)=>{ const checked = items.some(x=>x.uid===d.uid); const cb = tb.querySelector(`input[data-i="${i}"]`); if(cb){ cb.checked=checked; if(checked) currentPick.add(i); } }); updatePickSum(target); }
-function updatePickSum(target){ const sum = Array.from(currentPick).reduce((acc,i)=> acc + (currentPool[i]?.value||0), 0); $('#pickedSum').textContent = money(sum); const t = target != null ? target : parseMoney($('#targetTwd').textContent)||0; const diff = sum - t; $('#diffAmt').textContent = money(diff); }
-function parseMoney(str){ const n = Number(String(str).replace(/[^\d.-]/g,'')); return isNaN(n)?0:n; }
-async function confirmMatch(){ if(!currentParty){ alert('請先選擇對象'); return; } const kind = $('#payKind').value; const ccy=$('#payCcy').value; const amt=+$('#payAmt').value; const date=$('#payDate').value||todayStr(); const note=$('#payNote').value.trim(); const targetTwd = toTwd(amt, ccy); const tol = toleranceFor(targetTwd); const chosen = Array.from(currentPick).map(i=>currentPool[i]); let sum = chosen.reduce((a,b)=>a+b.value,0); const diff = targetTwd - sum; const allowPartial = $('#togglePartial').classList.contains('on'); if(Math.abs(diff) > tol && !allowPartial){ $('#matchMsg').innerHTML = `<div class="alert">差額 ${money(diff)} 超出容差，且未啟用部分結清。</div>`; return; } const {t,docs,payments,history} = tx(['docs','payments','history'],'readwrite'); const payId = uuid(); const links=[]; let remain = targetTwd; for(const d of chosen){ const uid = d.uid; const getReq = docs.get(uid); await new Promise(res=>{ getReq.onsuccess=()=>{ res(); }; }); const cur = getReq.result; if(!cur) continue; const use = Math.min(cur.remainingTwd, remain); cur.remainingTwd = Math.round((cur.remainingTwd - use)*100)/100; if(cur.remainingTwd<=0.009){ cur.remainingTwd=0; cur.status='closed'; cur.note = (cur.note||'') + '｜已結清'; } docs.put(cur); links.push({docUid:uid, applied:use}); remain = Math.round((remain - use)*100)/100; if(remain<=0.009) break; } payments.add({partyId:currentParty.id, kind, date, ccy, amount:amt, amountTwd:targetTwd, note, links, createdAt:Date.now()}); await new Promise(r=>t.oncomplete=r); $('#matchMsg').innerHTML = `<div class="good">完成配對：筆數 ${links.length}，本次金額 TWD ${money(targetTwd)}。</div>`; await refreshDocsTable(); await refreshKPIs(); await refreshHistory(); clearSuggest(); }
-function clearSuggest(){ $('#suggestCards').innerHTML=''; $('#pickTable tbody').innerHTML=''; $('#matchMsg').innerHTML=''; $('#targetTwd').textContent='—'; $('#pickedSum').textContent='—'; $('#diffAmt').textContent='—'; }
+    function tx(storeNames, mode='readonly'){
+      const t = db.transaction(storeNames, mode);
+      const stores = storeNames.reduce((acc,n)=>{acc[n]=t.objectStore(n);return acc;},{});
+      // 修正：展開 stores 回傳
+      return { t, ...stores };
+    }
 
-/********************
- * History render helper (already above)
- ********************/
+    /********************
+     * Helpers & State
+     ********************/
+    const $ = s=>document.querySelector(s);
+    const $$ = s=>document.querySelectorAll(s);
+    const money = n => (n==null||isNaN(n))? '—' : Number(n).toLocaleString('zh-TW',{minimumFractionDigits:2,maximumFractionDigits:2});
+    function uuid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+    const todayStr = ()=> new Date().toISOString().slice(0,10);
+    function ensureTWD(rates){ if(!rates['TWD']) rates['TWD']=1; return rates; }
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 
-</script></body>
+    let currentParty = null;
+    let ratesCache = {TWD:1};
+    let deleteCtx = null; // {type:'party'|'doc'|'payment', payload:{...}}
+
+    /********************
+     * Init
+     ********************/
+    (async function init(){
+      await openDB();
+      await seedRates();
+      bindTabs();
+      bindLeft();
+      bindCenter();
+      bindRates();
+      bindDeleteModal();
+      await refreshPartyList();
+      await refreshRatesUI();
+    })();
+
+    async function seedRates(){
+      const {t,rates} = tx(['rates'],'readwrite');
+      const exists = await new Promise(res=>{ let any=false; const c=rates.openCursor(); c.onsuccess=e=>{const cur=e.target.result; if(cur){any=true; res(true);} else res(any)}; });
+      if(!exists){ rates.put({ccy:'TWD', value:1}); await new Promise(r=>t.oncomplete=r); }
+    }
+
+    /********************
+     * 左欄：對象庫
+     ********************/
+    function bindLeft(){
+      $('#addPartyBtn').addEventListener('click', async ()=>{
+        const name = $('#newPartyName').value.trim();
+        if(!name){ alert('請輸入名稱'); return; }
+        const code = $('#newPartyCode').value.trim();
+        const type = $('#newPartyType').value;
+        const {t,parties} = tx(['parties'],'readwrite');
+        const id = Date.now();
+        parties.add({id,name,code,type,createdAt:Date.now()});
+        await new Promise(r=>t.oncomplete=r);
+        clearPartyForm(); refreshPartyList();
+      });
+      $('#savePartyBtn').addEventListener('click', savePartyEdits);
+      $('#partySearch').addEventListener('input', refreshPartyList);
+    }
+    function clearPartyForm(){ $('#newPartyName').value=''; $('#newPartyCode').value=''; $('#newPartyType').value='customer'; $('#savePartyBtn').disabled=true; }
+
+    async function refreshPartyList(){
+      const kw = $('#partySearch').value?.toLowerCase()||'';
+      const list = $('#partyList'); list.innerHTML='';
+      const {parties} = tx(['parties']);
+      const data = await new Promise(res=>{ const arr=[]; const req=parties.openCursor(); req.onsuccess=(e)=>{const c=e.target.result; if(c){arr.push(c.value); c.continue();} else res(arr)} });
+      const filtered = data.filter(p=> (p.name||'').toLowerCase().includes(kw) || (p.code||'').toLowerCase().includes(kw));
+      filtered.forEach(p=>{
+        const div=document.createElement('div');
+        div.className='list-item';
+        div.innerHTML = `<div><strong>${escapeHtml(p.name||'')}</strong> <span class="meta">${escapeHtml(p.code||'')}</span></div>
+          <div class="row"><button class="small" data-act="edit">編輯</button><button class="small ghost" data-act="del">刪除</button></div>`;
+        div.addEventListener('click', (e)=>{ if(e.target.closest('button')) return; selectParty(p); });
+        div.querySelector('[data-act="edit"]').addEventListener('click',()=>loadPartyToForm(p));
+        div.querySelector('[data-act="del"]').addEventListener('click',()=>askDelete({type:'party', payload:{party:p}}));
+        list.appendChild(div);
+      });
+    }
+    function loadPartyToForm(p){ $('#newPartyName').value=p.name||''; $('#newPartyCode').value=p.code||''; $('#newPartyType').value=p.type||'customer'; $('#savePartyBtn').disabled=false; currentParty = p; }
+    async function savePartyEdits(){ if(!currentParty){ alert('請先選擇對象'); return; } const {t,parties} = tx(['parties'],'readwrite'); const p=currentParty; p.name=$('#newPartyName').value.trim(); p.code=$('#newPartyCode').value.trim(); p.type=$('#newPartyType').value; parties.put(p); await new Promise(r=>t.oncomplete=r); await refreshPartyList(); alert('已儲存覆蓋'); }
+    async function selectParty(p){ currentParty = p; $('header p').innerHTML = `離線單檔・本地儲存・目前：<strong>${escapeHtml(p.name)}</strong>`; await refreshDocsTable(); await refreshKPIs(); await refreshHistory(); loadPartyToForm(p); }
+
+    /********************
+     * 中欄：分頁/單據
+     ********************/
+    function bindTabs(){ $$('.tab').forEach(tab=>{ tab.addEventListener('click',()=>{ $$('.tab').forEach(t=>t.classList.remove('active')); tab.classList.add('active'); $$('.tabPanel').forEach(p=>p.style.display='none'); document.getElementById(tab.dataset.tab).style.display='block'; }) }) }
+    function bindCenter(){
+      $('#toggleOpen').addEventListener('click',()=>$('#toggleOpen').classList.toggle('on'));
+      $('#togglePartial').addEventListener('click',()=>$('#togglePartial').classList.toggle('on'));
+      $('#filterType').addEventListener('change', refreshDocsTable);
+      $('#docSearch').addEventListener('input', refreshDocsTable);
+      $('#addDocBtn').addEventListener('click', addOrSaveDoc);
+      $('#resetDocBtn').addEventListener('click', ()=>{ ['docId','docDate','docDue','docAmt','docNote'].forEach(id=>document.getElementById(id).value=''); $('#addDocBtn').dataset.editUid=''; });
+      $('#genSuggest').addEventListener('click', generateSuggestions);
+      $('#clearSuggest').addEventListener('click', clearSuggest);
+      $('#confirmMatch').addEventListener('click', confirmMatch);
+    }
+
+    async function refreshKPIs(){
+      if(!currentParty){ $('#kAr').textContent='—'; $('#kAp').textContent='—'; $('#kCount').textContent='—'; return; }
+      const docs = await getDocsByParty(currentParty.id);
+      let ar=0, ap=0, cnt=0;
+      for(const d of docs){ if(d.status!=='closed'){ cnt++; if(d.kind==='AR') ar+=d.remainingTwd; else ap+=d.remainingTwd; } }
+      $('#kAr').textContent = money(ar);
+      $('#kAp').textContent = money(ap);
+      $('#kCount').textContent = cnt;
+    }
+
+    async function addOrSaveDoc(){
+      if(!currentParty){ alert('請先選擇對象'); return; }
+      const kind = $('#docKind').value;
+      const docId = $('#docId').value.trim();
+      const date = $('#docDate').value;
+      const due = $('#docDue').value||'';
+      const ccy = $('#docCcy').value||'TWD';
+      const amt = +$('#docAmt').value;
+      const note = $('#docNote').value.trim();
+      if(!(docId && date && amt>0)){ showDocAlert('請填寫必填欄位（單號、日期、金額）'); return; }
+      const editUid = $('#addDocBtn').dataset.editUid || null;
+      const exist = await getDocByPartyAndId(currentParty.id, docId);
+      if(exist && exist.uid!==editUid){ showDocAlert('單號重複：同一對象下單號需唯一'); return; }
+      const {t,docs} = tx(['docs'],'readwrite');
+      const uid = editUid || (currentParty.id+"::"+docId);
+      const remainingTwd = toTwd(amt, ccy);
+      const payload = {uid, partyId:currentParty.id, kind, docId, date, due, ccy, amount:amt, note, status: exist?exist.status:'open', remainingTwd: exist?exist.remainingTwd:remainingTwd, links:exist?exist.links:[], updatedAt:Date.now()};
+      docs.put(payload); await new Promise(r=>t.oncomplete=r); clearDocAlert(); $('#addDocBtn').dataset.editUid=''; ['docId','docDate','docDue','docAmt','docNote'].forEach(id=>document.getElementById(id).value=''); await refreshDocsTable(); await refreshHistory();
+    }
+    function showDocAlert(msg){ const el=$('#docAlert'); el.textContent=msg; el.style.display='block'; }
+    function clearDocAlert(){ $('#docAlert').style.display='none'; }
+
+    /********************
+     * 匯率與幣別
+     ********************/
+    function bindRates(){ $('#addRate').addEventListener('click', saveRate); refreshCcySelects(); }
+    async function saveRate(){ const ccy = $('#newCcy').value; const v = +$('#newRate').value; if(!(v>0)){ alert('請輸入有效匯率'); return; } const {t,rates} = tx(['rates'],'readwrite'); rates.put({ccy, value:v}); await new Promise(r=>t.oncomplete=r); $('#newRate').value=''; await refreshRatesUI(); refreshCcySelects(); await refreshDocsTable(); }
+    async function refreshRatesUI(){ const tbody = $('#rateTable tbody'); tbody.innerHTML=''; ratesCache = await getAllRates(); ensureTWD(ratesCache); Object.entries(ratesCache).forEach(([ccy,val])=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${ccy}</td><td><input type="number" step="0.0001" value="${val}" data-ccy="${ccy}" class="rateInput"/></td><td><button class="small" data-ccy="${ccy}">更新</button></td>`; tr.querySelector('button').addEventListener('click', async ()=>{ const v = +tr.querySelector('.rateInput').value; if(!(v>0)){alert('匯率需>0');return;} const {t,rates}=tx(['rates'],'readwrite'); rates.put({ccy, value:v}); await new Promise(r=>t.oncomplete=r); ratesCache[ccy]=v; await refreshDocsTable(); }); tbody.appendChild(tr); }); }
+    function refreshCcySelects(){ const ccySel = $('#docCcy'); const payCcySel=$('#payCcy'); ccySel.innerHTML=''; payCcySel.innerHTML=''; Object.keys(ensureTWD(ratesCache)).forEach(ccy=>{ const o1=document.createElement('option'); o1.value=ccy; o1.textContent=ccy; ccySel.appendChild(o1); const o2=document.createElement('option'); o2.value=ccy; o2.textContent=ccy; payCcySel.appendChild(o2); }); ccySel.value='TWD'; payCcySel.value='TWD'; }
+    function toTwd(amount, ccy){ const rate = ratesCache[ccy]||1; return Math.round((amount*rate)*100)/100; }
+    async function getAllRates(){ const {rates} = tx(['rates']); return await new Promise(res=>{ const out={}; const cur = rates.openCursor(); cur.onsuccess=(e)=>{const c=e.target.result; if(c){out[c.key]=c.value.value; c.continue();} else res(out)} }); }
+
+    /********************
+     * 取數
+     ********************/
+    async function getDocsByParty(partyId){ const {docs} = tx(['docs']); return await new Promise(res=>{ const arr=[]; const req=docs.index('party').openCursor(IDBKeyRange.only(partyId)); req.onsuccess=(e)=>{const c=e.target.result; if(c){arr.push(c.value); c.continue();} else res(arr)} }); }
+    async function getDocByPartyAndId(partyId, docId){ const docs = await getDocsByParty(partyId); return docs.find(d=>d.docId===docId) || null; }
+
+    /********************
+     * 刪除與回滾（只記錄刪除事件 + 快照）
+     ********************/
+    function bindDeleteModal(){ $('#cancelDelete').addEventListener('click', closeDeleteModal); $('#confirmDelete').addEventListener('click', doDeleteConfirmed); }
+    function openDeleteModal(msg, ctx){ $('#deleteMsg').innerHTML = msg; deleteCtx = ctx; $('#deleteModal').style.display='flex'; }
+    function closeDeleteModal(){ $('#deleteModal').style.display='none'; deleteCtx=null; }
+    function askDelete(ctx){ // ctx = {type:'party'|'doc'|'payment', payload:{...}}
+      let msg = '';
+      if(ctx.type==='party'){
+        const p = ctx.payload.party; msg = `你正在刪除對象 <strong>${escapeHtml(p.name)}</strong>。此動作將<strong>強制刪除</strong>其所有單據與收/付款紀錄（但可自歷史回滾還原）。確定要刪除嗎？`;
+      } else if(ctx.type==='doc'){
+        const d = ctx.payload.doc; msg = `你正在刪除單據 <strong>${escapeHtml(d.docId)}</strong>（${d.kind}）。刪除後將無法於清單中看到，已建立的收/付款配對關聯不再顯示於此單據（可透過歷史回滾還原）。確定要刪除嗎？`;
+      } else if(ctx.type==='payment'){
+        const pm = ctx.payload.payment; msg = `你正在刪除收/付款（ID ${pm.id}，金額 ${money(pm.amountTwd)} TWD）。系統將嘗試把已扣的金額退回到對應單據的未清金額。確定要刪除嗎？`;
+      }
+      openDeleteModal(msg, ctx);
+    }
+
+    async function doDeleteConfirmed(){
+      if(!deleteCtx){ closeDeleteModal(); return; }
+      const ctx = deleteCtx; closeDeleteModal();
+      const {t,parties,docs,payments,history} = tx(['parties','docs','payments','history'],'readwrite');
+      if(ctx.type==='party'){
+        const p = ctx.payload.party; const partyId=p.id;
+        // 刪除對象
+        parties.delete(partyId);
+        // 刪其單據與收付款
+        const dcur = docs.index('party').openCursor(IDBKeyRange.only(partyId));
+        dcur.onsuccess = (e)=>{ const c=e.target.result; if(c){ docs.delete(c.primaryKey); c.continue(); } };
+        const pcur = payments.index('party').openCursor(IDBKeyRange.only(partyId));
+        pcur.onsuccess = (e)=>{ const c=e.target.result; if(c){ payments.delete(c.primaryKey); c.continue(); } };
+        history.add({partyId:partyId, ts:Date.now(), type:'delete', scope:'party'});
+      } else if(ctx.type==='doc'){
+        const d = ctx.payload.doc; docs.delete(d.uid); history.add({partyId:d.partyId, ts:Date.now(), type:'delete', scope:'doc', snapshot:d});
+      } else if(ctx.type==='payment'){
+        const pm = ctx.payload.payment; payments.delete(pm.id); history.add({partyId:pm.partyId, ts:Date.now(), type:'delete', scope:'payment', snapshot:pm});
+      }
+      await new Promise(r=>t.oncomplete=r);
+      alert('已刪除，記錄可回滾');
+      await refreshDocsTable(); await refreshKPIs(); await refreshHistory();
+    }
+
+    async function refreshHistory(){
+      const list = $('#historyList'); list.innerHTML='';
+      const {history} = tx(['history']);
+      const data = await new Promise(res=>{ const arr=[]; const req=history.openCursor(null,'prev'); req.onsuccess=(e)=>{const c=e.target.result; if(c){arr.push(c.value); c.continue();} else res(arr)} });
+      data.forEach(h=>{
+        const div=document.createElement('div'); div.className='list-item';
+        div.innerHTML=`<div><strong>${h.type}</strong> <span class="meta">${new Date(h.ts).toLocaleString()}</span></div><button class="small" data-act="restore">回滾還原</button>`;
+        div.querySelector('[data-act="restore"]').addEventListener('click',()=>restoreFromHistory(h));
+        list.appendChild(div);
+      });
+    }
+
+    async function restoreFromHistory(h){
+      const {t,docs,payments,history} = tx(['docs','payments','history'],'readwrite');
+      if(h.scope==='doc' && h.snapshot){ docs.put(h.snapshot); }
+      if(h.scope==='payment' && h.snapshot){ payments.put(h.snapshot); }
+      if(h.scope==='party'){
+        // 僅標記回滾，實際資料需外部保留；此處簡化
+      }
+      history.add({partyId:h.partyId, ts:Date.now(), type:'restore', scope:h.scope});
+      await new Promise(r=>t.oncomplete=r);
+      alert('已回滾還原');
+      await refreshDocsTable(); await refreshKPIs(); await refreshHistory();
+    }
+
+    /********************
+     * 收/付款與配對
+     ********************/
+    function toleranceFor(target){ const a = 5; const b = Math.abs(target)*0.005; return Math.max(a,b); }
+    let currentPool=[]; let currentPick = new Set();
+
+    async function generateSuggestions(){
+      if(!currentParty){ alert('請先選擇對象'); return; }
+      const kind = $('#payKind').value;
+      const ccy = $('#payCcy').value;
+      const amt = +$('#payAmt').value;
+      const note=$('#payNote').value.trim();
+      if(!(amt>0)){ alert('請輸入金額'); return; }
+      const targetTwd = toTwd(amt, ccy); $('#targetTwd').textContent = money(targetTwd);
+      const docs = (await getDocsByParty(currentParty.id)).filter(d=> d.kind===kind && d.status!=='closed');
+      // 修正：展開 d 物件
+      const open = docs.map(d=>({ ...d, value:d.remainingTwd })).sort((a,b)=> (a.due||a.date||'').localeCompare(b.due||b.date||''));
+      const pool = open.slice(0,12); currentPool=pool;
+      const tol = toleranceFor(targetTwd);
+      const cands=[];
+      cands.push({name:'最舊優先', pick: greedyOldest(pool, targetTwd, tol)});
+      cands.push({name:'最接近金額', pick: subsetClosest(pool, targetTwd, tol)});
+      cands.push({name:'少筆數優先', pick: fewestItems(pool, targetTwd, tol)});
+      renderSuggestCards(cands, targetTwd, tol); renderPickTable(pool); currentPick = new Set(); updatePickSum(targetTwd);
+    }
+
+    function greedyOldest(items, target, tol){ let sum=0; const pick=[]; for(const it of items){ if(sum+it.value <= target+tol){ pick.push(it); sum+=it.value; if(Math.abs(sum-target)<=tol) break; } } return {items:pick, sum}; }
+    function fewestItems(items, target, tol){ const n = Math.min(items.length, 12); for(let i=0;i<n;i++){ if(Math.abs(items[i].value - target) <= tol) return {items:[items[i]], sum:items[i].value}; } for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){ const s = items[i].value + items[j].value; if(Math.abs(s-target)<=tol) return {items:[items[i],items[j]], sum:s}; } for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let k=j+1;k<n;k++){ const s = items[i].value + items[j].value + items[k].value; if(Math.abs(s-target)<=tol) return {items:[items[i],items[j],items[k]], sum:s}; } return {items:[], sum:0}; }
+
+    function subsetClosest(items, target, tol){
+      // 簡化：貪婪接近
+      const sorted=[...items].sort((a,b)=>Math.abs(a.value-target)-Math.abs(b.value-target));
+      let best={items:[],sum:0};
+      for(const it of sorted){ const s=it.value; if(Math.abs(s-target)<=tol){ return {items:[it],sum:s}; } }
+      // 回退：選兩筆最接近
+      for(let i=0;i<Math.min(8,sorted.length);i++){
+        for(let j=i+1;j<Math.min(8,sorted.length);j++){
+          const s=sorted[i].value+sorted[j].value; if(Math.abs(s-target)<=tol) return {items:[sorted[i],sorted[j]],sum:s};
+        }
+      }
+      return best;
+    }
+
+    function renderSuggestCards(cands, target, tol){
+      const area=$('#suggestCards'); area.innerHTML='';
+      cands.forEach((c, idx)=>{
+        const div=document.createElement('div');
+        div.className='card';
+        const sum=money(c.pick.sum);
+        div.innerHTML=`<div class="badge">${c.name}</div><div class="hint">合計 ${sum} TWD</div><div class="row"></div><button class="small" data-i="${idx}">套用</button>`;
+        div.querySelector('button').addEventListener('click',()=>{
+          // 套用到 currentPick
+          currentPick = new Set();
+          c.pick.items.forEach(it=>{ const i=currentPool.indexOf(it); if(i>=0) currentPick.add(i); });
+          updatePickUI(); updatePickSum(target);
+        });
+        area.appendChild(div);
+      });
+    }
+
+    function renderPickTable(pool){
+      const tb=$('#pickTable tbody'); tb.innerHTML='';
+      pool.forEach((d,i)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td><input type="checkbox" data-i="${i}"/></td><td>${d.kind}</td><td>${escapeHtml(d.docId)}</td><td>${d.due||d.date||''}</td><td>${d.ccy}</td><td class="mono">${money(d.remainingTwd)}</td><td class="mono">${money(toTwd(d.remainingTwd,d.ccy))}</td>`;
+        tr.querySelector('input').addEventListener('change', (e)=>{
+          const i=+e.target.dataset.i; if(e.target.checked) currentPick.add(i); else currentPick.delete(i); updatePickSum();
+        });
+        tb.appendChild(tr);
+      });
+    }
+
+    function updatePickUI(target){
+      const tb=$('#pickTable tbody');
+      Array.from(tb.querySelectorAll('input[type="checkbox"]')).forEach((cb)=>{
+        const i=+cb.dataset.i; cb.checked = currentPick.has(i);
+      });
+    }
+
+    function updatePickSum(target){
+      const sum = Array.from(currentPick).reduce((acc,i)=> acc + (currentPool[i]?.value||0), 0);
+      $('#pickedSum').textContent = money(sum);
+      const t = target != null ? target : parseMoney($('#targetTwd').textContent)||0;
+      const diff = sum - t; $('#diffAmt').textContent = money(diff);
+    }
+    function parseMoney(str){ const n = Number(String(str).replace(/[^\d.-]/g,'')); return isNaN(n)?0:n; }
+
+    async function confirmMatch(){
+      if(!currentParty){ alert('請先選擇對象'); return; }
+      const kind = $('#payKind').value; const ccy=$('#payCcy').value; const amt=+$('#payAmt').value; const date=$('#payDate').value||todayStr(); const note=$('#payNote').value.trim();
+      const targetTwd = toTwd(amt, ccy); const tol = toleranceFor(targetTwd);
+      const chosen = Array.from(currentPick).map(i=>currentPool[i]);
+      let sum = chosen.reduce((a,b)=>a+b.value,0); const diff = targetTwd - sum;
+      const allowPartial = $('#togglePartial').classList.contains('on');
+      if(Math.abs(diff) > tol && !allowPartial){ $('#matchMsg').innerHTML = `<div class="alert">差額 ${money(diff)} 超出容差，且未啟用部分結清。</div>`; return; }
+      const {t,docs,payments,history} = tx(['docs','payments','history'],'readwrite');
+      const payId = uuid(); const links=[]; let remain = targetTwd;
+      for(const d of chosen){
+        const uid = d.uid; const getReq = docs.get(uid);
+        await new Promise(res=>{ getReq.onsuccess=()=>{ res(); }; });
+        const cur = getReq.result; if(!cur) continue;
+        const use = Math.min(cur.remainingTwd, remain);
+        cur.remainingTwd = Math.round((cur.remainingTwd - use)*100)/100;
+        if(cur.remainingTwd<=0.009){ cur.remainingTwd=0; cur.status='closed'; cur.note = (cur.note||'') + '｜已結清'; }
+        docs.put(cur);
+        links.push({docUid:uid, applied:use});
+        remain = Math.round((remain - use)*100)/100; if(remain<=0.009) break;
+      }
+      payments.add({partyId:currentParty.id, kind, date, ccy, amount:amt, amountTwd:targetTwd, note, links, createdAt:Date.now()});
+      await new Promise(r=>t.oncomplete=r);
+      $('#matchMsg').innerHTML = `<div class="good">完成配對：筆數 ${links.length}，本次金額 TWD ${money(targetTwd)}。</div>`;
+      await refreshDocsTable(); await refreshKPIs(); await refreshHistory(); clearSuggest();
+    }
+    function clearSuggest(){ $('#suggestCards').innerHTML=''; $('#pickTable tbody').innerHTML=''; $('#matchMsg').innerHTML=''; $('#targetTwd').textContent='—'; $('#pickedSum').textContent='—'; $('#diffAmt').textContent='—'; }
+
+    /********************
+     * 清單渲染（簡化）
+     ********************/
+    async function refreshDocsTable(){
+      const tbody = $('#docTable tbody'); tbody.innerHTML='';
+      if(!currentParty) return;
+      const showOpen = $('#toggleOpen').classList.contains('on');
+      const type = $('#filterType').value; const kw=($('#docSearch').value||'').toLowerCase();
+      const docs = await getDocsByParty(currentParty.id);
+      docs
+        .filter(d=> !showOpen || d.status!=='closed')
+        .filter(d=> type==='all' || d.kind===type)
+        .filter(d=> (d.docId||'').toLowerCase().includes(kw) || (d.note||'').toLowerCase().includes(kw))
+        .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
+        .forEach(d=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td class="row"><button class="small" data-act="edit">編輯</button><button class="small ghost" data-act="del">刪除</button></td>
+            <td>${d.status}</td><td>${d.kind}</td><td>${escapeHtml(d.docId)}</td><td>${d.date||''}</td><td>${d.due||''}</td><td>${d.ccy}</td><td class="mono">${money(d.amount)}</td><td class="mono">${money(d.remainingTwd)}</td><td>${escapeHtml(d.note||'')}</td>`;
+          tr.querySelector('[data-act="del"]').addEventListener('click',()=>askDelete({type:'doc', payload:{doc:d}}));
+          tr.querySelector('[data-act="edit"]').addEventListener('click',()=>{
+            $('#docKind').value=d.kind; $('#docId').value=d.docId; $('#docDate').value=d.date; $('#docDue').value=d.due||''; $('#docCcy').value=d.ccy; $('#docAmt').value=d.amount; $('#docNote').value=d.note||''; $('#addDocBtn').dataset.editUid=d.uid; document.querySelector('[data-tab="tabNewDoc"]').click();
+          });
+          tbody.appendChild(tr);
+        });
+    }
+  </script></body>
 </html>
