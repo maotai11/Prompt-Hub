@@ -346,7 +346,7 @@
       letter-spacing: .5px
     }
 
-    /* [新增] 排序 CSS */
+    /* 排序 CSS */
     .table th.sortable {
       cursor: pointer;
       user-select: none;
@@ -738,7 +738,8 @@
                 <th class="sortable" data-sort="productName">商品</th>
                 <th class="right sortable" data-sort="qty">數量</th>
                 <th class="right sortable" data-sort="unitCost">單價</th>
-                <th>動作</th> </tr>
+                <th>動作</th>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -748,7 +749,10 @@
       <section class="card" data-panel="sales" hidden>
         <div class="hd">
           <div>銷貨紀錄</div>
-          <div><button class="btn" id="btnAddSale2">新增銷貨</button></div>
+          <div class="inline">
+            <button class="btn ghost" id="btnPasteSales">批次貼上</button>
+            <button class="btn" id="btnAddSale2">新增銷貨</button>
+          </div>
         </div>
         <div class="bd">
           <table class="table" id="tblSales">
@@ -761,7 +765,8 @@
                 <th class="right sortable" data-sort="derivedPrice">推導單價</th>
                 <th class="sortable" data-sort="note">備註</th>
                 <th class="sortable" data-sort="adjusted">狀態</th>
-                <th>動作</th> </tr>
+                <th>動作</th>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -968,6 +973,21 @@
       </div>
     </div>
   </div>
+
+  <div class="dialog-backdrop" id="dlgPasteSales">
+    <div class="dialog" role="dialog" aria-labelledby="dlgPasteSalesTitle">
+      <div class="hd" id="dlgPasteSalesTitle">批次貼上銷貨（代碼,數量,金額,日期?）</div>
+      <div class="bd">
+        <textarea id="pasteAreaSales" rows="8" class="input"
+          placeholder="例如：&#10;S-001, 2, 500, 2025-10-22&#10;S-002, 1, 199"></textarea>
+        <div class="small">將逗號分隔資料貼上；日期可省略。系統將自動檢查庫存與價格下限。</div>
+      </div>
+      <div class="ft">
+        <button class="btn ghost" data-close="#dlgPasteSales">取消</button>
+        <button class="btn" id="btnDoPasteSales">寫入</button>
+      </div>
+    </div>
+  </div>
   
   <input type="file" id="fileInput" accept="application/json" hidden />
   <script>
@@ -994,7 +1014,7 @@
         computed: new Map() // 存儲計算結果
       };
 
-      /* ========== [新增] 排序狀態 ========== */
+      /* ========== 排序狀態 ========== */
       let sortState = {
         products: { key: 'code', dir: 'asc' },
         purchases: { key: 'date', dir: 'desc' },
@@ -1046,7 +1066,7 @@
       }
       function round(n, d) { const f = Math.pow(10, d); return Math.round(n * f) / f }
 
-      /* [新增] 通用排序比較器 */
+      /* 通用排序比較器 */
       function getSorter(key, dir) {
         const asc = dir === 'asc' ? 1 : -1;
         const numKeys = ['stock', 'floor', 'avg30', 'qty', 'unitCost', 'amount', 'derivedPrice', 'origAmount', 'newAmount', 'usedFloor'];
@@ -1073,11 +1093,10 @@
         };
       }
       
-      /* [新增] 更新排序箭頭 UI */
+      /* 更新排序箭頭 UI */
       function updateSortIndicators() {
         for (const tableKey of ['products', 'purchases', 'sales', 'audits']) {
           const state = sortState[tableKey];
-          // 構成 Table ID，例如 tblProducts
           const table = $$(`#tbl${tableKey.charAt(0).toUpperCase() + tableKey.slice(1)}`);
           if (!table) continue;
           
@@ -1182,7 +1201,7 @@
         });
       }
       
-      /* [新增] 刪除單筆紀錄 */
+      /* 刪除單筆紀錄 */
       async function deleteRecord(store, id) {
         if (useLocal) {
           const arr = LS.get(store) || [];
@@ -1265,7 +1284,6 @@
       }
 
       async function upsertProductByCode(code, name, unit) {
-        // [優化] 使用 listProducts() 保持獨立性，因為它可能在批次貼上時被呼叫
         const products = await listProducts();
         const found = products.find(p => p.code === code);
         if (found) {
@@ -1294,7 +1312,7 @@
         }
       }
 
-      /* [修改] 改為同步，依賴快取 */
+      /* 改為同步，依賴快取 */
       function ensureProductOptions() {
         const products = cachedData.products; // Use cache
         const opts = products.map(p => `<option value="${p.id}">${p.code}｜${p.name}</option>`).join('');
@@ -1346,7 +1364,7 @@
       });
 
       /* 搜尋框 */
-      $$('#q')?.addEventListener?.('input', renderProducts); // [修改] renderProducts 已改為同步
+      $$('#q')?.addEventListener?.('input', renderProducts); 
 
       /* 事件綁定：AppBar */
       $$('#btnAddPurchase')?.addEventListener('click', openPurchase);
@@ -1354,6 +1372,7 @@
       $$('#btnPastePurchase')?.addEventListener('click', () => openDlg('#dlgPaste'));
       $$('#btnAddSale')?.addEventListener('click', openSale);
       $$('#btnAddSale2')?.addEventListener('click', openSale);
+      $$('#btnPasteSales')?.addEventListener('click', () => { $$('#pasteAreaSales').value = ''; openDlg('#dlgPasteSales'); }); // [新增]
       $$('#btnExport')?.addEventListener('click', doExport);
       $$('#btnImport')?.addEventListener('click', () => $$('#fileInput').click());
       $$('#btnSettings')?.addEventListener('click', () => switchTab('settings'));
@@ -1387,12 +1406,11 @@
         const name = $$('#pName').value.trim();
         if (!code || !name) { toast('請填寫代碼與名稱', 'error'); return }
         await upsertProductByCode(code, name, $$('#pUnit').value.trim());
-        await refreshAll(); // 確保刷新
+        await refreshAll();
         closeDlg('#dlgProduct'); toast('商品已儲存');
       });
 
       /* 進貨 */
-      /* [修改] openPurchase - 重設對話框狀態 */
       function openPurchase() {
         ensureProductOptions();
         $$('#purQty').value = '';
@@ -1400,10 +1418,9 @@
         $$('#purDate').value = todayISO();
         $$('#purNote').value = '';
         
-        // 重設為「新增」狀態
         $$('#dlgPurchaseTitle').textContent = '新增進貨';
         $$('#btnSavePurchase').textContent = '建立';
-        delete $$('#dlgPurchase').dataset.editingId; // 清除編輯 ID
+        delete $$('#dlgPurchase').dataset.editingId;
         
         openDlg('#dlgPurchase');
       }
@@ -1505,7 +1522,6 @@
         }
       });
       
-      /* [修改] btnSavePurchase - 支援新增與編輯 */
       $$('#btnSavePurchase')?.addEventListener('click', async () => {
         const editingId = Number($$('#dlgPurchase').dataset.editingId) || null;
         const pid = Number($$('#purProduct').value);
@@ -1533,7 +1549,7 @@
           toast('已新增進貨');
         }
         
-        delete $$('#dlgPurchase').dataset.editingId; // 清理
+        delete $$('#dlgPurchase').dataset.editingId;
         closeDlg('#dlgPurchase');
         await refreshAll();
       });
@@ -1543,14 +1559,19 @@
         const t = $$('#pasteArea').value.trim();
         if (!t) { closeDlg('#dlgPaste'); return }
         const lines = t.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-        const products = await listProducts(); // 需保持 await，因為這是獨立操作
+        const products = await listProducts(); // 保持 await
         let ok = 0, fail = 0;
         for (const line of lines) {
           const [code, qtyS, costS, dateS] = line.split(',').map(s => s.trim());
           const p = products.find(x => x.code === code);
-          if (!p) { fail++; continue }
-          const qty = Number(qtyS), cost = Number(costS);
-          if (!(qty > 0 && cost > 0)) { fail++; continue }
+          const qty = Number(qtyS);
+          const cost = parseMoneyExpr(costS); // [優化] 使用 parseMoneyExpr
+          
+          if (!p || !(qty > 0) || !(cost > 0) || !isFinite(cost)) { 
+            fail++; 
+            continue;
+          }
+          
           const date = dateS || todayISO();
           await add('purchases', { productId: p.id, qty: round(qty, 3), unitCost: round(cost, 4), date });
           ok++;
@@ -1587,9 +1608,129 @@
         await refreshAll();
       });
 
+      /* [新增] 批次貼上 - 銷貨 */
+      $$('#btnDoPasteSales')?.addEventListener('click', async () => {
+        const t = $$('#pasteAreaSales').value.trim();
+        if (!t) { closeDlg('#dlgPasteSales'); return }
+
+        const lines = t.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+        const settings = cachedData.settings;
+        
+        // 建立一個暫時的庫存 map，以便在迴圈中即時更新
+        const tempStock = new Map();
+        for (const p of cachedData.products) {
+          tempStock.set(p.id, cachedData.computed.get(p.id)?.stock ?? 0);
+        }
+
+        let ok = 0, fail = 0;
+        const auditLogs = [];
+        const salesToAdd = [];
+
+        for (const line of lines) {
+          const [code, qtyS, amtS, dateS] = line.split(',').map(s => s.trim());
+          
+          const p = cachedData.products.find(x => x.code === code);
+          const qty = Number(qtyS);
+          let amount = parseMoneyExpr(amtS); // 使用 parseMoneyExpr
+
+          // --- 1. 基本驗證 ---
+          if (!p || !(qty > 0) || !(amount > 0) || !isFinite(amount)) {
+            fail++;
+            continue;
+          }
+
+          const pid = p.id;
+          const floor = cachedData.computed.get(pid)?.floor;
+
+          // --- 2. 檢查 Floor 是否存在 ---
+          if (floor == null) {
+            fail++; // 尚無進貨成本
+            continue;
+          }
+
+          const currentStock = tempStock.get(pid) ?? 0;
+          const date = dateS || todayISO();
+          let adjusted = false;
+          const origAmount = amount;
+
+          // --- 3. 庫存管控 ---
+          if (settings.inventoryControl) {
+            if (qty > currentStock) {
+              auditLogs.push({
+                ts: new Date().toISOString(),
+                productId: pid,
+                origAmount: round(origAmount, 2),
+                newAmount: round(origAmount, 2),
+                usedFloor: round(floor, 4),
+                policy: 'inventoryBlock'
+              });
+              fail++;
+              continue; // 庫存不足，跳過此行
+            }
+          }
+
+          // --- 4. 價格下限管控 ---
+          const derived = round(amount / qty, 4);
+          if (derived < floor) {
+            if (settings.priceFloorPolicy === 'autoAdjust') {
+              const minAmt = round(floor * qty, 2);
+              amount = minAmt;
+              adjusted = true;
+              auditLogs.push({
+                ts: new Date().toISOString(),
+                productId: pid,
+                origAmount: round(origAmount, 2),
+                newAmount: round(amount, 2),
+                usedFloor: round(floor, 4),
+                policy: 'autoAdjust'
+              });
+            } else { // 'block'
+              auditLogs.push({
+                ts: new Date().toISOString(),
+                productId: pid,
+                origAmount: round(origAmount, 2),
+                newAmount: round(origAmount, 2),
+                usedFloor: round(floor, 4),
+                policy: 'block'
+              });
+              fail++;
+              continue; // 低於下限且策略為阻擋
+            }
+          }
+
+          // --- 5. 準備寫入 ---
+          const finalDerived = round(amount / qty, 4);
+          const sale = { 
+            productId: pid, 
+            qty: round(qty, 3), 
+            amount: round(amount, 2), 
+            derivedPrice: finalDerived, 
+            usedFloor: round(floor, 4), 
+            adjusted, 
+            date, 
+            note: '批次匯入'
+          };
+          
+          salesToAdd.push(sale);
+          tempStock.set(pid, currentStock - qty); // 扣除暫時庫存
+          ok++;
+        } // end for loop
+
+        // --- 6. 執行資料庫寫入 ---
+        for (const log of auditLogs) {
+          await add(STORES.AUDITS, log);
+        }
+        for (const sale of salesToAdd) {
+          await add(STORES.SALES, sale);
+        }
+        
+        toast(`批次銷貨完成：成功 ${ok} 筆，失敗 ${fail} 筆`, fail ? 'info' : 'success');
+        $$('#pasteAreaSales').value = ''; // 清空
+        closeDlg('#dlgPasteSales');
+        await refreshAll(); // 重新整理所有資料
+      });
 
       /* 銷貨 */
-      /* [修改] openSale - 重設對話框狀態 */
       function openSale() {
         ensureProductOptions();
         $$('#saleQty').value = ''; 
@@ -1599,17 +1740,16 @@
         $$('#derived').textContent = '0.00';
         $$('#floorHint').hidden = true; 
         $$('#saleStock').textContent = '0.000';
-        $$('#saleProduct').value = ''; // [修正] 清空選擇
+        $$('#saleProduct').value = '';
 
-        // 重設為「新增」狀態
         $$('#dlgSaleTitle').textContent = '新增銷貨';
         $$('#btnSaveSale').textContent = '建立';
-        delete $$('#dlgSale').dataset.editingId; // 清除編輯 ID
+        delete $$('#dlgSale').dataset.editingId;
 
         openDlg('#dlgSale');
       }
       
-      $$('#saleProduct')?.addEventListener('change', (e) => { // [修改] 無需 async
+      $$('#saleProduct')?.addEventListener('change', (e) => { 
         const pid = Number(e.target.value);
         const stock = cachedData.computed.get(pid)?.stock ?? 0;
         $$('#saleStock').textContent = fmt3(stock);
@@ -1620,7 +1760,6 @@
       $$('#saleQty')?.addEventListener('input', debouncedUpdateHelper);
       $$('#saleAmt')?.addEventListener('input', debouncedUpdateHelper);
 
-      /* [修改] updateDerivedHelper - 無需 async */
       function updateDerivedHelper() {
         const pid = Number($$('#saleProduct').value);
         const qty = Number($$('#saleQty').value);
@@ -1644,7 +1783,6 @@
         }
       }
 
-      /* [修改] btnSaveSale - 支援新增與編輯 */
       $$('#btnSaveSale')?.addEventListener('click', async () => {
         const editingId = Number($$('#dlgSale').dataset.editingId) || null;
         
@@ -1666,7 +1804,7 @@
         let adjusted = false, origAmount = amount;
         const minAmt = round(floor * qty, 2);
 
-        if (settings.inventoryControl && !editingId) { // [修改] 編輯時暫不檢查庫存
+        if (settings.inventoryControl && !editingId) { 
           const stock = cachedData.computed.get(pid)?.stock ?? 0;
           if (qty > stock) {
             await add('audits', {
@@ -1731,7 +1869,7 @@
           });
         }
         
-        delete $$('#dlgSale').dataset.editingId; // 清理
+        delete $$('#dlgSale').dataset.editingId;
         closeDlg('#dlgSale');
         await refreshAll();
       });
@@ -1799,7 +1937,7 @@
 
       /* ========== 渲染 ========== */
       
-      /* [修改] 改為同步，依賴快取，加入排序 */
+      /* 改為同步，依賴快取，加入排序 */
       function renderProducts() {
         const products = cachedData.products;
         const q = ($$('#q').value || '').trim().toLowerCase();
@@ -1830,7 +1968,7 @@
         tbody.innerHTML = rows.join('');
       }
 
-      /* [修改] 改為同步，依賴快取，加入排序和編輯/刪除按鈕 */
+      /* 改為同步，依賴快取，加入排序和編輯/刪除按鈕 */
       function renderPurchases() {
         const { purchases, products } = cachedData;
         const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
@@ -1858,7 +1996,7 @@
         `).join('');
       }
 
-      /* [修改] 改為同步，依賴快取，加入排序和編輯/刪除按鈕 */
+      /* 改為同步，依賴快取，加入排序和編輯/刪除按鈕 */
       function renderSales() {
         const { sales, products } = cachedData;
         const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
@@ -1889,7 +2027,7 @@
         `).join('');
       }
 
-      /* [修改] 改為同步，依賴快取，加入排序 */
+      /* 改為同步，依賴快取，加入排序 */
       function renderAudits() {
         const { audits, products } = cachedData;
         const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
@@ -1915,7 +2053,7 @@
         `).join('');
       }
 
-      /* [修改] 改為同步，依賴快取 */
+      /* 改為同步，依賴快取 */
       function renderDashboard() {
         const { sales, products, audits } = cachedData;
         const today = new Date().toISOString().slice(0, 10);
@@ -2008,11 +2146,10 @@
         }
       }
 
-      /* [修改] 整體刷新 - 改為 異步載入 -> 同步渲染 */
+      /* 整體刷新 - 異步載入 -> 同步渲染 */
       async function refreshAll() {
-        await loadAndCacheData(); // 1. 異步載入所有資料到快取
+        await loadAndCacheData(); 
         
-        // 2. 所有渲染/UI更新全部改為同步，使用快取
         ensureProductOptions();
         renderProducts();
         renderPurchases();
@@ -2020,7 +2157,6 @@
         renderAudits();
         renderDashboard();
         
-        // 3. 更新排序 UI
         updateSortIndicators();
       }
 
@@ -2029,9 +2165,8 @@
         db = await idbOpen();
         updateDots();
         
-        // 載入設定
         const s = await getSettings();
-        cachedData.settings = s; // 儲存到快取
+        cachedData.settings = s;
         setTheme(s.theme);
         $$('#themeSel').value = s.theme;
         $$('#pricePolicy').value = s.priceFloorPolicy;
@@ -2039,17 +2174,16 @@
 
         setupEventDelegation();
 
-        // 初次引導
         const products = await listProducts();
         if (products.length === 0) {
           await add(STORES.PRODUCTS, { code: 'S-001', name: '示例商品', unit: '件' });
         }
 
-        await refreshAll(); // 執行首次載入與渲染
+        await refreshAll();
         toast('已載入（離線可用）', 'info');
       }
 
-      /* [修改] 事件委派設置 - 加入排序和編輯/刪除 */
+      /* 事件委派設置 - 加入排序和編輯/刪除 */
       function setupEventDelegation() {
         
         // === 排序點擊處理 ===
@@ -2067,8 +2201,8 @@
             state.dir = (key === 'date' || key === 'ts') ? 'desc' : 'asc';
           }
           
-          renderFn(); // 同步重新渲染
-          updateSortIndicators(); // 更新箭頭
+          renderFn();
+          updateSortIndicators();
         }
 
         $$('#tblProducts thead')?.addEventListener('click', (e) => handleSortClick(e, 'products', renderProducts));
@@ -2098,7 +2232,6 @@
           if (!target) return;
           const id = Number(target.dataset.id);
           
-          // 編輯進貨
           if (target.classList.contains('btnEditPur')) {
             const r = cachedData.purchases.find(x => x.id === id);
             if (!r) return;
@@ -2111,12 +2244,11 @@
             
             $$('#dlgPurchaseTitle').textContent = '編輯進貨';
             $$('#btnSavePurchase').textContent = '更新';
-            $$('#dlgPurchase').dataset.editingId = id; // 設置編輯 ID
+            $$('#dlgPurchase').dataset.editingId = id;
             
             openDlg('#dlgPurchase');
           }
           
-          // 刪除進貨
           if (target.classList.contains('btnDelPur')) {
             if (confirm('確定要刪除這筆進貨紀錄嗎？此動作會影響庫存。')) {
               await deleteRecord(STORES.PURCHASES, id);
@@ -2132,7 +2264,6 @@
           if (!target) return;
           const id = Number(target.dataset.id);
           
-          // 編輯銷貨
           if (target.classList.contains('btnEditSale')) {
             const r = cachedData.sales.find(x => x.id === id);
             if (!r) return;
@@ -2145,15 +2276,13 @@
             
             $$('#dlgSaleTitle').textContent = '編輯銷貨';
             $$('#btnSaveSale').textContent = '更新';
-            $$('#dlgSale').dataset.editingId = id; // 設置編輯 ID
+            $$('#dlgSale').dataset.editingId = id;
             
-            // 手動觸發 change 來更新庫存
             $$('#saleProduct').dispatchEvent(new Event('change'));
             openDlg('#dlgSale');
-            updateDerivedHelper(); // 立即更新一次 helper
+            updateDerivedHelper();
           }
           
-          // 刪除銷貨
           if (target.classList.contains('btnDelSale')) {
             if (confirm('確定要刪除這筆銷貨紀錄嗎？此動作會影響庫存。')) {
               await deleteRecord(STORES.SALES, id);
