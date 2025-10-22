@@ -1,1156 +1,2174 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>離線商品進銷與價格下限管控（單檔 HTML）</title>
-<style>
-:root{
-  --bg: #F4F5F7;          /* Fog Gray */
-  --ink: #0B0B0C;         /* Ink Black */
-  --muted:#8B8F98;        /* 次要灰 */
-  --ok:#12B886;           /* 成功綠 */
-  --warn:#E03131;         /* 警示紅 */
-  --info:#2F80ED;         /* 資訊藍 */
-  --surface:#FFFFFF;
-  --cta:#111827;
-  --cta-hover:#1F2937;
-  --cta-disabled:#D1D5DB;
-  --border:#E5E7EB;
-  --grid:#ECEFF3;
-  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
-  --radius:16px;
-  --shadow:0 6px 24px rgba(0,0,0,.08);
-}
-/* 主題：工業理性 */
-:root.theme-industrial{
-  --bg:#F7F8FA;
-  --surface:#FFFFFF;
-  --grid:#E6EBF2;
-  --ink:#0B0B0C;
-}
-/* 主題：現代書報（高對比黑白） */
-:root.theme-editorial{
-  --bg:#FFFFFF;
-  --surface:#FFFFFF;
-  --ink:#0B0B0C;
-  --muted:#6B7280;
-  --grid:#F1F5F9;
-}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>離線商品進銷與價格下限管控（單檔 HTML，Fixed）</title>
+  <style>
+    :root {
+      /* 間距系統 */
+      --spacing-xs: 8px;
+      --spacing-sm: 12px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
 
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  background:var(--bg);
-  color:var(--ink);
-  font-family:var(--sans);
-  line-height:1.5;
-}
+      /* 色彩系統 */
+      --bg: #F8F9FA;
+      /* 微冷調石灰色 */
+      --ink: #1C212E;
+      /* 深邃近墨藍色 */
+      --muted: #6C757D;
+      /* 層次暖灰 */
+      --ok: #0A7D57;
+      /* 沉穩成功綠 */
+      --warn: #C22B2B;
+      /* 內斂警示紅 */
+      --info: #215EA6;
+      /* 高雅資訊藍 */
+      --surface: #FFFFFF;
+      --cta: #800020;
+      /* 勃艮第紅 */
+      --cta-hover: #600018;
+      --cta-disabled: #D1D5DB;
+      --border: #E2E8F0;
+      /* 細膩淺灰 */
+      --grid: #D6DBE1;
 
-/* App 框架 */
-.appbar{
-  position:sticky; top:0; z-index:10;
-  display:flex; align-items:center; gap:12px;
-  padding:12px 16px;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-}
-.appbar .title{font-weight:700; letter-spacing:.3px}
-.appbar .search{
-  flex:1; display:flex; align-items:center; gap:8px;
-  background:var(--bg); border:1px solid var(--border);
-  padding:8px 10px; border-radius:12px;
-}
-.appbar input[type=search]{
-  border:none; outline:none; background:transparent; width:100%; font-size:14px;
-}
-.appbar .actions{display:flex; gap:8px}
-.btn{
-  appearance:none; border:1px solid var(--cta);
-  background:var(--cta); color:#fff; border-radius:10px;
-  padding:8px 12px; cursor:pointer; transition:all .15s ease-in-out;
-  font-weight:600; font-size:14px;
-}
-.btn.secondary{ background:transparent; color:var(--cta); border-color:var(--cta)}
-.btn.ghost{ background:transparent; color:var(--ink); border-color:var(--border)}
-.btn:disabled{ background:var(--cta-disabled); border-color:var(--cta-disabled); cursor:not-allowed}
-.btn:hover:not(:disabled){ transform:translateY(-1px); box-shadow:var(--shadow); background:var(--cta-hover)}
-.badge{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border); background:var(--surface)}
-.badge.ok{color:var(--ok); border-color:var(--ok)}
-.badge.warn{color:var(--warn); border-color:var(--warn)}
-.badge.info{color:var(--info); border-color:var(--info)}
+      /* 字體系統 */
+      --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+      --font-display-weight: 800;
+      --font-display-size: 1.35em;
 
-.layout{
-  display:grid; grid-template-columns:260px 1fr; gap:16px;
-  padding:16px; align-items:start;
-}
-@media (max-width: 960px){
-  .layout{ grid-template-columns:1fr }
-  .sidenav{ position:sticky; top:56px }
-}
-.sidenav{
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  padding:12px;
-}
-.navlink{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600}
-.navlink.active, .navlink:hover{ background:var(--bg)}
+      /* 佈局系統 */
+      --radius: 16px;
+      --shadow: 0 10px 30px rgba(0, 0, 0, .06);
+      --card-padding-lg: 20px;
+    }
 
-.main{
-  display:grid; gap:16px;
-}
-.card{
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  box-shadow: var(--shadow);
-}
-.card .hd{
-  padding:12px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;
-}
-.card .bd{ padding:14px }
-.grid{
-  display:grid; gap:12px;
-}
-.grid.cols-2{ grid-template-columns:1fr 1fr }
-.grid.cols-3{ grid-template-columns:repeat(3, 1fr) }
-@media (max-width: 960px){
-  .grid.cols-2, .grid.cols-3{ grid-template-columns:1fr }
-}
+    /* 主題：工業理性 */
+    :root.theme-industrial {
+      --bg: #F7F8FA;
+      --surface: #FFFFFF;
+      --grid: #E6EBF2;
+      --ink: #0B0B0C;
+    }
 
-/* 表單 */
-.field{ display:grid; gap:6px }
-.label{ font-size:12px; color:var(--muted) }
-.input, select, textarea{
-  border:1px solid var(--border); background:#fff; color:var(--ink);
-  border-radius:10px; padding:10px 12px; font-family:var(--sans); font-size:14px; outline:none;
-}
-.input[aria-invalid="true"]{ border-color:var(--warn); box-shadow:0 0 0 3px rgba(224,49,49,.15) }
-.helper{ font-size:12px; color:var(--muted) }
-.helper.warn{ color:var(--warn) }
-.inline{ display:flex; gap:10px; align-items:end }
-hr.sep{ border:none; border-top:1px dashed var(--grid); margin:12px 0 }
+    /* 主題：現代書報（高對比黑白） */
+    :root.theme-editorial {
+      --bg: #FFFFFF;
+      --surface: #FFFFFF;
+      --ink: #0B0B0C;
+      --muted: #6B7280;
+      --grid: #F1F5F9;
+    }
 
-/* 表格 */
-.table{ width:100%; border-collapse:separate; border-spacing:0 }
-.table th, .table td{ padding:10px 12px; border-bottom:1px solid var(--grid); font-size:14px; text-align:left }
-.table th{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px }
-.table tr:nth-child(odd) td{ background:linear-gradient(to right, rgba(0,0,0,0.02), transparent) }
-.num{ font-family:var(--mono); text-align:right }
-.tag{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border) }
-.tag.floor{ border-color:var(--ink) }
-.tag.adjusted{ border-color:var(--info); color:var(--info) }
-.tag.blocked{ border-color:var(--warn); color:var(--warn) }
-.kbd{font-family:var(--mono); font-size:12px; padding:2px 6px; border:1px solid var(--border); border-radius:6px; background:var(--bg)}
+    * {
+      box-sizing: border-box
+    }
 
-/* Toast */
-.toast{
-  position:fixed; top:16px; right:16px; z-index:1000; display:flex; flex-direction:column; gap:8px;
-}
-.toast .item{
-  background:var(--surface); border:1px solid var(--border); border-left:6px solid var(--ok);
-  padding:10px 12px; border-radius:12px; min-width:280px; box-shadow:var(--shadow)
-}
-.toast .item.error{ border-left-color:var(--warn) }
-.toast .item.info{ border-left-color:var(--info) }
+    html,
+    body {
+      height: 100%
+    }
 
-/* Skeleton */
-.skeleton{ height:12px; background:linear-gradient(90deg, #f0f3f7, #e6eaf0, #f0f3f7); background-size:200% 100%; animation:shine 1.2s infinite }
-@keyframes shine{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
 
-/* Sparklines */
-.sparkline{ width:100%; height:36px }
+    /* App 框架 */
+    .appbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
 
-/* 狀態燈 */
-.status-dot{ width:10px; height:10px; border-radius:999px; display:inline-block; vertical-align:middle }
-.status-idb{ background:#16a34a } /* 綠 */
-.status-ls{ background:#f59e0b }  /* 黃 */
-.status-off{ background:#ef4444 } /* 紅 */
+    .appbar .title {
+      font-weight: var(--font-display-weight);
+      font-size: var(--font-display-size);
+      letter-spacing: .3px
+    }
 
-/* 小字 */
-.small{ font-size:12px; color:var(--muted) }
-.right{ text-align:right }
+    .appbar .search {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 12px;
+    }
 
-/* 對話框 */
-.dialog-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:2000 }
-.dialog{ background:#fff; border-radius:16px; border:1px solid var(--border); width:min(720px, 96vw); box-shadow:var(--shadow) }
-.dialog .hd{ padding:14px; border-bottom:1px solid var(--border); font-weight:700 }
-.dialog .bd{ padding:14px; display:grid; gap:12px }
-.dialog .ft{ padding:14px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end }
+    .appbar input[type=search] {
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      font-size: 14px;
+    }
 
-/* 可聚焦區塊 */
-[tabindex="0"]{ outline:none }
-[tabindex="0"]:focus{ box-shadow:0 0 0 3px rgba(47,128,237,.25); border-radius:8px }
-</style>
+    .appbar .actions {
+      display: flex;
+      gap: 8px
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--cta);
+      background: var(--cta);
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all .15s ease-in-out;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .btn.secondary {
+      background: transparent;
+      color: var(--cta);
+      border-color: var(--cta)
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--ink);
+      border-color: var(--border)
+    }
+
+    .btn:disabled {
+      background: var(--cta-disabled);
+      border-color: var(--cta-disabled);
+      cursor: not-allowed
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+      background: var(--cta-hover)
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface)
+    }
+
+    .badge.ok {
+      color: var(--ok);
+      border-color: var(--ok)
+    }
+
+    .badge.warn {
+      color: var(--warn);
+      border-color: var(--warn)
+    }
+
+    .badge.info {
+      color: var(--info);
+      border-color: var(--info)
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 16px;
+      padding: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr
+      }
+
+      .sidenav {
+        position: sticky;
+        top: 56px
+      }
+    }
+
+    .sidenav {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .navlink {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600
+    }
+
+    .navlink.active,
+    .navlink:hover {
+      background: var(--bg)
+    }
+
+    .main {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .card .hd {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card .bd {
+      padding: 14px
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: 1fr 1fr
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, 1fr)
+    }
+
+    @media (max-width: 960px) {
+
+      .grid.cols-2,
+      .grid.cols-3 {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* 表單 */
+    .field {
+      display: grid;
+      gap: 6px
+    }
+
+    .label {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .input,
+    select,
+    textarea {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: var(--sans);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .input[aria-invalid="true"] {
+      border-color: var(--warn);
+      box-shadow: 0 0 0 3px rgba(224, 49, 49, .15)
+    }
+
+    .helper {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .helper.warn {
+      color: var(--warn)
+    }
+
+    .inline {
+      display: flex;
+      gap: 10px;
+      align-items: end
+    }
+
+    hr.sep {
+      border: none;
+      border-top: 1px dashed var(--grid);
+      margin: 12px 0
+    }
+
+    /* 表格 */
+    .table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0
+    }
+
+    .table th,
+    .table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--grid);
+      font-size: 14px;
+      text-align: left
+    }
+
+    .table th {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    /* [新增] 排序 CSS */
+    .table th.sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 20px;
+      /* Space for arrow */
+    }
+
+    .table th.sortable::after {
+      content: ' ';
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      margin-top: -6px;
+      /* (4+2) */
+      border: 4px solid transparent;
+      opacity: 0.3;
+    }
+
+    .table th[data-sort-dir="asc"]::after {
+      border-bottom-color: var(--ink);
+      opacity: 1;
+    }
+
+    .table th[data-sort-dir="desc"]::after {
+      border-top-color: var(--ink);
+      opacity: 1;
+    }
+
+    .table tr:nth-child(odd) td {
+      background: linear-gradient(to right, rgba(0, 0, 0, 0.02), transparent)
+    }
+
+    .num {
+      font-family: var(--mono);
+      text-align: right
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--border)
+    }
+
+    .tag.floor {
+      border-color: var(--ink)
+    }
+
+    .tag.adjusted {
+      border-color: var(--info);
+      color: var(--info)
+    }
+
+    .tag.blocked {
+      border-color: var(--warn);
+      color: var(--warn)
+    }
+
+    .kbd {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 2px 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg)
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast .item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 6px solid var(--ok);
+      padding: 10px 12px;
+      border-radius: 12px;
+      min-width: 280px;
+      box-shadow: var(--shadow)
+    }
+
+    .toast .item.error {
+      border-left-color: var(--warn)
+    }
+
+    .toast .item.info {
+      border-left-color: var(--info)
+    }
+
+    /* Skeleton */
+    .skeleton {
+      height: 12px;
+      background: linear-gradient(90deg, #f0f3f7, #e6eaf0, #f0f3f7);
+      background-size: 200% 100%;
+      animation: shine 1.2s infinite
+    }
+
+    @keyframes shine {
+      0% {
+        background-position: 200% 0
+      }
+
+      100% {
+        background-position: -200% 0
+      }
+    }
+
+    /* Sparklines */
+    .sparkline {
+      width: 100%;
+      height: 36px
+    }
+
+    /* 狀態燈 */
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      vertical-align: middle;
+      margin: 0 2px;
+    }
+
+    .status-idb {
+      background: #16a34a
+    }
+
+    /* 綠 */
+    .status-ls {
+      background: #f59e0b
+    }
+
+    /* 黃 */
+    .status-off {
+      background: #ef4444
+    }
+
+    /* 紅 */
+
+    /* 隱藏類 */
+    .hidden {
+      display: none !important;
+    }
+
+    /* 關鍵數字樣式 */
+    .display-num {
+      font-size: 1.5em;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    /* 小字 */
+    .small {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .right {
+      text-align: right
+    }
+
+    /* 對話框 */
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
+      pointer-events: none;
+    }
+
+    .dialog-backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .dialog {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      width: min(720px, 96vw);
+      box-shadow: var(--shadow);
+      transform: scale(0.9);
+      transition: transform 0.3s ease-out;
+    }
+
+    .dialog-backdrop.show .dialog {
+      transform: scale(1);
+    }
+
+    .dialog .hd {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700
+    }
+
+    .dialog .bd {
+      padding: 14px;
+      display: grid;
+      gap: 12px
+    }
+
+    .dialog .ft {
+      padding: 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end
+    }
+
+    /* 商品選擇器 */
+    .product-selector {
+      display: flex;
+      gap: var(--spacing-xs);
+      align-items: center;
+    }
+
+    .product-selector select {
+      flex: 1;
+    }
+
+    .product-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .btn-sm {
+      padding: 6px 8px;
+      font-size: 12px;
+      min-width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-sm:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* 可聚焦區塊 */
+    [tabindex="0"] {
+      outline: none
+    }
+
+    [tabindex="0"]:focus {
+      box-shadow: 0 0 0 3px rgba(47, 128, 237, .25);
+      border-radius: 8px
+    }
+  </style>
+
 </head>
+
 <body>
-<div class="toast" id="toast"></div>
-
-<header class="appbar" role="banner" aria-label="頂部工具列">
-  <div class="title">📦 離線進銷與價格下限</div>
-  <div class="search" role="search">
-    <span class="small">快速搜尋</span>
-    <input id="q" type="search" placeholder="輸入商品代碼或名稱（按 / 聚焦）" aria-label="搜尋商品" />
-  </div>
-  <div class="actions">
-    <button class="btn secondary" id="btnAddPurchase" title="G 新增進貨">新增進貨</button>
-    <button class="btn" id="btnAddSale" title="S 新增銷貨">新增銷貨</button>
-    <button class="btn ghost" id="btnExport" title="E 匯出">匯出</button>
-    <button class="btn ghost" id="btnImport" title="I 匯入">匯入</button>
-    <button class="btn ghost" id="btnSettings">設定</button>
-  </div>
-</header>
-
-<div class="layout">
-  <nav class="sidenav" aria-label="側邊導航">
-    <div class="navlink active" data-tab="dashboard">Dashboard</div>
-    <div class="navlink" data-tab="products">商品</div>
-    <div class="navlink" data-tab="purchases">進貨</div>
-    <div class="navlink" data-tab="sales">銷貨</div>
-    <div class="navlink" data-tab="audits">異動紀錄</div>
-    <div class="navlink" data-tab="settings">設定</div>
-    <hr class="sep">
-    <div class="small">儲存狀態：
-      <span class="status-dot status-idb" id="dotIDB" title="IndexedDB"></span>
-      <span class="status-dot status-ls" id="dotLS" title="LocalStorage" style="display:none"></span>
-      <span class="status-dot status-off" id="dotOFF" title="不可用" style="display:none"></span>
+  <div class="toast" id="toast"></div>
+  <header class="appbar" role="banner" aria-label="頂部工具列">
+    <div class="title">📦 離線進銷與價格下限</div>
+    <div class="search" role="search">
+      <span class="small">快速搜尋</span>
+      <input id="q" type="search" placeholder="輸入商品代碼或名稱（按 / 聚焦）" aria-label="搜尋商品" />
     </div>
-  </nav>
-
-  <main class="main" id="view">
-    <!-- Dashboard -->
-    <section class="card" data-panel="dashboard">
-      <div class="hd">
-        <div>今日概覽</div>
-        <div class="small">快捷鍵：<span class="kbd">/</span> 搜尋　<span class="kbd">G</span> 新增進貨　<span class="kbd">S</span> 新增銷貨</div>
+    <div class="actions">
+      <button class="btn secondary" id="btnAddPurchase" title="G 新增進貨">新增進貨</button>
+      <button class="btn" id="btnAddSale" title="S 新增銷貨">新增銷貨</button>
+      <button class="btn ghost" id="btnExport" title="E 匯出">匯出</button>
+      <button class="btn ghost" id="btnImport" title="I 匯入">匯入</button>
+      <button class="btn ghost" id="btnSettings">設定</button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="sidenav" aria-label="側邊導航">
+      <div class="navlink active" data-tab="dashboard">Dashboard</div>
+      <div class="navlink" data-tab="products">商品</div>
+      <div class="navlink" data-tab="purchases">進貨</div>
+      <div class="navlink" data-tab="sales">銷貨</div>
+      <div class="navlink" data-tab="audits">異動紀錄</div>
+      <div class="navlink" data-tab="settings">設定</div>
+      <hr class="sep">
+      <div class="small">儲存狀態：
+        <span class="status-dot status-idb" id="dotIDB" title="IndexedDB"></span>
+        <span class="status-dot status-ls" id="dotLS" title="LocalStorage" style="display:none"></span>
+        <span class="status-dot status-off" id="dotOFF" title="不可用" style="display:none"></span>
       </div>
-      <div class="bd">
-        <div class="grid cols-3">
-          <div class="card">
-            <div class="hd">今日銷貨</div>
-            <div class="bd">
-              <div>數量 <b><span id="todayQty" class="num">0</span></b></div>
-              <div>金額 <b><span id="todayAmt" class="num">0.00</span></b></div>
-              <div>推導均價 <b>≈ <span id="todayAvg" class="num">0.00</span></b></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="hd">異常摘要</div>
-            <div class="bd">
-              <div>無 floor 商品：<b><span id="noFloorCount" class="num">0</span></b></div>
-              <div>阻擋次數：<b><span id="blockedCount" class="num">0</span></b></div>
-              <div>自動調整次數：<b><span id="adjustedCount" class="num">0</span></b></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="hd">庫存告急 Top 5</div>
-            <div class="bd">
-              <table class="table" id="lowStockTable">
-                <thead><tr><th>代碼</th><th>名稱</th><th class="right">庫存</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
+    </nav>
+    <main class="main" id="view">
+      <section class="card" data-panel="dashboard">
+        <div class="hd">
+          <div>今日概覽</div>
+          <div class="small">快捷鍵：<span class="kbd">/</span> 搜尋　<span class="kbd">G</span> 新增進貨　<span
+              class="kbd">S</span> 新增銷貨</div>
         </div>
-        <hr class="sep">
-        <div class="card">
-          <div class="hd">近30日均價趨勢</div>
-          <div class="bd">
-            <canvas id="spark" class="sparkline" aria-label="近30日均價"></canvas>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Products -->
-    <section class="card" data-panel="products" hidden>
-      <div class="hd">
-        <div>商品清單</div>
-        <div>
-          <button class="btn secondary" id="btnNewProduct">新增商品</button>
-        </div>
-      </div>
-      <div class="bd">
-        <table class="table" id="tblProducts" aria-label="商品清單表">
-          <thead>
-            <tr>
-              <th>代碼</th><th>名稱</th><th>單位</th>
-              <th class="right">庫存</th>
-              <th class="right">floor</th>
-              <th class="right">近30日均價</th>
-              <th>動作</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Purchases -->
-    <section class="card" data-panel="purchases" hidden>
-      <div class="hd">
-        <div>進貨紀錄</div>
-        <div class="inline">
-          <button class="btn secondary" id="btnAddPurchase2">新增進貨</button>
-          <button class="btn ghost" id="btnPastePurchase">批次貼上</button>
-        </div>
-      </div>
-      <div class="bd">
-        <table class="table" id="tblPurchases">
-          <thead>
-            <tr>
-              <th>日期</th><th>商品</th>
-              <th class="right">數量</th><th class="right">單價</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Sales -->
-    <section class="card" data-panel="sales" hidden>
-      <div class="hd">
-        <div>銷貨紀錄</div>
-        <div><button class="btn" id="btnAddSale2">新增銷貨</button></div>
-      </div>
-      <div class="bd">
-        <table class="table" id="tblSales">
-          <thead>
-            <tr>
-              <th>日期</th><th>商品</th>
-              <th class="right">數量</th><th class="right">金額</th><th class="right">推導單價</th>
-              <th>備註</th><th>狀態</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Audits -->
-    <section class="card" data-panel="audits" hidden>
-      <div class="hd">
-        <div>異動紀錄</div>
-      </div>
-      <div class="bd">
-        <table class="table" id="tblAudits">
-          <thead>
-            <tr>
-              <th>時間</th><th>商品</th><th class="right">原金額</th><th class="right">調整後</th><th class="right">usedFloor</th><th>策略</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Settings -->
-    <section class="card" data-panel="settings" hidden>
-      <div class="hd">
-        <div>設定</div>
-      </div>
-      <div class="bd">
-        <div class="grid cols-2">
-          <div class="card">
-            <div class="hd">價格與庫存策略</div>
-            <div class="bd grid">
-              <div class="field">
-                <label class="label">價格策略</label>
-                <select id="pricePolicy" aria-label="價格策略">
-                  <option value="autoAdjust">自動調整</option>
-                  <option value="block">阻擋</option>
-                </select>
-                <div class="helper">derivedPrice < floor 時：自動調整為 floor×數量；或阻擋</div>
+        <div class="bd">
+          <div class="grid cols-3">
+            <div class="card">
+              <div class="hd">今日銷貨</div>
+              <div class="bd">
+                <div>數量 <b><span id="todayQty" class="num">0</span></b></div>
+                <div>金額 <b><span id="todayAmt" class="num">0.00</span></b></div>
+                <div>推導均價 <b>≈ <span id="todayAvg" class="num">0.00</span></b></div>
               </div>
-              <div class="field">
-                <label class="label">庫存管控</label>
-                <label><input type="checkbox" id="inventoryControl" checked /> 啟用（超賣時阻擋）</label>
+            </div>
+            <div class="card">
+              <div class="hd">異常摘要</div>
+              <div class="bd">
+                <div>無 floor 商品：<b><span id="noFloorCount" class="num">0</span></b></div>
+                <div>阻擋次數：<b><span id="blockedCount" class="num">0</span></b></div>
+                <div>自動調整次數：<b><span id="adjustedCount" class="num">0</span></b></div>
               </div>
-              <div class="field">
-                <label class="label">主題</label>
-                <select id="themeSel">
-                  <option value="luxe">極簡靜奢（預設）</option>
-                  <option value="industrial">工業理性</option>
-                  <option value="editorial">現代書報</option>
-                </select>
+            </div>
+            <div class="card">
+              <div class="hd">庫存告急 Top 5</div>
+              <div class="bd">
+                <table class="table" id="lowStockTable">
+                  <thead>
+                    <tr>
+                      <th>代碼</th>
+                      <th>名稱</th>
+                      <th class="right">庫存</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
               </div>
             </div>
           </div>
+          <hr class="sep">
           <div class="card">
-            <div class="hd">資料維護</div>
-            <div class="bd grid">
-              <button class="btn ghost" id="btnClear">清除本機資料</button>
-              <div class="small">此動作將刪除 IndexedDB / LocalStorage 的所有資料（需二次確認）。</div>
+            <div class="hd">近30日均價趨勢</div>
+            <div class="bd">
+              <canvas id="spark" class="sparkline" aria-label="近30日均價"></canvas>
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  </main>
-</div>
+      </section>
+      
+      <section class="card" data-panel="products" hidden>
+        <div class="hd">
+          <div>商品清單</div>
+          <div class="inline">
+            <button class="btn ghost" id="btnPasteProducts">批次貼上</button>
+            <button class="btn secondary" id="btnNewProduct">新增商品</button>
+          </div>
+        </div>
+        <div class="bd">
+          <table class="table" id="tblProducts" aria-label="商品清單表">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="code">代碼</th>
+                <th class="sortable" data-sort="name">名稱</th>
+                <th class="sortable" data-sort="unit">單位</th>
+                <th class="right sortable" data-sort="stock">庫存</th>
+                <th class="right sortable" data-sort="floor">floor</th>
+                <th class="right sortable" data-sort="avg30">近30日均價</th>
+                <th>動作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
 
-<!-- 對話框：新增/編輯商品 -->
-<div class="dialog-backdrop" id="dlgProduct">
-  <div class="dialog" role="dialog" aria-labelledby="dlgProductTitle">
-    <div class="hd" id="dlgProductTitle">商品</div>
-    <div class="bd grid cols-2">
-      <div class="field">
-        <label class="label">商品代碼*</label>
-        <input class="input" id="pCode" autocomplete="off" />
+      <section class="card" data-panel="purchases" hidden>
+        <div class="hd">
+          <div>進貨紀錄</div>
+          <div class="inline">
+            <button class="btn secondary" id="btnAddPurchase2">新增進貨</button>
+            <button class="btn ghost" id="btnPastePurchase">批次貼上</button>
+          </div>
+        </div>
+        <div class="bd">
+          <table class="table" id="tblPurchases">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="date">日期</th>
+                <th class="sortable" data-sort="productName">商品</th>
+                <th class="right sortable" data-sort="qty">數量</th>
+                <th class="right sortable" data-sort="unitCost">單價</th>
+                <th>動作</th> </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" data-panel="sales" hidden>
+        <div class="hd">
+          <div>銷貨紀錄</div>
+          <div><button class="btn" id="btnAddSale2">新增銷貨</button></div>
+        </div>
+        <div class="bd">
+          <table class="table" id="tblSales">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="date">日期</th>
+                <th class="sortable" data-sort="productName">商品</th>
+                <th class="right sortable" data-sort="qty">數量</th>
+                <th class="right sortable" data-sort="amount">金額</th>
+                <th class="right sortable" data-sort="derivedPrice">推導單價</th>
+                <th class="sortable" data-sort="note">備註</th>
+                <th class="sortable" data-sort="adjusted">狀態</th>
+                <th>動作</th> </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" data-panel="audits" hidden>
+        <div class="hd">
+          <div>異動紀錄</div>
+        </div>
+        <div class="bd">
+          <table class="table" id="tblAudits">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="ts">時間</th>
+                <th class="sortable" data-sort="productName">商品</th>
+                <th class="right sortable" data-sort="origAmount">原金額</th>
+                <th class="right sortable" data-sort="newAmount">調整後</th>
+                <th class="right sortable" data-sort="usedFloor">usedFloor</th>
+                <th class="sortable" data-sort="policy">策略</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" data-panel="settings" hidden>
+        <div class="hd">
+          <div>設定</div>
+        </div>
+        <div class="bd">
+          <div class="grid cols-2">
+            <div class="card">
+              <div class="hd">價格與庫存策略</div>
+              <div class="bd grid">
+                <div class="field">
+                  <label class="label">價格策略</label>
+                  <select id="pricePolicy" aria-label="價格策略">
+                    <option value="autoAdjust">自動調整</option>
+                    <option value="block">阻擋</option>
+                  </select>
+                  <div class="helper">derivedPrice &lt; floor 時：自動調整為 floor×數量；或阻擋</div>
+                </div>
+                <div class="field">
+                  <label class="label">庫存管控</label>
+                  <label><input type="checkbox" id="inventoryControl" checked /> 啟用（超賣時阻擋）</label>
+                </div>
+                <div class="field">
+                  <label class="label">主題</label>
+                  <select id="themeSel">
+                    <option value="luxe">極簡靜奢（預設）</option>
+                    <option value="industrial">工業理性</option>
+                    <option value="editorial">現代書報</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="hd">資料維護</div>
+              <div class="bd grid">
+                <button class="btn ghost" id="btnClear">清除本機資料</button>
+                <div class="small">此動作將刪除 IndexedDB / LocalStorage 的所有資料（需二次確認）。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  
+  <div class="dialog-backdrop" id="dlgProduct">
+    <div class="dialog" role="dialog" aria-labelledby="dlgProductTitle">
+      <div class="hd" id="dlgProductTitle">商品</div>
+      <div class="bd grid cols-2">
+        <div class="field">
+          <label class="label">商品代碼*</label>
+          <input class="input" id="pCode" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="label">名稱*</label>
+          <input class="input" id="pName" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="label">單位</label>
+          <input class="input" id="pUnit" autocomplete="off" />
+        </div>
       </div>
-      <div class="field">
-        <label class="label">名稱*</label>
-        <input class="input" id="pName" autocomplete="off" />
+      <div class="ft">
+        <button class="btn ghost" data-close="#dlgProduct">取消</button>
+        <button class="btn" id="btnSaveProduct">儲存</button>
       </div>
-      <div class="field">
-        <label class="label">單位</label>
-        <input class="input" id="pUnit" autocomplete="off" />
-      </div>
-    </div>
-    <div class="ft">
-      <button class="btn ghost" data-close="#dlgProduct">取消</button>
-      <button class="btn" id="btnSaveProduct">儲存</button>
     </div>
   </div>
-</div>
-
-<!-- 對話框：新增進貨 -->
-<div class="dialog-backdrop" id="dlgPurchase">
-  <div class="dialog" role="dialog" aria-labelledby="dlgPurchaseTitle">
-    <div class="hd" id="dlgPurchaseTitle">新增進貨</div>
-    <div class="bd grid cols-2">
-      <div class="field">
-        <label class="label">商品*</label>
-        <select id="purProduct"></select>
+  
+  <div class="dialog-backdrop" id="dlgPurchase">
+    <div class="dialog" role="dialog" aria-labelledby="dlgPurchaseTitle">
+      <div class="hd" id="dlgPurchaseTitle">新增進貨</div>
+      <div class="bd grid cols-2">
+        <div class="field">
+          <label class="label">商品*</label>
+          <div class="product-selector">
+            <select id="purProduct"></select>
+            <div class="product-actions">
+              <button type="button" class="btn ghost btn-sm" id="btnAddProduct" title="新增商品">+</button>
+              <button type="button" class="btn ghost btn-sm" id="btnEditProduct" title="編輯商品" disabled>✎</button>
+              <button type="button" class="btn ghost btn-sm" id="btnDeleteProduct" title="刪除商品" disabled>×</button>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">數量*</label>
+          <input class="input" id="purQty" type="number" step="0.001" min="0" />
+        </div>
+        <div class="field">
+          <label class="label">單價*</label>
+          <input class="input" id="purCost" type="number" step="0.0001" min="0" />
+        </div>
+        <div class="field">
+          <label class="label">日期</label>
+          <input class="input" id="purDate" type="date" />
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label class="label">備註</label>
+          <input class="input" id="purNote" />
+        </div>
       </div>
-      <div class="field">
-        <label class="label">數量*</label>
-        <input class="input" id="purQty" type="number" step="0.001" min="0" />
+      <div class="ft">
+        <button class="btn ghost" data-close="#dlgPurchase">取消</button>
+        <button class="btn" id="btnSavePurchase">建立</button>
       </div>
-      <div class="field">
-        <label class="label">單價*</label>
-        <input class="input" id="purCost" type="number" step="0.0001" min="0" />
-      </div>
-      <div class="field">
-        <label class="label">日期</label>
-        <input class="input" id="purDate" type="date" />
-      </div>
-      <div class="field" style="grid-column:1/-1">
-        <label class="label">備註</label>
-        <input class="input" id="purNote" />
-      </div>
-    </div>
-    <div class="ft">
-      <button class="btn ghost" data-close="#dlgPurchase">取消</button>
-      <button class="btn" id="btnSavePurchase">建立</button>
     </div>
   </div>
-</div>
-
-<!-- 對話框：新增銷貨 -->
-<div class="dialog-backdrop" id="dlgSale">
-  <div class="dialog" role="dialog" aria-labelledby="dlgSaleTitle">
-    <div class="hd" id="dlgSaleTitle">新增銷貨</div>
-    <div class="bd grid cols-2">
-      <div class="field">
-        <label class="label">商品*</label>
-        <select id="saleProduct"></select>
+  
+  <div class="dialog-backdrop" id="dlgSale">
+    <div class="dialog" role="dialog" aria-labelledby="dlgSaleTitle">
+      <div class="hd" id="dlgSaleTitle">新增銷貨</div>
+      <div class="bd grid cols-2">
+        <div class="field">
+          <label class="label">商品*</label>
+          <div class="product-selector">
+            <select id="saleProduct"></select>
+            <div class="product-actions">
+              <button type="button" class="btn ghost btn-sm" id="btnAddProductSale" title="新增商品">+</button>
+              <button type="button" class="btn ghost btn-sm" id="btnEditProductSale" title="編輯商品" disabled>✎</button>
+              <button type="button" class="btn ghost btn-sm" id="btnDeleteProductSale" title="刪除商品" disabled>×</button>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">數量*</label>
+          <input class="input" id="saleQty" type="number" step="0.001" min="0" inputmode="decimal" />
+          <div class="helper">可售庫存：<span id="saleStock" class="num">0.000</span></div>
+        </div>
+        <div class="field">
+          <label class="label">金額*</label>
+          <input class="input" id="saleAmt" type="text" inputmode="decimal" />
+          <div class="helper">推導單價 ≈ <span id="derived" class="num">0.00</span></div>
+          <div class="helper warn" id="floorHint" hidden></div>
+        </div>
+        <div class="field">
+          <label class="label">日期</label>
+          <input class="input" id="saleDate" type="date" />
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label class="label">備註</label>
+          <input class="input" id="saleNote" />
+        </div>
       </div>
-      <div class="field">
-        <label class="label">數量*</label>
-        <input class="input" id="saleQty" type="number" step="0.001" min="0" inputmode="decimal" />
-        <div class="helper">可售庫存：<span id="saleStock" class="num">0.000</span></div>
+      <div class="ft">
+        <button class="btn ghost" data-close="#dlgSale">取消</button>
+        <button class="btn" id="btnSaveSale">建立</button>
       </div>
-      <div class="field">
-        <label class="label">金額*</label>
-        <input class="input" id="saleAmt" type="text" inputmode="decimal" />
-        <div class="helper">推導單價 ≈ <span id="derived" class="num">0.00</span></div>
-        <div class="helper warn" id="floorHint" hidden></div>
-      </div>
-      <div class="field">
-        <label class="label">日期</label>
-        <input class="input" id="saleDate" type="date" />
-      </div>
-      <div class="field" style="grid-column:1/-1">
-        <label class="label">備註</label>
-        <input class="input" id="saleNote" />
-      </div>
-    </div>
-    <div class="ft">
-      <button class="btn ghost" data-close="#dlgSale">取消</button>
-      <button class="btn" id="btnSaveSale">建立</button>
-    </div>
-  </div>
-</div>
-
-<!-- 對話框：批次貼上進貨 -->
-<div class="dialog-backdrop" id="dlgPaste">
-  <div class="dialog" role="dialog" aria-labelledby="dlgPasteTitle">
-    <div class="hd" id="dlgPasteTitle">批次貼上進貨（代碼,數量,單價,日期?）</div>
-    <div class="bd">
-      <textarea id="pasteArea" rows="8" class="input" placeholder="例如：
-S-001, 10, 12.5, 2025-10-01
-S-002, 3, 99.9"></textarea>
-      <div class="small">將逗號分隔資料貼上；日期可省略。</div>
-    </div>
-    <div class="ft">
-      <button class="btn ghost" data-close="#dlgPaste">取消</button>
-      <button class="btn" id="btnDoPaste">寫入</button>
     </div>
   </div>
-</div>
+  
+  <div class="dialog-backdrop" id="dlgPaste">
+    <div class="dialog" role="dialog" aria-labelledby="dlgPasteTitle">
+      <div class="hd" id="dlgPasteTitle">批次貼上進貨（代碼,數量,單價,日期?）</div>
+      <div class="bd">
+        <textarea id="pasteArea" rows="8" class="input"
+          placeholder="例如：&#10;S-001, 10, 12.5, 2025-10-01&#10;S-002, 3, 99.9"></textarea>
+        <div class="small">將逗號分隔資料貼上；日期可省略。</div>
+      </div>
+      <div class="ft">
+        <button class="btn ghost" data-close="#dlgPaste">取消</button>
+        <button class="btn" id="btnDoPaste">寫入</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="dialog-backdrop" id="dlgPasteProducts">
+    <div class="dialog" role="dialog" aria-labelledby="dlgPasteProductsTitle">
+      <div class="hd" id="dlgPasteProductsTitle">批次貼上商品（代碼,名稱,單位?）</div>
+      <div class="bd">
+        <textarea id="pasteAreaProducts" rows="8" class="input"
+          placeholder="例如：&#10;S-001, 範例商品A, 件&#10;S-002, 範例商品B, 個&#10;S-003, 範例商品C"></textarea>
+        <div class="small">將逗號分隔資料貼上；單位可省略。代碼若已存在則會更新名稱與單位。</div>
+      </div>
+      <div class="ft">
+        <button class="btn ghost" data-close="#dlgPasteProducts">取消</button>
+        <button class="btn" id="btnDoPasteProducts">寫入</button>
+      </div>
+    </div>
+  </div>
+  
+  <input type="file" id="fileInput" accept="application/json" hidden />
+  <script>
+    (function () {
+      'use strict';
 
-<!-- 匯入檔案 input -->
-<input type="file" id="fileInput" accept="application/json" hidden />
-
-<script>
-/* ========== 小工具 ========== */
-const $$ = sel => document.querySelector(sel);
-const $$$ = sel => Array.from(document.querySelectorAll(sel));
-const toastBox = $$$('#toast');
-function toast(msg, type='success'){
-  const div = document.createElement('div');
-  div.className = 'item ' + (type==='error'?'error':type==='info'?'info':'');
-  div.textContent = msg;
-  toastBox.appendChild(div);
-  setTimeout(()=>div.remove(), 3800);
-}
-function fmt2(n){ return Number(n||0).toFixed(2) }
-function fmt3(n){ return Number(n||0).toFixed(3) }
-function todayISO(){ return new Date().toISOString().slice(0,10) }
-function inLastDays(iso, days){
-  if(!iso) return false;
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = (now - d) / (1000*3600*24);
-  return diff <= days;
-}
-function parseMoneyExpr(expr){
-  // 支援簡易算式：100*3, 120+30-10 等
-  try{
-    const safe = String(expr).replace(/[^0-9+*\-./()]/g,'');
-    if(!safe) return NaN;
-    // eslint-disable-next-line no-eval
-    return Number(eval(safe));
-  }catch(e){ return NaN }
-}
-function round(n, d){ const f = Math.pow(10,d); return Math.round(n*f)/f }
-
-/* ========== 儲存層：IndexedDB 與 LocalStorage 降級 ========== */
-const DB_NAME = 'offline-floor-pos';
-const DB_VER = 1;
-let useLocal = false;
-
-function idbOpen(){
-  return new Promise((resolve,reject)=>{
-    if(!('indexedDB' in window)) { useLocal = true; updateDots(); return resolve(null) }
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e=>{
-      const db = e.target.result;
-      if(!db.objectStoreNames.contains('products')){
-        const s = db.createObjectStore('products',{keyPath:'id', autoIncrement:true});
-        s.createIndex('code','code',{unique:true});
-      }
-      if(!db.objectStoreNames.contains('purchases')){
-        const s = db.createObjectStore('purchases',{keyPath:'id', autoIncrement:true});
-        s.createIndex('productId','productId');
-      }
-      if(!db.objectStoreNames.contains('sales')){
-        const s = db.createObjectStore('sales',{keyPath:'id', autoIncrement:true});
-        s.createIndex('productId','productId');
-      }
-      if(!db.objectStoreNames.contains('audits')){
-        db.createObjectStore('audits',{keyPath:'id', autoIncrement:true});
-      }
-      if(!db.objectStoreNames.contains('settings')){
-        db.createObjectStore('settings',{keyPath:'key'});
-      }
-    };
-    req.onsuccess = e=> resolve(e.target.result);
-    req.onerror = ()=>{ useLocal = true; updateDots(); resolve(null) };
-  });
-}
-
-function updateDots(){
-  $$$('#dotIDB').style.display = useLocal ? 'none' : 'inline-block';
-  $$$('#dotLS').style.display = useLocal ? 'inline-block' : 'none';
-  $$$('#dotOFF').style.display = 'none';
-}
-
-let db = null;
-const LS = {
-  get: (k) => JSON.parse(localStorage.getItem(k)||'null'),
-  set: (k,v)=> localStorage.setItem(k, JSON.stringify(v)),
-  del: (k)=> localStorage.removeItem(k)
-};
-
-async function getAll(store){
-  if(useLocal){
-    return LS.get(store) || [];
-  }
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction(store,'readonly');
-    const st = tx.objectStore(store);
-    const req = st.getAll();
-    req.onsuccess = ()=> resolve(req.result||[]);
-    req.onerror = ()=> reject(req.error);
-  });
-}
-async function add(store, value){
-  if(useLocal){
-    const arr = LS.get(store) || [];
-    value.id = (arr.at(-1)?.id || 0) + 1;
-    arr.push(value);
-    LS.set(store, arr);
-    return value.id;
-  }
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction(store,'readwrite');
-    const st = tx.objectStore(store);
-    const req = st.add(value);
-    req.onsuccess = ()=> resolve(req.result);
-    req.onerror = ()=> reject(req.error);
-  });
-}
-async function put(store, value){
-  if(useLocal){
-    const arr = LS.get(store) || [];
-    const idx = arr.findIndex(x=>x.id===value.id);
-    if(idx>=0) arr[idx]=value; else arr.push(value);
-    LS.set(store, arr);
-    return value.id;
-  }
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction(store,'readwrite');
-    const st = tx.objectStore(store);
-    const req = st.put(value);
-    req.onsuccess = ()=> resolve(req.result);
-    req.onerror = ()=> reject(req.error);
-  });
-}
-async function clearAll(){
-  if(useLocal){
-    ['products','purchases','sales','audits','settings'].forEach(k=>LS.del(k));
-    return;
-  }
-  await Promise.all(['products','purchases','sales','audits','settings'].map(store=>new Promise((resolve,reject)=>{
-    const tx = db.transaction(store,'readwrite');
-    const st = tx.objectStore(store);
-    const req = st.clear();
-    req.onsuccess = ()=> resolve();
-    req.onerror = ()=> reject(req.error);
-  })));
-}
-
-/* ========== 商業邏輯 ========== */
-async function listProducts(){ return await getAll('products') }
-async function listPurchases(){ return await getAll('purchases') }
-async function listSales(){ return await getAll('sales') }
-async function listAudits(){ return await getAll('audits') }
-async function getSettings(){
-  if(useLocal){
-    const s = LS.get('settings') || [];
-    const map = Object.fromEntries(s.map(x=>[x.key,x.value]));
-    return { inventoryControl: map.inventoryControl ?? true, priceFloorPolicy: map.priceFloorPolicy ?? 'autoAdjust', theme: map.theme ?? 'luxe' };
-  }else{
-    return new Promise((resolve,reject)=>{
-      const tx = db.transaction('settings','readonly');
-      const st = tx.objectStore('settings');
-      const req = st.getAll();
-      req.onsuccess = ()=>{
-        const map = Object.fromEntries((req.result||[]).map(x=>[x.key,x.value]));
-        resolve({ inventoryControl: map.inventoryControl ?? true, priceFloorPolicy: map.priceFloorPolicy ?? 'autoAdjust', theme: map.theme ?? 'luxe' });
+      /* ========== 常量定義 ========== */
+      const TOAST_DURATION = 3800;
+      const STORES = {
+        PRODUCTS: 'products',
+        PURCHASES: 'purchases',
+        SALES: 'sales',
+        AUDITS: 'audits',
+        SETTINGS: 'settings'
       };
-      req.onerror = ()=> reject(req.error);
-    });
-  }
-}
-async function setSetting(key, value){
-  if(useLocal){
-    const arr = LS.get('settings') || [];
-    const idx = arr.findIndex(x=>x.key===key);
-    if(idx>=0) arr[idx].value=value; else arr.push({key,value});
-    LS.set('settings', arr);
-  }else{
-    await put('settings', {key, value});
-  }
-}
 
-function calcFloor(purchases, productId){
-  const list = purchases.filter(p=>p.productId===productId && Number(p.unitCost)>0);
-  if(list.length===0) return null;
-  return Math.min(...list.map(p=>Number(p.unitCost)));
-}
-function calcStock(purchases, sales, productId){
-  const inQty = purchases.filter(p=>p.productId===productId).reduce((a,b)=>a+Number(b.qty||0),0);
-  const outQty = sales.filter(s=>s.productId===productId).reduce((a,b)=>a+Number(b.qty||0),0);
-  return round(inQty - outQty, 3);
-}
-function avgDerivedLast30(sales, productId){
-  const now30 = sales.filter(s=>s.productId===productId && inLastDays(s.date||todayISO(),30));
-  if(now30.length===0) return 0;
-  const sum = now30.reduce((a,b)=>a+Number(b.derivedPrice||0),0);
-  return round(sum/now30.length, 2);
-}
+      /* ========== 數據快取 ========== */
+      let cachedData = {
+        products: [],
+        purchases: [],
+        sales: [],
+        audits: [],
+        settings: {},
+        computed: new Map() // 存儲計算結果
+      };
 
-async function upsertProductByCode(code, name, unit){
-  const products = await listProducts();
-  const found = products.find(p=>p.code===code);
-  if(found){
-    found.name = name || found.name;
-    found.unit = unit || found.unit;
-    await put('products', found);
-    return found.id;
-  }else{
-    return await add('products', {code, name, unit});
-  }
-}
+      /* ========== [新增] 排序狀態 ========== */
+      let sortState = {
+        products: { key: 'code', dir: 'asc' },
+        purchases: { key: 'date', dir: 'desc' },
+        sales: { key: 'date', dir: 'desc' },
+        audits: { key: 'ts', dir: 'desc' }
+      };
 
-async function ensureProductOptions(){
-  const products = await listProducts();
-  const opts = products.map(p=>`<option value="${p.id}">${p.code}｜${p.name}</option>`).join('');
-  $$$('#purProduct').innerHTML = `<option value="">— 選擇商品 —</option>${opts}`;
-  $$$('#saleProduct').innerHTML = `<option value="">— 選擇商品 —</option>${opts}`;
-}
+      /* ========== 小工具 ========== */
+      const $ = sel => document.querySelector(sel);
+      const $$ = sel => document.querySelector(sel);
+      const $$$ = sel => Array.from(document.querySelectorAll(sel));
+      const toastBox = $$('#toast');
 
-function setTheme(theme){
-  document.documentElement.classList.remove('theme-industrial','theme-editorial');
-  if(theme==='industrial') document.documentElement.classList.add('theme-industrial');
-  if(theme==='editorial') document.documentElement.classList.add('theme-editorial');
-}
-
-/* ========== UI 綁定 ========== */
-function switchTab(name){
-  $$$('.navlink').forEach(n=> n.classList.toggle('active', n.dataset.tab===name));
-  $$$('[data-panel]').forEach(p=> p.hidden = (p.dataset.panel!==name));
-}
-$$$('.navlink').forEach(n=> n.addEventListener('click', ()=>switchTab(n.dataset.tab)));
-
-/* 對話框開關 */
-function openDlg(sel){ $$(sel).style.display='flex' }
-function closeDlg(sel){ $$(sel).style.display='none' }
-$$$('[data-close]').forEach(b=> b.addEventListener('click', ()=> closeDlg(b.getAttribute('data-close'))));
-
-/* 快捷鍵 */
-document.addEventListener('keydown', (e)=>{
-  if(e.key==='/'){ e.preventDefault(); $$$('#q').focus(); }
-  if(e.key==='g' || e.key==='G'){ e.preventDefault(); openPurchase() }
-  if(e.key==='s' || e.key==='S'){ e.preventDefault(); openSale() }
-  if(e.key==='e' || e.key==='E'){ e.preventDefault(); doExport() }
-  if(e.key==='i' || e.key==='I'){ e.preventDefault(); $$$('#btnImport').click() }
-});
-
-/* 搜尋框 */
-$$('#q')?.addEventListener?.('input', renderProducts);
-
-/* 事件綁定：AppBar */
-$$('#btnAddPurchase')?.addEventListener('click', openPurchase);
-$$('#btnAddPurchase2')?.addEventListener('click', openPurchase);
-$$('#btnPastePurchase')?.addEventListener('click', ()=>openDlg('#dlgPaste'));
-$$('#btnAddSale')?.addEventListener('click', openSale);
-$$('#btnAddSale2')?.addEventListener('click', openSale);
-$$('#btnExport')?.addEventListener('click', doExport);
-$$('#btnImport')?.addEventListener('click', ()=> $$$('#fileInput').click());
-$$('#btnSettings')?.addEventListener('click', ()=> switchTab('settings'));
-
-/* 設定 */
-$$('#pricePolicy')?.addEventListener('change', async(e)=>{ await setSetting('priceFloorPolicy', e.target.value); toast('已切換價格策略為：'+(e.target.value==='autoAdjust'?'自動調整':'阻擋'),'info') });
-$$('#inventoryControl')?.addEventListener('change', async(e)=>{ await setSetting('inventoryControl', e.target.checked); toast('庫存管控：'+(e.target.checked?'啟用':'停用'),'info') });
-$$('#themeSel')?.addEventListener('change', async(e)=>{ await setSetting('theme', e.target.value); setTheme(e.target.value); });
-
-$$('#btnClear')?.addEventListener('click', async()=>{
-  if(confirm('確定清除所有本機資料？此動作無法復原。')){
-    await clearAll(); toast('已清除本機資料'); location.reload();
-  }
-});
-
-/* 商品對話框 */
-$$('#btnNewProduct')?.addEventListener('click', ()=>{
-  $$$('#pCode').value=''; $$$('#pName').value=''; $$$('#pUnit').value='';
-  openDlg('#dlgProduct');
-});
-$$('#btnSaveProduct')?.addEventListener('click', async()=>{
-  const code = $$$('#pCode').value.trim();
-  const name = $$$('#pName').value.trim();
-  if(!code || !name){ toast('請填寫代碼與名稱','error'); return }
-  const id = await upsertProductByCode(code, name, $$$('#pUnit').value.trim());
-  await ensureProductOptions(); await renderProducts();
-  closeDlg('#dlgProduct'); toast('商品已儲存');
-});
-
-/* 進貨 */
-function openPurchase(){
-  ensureProductOptions();
-  $$$('#purQty').value=''; $$$('#purCost').value=''; $$$('#purDate').value=todayISO(); $$$('#purNote').value='';
-  openDlg('#dlgPurchase');
-}
-$$('#btnSavePurchase')?.addEventListener('click', async()=>{
-  const pid = Number($$$('#purProduct').value);
-  const qty = Number($$$('#purQty').value);
-  const cost = Number($$$('#purCost').value);
-  const date = $$$('#purDate').value || todayISO();
-  if(!pid || qty<=0 || cost<=0){ toast('商品、數量與單價必填且需大於0','error'); return }
-  await add('purchases', {productId:pid, qty:round(qty,3), unitCost:round(cost,4), date, note: $$$('#purNote').value||'' });
-  toast('已新增進貨');
-  closeDlg('#dlgPurchase');
-  await refreshAll();
-});
-
-/* 批次貼上 */
-$$('#btnDoPaste')?.addEventListener('click', async()=>{
-  const t = $$$('#pasteArea').value.trim();
-  if(!t){ closeDlg('#dlgPaste'); return }
-  const lines = t.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  const products = await listProducts();
-  let ok=0, fail=0;
-  for(const line of lines){
-    const [code, qtyS, costS, dateS] = line.split(',').map(s=>s.trim());
-    const p = products.find(x=>x.code===code);
-    if(!p){ fail++; continue }
-    const qty = Number(qtyS), cost = Number(costS);
-    if(!(qty>0 && cost>0)){ fail++; continue }
-    const date = dateS || todayISO();
-    await add('purchases',{productId:p.id, qty:round(qty,3), unitCost:round(cost,4), date});
-    ok++;
-  }
-  toast(`批次完成：成功 ${ok} 筆，失敗 ${fail} 筆`, fail? 'info':'success');
-  closeDlg('#dlgPaste');
-  await refreshAll();
-});
-
-/* 銷貨 */
-function openSale(){
-  ensureProductOptions();
-  $$$('#saleQty').value=''; $$$('#saleAmt').value=''; $$$('#saleDate').value=todayISO(); $$$('#saleNote').value=''; $$$('#derived').textContent='0.00';
-  $$$('#floorHint').hidden=true; $$$('#saleStock').textContent='0.000';
-  openDlg('#dlgSale');
-}
-$$('#saleProduct')?.addEventListener('change', async(e)=>{
-  const pid = Number(e.target.value);
-  const purchases = await listPurchases();
-  const sales = await listSales();
-  const stock = calcStock(purchases,sales,pid);
-  $$$('#saleStock').textContent = fmt3(stock);
-  updateDerivedHelper();
-});
-$$('#saleQty')?.addEventListener('input', updateDerivedHelper);
-$$('#saleAmt')?.addEventListener('input', updateDerivedHelper);
-
-async function updateDerivedHelper(){
-  const pid = Number($$$('#saleProduct').value);
-  const qty = Number($$$('#saleQty').value);
-  const amtExpr = $$$('#saleAmt').value;
-  const amount = parseMoneyExpr(amtExpr);
-  const purchases = await listPurchases();
-  const floor = pid? calcFloor(purchases,pid) : null;
-  const derived = (qty>0 && amount>0) ? round(amount/qty,4) : 0;
-  $$$('#derived').textContent = fmt2(derived);
-  const policy = (await getSettings()).priceFloorPolicy;
-  if(pid && floor!=null && qty>0 && derived < floor){
-    const minAmt = round(floor*qty,2);
-    $$$('#floorHint').hidden=false;
-    $$$('#floorHint').textContent = policy==='autoAdjust'
-      ? `低於下限，提交時系統將自動更正金額為 $${fmt2(minAmt)}（floor×數量）`
-      : `低於下限，最低可接受金額為 $${fmt2(minAmt)}（floor×數量）`;
-  }else{
-    $$$('#floorHint').hidden=true;
-  }
-}
-
-$$('#btnSaveSale')?.addEventListener('click', async()=>{
-  const pid = Number($$$('#saleProduct').value);
-  const qty = Number($$$('#saleQty').value);
-  const amtExpr = $$$('#saleAmt').value;
-  let amount = parseMoneyExpr(amtExpr);
-  const date = $$$('#saleDate').value || todayISO();
-  const note = $$$('#saleNote').value||'';
-  if(!pid){ toast('請選擇商品','error'); return }
-  if(!(qty>0) || !(amount>0) || !isFinite(amount)){ toast('數量與金額需大於0','error'); return }
-
-  const purchases = await listPurchases();
-  const sales = await listSales();
-  const floor = calcFloor(purchases, pid);
-  if(floor==null){ toast('尚無進貨成本，無法銷貨','error'); closeDlg('#dlgSale'); switchTab('purchases'); return }
-  const settings = await getSettings();
-  const derived = round(amount/qty, 4);
-  let adjusted=false, origAmount=amount;
-  const minAmt = round(floor*qty, 2);
-
-  if(settings.inventoryControl){
-    const stock = calcStock(purchases, sales, pid);
-    if(qty > stock){ toast(`可售庫存僅剩 ${fmt3(stock)}，仍差 ${fmt3(qty - stock)}`,'error'); return }
-  }
-
-  if(derived < floor){
-    if(settings.priceFloorPolicy==='autoAdjust'){
-      amount = minAmt; adjusted = true;
-    }else{
-      toast(`低於最低進貨成本，請至少輸入 $${fmt2(minAmt)}`,'error');
-      return;
-    }
-  }
-
-  const finalDerived = round(amount/qty,4);
-  const sale = {productId:pid, qty:round(qty,3), amount:round(amount,2), derivedPrice:finalDerived, usedFloor:round(floor,4), adjusted, date, note};
-  await add('sales', sale);
-
-  if(adjusted){
-    await add('audits', {
-      ts: new Date().toISOString(),
-      productId: pid,
-      origAmount: round(origAmount,2),
-      newAmount: round(amount,2),
-      usedFloor: round(floor,4),
-      policy: 'autoAdjust'
-    });
-  }
-  toast(`已建立銷貨。推導單價 $${fmt2(finalDerived)}；使用下限 $${fmt2(floor)}。`,'success');
-  closeDlg('#dlgSale');
-  await refreshAll();
-});
-
-/* 匯出 / 匯入 */
-async function doExport(){
-  const payload = {
-    version:1,
-    schema:'products,purchases,sales,audits,settings',
-    exportedAt: new Date().toISOString(),
-    data:{
-      products: await listProducts(),
-      purchases: await listPurchases(),
-      sales: await listSales(),
-      audits: await listAudits(),
-      settings: useLocal? (LS.get('settings')||[]) : await new Promise((resolve)=>{
-        const tx = db.transaction('settings','readonly'); const st = tx.objectStore('settings'); const req = st.getAll(); req.onsuccess=()=>resolve(req.result||[]); req.onerror=()=>resolve([]);
-      })
-    }
-  };
-  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `floor-pos-export-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-$$('#fileInput')?.addEventListener('change', async(e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  try{
-    const text = await file.text();
-    const json = JSON.parse(text);
-    if(!(json && json.data && json.data.products && json.data.purchases && json.data.sales)){
-      toast('匯入格式錯誤：缺少必要鍵名','error'); return
-    }
-    // 基礎寫入（覆蓋）
-    if(useLocal){
-      LS.set('products', json.data.products||[]);
-      LS.set('purchases', json.data.purchases||[]);
-      LS.set('sales', json.data.sales||[]);
-      LS.set('audits', json.data.audits||[]);
-      LS.set('settings', json.data.settings||[]);
-    }else{
-      // 清空後逐筆寫入
-      const tx1 = db.transaction(['products','purchases','sales','audits','settings'],'readwrite');
-      for(const s of ['products','purchases','sales','audits','settings']){
-        tx1.objectStore(s).clear();
+      // 防抖函數
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
       }
-      await new Promise(res=> tx1.oncomplete=res);
-      for(const p of (json.data.products||[])) await add('products', p);
-      for(const p of (json.data.purchases||[])) await add('purchases', p);
-      for(const p of (json.data.sales||[])) await add('sales', p);
-      for(const p of (json.data.audits||[])) await add('audits', p);
-      for(const s of (json.data.settings||[])) await put('settings', s);
-    }
-    toast('匯入完成');
-    await refreshAll();
-  }catch(err){
-    console.error(err);
-    toast('匯入失敗：JSON 解析錯誤','error');
-  }finally{
-    e.target.value='';
-  }
-});
+      function toast(msg, type = 'success') {
+        const div = document.createElement('div');
+        div.className = 'item ' + (type === 'error' ? 'error' : type === 'info' ? 'info' : '');
+        div.textContent = msg;
+        toastBox.appendChild(div);
+        setTimeout(() => div.remove(), TOAST_DURATION);
+      }
+      function fmt2(n) { return Number(n || 0).toFixed(2) }
+      function fmt3(n) { return Number(n || 0).toFixed(3) }
+      function todayISO() { return new Date().toISOString().slice(0, 10) }
+      function inLastDays(iso, days) {
+        if (!iso) return false;
+        const d = new Date(iso);
+        const now = new Date();
+        const diff = (now - d) / (1000 * 3600 * 24);
+        return diff <= days;
+      }
+      function parseMoneyExpr(expr) {
+        try {
+          const safe = String(expr).replace(/[^0-9+*\-./()]/g, '');
+          if (!safe) return NaN;
+          return Number(new Function('return ' + safe)());
+        } catch (e) { return NaN }
+      }
+      function round(n, d) { const f = Math.pow(10, d); return Math.round(n * f) / f }
 
-/* ========== 渲染 ========== */
-async function renderProducts(){
-  const [products,purchases,sales] = await Promise.all([listProducts(),listPurchases(),listSales()]);
-  const q = ($$$('#q').value||'').trim().toLowerCase();
-  const tbody = $$$('#tblProducts tbody');
-  tbody.innerHTML='';
-  const rows = products
-    .filter(p=> !q || p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q))
-    .map(p=>{
-      const stock = calcStock(purchases,sales,p.id);
-      const floor = calcFloor(purchases,p.id);
-      const avg30 = avgDerivedLast30(sales,p.id);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${p.code}</td>
-        <td>${p.name}</td>
-        <td>${p.unit||''}</td>
-        <td class="num">${fmt3(stock)}</td>
-        <td class="num">${floor==null? '<span class="tag floor">未定</span>': fmt2(floor)}</td>
-        <td class="num">${fmt2(avg30)}</td>
-        <td><button class="btn ghost btnEdit" data-id="${p.id}">編輯</button></td>
-      `;
-      return tr;
-    });
-  rows.forEach(r=>tbody.appendChild(r));
+      /* [新增] 通用排序比較器 */
+      function getSorter(key, dir) {
+        const asc = dir === 'asc' ? 1 : -1;
+        const numKeys = ['stock', 'floor', 'avg30', 'qty', 'unitCost', 'amount', 'derivedPrice', 'origAmount', 'newAmount', 'usedFloor'];
+        const dateKeys = ['date', 'ts'];
 
-  // 編輯
-  $$$('.btnEdit').forEach(b=> b.addEventListener('click', async()=>{
-    const id = Number(b.dataset.id);
-    const p = (await listProducts()).find(x=>x.id===id);
-    if(!p) return;
-    $$$('#pCode').value = p.code; $$$('#pName').value=p.name; $$$('#pUnit').value=p.unit||'';
-    openDlg('#dlgProduct');
-  }));
-}
+        return (a, b) => {
+          let valA = a[key];
+          let valB = b[key];
 
-async function renderPurchases(){
-  const [purchases, products] = await Promise.all([listPurchases(), listProducts()]);
-  const map = Object.fromEntries(products.map(p=>[p.id, `${p.code}｜${p.name}`]));
-  const tbody = $$$('#tblPurchases tbody');
-  tbody.innerHTML='';
-  purchases.slice().reverse().forEach(r=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.date||''}</td>
-      <td>${map[r.productId]||r.productId}</td>
-      <td class="num">${fmt3(r.qty)}</td>
-      <td class="num">${fmt2(r.unitCost)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+          if (numKeys.includes(key)) {
+            valA = Number(valA || 0);
+            valB = Number(valB || 0);
+          } else if (dateKeys.includes(key)) {
+            valA = valA || '';
+            valB = valB || '';
+          } else { // string
+            valA = String(valA || '').toLowerCase();
+            valB = String(valB || '').toLowerCase();
+          }
 
-async function renderSales(){
-  const [sales, products] = await Promise.all([listSales(), listProducts()]);
-  const map = Object.fromEntries(products.map(p=>[p.id, `${p.code}｜${p.name}`]));
-  const tbody = $$$('#tblSales tbody');
-  tbody.innerHTML='';
-  sales.slice().reverse().forEach(r=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.date||''}</td>
-      <td>${map[r.productId]||r.productId}</td>
-      <td class="num">${fmt3(r.qty)}</td>
-      <td class="num">${fmt2(r.amount)}</td>
-      <td class="num">≈ ${fmt2(r.derivedPrice)}</td>
-      <td>${r.note||''}</td>
-      <td>${ r.adjusted ? '<span class="tag adjusted">Adjusted</span>' : ''}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+          if (valA < valB) return -1 * asc;
+          if (valA > valB) return 1 * asc;
+          return 0;
+        };
+      }
+      
+      /* [新增] 更新排序箭頭 UI */
+      function updateSortIndicators() {
+        for (const tableKey of ['products', 'purchases', 'sales', 'audits']) {
+          const state = sortState[tableKey];
+          // 構成 Table ID，例如 tblProducts
+          const table = $$(`#tbl${tableKey.charAt(0).toUpperCase() + tableKey.slice(1)}`);
+          if (!table) continue;
+          
+          table.querySelectorAll('thead th').forEach(th => th.removeAttribute('data-sort-dir'));
+          const activeTh = table.querySelector(`thead th[data-sort="${state.key}"]`);
+          if (activeTh) {
+            activeTh.setAttribute('data-sort-dir', state.dir);
+          }
+        }
+      }
 
-async function renderAudits(){
-  const [audits, products] = await Promise.all([listAudits(), listProducts()]);
-  const map = Object.fromEntries(products.map(p=>[p.id, `${p.code}｜${p.name}`]));
-  const tbody = $$$('#tblAudits tbody');
-  tbody.innerHTML='';
-  audits.slice().reverse().forEach(r=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${new Date(r.ts).toLocaleString()}</td>
-      <td>${map[r.productId]||r.productId}</td>
-      <td class="num">${fmt2(r.origAmount)}</td>
-      <td class="num">${fmt2(r.newAmount)}</td>
-      <td class="num">${fmt2(r.usedFloor)}</td>
-      <td>${r.policy}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+      /* ========== 儲存層：IndexedDB 與 LocalStorage 降級 ========== */
+      const DB_NAME = 'offline-floor-pos';
+      const DB_VER = 1;
+      let useLocal = false;
 
-async function renderDashboard(){
-  const [sales, products, purchases, audits] = await Promise.all([listSales(), listProducts(), listPurchases(), listAudits()]);
-  const today = new Date().toISOString().slice(0,10);
-  const sToday = sales.filter(s=> (s.date||'').slice(0,10)===today);
-  const qSum = sToday.reduce((a,b)=>a+Number(b.qty),0);
-  const aSum = sToday.reduce((a,b)=>a+Number(b.amount),0);
-  $$$('#todayQty').textContent = fmt3(qSum);
-  $$$('#todayAmt').textContent = fmt2(aSum);
-  $$$('#todayAvg').textContent = fmt2(qSum? (aSum/qSum):0);
+      function idbOpen() {
+        return new Promise((resolve) => {
+          if (!('indexedDB' in window)) { useLocal = true; updateDots(); return resolve(null) }
+          const req = indexedDB.open(DB_NAME, DB_VER);
+          req.onupgradeneeded = e => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORES.PRODUCTS)) {
+              const s = db.createObjectStore(STORES.PRODUCTS, { keyPath: 'id', autoIncrement: true });
+              s.createIndex('code', 'code', { unique: true });
+            }
+            if (!db.objectStoreNames.contains(STORES.PURCHASES)) {
+              const s = db.createObjectStore(STORES.PURCHASES, { keyPath: 'id', autoIncrement: true });
+              s.createIndex('productId', 'productId');
+            }
+            if (!db.objectStoreNames.contains(STORES.SALES)) {
+              const s = db.createObjectStore(STORES.SALES, { keyPath: 'id', autoIncrement: true });
+              s.createIndex('productId', 'productId');
+            }
+            if (!db.objectStoreNames.contains(STORES.AUDITS)) {
+              db.createObjectStore(STORES.AUDITS, { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains(STORES.SETTINGS)) {
+              db.createObjectStore(STORES.SETTINGS, { keyPath: 'key' });
+            }
+          };
+          req.onsuccess = e => resolve(e.target.result);
+          req.onerror = () => { useLocal = true; updateDots(); resolve(null) };
+        });
+      }
 
-  const noFloor = products.filter(p=> calcFloor(purchases,p.id)==null).length;
-  const blocked = audits.filter(a=>a.policy==='block').length;
-  const adjusted = audits.filter(a=>a.policy==='autoAdjust').length;
-  $$$('#noFloorCount').textContent = noFloor;
-  $$$('#blockedCount').textContent = blocked;
-  $$$('#adjustedCount').textContent = adjusted;
+      function updateDots() {
+        $$('#dotIDB').style.display = useLocal ? 'none' : 'inline-block';
+        $$('#dotLS').style.display = useLocal ? 'inline-block' : 'none';
+        $$('#dotOFF').style.display = 'none';
+      }
 
-  // 低庫存 Top N（依庫存升序）
-  const list = products.map(p=>({p, stock: calcStock(purchases,sales,p.id)})).sort((a,b)=>a.stock-b.stock).slice(0,5);
-  const tbody = $$$('#lowStockTable tbody'); tbody.innerHTML='';
-  list.forEach(({p,stock})=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${p.code}</td><td>${p.name}</td><td class="num">${fmt3(stock)}</td>`;
-    tbody.appendChild(tr);
-  });
+      let db = null;
+      const LS = {
+        get: (k) => JSON.parse(localStorage.getItem(k) || 'null'),
+        set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+        del: (k) => localStorage.removeItem(k)
+      };
 
-  // 簡易 sparkline（近30日均價總體）
-  const ctx = $$$('#spark').getContext('2d');
-  ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
-  const W = ctx.canvas.width = ctx.canvas.clientWidth;
-  const H = ctx.canvas.height = ctx.canvas.clientHeight;
-  // 聚合：每天的均價（所有商品）
-  const days = [...Array(30)].map((_,i)=>{
-    const d = new Date(); d.setDate(d.getDate()- (29-i));
-    return d.toISOString().slice(0,10);
-  });
-  const series = days.map(d=>{
-    const ss = sales.filter(s=> (s.date||'').slice(0,10)===d);
-    const q = ss.reduce((a,b)=>a+Number(b.qty),0);
-    const a = ss.reduce((a,b)=>a+Number(b.amount),0);
-    return q? (a/q) : 0;
-  });
-  const max = Math.max(...series, 1);
-  const min = Math.min(...series, 0);
-  const xstep = W/(series.length-1 || 1);
-  ctx.beginPath();
-  series.forEach((v,i)=>{
-    const x = i*xstep;
-    const t = max===min? 0.5 : (v - min)/(max - min);
-    const y = H - t*H;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--info').trim() || '#2F80ED';
-  ctx.stroke();
-}
+      async function getAll(store) {
+        if (useLocal) {
+          return LS.get(store) || [];
+        }
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(store, 'readonly');
+          const st = tx.objectStore(store);
+          const req = st.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      async function add(store, value) {
+        if (useLocal) {
+          const arr = LS.get(store) || [];
+          value.id = (arr.at(-1)?.id || 0) + 1;
+          arr.push(value);
+          LS.set(store, arr);
+          return value.id;
+        }
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(store, 'readwrite');
+          const st = tx.objectStore(store);
+          const req = st.add(value);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      async function put(store, value) {
+        if (useLocal) {
+          const arr = LS.get(store) || [];
+          const idx = arr.findIndex(x => x.id === value.id);
+          if (idx >= 0) arr[idx] = value; else arr.push(value);
+          LS.set(store, arr);
+          return value.id;
+        }
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(store, 'readwrite');
+          const st = tx.objectStore(store);
+          const req = st.put(value);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      
+      /* [新增] 刪除單筆紀錄 */
+      async function deleteRecord(store, id) {
+        if (useLocal) {
+          const arr = LS.get(store) || [];
+          const filtered = arr.filter(x => x.id !== id);
+          LS.set(store, filtered);
+          return;
+        }
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(store, 'readwrite');
+          const st = tx.objectStore(store);
+          const req = st.delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+      
+      async function clearAll() {
+        if (useLocal) {
+          Object.values(STORES).forEach(k => LS.del(k));
+          return;
+        }
+        await Promise.all(Object.values(STORES).map(store => new Promise((resolve, reject) => {
+          const tx = db.transaction(store, 'readwrite');
+          const st = tx.objectStore(store);
+          const req = st.clear();
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        })));
+      }
 
-/* 整體刷新 */
-async function refreshAll(){
-  await ensureProductOptions();
-  await renderProducts();
-  await renderPurchases();
-  await renderSales();
-  await renderAudits();
-  await renderDashboard();
-}
+      /* ========== 商業邏輯 ========== */
+      async function listProducts() { return await getAll(STORES.PRODUCTS) }
+      async function listPurchases() { return await getAll(STORES.PURCHASES) }
+      async function listSales() { return await getAll(STORES.SALES) }
+      async function listAudits() { return await getAll(STORES.AUDITS) }
+      async function getSettings() {
+        if (useLocal) {
+          const s = LS.get('settings') || [];
+          const map = Object.fromEntries(s.map(x => [x.key, x.value]));
+          return { inventoryControl: map.inventoryControl ?? true, priceFloorPolicy: map.priceFloorPolicy ?? 'autoAdjust', theme: map.theme ?? 'luxe' };
+        } else {
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction('settings', 'readonly');
+            const st = tx.objectStore('settings');
+            const req = st.getAll();
+            req.onsuccess = () => {
+              const map = Object.fromEntries((req.result || []).map(x => [x.key, x.value]));
+              resolve({ inventoryControl: map.inventoryControl ?? true, priceFloorPolicy: map.priceFloorPolicy ?? 'autoAdjust', theme: map.theme ?? 'luxe' });
+            };
+            req.onerror = () => reject(req.error);
+          });
+        }
+      }
+      async function setSetting(key, value) {
+        if (useLocal) {
+          const arr = LS.get('settings') || [];
+          const idx = arr.findIndex(x => x.key === key);
+          if (idx >= 0) arr[idx].value = value; else arr.push({ key, value });
+          LS.set('settings', arr);
+        } else {
+          await put('settings', { key, value });
+        }
+      }
 
-/* 開始 */
-(async function init(){
-  db = await idbOpen();
-  updateDots();
-  const s = await getSettings();
-  // 套用主題
-  setTheme(s.theme);
-  $$$('#themeSel').value = s.theme;
-  $$$('#pricePolicy').value = s.priceFloorPolicy;
-  $$$('#inventoryControl').checked = !!s.inventoryControl;
+      function calcFloor(purchases, productId) {
+        const list = purchases.filter(p => p.productId === productId && Number(p.unitCost) > 0);
+        if (list.length === 0) return null;
+        return Math.min(...list.map(p => Number(p.unitCost)));
+      }
+      function calcStock(purchases, sales, productId) {
+        const inQty = purchases.filter(p => p.productId === productId).reduce((a, b) => a + Number(b.qty || 0), 0);
+        const outQty = sales.filter(s => s.productId === productId).reduce((a, b) => a + Number(b.qty || 0), 0);
+        return round(inQty - outQty, 3);
+      }
+      function avgDerivedLast30(sales, productId) {
+        const now30 = sales.filter(s => s.productId === productId && inLastDays(s.date || todayISO(), 30));
+        if (now30.length === 0) return 0;
+        const sum = now30.reduce((a, b) => a + Number(b.derivedPrice || 0), 0);
+        return round(sum / now30.length, 2);
+      }
 
-  // 初次引導：若無商品，放入示例 1 筆
-  const products = await listProducts();
-  if(products.length===0){
-    await add('products',{id:1, code:'S-001', name:'示例商品', unit:'件'});
-  }
+      async function upsertProductByCode(code, name, unit) {
+        // [優化] 使用 listProducts() 保持獨立性，因為它可能在批次貼上時被呼叫
+        const products = await listProducts();
+        const found = products.find(p => p.code === code);
+        if (found) {
+          found.name = name || found.name;
+          found.unit = unit || found.unit;
+          await put(STORES.PRODUCTS, found);
+          return found.id;
+        } else {
+          return await add(STORES.PRODUCTS, { code, name, unit });
+        }
+      }
 
-  await refreshAll();
-  toast('已載入（離線可用）','info');
-})();
-</script>
+      async function deleteProduct(productId) {
+        if (useLocal) {
+          const products = LS.get(STORES.PRODUCTS) || [];
+          const filtered = products.filter(p => p.id !== productId);
+          LS.set(STORES.PRODUCTS, filtered);
+        } else {
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORES.PRODUCTS, 'readwrite');
+            const store = tx.objectStore(STORES.PRODUCTS);
+            const req = store.delete(productId);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+          });
+        }
+      }
+
+      /* [修改] 改為同步，依賴快取 */
+      function ensureProductOptions() {
+        const products = cachedData.products; // Use cache
+        const opts = products.map(p => `<option value="${p.id}">${p.code}｜${p.name}</option>`).join('');
+        $$('#purProduct').innerHTML = `<option value="">— 選擇商品 —</option>${opts}`;
+        $$('#saleProduct').innerHTML = `<option value="">— 選擇商品 —</option>${opts}`;
+
+        updateProductActions('#purProduct', '#btnEditProduct', '#btnDeleteProduct');
+        updateProductActions('#saleProduct', '#btnEditProductSale', '#btnDeleteProductSale');
+      }
+
+      function setTheme(theme) {
+        document.documentElement.classList.remove('theme-industrial', 'theme-editorial');
+        if (theme === 'industrial') document.documentElement.classList.add('theme-industrial');
+        if (theme === 'editorial') document.documentElement.classList.add('theme-editorial');
+      }
+
+      /* ========== UI 綁定 ========== */
+      function switchTab(name) {
+        $$$('.navlink').forEach(n => n.classList.toggle('active', n.dataset.tab === name));
+        $$$('[data-panel]').forEach(p => p.hidden = (p.dataset.panel !== name));
+      }
+      $$$('.navlink').forEach(n => n.addEventListener('click', () => switchTab(n.dataset.tab)));
+
+      /* 對話框開關 */
+      function openDlg(sel) {
+        const dlg = $$(sel);
+        dlg.style.display = 'flex';
+        requestAnimationFrame(() => dlg.classList.add('show'));
+      }
+
+      function closeDlg(sel) {
+        const dlg = $$(sel);
+        dlg.classList.remove('show');
+        setTimeout(() => {
+          if (!dlg.classList.contains('show')) {
+            dlg.style.display = 'none';
+          }
+        }, 300);
+      }
+      $$$('[data-close]').forEach(b => b.addEventListener('click', () => closeDlg(b.getAttribute('data-close'))));
+
+      /* 快捷鍵 */
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/') { e.preventDefault(); $$('#q').focus(); }
+        if (e.key === 'g' || e.key === 'G') { e.preventDefault(); openPurchase() }
+        if (e.key === 's' || e.key === 'S') { e.preventDefault(); openSale() }
+        if (e.key === 'e' || e.key === 'E') { e.preventDefault(); doExport() }
+        if (e.key === 'i' || e.key === 'I') { e.preventDefault(); $$('#btnImport').click() }
+      });
+
+      /* 搜尋框 */
+      $$('#q')?.addEventListener?.('input', renderProducts); // [修改] renderProducts 已改為同步
+
+      /* 事件綁定：AppBar */
+      $$('#btnAddPurchase')?.addEventListener('click', openPurchase);
+      $$('#btnAddPurchase2')?.addEventListener('click', openPurchase);
+      $$('#btnPastePurchase')?.addEventListener('click', () => openDlg('#dlgPaste'));
+      $$('#btnAddSale')?.addEventListener('click', openSale);
+      $$('#btnAddSale2')?.addEventListener('click', openSale);
+      $$('#btnExport')?.addEventListener('click', doExport);
+      $$('#btnImport')?.addEventListener('click', () => $$('#fileInput').click());
+      $$('#btnSettings')?.addEventListener('click', () => switchTab('settings'));
+
+      /* 設定 */
+      $$('#pricePolicy')?.addEventListener('change', async (e) => { await setSetting('priceFloorPolicy', e.target.value); cachedData.settings.priceFloorPolicy = e.target.value; toast('已切換價格策略為：' + (e.target.value === 'autoAdjust' ? '自動調整' : '阻擋'), 'info') });
+      $$('#inventoryControl')?.addEventListener('change', async (e) => { await setSetting('inventoryControl', e.target.checked); cachedData.settings.inventoryControl = e.target.checked; toast('庫存管控：' + (e.target.checked ? '啟用' : '停用'), 'info') });
+      $$('#themeSel')?.addEventListener('change', async (e) => { await setSetting('theme', e.target.value); setTheme(e.target.value); });
+
+      $$('#btnClear')?.addEventListener('click', async () => {
+        if (confirm('確定清除所有本機資料？此動作無法復原。')) {
+          await clearAll();
+          toast('已清除本機資料');
+          await refreshAll();
+        }
+      });
+
+      /* 商品對話框 */
+      $$('#btnNewProduct')?.addEventListener('click', () => {
+        $$('#pCode').value = ''; $$('#pName').value = ''; $$('#pUnit').value = '';
+        $$('#dlgProductTitle').textContent = '新增商品';
+        openDlg('#dlgProduct');
+      });
+      $$('#btnPasteProducts')?.addEventListener('click', () => {
+        $$('#pasteAreaProducts').value = '';
+        openDlg('#dlgPasteProducts');
+      });
+
+      $$('#btnSaveProduct')?.addEventListener('click', async () => {
+        const code = $$('#pCode').value.trim();
+        const name = $$('#pName').value.trim();
+        if (!code || !name) { toast('請填寫代碼與名稱', 'error'); return }
+        await upsertProductByCode(code, name, $$('#pUnit').value.trim());
+        await refreshAll(); // 確保刷新
+        closeDlg('#dlgProduct'); toast('商品已儲存');
+      });
+
+      /* 進貨 */
+      /* [修改] openPurchase - 重設對話框狀態 */
+      function openPurchase() {
+        ensureProductOptions();
+        $$('#purQty').value = '';
+        $$('#purCost').value = '';
+        $$('#purDate').value = todayISO();
+        $$('#purNote').value = '';
+        
+        // 重設為「新增」狀態
+        $$('#dlgPurchaseTitle').textContent = '新增進貨';
+        $$('#btnSavePurchase').textContent = '建立';
+        delete $$('#dlgPurchase').dataset.editingId; // 清除編輯 ID
+        
+        openDlg('#dlgPurchase');
+      }
+
+      // 商品選擇器邏輯
+      function updateProductActions(selectId, editBtnId, deleteBtnId) {
+        const select = $$(selectId);
+        const editBtn = $$(editBtnId);
+        const deleteBtn = $$(deleteBtnId);
+
+        if (select && editBtn && deleteBtn) {
+          const hasSelection = select.value && select.value !== '';
+          editBtn.disabled = !hasSelection;
+          deleteBtn.disabled = !hasSelection;
+        }
+      }
+
+      // 進貨商品選擇器事件
+      $$('#purProduct')?.addEventListener('change', () => {
+        updateProductActions('#purProduct', '#btnEditProduct', '#btnDeleteProduct');
+      });
+
+      // 銷貨商品選擇器事件  
+      $$('#saleProduct')?.addEventListener('change', () => {
+        updateProductActions('#saleProduct', '#btnEditProductSale', '#btnDeleteProductSale');
+      });
+
+      // 新增商品按鈕 (進貨)
+      $$('#btnAddProduct')?.addEventListener('click', () => {
+        $$('#pCode').value = '';
+        $$('#pName').value = '';
+        $$('#pUnit').value = '';
+        $$('#dlgProductTitle').textContent = '新增商品';
+        openDlg('#dlgProduct');
+      });
+
+      // 新增商品按鈕 (銷貨)
+      $$('#btnAddProductSale')?.addEventListener('click', () => {
+        $$('#pCode').value = '';
+        $$('#pName').value = '';
+        $$('#pUnit').value = '';
+        $$('#dlgProductTitle').textContent = '新增商品';
+        openDlg('#dlgProduct');
+      });
+
+      // 編輯商品按鈕 (進貨)
+      $$('#btnEditProduct')?.addEventListener('click', async () => {
+        const pid = Number($$('#purProduct').value);
+        if (!pid) return;
+        const product = cachedData.products.find(p => p.id === pid);
+        if (!product) return;
+
+        $$('#pCode').value = product.code;
+        $$('#pName').value = product.name;
+        $$('#pUnit').value = product.unit || '';
+        $$('#dlgProductTitle').textContent = '編輯商品';
+        openDlg('#dlgProduct');
+      });
+
+      // 編輯商品按鈕 (銷貨)
+      $$('#btnEditProductSale')?.addEventListener('click', async () => {
+        const pid = Number($$('#saleProduct').value);
+        if (!pid) return;
+        const product = cachedData.products.find(p => p.id === pid);
+        if (!product) return;
+
+        $$('#pCode').value = product.code;
+        $$('#pName').value = product.name;
+        $$('#pUnit').value = product.unit || '';
+        $$('#dlgProductTitle').textContent = '編輯商品';
+        openDlg('#dlgProduct');
+      });
+
+      // 刪除商品按鈕 (進貨)
+      $$('#btnDeleteProduct')?.addEventListener('click', async () => {
+        const pid = Number($$('#purProduct').value);
+        if (!pid) return;
+        const product = cachedData.products.find(p => p.id === pid);
+        if (!product) return;
+
+        if (confirm(`確定要刪除商品「${product.code} - ${product.name}」嗎？\n注意：相關的進貨和銷貨記錄將保留，但商品資訊將無法顯示。`)) {
+          await deleteProduct(pid);
+          await refreshAll();
+          toast(`已刪除商品：${product.code}`);
+        }
+      });
+
+      // 刪除商品按鈕 (銷貨)
+      $$('#btnDeleteProductSale')?.addEventListener('click', async () => {
+        const pid = Number($$('#saleProduct').value);
+        if (!pid) return;
+        const product = cachedData.products.find(p => p.id === pid);
+        if (!product) return;
+
+        if (confirm(`確定要刪除商品「${product.code} - ${product.name}」嗎？\n注意：相關的進貨和銷貨記錄將保留，但商品資訊將無法顯示。`)) {
+          await deleteProduct(pid);
+          await refreshAll();
+          toast(`已刪除商品：${product.code}`);
+        }
+      });
+      
+      /* [修改] btnSavePurchase - 支援新增與編輯 */
+      $$('#btnSavePurchase')?.addEventListener('click', async () => {
+        const editingId = Number($$('#dlgPurchase').dataset.editingId) || null;
+        const pid = Number($$('#purProduct').value);
+        const qty = Number($$('#purQty').value);
+        const cost = Number($$('#purCost').value);
+        const date = $$('#purDate').value || todayISO();
+        const note = $$('#purNote').value || '';
+
+        if (!pid || qty <= 0 || cost <= 0) { toast('商品、數量與單價必填且需大於0', 'error'); return }
+
+        const payload = { 
+          productId: pid, 
+          qty: round(qty, 3), 
+          unitCost: round(cost, 4), 
+          date, 
+          note
+        };
+
+        if (editingId) {
+          payload.id = editingId;
+          await put(STORES.PURCHASES, payload);
+          toast('已更新進貨');
+        } else {
+          await add(STORES.PURCHASES, payload);
+          toast('已新增進貨');
+        }
+        
+        delete $$('#dlgPurchase').dataset.editingId; // 清理
+        closeDlg('#dlgPurchase');
+        await refreshAll();
+      });
+
+      /* 批次貼上 - 進貨 */
+      $$('#btnDoPaste')?.addEventListener('click', async () => {
+        const t = $$('#pasteArea').value.trim();
+        if (!t) { closeDlg('#dlgPaste'); return }
+        const lines = t.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+        const products = await listProducts(); // 需保持 await，因為這是獨立操作
+        let ok = 0, fail = 0;
+        for (const line of lines) {
+          const [code, qtyS, costS, dateS] = line.split(',').map(s => s.trim());
+          const p = products.find(x => x.code === code);
+          if (!p) { fail++; continue }
+          const qty = Number(qtyS), cost = Number(costS);
+          if (!(qty > 0 && cost > 0)) { fail++; continue }
+          const date = dateS || todayISO();
+          await add('purchases', { productId: p.id, qty: round(qty, 3), unitCost: round(cost, 4), date });
+          ok++;
+        }
+        toast(`批次完成：成功 ${ok} 筆，失敗 ${fail} 筆`, fail ? 'info' : 'success');
+        $$('#pasteArea').value = '';
+        closeDlg('#dlgPaste');
+        await refreshAll();
+      });
+
+      /* 批次貼上 - 商品 */
+      $$('#btnDoPasteProducts')?.addEventListener('click', async () => {
+        const t = $$('#pasteAreaProducts').value.trim();
+        if (!t) { closeDlg('#dlgPasteProducts'); return }
+        const lines = t.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+        let ok = 0, fail = 0;
+        for (const line of lines) {
+          const [code, name, unit] = line.split(',').map(s => s.trim());
+          if (!code || !name) {
+            fail++;
+            continue;
+          }
+          try {
+            await upsertProductByCode(code, name, unit || '');
+            ok++;
+          } catch (e) {
+            console.error('Batch product add error:', e);
+            fail++;
+          }
+        }
+        toast(`批次新增商品：成功 ${ok} 筆，失敗 ${fail} 筆`, fail ? 'info' : 'success');
+        $$('#pasteAreaProducts').value = '';
+        closeDlg('#dlgPasteProducts');
+        await refreshAll();
+      });
+
+
+      /* 銷貨 */
+      /* [修改] openSale - 重設對話框狀態 */
+      function openSale() {
+        ensureProductOptions();
+        $$('#saleQty').value = ''; 
+        $$('#saleAmt').value = ''; 
+        $$('#saleDate').value = todayISO(); 
+        $$('#saleNote').value = ''; 
+        $$('#derived').textContent = '0.00';
+        $$('#floorHint').hidden = true; 
+        $$('#saleStock').textContent = '0.000';
+        $$('#saleProduct').value = ''; // [修正] 清空選擇
+
+        // 重設為「新增」狀態
+        $$('#dlgSaleTitle').textContent = '新增銷貨';
+        $$('#btnSaveSale').textContent = '建立';
+        delete $$('#dlgSale').dataset.editingId; // 清除編輯 ID
+
+        openDlg('#dlgSale');
+      }
+      
+      $$('#saleProduct')?.addEventListener('change', (e) => { // [修改] 無需 async
+        const pid = Number(e.target.value);
+        const stock = cachedData.computed.get(pid)?.stock ?? 0;
+        $$('#saleStock').textContent = fmt3(stock);
+        updateDerivedHelper();
+      });
+      
+      const debouncedUpdateHelper = debounce(updateDerivedHelper, 300);
+      $$('#saleQty')?.addEventListener('input', debouncedUpdateHelper);
+      $$('#saleAmt')?.addEventListener('input', debouncedUpdateHelper);
+
+      /* [修改] updateDerivedHelper - 無需 async */
+      function updateDerivedHelper() {
+        const pid = Number($$('#saleProduct').value);
+        const qty = Number($$('#saleQty').value);
+        const amtExpr = $$('#saleAmt').value;
+        const amount = parseMoneyExpr(amtExpr);
+        
+        const computed = cachedData.computed.get(pid);
+        const floor = computed ? computed.floor : null;
+        const derived = (qty > 0 && amount > 0) ? round(amount / qty, 4) : 0;
+        $$('#derived').textContent = fmt2(derived);
+        const policy = cachedData.settings.priceFloorPolicy || 'autoAdjust';
+        
+        if (pid && floor != null && qty > 0 && derived < floor) {
+          const minAmt = round(floor * qty, 2);
+          $$('#floorHint').hidden = false;
+          $$('#floorHint').textContent = policy === 'autoAdjust'
+            ? `低於下限，提交時系統將自動更正金額為 $${fmt2(minAmt)}（floor×數量）`
+            : `低於下限，最低可接受金額為 $${fmt2(minAmt)}（floor×數量）`;
+        } else {
+          $$('#floorHint').hidden = true;
+        }
+      }
+
+      /* [修改] btnSaveSale - 支援新增與編輯 */
+      $$('#btnSaveSale')?.addEventListener('click', async () => {
+        const editingId = Number($$('#dlgSale').dataset.editingId) || null;
+        
+        const pid = Number($$('#saleProduct').value);
+        const qty = Number($$('#saleQty').value);
+        const amtExpr = $$('#saleAmt').value;
+        let amount = parseMoneyExpr(amtExpr);
+        const date = $$('#saleDate').value || todayISO();
+        const note = $$('#saleNote').value || '';
+        
+        if (!pid) { toast('請選擇商品', 'error'); return }
+        if (!(qty > 0) || !(amount > 0) || !isFinite(amount)) { toast('數量與金額需大於0', 'error'); return }
+
+        const floor = cachedData.computed.get(pid)?.floor;
+        if (floor == null) { toast('尚無進貨成本，無法銷貨', 'error'); closeDlg('#dlgSale'); switchTab('purchases'); return }
+        
+        const settings = cachedData.settings;
+        const derived = round(amount / qty, 4);
+        let adjusted = false, origAmount = amount;
+        const minAmt = round(floor * qty, 2);
+
+        if (settings.inventoryControl && !editingId) { // [修改] 編輯時暫不檢查庫存
+          const stock = cachedData.computed.get(pid)?.stock ?? 0;
+          if (qty > stock) {
+            await add('audits', {
+              ts: new Date().toISOString(),
+              productId: pid,
+              origAmount: round(origAmount, 2),
+              newAmount: round(origAmount, 2),
+              usedFloor: round(floor ?? 0, 4),
+              policy: 'inventoryBlock'
+            });
+            toast(`可售庫存僅剩 ${fmt3(stock)}，仍差 ${fmt3(qty - stock)}`, 'error');
+            return;
+          }
+        }
+
+        if (derived < floor) {
+          if (settings.priceFloorPolicy === 'autoAdjust') {
+            amount = minAmt; adjusted = true;
+          } else {
+            await add('audits', {
+              ts: new Date().toISOString(),
+              productId: pid,
+              origAmount: round(origAmount, 2),
+              newAmount: round(origAmount, 2),
+              usedFloor: round(floor, 4),
+              policy: 'block'
+            });
+            toast(`低於最低進貨成本，請至少輸入 $${fmt2(minAmt)}`, 'error');
+            return;
+          }
+        }
+
+        const finalDerived = round(amount / qty, 4);
+        const sale = { 
+          productId: pid, 
+          qty: round(qty, 3), 
+          amount: round(amount, 2), 
+          derivedPrice: finalDerived, 
+          usedFloor: round(floor, 4), 
+          adjusted, 
+          date, 
+          note 
+        };
+
+        if (editingId) {
+          sale.id = editingId;
+          await put(STORES.SALES, sale);
+          toast(`已更新銷貨。`);
+        } else {
+          await add(STORES.SALES, sale);
+          toast(`已建立銷貨。`);
+        }
+
+        if (adjusted) {
+          await add('audits', {
+            ts: new Date().toISOString(),
+            productId: pid,
+            origAmount: round(origAmount, 2),
+            newAmount: round(amount, 2),
+            usedFloor: round(floor, 4),
+            policy: 'autoAdjust'
+          });
+        }
+        
+        delete $$('#dlgSale').dataset.editingId; // 清理
+        closeDlg('#dlgSale');
+        await refreshAll();
+      });
+
+      /* 匯出 / 匯入 */
+      async function doExport() {
+        const payload = {
+          version: 1,
+          schema: 'products,purchases,sales,audits,settings',
+          exportedAt: new Date().toISOString(),
+          data: {
+            products: await listProducts(),
+            purchases: await listPurchases(),
+            sales: await listSales(),
+            audits: await listAudits(),
+            settings: useLocal ? (LS.get('settings') || []) : await new Promise((resolve) => {
+              const tx = db.transaction('settings', 'readonly'); const st = tx.objectStore('settings'); const req = st.getAll(); req.onsuccess = () => resolve(req.result || []); req.onerror = () => resolve([]);
+            })
+          }
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `floor-pos-export-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      $$('#fileInput')?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const json = JSON.parse(text);
+          if (!(json && json.data && json.data.products && json.data.purchases && json.data.sales)) {
+            toast('匯入格式錯誤：缺少必要鍵名', 'error'); return
+          }
+          if (useLocal) {
+            LS.set('products', json.data.products || []);
+            LS.set('purchases', json.data.purchases || []);
+            LS.set('sales', json.data.sales || []);
+            LS.set('audits', json.data.audits || []);
+            LS.set('settings', json.data.settings || []);
+          } else {
+            const tx1 = db.transaction(['products', 'purchases', 'sales', 'audits', 'settings'], 'readwrite');
+            for (const s of ['products', 'purchases', 'sales', 'audits', 'settings']) {
+              tx1.objectStore(s).clear();
+            }
+            await new Promise(res => tx1.oncomplete = res);
+            for (const p of (json.data.products || [])) { delete p.id; await add('products', p); }
+            for (const p of (json.data.purchases || [])) { delete p.id; await add('purchases', p); }
+            for (const p of (json.data.sales || [])) { delete p.id; await add('sales', p); }
+            for (const p of (json.data.audits || [])) { delete p.id; await add('audits', p); }
+            for (const s of (json.data.settings || [])) { await put('settings', s); }
+          }
+          toast('匯入完成');
+          await refreshAll();
+        } catch (err) {
+          console.error(err);
+          toast('匯入失敗：JSON 解析錯誤', 'error');
+        } finally {
+          e.target.value = '';
+        }
+      });
+
+      /* ========== 渲染 ========== */
+      
+      /* [修改] 改為同步，依賴快取，加入排序 */
+      function renderProducts() {
+        const products = cachedData.products;
+        const q = ($$('#q').value || '').trim().toLowerCase();
+        const tbody = $$('#tblProducts tbody');
+        
+        const mapped = products.map(p => ({
+          ...p,
+          ...(cachedData.computed.get(p.id) || { stock: 0, floor: null, avg30: 0 })
+        }));
+        
+        const sorter = getSorter(sortState.products.key, sortState.products.dir);
+        mapped.sort(sorter);
+        
+        const rows = mapped
+          .filter(p => !q || p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q))
+          .map(p => {
+            return `<tr>
+              <td>${p.code}</td>
+              <td>${p.name}</td>
+              <td>${p.unit || ''}</td>
+              <td class="num">${fmt3(p.stock)}</td>
+              <td class="num">${p.floor == null ? '<span class="tag floor">未定</span>' : fmt2(p.floor)}</td>
+              <td class="num">${fmt2(p.avg30)}</td>
+              <td><button class="btn ghost btn-sm btnEdit" data-id="${p.id}" title="編輯">✎</button></td>
+            </tr>`;
+          });
+      
+        tbody.innerHTML = rows.join('');
+      }
+
+      /* [修改] 改為同步，依賴快取，加入排序和編輯/刪除按鈕 */
+      function renderPurchases() {
+        const { purchases, products } = cachedData;
+        const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
+        const tbody = $$('#tblPurchases tbody');
+        
+        const mapped = purchases.map(r => ({
+          ...r,
+          productName: map[r.productId] || r.productId
+        }));
+        
+        const sorter = getSorter(sortState.purchases.key, sortState.purchases.dir);
+        mapped.sort(sorter);
+        
+        tbody.innerHTML = mapped.map(r => `
+          <tr>
+            <td>${r.date || ''}</td>
+            <td>${r.productName}</td>
+            <td class="num">${fmt3(r.qty)}</td>
+            <td class="num">${fmt2(r.unitCost)}</td>
+            <td>
+              <button class="btn ghost btn-sm btnEditPur" data-id="${r.id}" title="編輯">✎</button>
+              <button class="btn ghost btn-sm btnDelPur" data-id="${r.id}" title="刪除">×</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      /* [修改] 改為同步，依賴快取，加入排序和編輯/刪除按鈕 */
+      function renderSales() {
+        const { sales, products } = cachedData;
+        const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
+        const tbody = $$('#tblSales tbody');
+        
+        const mapped = sales.map(r => ({
+          ...r,
+          productName: map[r.productId] || r.productId
+        }));
+
+        const sorter = getSorter(sortState.sales.key, sortState.sales.dir);
+        mapped.sort(sorter);
+        
+        tbody.innerHTML = mapped.map(r => `
+          <tr>
+            <td>${r.date || ''}</td>
+            <td>${r.productName}</td>
+            <td class="num">${fmt3(r.qty)}</td>
+            <td class="num">${fmt2(r.amount)}</td>
+            <td class="num">≈ ${fmt2(r.derivedPrice)}</td>
+            <td>${r.note || ''}</td>
+            <td>${r.adjusted ? '<span class="tag adjusted">Adjusted</span>' : ''}</td>
+            <td>
+              <button class="btn ghost btn-sm btnEditSale" data-id="${r.id}" title="編輯">✎</button>
+              <button class="btn ghost btn-sm btnDelSale" data-id="${r.id}" title="刪除">×</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      /* [修改] 改為同步，依賴快取，加入排序 */
+      function renderAudits() {
+        const { audits, products } = cachedData;
+        const map = Object.fromEntries(products.map(p => [p.id, `${p.code}｜${p.name}`]));
+        const tbody = $$('#tblAudits tbody');
+        
+        const mapped = audits.map(r => ({
+          ...r,
+          productName: map[r.productId] || r.productId
+        }));
+
+        const sorter = getSorter(sortState.audits.key, sortState.audits.dir);
+        mapped.sort(sorter);
+        
+        tbody.innerHTML = mapped.map(r => `
+          <tr>
+            <td>${new Date(r.ts).toLocaleString()}</td>
+            <td>${r.productName}</td>
+            <td class="num">${fmt2(r.origAmount)}</td>
+            <td class="num">${fmt2(r.newAmount)}</td>
+            <td class="num">${fmt2(r.usedFloor)}</td>
+            <td>${r.policy}</td>
+          </tr>
+        `).join('');
+      }
+
+      /* [修改] 改為同步，依賴快取 */
+      function renderDashboard() {
+        const { sales, products, audits } = cachedData;
+        const today = new Date().toISOString().slice(0, 10);
+
+        const sToday = sales.filter(s => (s.date || '').slice(0, 10) === today);
+        const qSum = sToday.reduce((a, b) => a + Number(b.qty), 0);
+        const aSum = sToday.reduce((a, b) => a + Number(b.amount), 0);
+        $$('#todayQty').textContent = fmt3(qSum);
+        $$('#todayAmt').textContent = fmt2(aSum);
+        $$('#todayAvg').textContent = fmt2(qSum ? (aSum / qSum) : 0);
+
+        const noFloor = products.filter(p => cachedData.computed.get(p.id)?.floor == null).length;
+        const blocked = audits.filter(a => a.policy === 'block' || a.policy === 'inventoryBlock').length;
+        const adjusted = audits.filter(a => a.policy === 'autoAdjust').length;
+        $$('#noFloorCount').textContent = noFloor;
+        $$('#blockedCount').textContent = blocked;
+        $$('#adjustedCount').textContent = adjusted;
+
+        const list = products.map(p => ({ p, stock: cachedData.computed.get(p.id)?.stock ?? 0 })).sort((a, b) => a.stock - b.stock).slice(0, 5);
+        const tbody = $$('#lowStockTable tbody'); tbody.innerHTML = '';
+        list.forEach(({ p, stock }) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${p.code}</td><td>${p.name}</td><td class="num">${fmt3(stock)}</td>`;
+          tbody.appendChild(tr);
+        });
+
+        // Sparkline
+        const ctx = $$('#spark').getContext('2d');
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        const W = ctx.canvas.width = ctx.canvas.clientWidth;
+        const H = ctx.canvas.height = ctx.canvas.clientHeight;
+        const days = [...Array(30)].map((_, i) => {
+          const d = new Date(); d.setDate(d.getDate() - (29 - i));
+          return d.toISOString().slice(0, 10);
+        });
+        const series = days.map(d => {
+          const ss = sales.filter(s => (s.date || '').slice(0, 10) === d);
+          const q = ss.reduce((a, b) => a + Number(b.qty), 0);
+          const a = ss.reduce((a, b) => a + Number(b.amount), 0);
+          return q ? (a / q) : 0;
+        });
+        const max = Math.max(...series, 1);
+        const min = Math.min(...series, 0);
+        const xstep = W / (series.length - 1 || 1);
+        ctx.beginPath();
+        series.forEach((v, i) => {
+          const x = i * xstep;
+          const t = max === min ? 0.5 : (v - min) / (max - min);
+          const y = H - t * H;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.lineWidth = 2;
+        (function () {
+          const css = (getComputedStyle(document.documentElement).getPropertyValue('--info') || '').toString();
+          const c = (css && css.trim()) ? css.trim() : '#2F80ED';
+          ctx.strokeStyle = c;
+        })();
+        ctx.stroke();
+      }
+
+      /* ========== 數據預處理與快取 ========== */
+      async function loadAndCacheData() {
+        // 一次性載入所有原始數據
+        [
+          cachedData.products,
+          cachedData.purchases,
+          cachedData.sales,
+          cachedData.audits,
+          cachedData.settings
+        ] = await Promise.all([
+          listProducts(),
+          listPurchases(),
+          listSales(),
+          listAudits(),
+          getSettings()
+        ]);
+
+        // 預計算所有商品的衍生數據
+        cachedData.computed.clear();
+        for (const product of cachedData.products) {
+          const stock = calcStock(cachedData.purchases, cachedData.sales, product.id);
+          const floor = calcFloor(cachedData.purchases, product.id);
+          const avg30 = avgDerivedLast30(cachedData.sales, product.id);
+
+          cachedData.computed.set(product.id, {
+            stock,
+            floor,
+            avg30
+          });
+        }
+      }
+
+      /* [修改] 整體刷新 - 改為 異步載入 -> 同步渲染 */
+      async function refreshAll() {
+        await loadAndCacheData(); // 1. 異步載入所有資料到快取
+        
+        // 2. 所有渲染/UI更新全部改為同步，使用快取
+        ensureProductOptions();
+        renderProducts();
+        renderPurchases();
+        renderSales();
+        renderAudits();
+        renderDashboard();
+        
+        // 3. 更新排序 UI
+        updateSortIndicators();
+      }
+
+      /* 開始 */
+      async function init() {
+        db = await idbOpen();
+        updateDots();
+        
+        // 載入設定
+        const s = await getSettings();
+        cachedData.settings = s; // 儲存到快取
+        setTheme(s.theme);
+        $$('#themeSel').value = s.theme;
+        $$('#pricePolicy').value = s.priceFloorPolicy;
+        $$('#inventoryControl').checked = !!s.inventoryControl;
+
+        setupEventDelegation();
+
+        // 初次引導
+        const products = await listProducts();
+        if (products.length === 0) {
+          await add(STORES.PRODUCTS, { code: 'S-001', name: '示例商品', unit: '件' });
+        }
+
+        await refreshAll(); // 執行首次載入與渲染
+        toast('已載入（離線可用）', 'info');
+      }
+
+      /* [修改] 事件委派設置 - 加入排序和編輯/刪除 */
+      function setupEventDelegation() {
+        
+        // === 排序點擊處理 ===
+        function handleSortClick(e, tableKey, renderFn) {
+          const th = e.target.closest('th[data-sort]');
+          if (!th) return;
+          
+          const key = th.dataset.sort;
+          const state = sortState[tableKey];
+          
+          if (state.key === key) {
+            state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+          } else {
+            state.key = key;
+            state.dir = (key === 'date' || key === 'ts') ? 'desc' : 'asc';
+          }
+          
+          renderFn(); // 同步重新渲染
+          updateSortIndicators(); // 更新箭頭
+        }
+
+        $$('#tblProducts thead')?.addEventListener('click', (e) => handleSortClick(e, 'products', renderProducts));
+        $$('#tblPurchases thead')?.addEventListener('click', (e) => handleSortClick(e, 'purchases', renderPurchases));
+        $$('#tblSales thead')?.addEventListener('click', (e) => handleSortClick(e, 'sales', renderSales));
+        $$('#tblAudits thead')?.addEventListener('click', (e) => handleSortClick(e, 'audits', renderAudits));
+
+        // === 編輯/刪除處理 ===
+        
+        // 商品表格
+        $$('#tblProducts tbody')?.addEventListener('click', (e) => {
+          if (e.target.classList.contains('btnEdit')) {
+            const id = Number(e.target.dataset.id);
+            const p = cachedData.products.find(x => x.id === id);
+            if (!p) return;
+            $$('#pCode').value = p.code;
+            $$('#pName').value = p.name;
+            $$('#pUnit').value = p.unit || '';
+            $$('#dlgProductTitle').textContent = '編輯商品';
+            openDlg('#dlgProduct');
+          }
+        });
+        
+        // 進貨表格
+        $$('#tblPurchases tbody')?.addEventListener('click', async (e) => {
+          const target = e.target.closest('button');
+          if (!target) return;
+          const id = Number(target.dataset.id);
+          
+          // 編輯進貨
+          if (target.classList.contains('btnEditPur')) {
+            const r = cachedData.purchases.find(x => x.id === id);
+            if (!r) return;
+            
+            $$('#purProduct').value = r.productId;
+            $$('#purQty').value = r.qty;
+            $$('#purCost').value = r.unitCost;
+            $$('#purDate').value = r.date;
+            $$('#purNote').value = r.note || '';
+            
+            $$('#dlgPurchaseTitle').textContent = '編輯進貨';
+            $$('#btnSavePurchase').textContent = '更新';
+            $$('#dlgPurchase').dataset.editingId = id; // 設置編輯 ID
+            
+            openDlg('#dlgPurchase');
+          }
+          
+          // 刪除進貨
+          if (target.classList.contains('btnDelPur')) {
+            if (confirm('確定要刪除這筆進貨紀錄嗎？此動作會影響庫存。')) {
+              await deleteRecord(STORES.PURCHASES, id);
+              toast('已刪除進貨紀錄');
+              await refreshAll();
+            }
+          }
+        });
+        
+        // 銷貨表格
+        $$('#tblSales tbody')?.addEventListener('click', async (e) => {
+          const target = e.target.closest('button');
+          if (!target) return;
+          const id = Number(target.dataset.id);
+          
+          // 編輯銷貨
+          if (target.classList.contains('btnEditSale')) {
+            const r = cachedData.sales.find(x => x.id === id);
+            if (!r) return;
+            
+            $$('#saleProduct').value = r.productId;
+            $$('#saleQty').value = r.qty;
+            $$('#saleAmt').value = r.amount;
+            $$('#saleDate').value = r.date;
+            $$('#saleNote').value = r.note || '';
+            
+            $$('#dlgSaleTitle').textContent = '編輯銷貨';
+            $$('#btnSaveSale').textContent = '更新';
+            $$('#dlgSale').dataset.editingId = id; // 設置編輯 ID
+            
+            // 手動觸發 change 來更新庫存
+            $$('#saleProduct').dispatchEvent(new Event('change'));
+            openDlg('#dlgSale');
+            updateDerivedHelper(); // 立即更新一次 helper
+          }
+          
+          // 刪除銷貨
+          if (target.classList.contains('btnDelSale')) {
+            if (confirm('確定要刪除這筆銷貨紀錄嗎？此動作會影響庫存。')) {
+              await deleteRecord(STORES.SALES, id);
+              toast('已刪除銷貨紀錄');
+              await refreshAll();
+            }
+          }
+        });
+      }
+
+      // 初始化應用
+      window.addEventListener('DOMContentLoaded', init);
+
+    })(); // IIFE 結束
+  </script>
 </body>
+
 </html>
