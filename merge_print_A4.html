@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>離線合併列印（A4｜每頁兩戶）</title>
+<style>
+/* ---- Reset (minimal, no external CSS) ---- */
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0}
+body{font-family: system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif; color:#111;}
+
+/* ---- Page + Print ---- */
+@page{
+  size: A4 portrait;
+  margin: 10mm;
+}
+.print-sheet{
+  width: 210mm; /* A4 width */
+  min-height: 297mm; /* A4 height */
+  margin: 0 auto;
+  background: #fff;
+  position: relative;
+  page-break-after: always;
+  border: 1px solid #ddd;
+}
+/* Two blocks per page: top half and bottom half */
+.block{
+  position: relative;
+  width: calc(100% - 20mm);
+  left: 10mm;
+  height: calc((297mm - 20mm) / 2 - 6mm); /* subtract outer margins and small spacing */
+  border: 1px solid #000;
+  padding: 6mm 8mm;
+}
+.block-top{ top: 10mm; }
+.block-bottom{ bottom: 10mm; position: absolute; }
+
+/* Titles and labels */
+.hrow{display:flex; align-items:center; justify-content:space-between; margin-bottom: 4mm;}
+.hrow .title{font-weight:700; font-size: 13pt; letter-spacing:0.5px;}
+.hrow .meta{font-size: 10pt; color:#000;}
+
+.hr{height:0; border:none; border-top:1px solid #000; margin: 3mm 0 2mm;}
+
+.kv{display:grid; grid-template-columns: 28mm 1fr; gap: 1.5mm 4mm; font-size:10.5pt; align-items:baseline;}
+.kv .lab{white-space:nowrap;}
+.kv .val{border-bottom: 1px solid #000; min-height: 5mm;}
+
+/* Small notes (e.g., + → 1月份收到薪資表後填寫) */
+.note-line{display:flex; gap:3mm; align-items:center; font-size:9.8pt; margin: 1mm 0;}
+.note-pill{border:1px solid #000; padding:0 2.5mm; font-size:9pt;}
+
+/* Section heading (dynamic year text like 113年扣繳申報數) */
+.section-h{font-weight:700; font-size: 11.5pt; margin:2.5mm 0 1.5mm;}
+
+/* Grid for income types */
+.grid2{display:grid; grid-template-columns: 1fr 1fr; gap: 6mm;}
+.box{border:1px solid #000; padding: 3mm; min-height: 20mm;}
+.box .row{display:grid; grid-template-columns: 24mm 1fr; gap:2mm 3mm; align-items:baseline; font-size:10.5pt; margin: 1mm 0;}
+.box .row .lab{white-space:nowrap;}
+.box .row .val{border-bottom:1px solid #000; min-height:5mm;}
+
+/* "上年度應付" paired layout */
+.flex2{display:grid; grid-template-columns: 1fr 1fr; gap:6mm; margin-top: 2mm;}
+.subt{font-weight:700; margin-bottom: 1mm;}
+.ul{margin:0; padding-left: 5mm; font-size:10.5pt;}
+.badge{display:inline-block; border:1px solid #000; padding:0 3mm; margin-left:2mm; font-size:9pt;}
+
+/* Input Panel */
+.panel{
+  position:sticky; top:0; z-index: 50;
+  background:#f7f7f7; border-bottom:1px solid #ddd; padding:10px 12px;
+}
+.panel h2{margin:0 0 6px; font-size:14px;}
+.panel .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:4px 0;}
+.panel label{font-size:12px;}
+.panel input[type="number"], .panel input[type="text"]{padding:6px 8px; font-size:12px;}
+.panel button{padding:6px 10px; font-size:12px; cursor:pointer; border:1px solid #222; background:#fff;}
+.panel .small{font-size:11px; color:#555;}
+.panel textarea{width:100%; min-height:60px; font-family:monospace; font-size:12px;}
+
+/* Screen helper */
+.container{padding:10px; background:#e9e9e9;}
+.preview{display:flex; flex-direction:column; gap:14px; align-items:center;}
+
+/* Print tweaks */
+@media print{
+  .panel, .container > .hint { display:none !important; }
+  body{background:#fff;}
+  .print-sheet{border:none;}
+}
+
+/* Tighten vertical rhythms slightly to better match word table feel */
+.tight{line-height:1.25;}
+</style>
+</head>
+<body>
+<div class="panel">
+  <h2>離線合併列印：資料輸入（本頁資料僅供產生列印頁，不會外傳）</h2>
+  <div class="row">
+    <label>年度 N（顯示為「N 年扣繳申報數」）：</label>
+    <input id="yearN" type="number" value="113" min="1" style="width:80px" />
+    <span class="small">（會動態渲染「113年扣繳申報數」等標題）</span>
+  </div>
+  <div class="row">
+    <label>預設「上年度應付」項目（可逗號分隔新增）：</label>
+    <input id="defaults" type="text" value="薪資,租金,執行業務" style="min-width:360px" />
+  </div>
+  <div class="row">
+    <button onclick="addCustomer()">＋ 新增一戶</button>
+    <button onclick="render()">↻ 重新產生預覽</button>
+    <button onclick="window.print()">🖨️ 列印 / 另存 PDF</button>
+  </div>
+  <div class="row">
+    <label>貼上/匯入 JSON（多戶）：</label>
+  </div>
+  <div class="row">
+    <textarea id="bulk" placeholder='[
+  {"code":"2767","short":"亞伯蘭","name":"亞伯蘭股份有限公司","payables":{"薪資":123456,"租金":23456,"執行業務":3456}},
+  {"code":"A001","short":"天宇","name":"天宇有限公司","payables":{"薪資":99999,"租金":8888,"執行業務":777}}
+]'></textarea>
+  </div>
+  <div class="row">
+    <button onclick="bulkLoad()">匯入上方 JSON</button>
+    <span class="small">欄位說明：code=代號（自動加 #），short=簡稱，name=客戶名稱全稱，payables=上年度應付科目（可自定鍵名與金額）。</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="hint small">預覽（A4，每頁兩戶；第 3 戶起自動換頁）。</div>
+  <div id="preview" class="preview"></div>
+</div>
+
+<script>
+const state = {
+  year: 113,
+  defaults: ["薪資","租金","執行業務"],
+  customers: []
+};
+
+const el = sel => document.querySelector(sel);
+const preview = el('#preview');
+
+function addCustomer(){
+  const d = structuredClone(state.defaults);
+  const pay = {};
+  d.forEach(k=> pay[k] = "");
+  state.customers.push({
+    code:"",
+    short:"",
+    name:"",
+    payables: pay
+  });
+  promptInline(state.customers.length-1);
+}
+
+function promptInline(idx){
+  const c = state.customers[idx];
+  const name = prompt("客戶全名（例如：亞伯蘭股份有限公司）", c.name || "");
+  if(name===null) return;
+  const code = prompt("客戶代號（自動加 #；例如：2767）", c.code || "");
+  if(code===null) return;
+  const short = prompt("客戶簡稱（例如：亞伯蘭）", c.short || "");
+  if(short===null) return;
+  // payables edit
+  let keys = Object.keys(c.payables);
+  let kstr = prompt("上年度應付項目（逗號分隔，可自訂）", keys.join(","));
+  if(kstr===null) return;
+  keys = kstr.split(",").map(s=>s.trim()).filter(Boolean);
+  const pay = {};
+  for(const k of keys){
+    const v = prompt(`「上年度應付｜${k}」金額（數字）`, c.payables[k] ?? "");
+    if(v===null) { pay[k] = ""; continue; }
+    pay[k] = v;
+  }
+
+  c.name = name.trim();
+  c.code = code.trim();
+  c.short = short.trim();
+  c.payables = pay;
+  render();
+}
+
+function bulkLoad(){
+  try{
+    const arr = JSON.parse(el('#bulk').value);
+    if(!Array.isArray(arr)) throw new Error('JSON 必須是陣列');
+    state.customers = arr.map(raw=>{
+      const defaults = el('#defaults').value.split(",").map(s=>s.trim()).filter(Boolean);
+      const pay = {};
+      const src = raw.payables || {};
+      // ensure defaults exist, and keep extra keys in source
+      const allKeys = Array.from(new Set([...defaults, ...Object.keys(src)]));
+      allKeys.forEach(k=> pay[k] = src[k] ?? "");
+      return {
+        code: String(raw.code ?? ""),
+        short: String(raw.short ?? ""),
+        name: String(raw.name ?? ""),
+        payables: pay
+      };
+    });
+    render();
+  }catch(e){
+    alert("JSON 解析失敗：" + e.message);
+  }
+}
+
+function render(){
+  // read panel inputs
+  state.year = parseInt(el('#yearN').value || "113", 10);
+  state.defaults = el('#defaults').value.split(",").map(s=>s.trim()).filter(Boolean);
+
+  // Build pages (2 per page)
+  preview.innerHTML = "";
+  const perPage = 2;
+  for(let i=0;i<state.customers.length;i+=perPage){
+    const sheet = document.createElement('div');
+    sheet.className = 'print-sheet';
+
+    const top = blockFor(state.customers[i], 'block block-top');
+    sheet.appendChild(top);
+
+    const bottomData = state.customers[i+1];
+    if(bottomData){
+      const bottom = blockFor(bottomData, 'block block-bottom');
+      sheet.appendChild(bottom);
+    }
+    preview.appendChild(sheet);
+  }
+}
+
+function blockFor(c, cls){
+  const wrap = document.createElement('div');
+  wrap.className = cls + ' tight';
+
+  const header = document.createElement('div');
+  header.className = 'hrow';
+  const title = document.createElement('div');
+  title.className = 'title';
+  // 客戶名稱: #代號 + 簡稱
+  const code = (c.code || "").toString().trim();
+  const codeDisp = code ? ("#" + code) : "";
+  const short = (c.short || "").toString().trim();
+  const name = (c.name || "").toString().trim();
+  title.textContent = `客戶名稱：${codeDisp}${short ? "（" + short + "）" : ""}`;
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = name;
+  header.appendChild(title);
+  header.appendChild(meta);
+  wrap.appendChild(header);
+
+  // little notes
+  const note1 = document.createElement('div');
+  note1.className = 'note-line';
+  note1.innerHTML = `<span class="note-pill">＋</span><span>→ 1月份收到薪資表後填寫</span><span class="note-pill">1</span>`;
+  wrap.appendChild(note1);
+
+  // Year section (left/right duplicated boxes like doc)
+  const secH = document.createElement('div');
+  secH.className = 'section-h';
+  secH.textContent = `${state.year}年扣繳申報數`;
+  wrap.appendChild(secH);
+
+  const grid2 = document.createElement('div');
+  grid2.className = 'grid2';
+
+  // Left box
+  grid2.appendChild(incomeBox());
+  // Right box (duplicated, as per original having two columns repeating)
+  grid2.appendChild(incomeBox());
+
+  wrap.appendChild(grid2);
+
+  wrap.appendChild(divHr());
+
+  // 應補薪資 + 上年度應付 （左右兩欄排）
+  const flex2 = document.createElement('div');
+  flex2.className = 'flex2';
+
+  // Left: 應補薪資 / 113年應付 etc. (static lines to mirror the template cues)
+  const left = document.createElement('div');
+  left.className = 'box';
+  left.innerHTML = `
+    <div class="subt">應補薪資</div>
+    <ul class="ul">
+      <li>薪資 1-11</li>
+      <li>租金 1-11</li>
+      <li>執行業務 1-10</li>
+    </ul>
+    <div class="subt" style="margin-top:3mm;">${state.year}年應付</div>
+    <ul class="ul">
+      <li>薪資 12</li>
+      <li>租金 12</li>
+      <li>執行業務 11-12</li>
+    </ul>
+    <div style="margin-top:3mm;">狀態：<span class="badge">應補</span> <span class="badge">不缺</span></div>
+  `;
+  flex2.appendChild(left);
+
+  // Right: 上年度應付（來自輸入清單，無空格直列，外框尺寸不變，自動續列）
+  const right = document.createElement('div');
+  right.className = 'box';
+  const rh = document.createElement('div');
+  rh.className = 'subt';
+  rh.textContent = '上年度應付（可編輯名稱）';
+  right.appendChild(rh);
+
+  const listWrap = document.createElement('div');
+  for(const [k,v] of Object.entries(c.payables || {})){
+    const row = document.createElement('div');
+    row.className = 'row';
+    const lab = document.createElement('div'); lab.className = 'lab'; lab.textContent = `應付${k}`;
+    const val = document.createElement('div'); val.className = 'val'; val.textContent = v!==undefined && v!==null ? String(v) : "";
+    row.appendChild(lab); row.appendChild(val);
+    listWrap.appendChild(row);
+  }
+  right.appendChild(listWrap);
+
+  flex2.appendChild(right);
+  wrap.appendChild(flex2);
+
+  // Duplicate the year section again (as in source sample contains repeated blocks)
+  const secH2 = document.createElement('div');
+  secH2.className = 'section-h';
+  secH2.textContent = `${state.year}年扣繳申報數`;
+  wrap.appendChild(secH2);
+  const grid22 = document.createElement('div');
+  grid22.className = 'grid2';
+  grid22.appendChild(incomeBox());
+  grid22.appendChild(incomeBox());
+  wrap.appendChild(grid22);
+
+  // Final paired area repeating (to match source variants that show 1-12 variant):
+  wrap.appendChild(divHr());
+  const flex2b = document.createElement('div');
+  flex2b.className = 'flex2';
+  const leftb = document.createElement('div');
+  leftb.className = 'box';
+  leftb.innerHTML = `
+    <div class="subt">應補薪資</div>
+    <ul class="ul">
+      <li>薪資 1-12</li>
+      <li>租金 1-12</li>
+      <li>執行業務 1-10</li>
+    </ul>
+    <div class="subt" style="margin-top:3mm;">${state.year}年應付</div>
+    <ul class="ul">
+      <li>薪資 12</li>
+      <li>租金 12</li>
+      <li>執行業務 11-12</li>
+    </ul>
+    <div style="margin-top:3mm;">狀態：<span class="badge">應補</span> <span class="badge">不缺</span></div>
+  `;
+  const rightb = document.createElement('div');
+  rightb.className = 'box';
+  const rhb = document.createElement('div');
+  rhb.className = 'subt';
+  rhb.textContent = '上年度應付（可編輯名稱）';
+  rightb.appendChild(rhb);
+  const listWrap2 = document.createElement('div');
+  for(const [k,v] of Object.entries(c.payables || {})){
+    const row = document.createElement('div');
+    row.className = 'row';
+    const lab = document.createElement('div'); lab.className = 'lab'; lab.textContent = `應付${k}`;
+    const val = document.createElement('div'); val.className = 'val'; val.textContent = v!==undefined && v!==null ? String(v) : "";
+    row.appendChild(lab); row.appendChild(val);
+    listWrap2.appendChild(row);
+  }
+  rightb.appendChild(listWrap2);
+  flex2b.appendChild(leftb);
+  flex2b.appendChild(rightb);
+  wrap.appendChild(flex2b);
+
+  return wrap;
+}
+
+function incomeBox(){
+  const b = document.createElement('div');
+  b.className = 'box';
+  const rows = ["薪資","租金","執行業務","捐贈","其他所得"];
+  rows.forEach(k=>{
+    const r = document.createElement('div');
+    r.className = 'row';
+    const lab = document.createElement('div'); lab.className = 'lab'; lab.textContent = k;
+    const val = document.createElement('div'); val.className = 'val'; val.innerHTML = '&nbsp;';
+    r.appendChild(lab); r.appendChild(val);
+    b.appendChild(r);
+  });
+  return b;
+}
+
+function divHr(){
+  const hr = document.createElement('hr');
+  hr.className = 'hr';
+  return hr;
+}
+
+// Initialize with two demo customers
+(function init(){
+  state.customers = [
+    { code:"2767", short:"亞伯蘭", name:"亞伯蘭股份有限公司", payables:{ "薪資":"", "租金":"", "執行業務":"" } },
+    { code:"A001", short:"天宇", name:"天宇有限公司", payables:{ "薪資":"","租金":"","執行業務":"" } },
+    { code:"B123", short:"長青", name:"長青有限公司", payables:{ "薪資":"","租金":"","執行業務":"","顧問費":"" } }
+  ];
+  render();
+})();
+</script>
+</body>
+</html>
