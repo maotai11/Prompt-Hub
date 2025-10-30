@@ -1,135 +1,255 @@
-/speckit.constitution 目標：交付「單一 HTML 檔」即可在無網路（離線）環境中正常運作的應用，嚴禁任何外部連結或 CDN，相依資源（CSS/JS/字型/圖示/影像/資料樣本）一律內嵌於同一檔案。 原則：
+/speckit.constitution 目標：交付一個完全離線、單一 HTML 檔即可使用的應用殼（含資料/版本/附件/回收桶/匯出匯入），嚴禁外部連結/CDN；所有資源內嵌或以系統字型堆疊替代。 設計原則：
 
-離線優先與自給自足：功能不依賴遠端 API、雲端同步、第三方庫載入或安裝步驟；檔案可在無網路環境開啟即用。
+美學：冷靜奢華 × 光影留白 × 動態呼吸感。雜誌式網格（Magazine Grid） + 柔和交錯留白；Hero 採「靜態影像 + 輕動態文字（0.3s 字母延遲）」。
 
-可攜與長期可讀：單檔可存檔、複製、備份；資料以人類可讀格式（如 JSON）匯出/匯入。
+互動節奏：滾動與進場動效以0.6–1.0s的呼吸節奏；Hover 文字102% 輕放大、霧灰→純黑。
 
-安全與隱私：不蒐集或傳輸個資；程式不使用 eval 等危險 API；若需執行權限操作（檔案讀寫）以使用者同意的瀏覽器原生對話框進行。
+可攜與私有：無網路開啟即用；不蒐集、不外呼；資料完全本地。
 
-效能與容量：首次可互動（TTI）≤ 1s（中階裝置，無網路）；單檔目標 ≤ 2 MB（含字型/圖示/腳本）；互動操作回應 < 100ms。
+相容與可用性：近兩年 Chrome/Edge/Firefox/Safari（file:// 首選）；IndexedDB 優先，localStorage 回退（附件停用）；鍵盤可達與可列印。
 
-可用性與無障礙：鍵盤操作完整、焦點可見、提供暗/亮色系；對比度符合 WCAG AA。
+可維護性：設計代碼化（Design Tokens） + 版型模組化（Editorial Blocks），同時約束排版、色彩、動效。 驗收：
 
-相容性：現代 Chromium/Firefox/Safari（近兩年版本）；在 file:// 與本機 HTTP 伺服模式均可執行（若功能在 file:// 受限須提供替代路徑）。
+離線飛航模式下，自檔案系統雙擊開啟可完成 CRUD、版本、回收桶、附件（若 IndexedDB 可用）、匯出/匯入與列印。
 
-測試與驗收：離線模式功能清單全部可於飛航模式下通過；關鍵流程（建立/編輯/刪除/匯出/匯入）具手動測試腳本與檢查表。 範圍邊界：
+UI 符合本規範之色彩/字體/網格/動效；滾動節奏與 Hero 動態達標。
 
-不做：雲端同步、帳號系統、伺服器端元件、外掛安裝。
 
-必做：本地持久化、完整內嵌資源、可視化的資料備份/還原。 合規條款：
+/speckit.specify 功能範圍（應用殼保持通用，可日後套入特定領域）：
 
-交付物：app.html（單一檔），附《使用說明與測試清單》。
+模型：
 
-文件語言：繁體中文。 （流程依據 Spec-Driven Development /speckit.* 指令法。）
+items: {id, title, content, tags[], createdAt, updatedAt, attachmentIds[]}
 
+versions: {versionId, itemId, title, content, tags[], createdAtTS, reason}
 
-/speckit.specify 我們要打造：「離線單檔應用範本（可擴充）」——一個無外部依賴、可直接雙擊開啟使用的單一 HTML 應用。它提供最小可用功能（MVP），並可作為未來任何單檔離線工具的骨架。 核心使用者故事：
+attachments（IndexedDB 模式）: {attachmentId, itemId, name, type, size, blob}
 
-作為使用者，我可以在無網路下開啟 app.html 並立即使用基本資料管理（新增、編輯、刪除）功能。
+trash: 軟刪除 items（可還原/永久刪）
 
-我可以將目前資料匯出為單一 JSON 檔，日後在另一臺離線電腦上用相同 app.html 匯入還原。
 
-我可以在 file:// 環境中運作；若我從本機啟動簡易 HTTP（離線）也能獲得相同或更佳體驗。
+能力：清單/搜尋、編輯器、附件上傳/下載（拖放）、版本時間軸（回滾/刪版）、回收桶（還原/清除）、JSON 匯出/匯入（可選內嵌附件 Base64）、列印友善。
 
-我可以用鍵盤快速操作，並在明/暗色之間切換。
+非功能性：
 
-我可以在沒有任何外部字型或圖庫的情況下，仍看到一致的版面與圖示（皆內嵌）。 功能（MVP）：
+單檔 ≤ 2MB（不嵌字型）；TTI ≤ 1s；互動 < 100ms；無 eval。
 
-資料模型：通用「項目」集合（欄位：id、title、content、tags、createdAt、updatedAt）。
+file:// 模式下運作；若降級 localStorage，提示附件不可用。
 
-CRUD 介面：清單、搜尋/過濾、詳情編輯器（離線即時儲存）。
 
-本地持久化：以 localStorage 為預設；提供「匯出/匯入 JSON」以跨裝置搬遷。
+UI/UX 規格（方向三 Hybrid）：
 
-自我診斷：顯示目前執行環境（file:// 或 http://localhost），並提示可用/不可用能力。
+色彩（Design Tokens）：
 
-完全內嵌資源：CSS、JS、SVG 圖示、（可選）可變字型皆以 data URI 或 <style>/<script> 內嵌。 非功能性需求：
+--ink-black: #000000（Vogue 主字色）
 
-檔案體積目標 ≤ 2 MB；初次渲染 ≤ 1s；互動延遲 < 100ms。
+--ivory: #F8F8F6（象牙白背景）
 
-A11y：焦點環、ARIA 標籤、適當語意標籤、可達 AA 對比。 交互流程（摘要）：
+--rose-gold: #C7A27C（Bazaar 玫瑰金點綴）
 
-開啟 app.html → 首次載入建立空資料庫 → 新增/編輯項目即時儲存 → 需要搬遷或備份時匯出 JSON → 於其他環境匯入 JSON 還原。 風險與對策：
+--smoke: #1A1A1A（煙黑面）
 
-file:// 限制無法使用 Service Worker：採「純前端 + 本地儲存 + 手動匯出/匯入」策略；如需快取與安裝式體驗，改以本機 HTTP（離線）模式選用 PWA（見計畫選項）。 成功標準（驗收）：
+--mist-silver: #C0C4C9（霧銀分隔/描邊）
 
-關閉網路（飛航模式），雙擊 app.html 可完成：新增 1 筆項目、關閉重開後項目仍在、匯出 JSON、清空、匯入後還原成功。
+--cream: #FAF7F2（奶油白過渡）
 
-Lighthouse（本機）基本可用性達標（不含 PWA 指標）。
-執行模式：以 file:// 直接雙擊開啟為主，不使用 Service Worker/PWA；所有資源（CSS/JS/圖示）皆內嵌同一檔。
+--soft-gray: #6B7280（正文次要）
 
-資料層：IndexedDB（優先）+ localStorage（回退）。IndexedDB 可支援大量資料與二進位附件（Blob）。若瀏覽器不支援或權限受限，降級為 localStorage（文字資料為主，附件停用並給出提示）。
 
-模型與版本控管：
+字體堆疊（不嵌字型；以系統/常見字型回退）：
 
-items：{id, title, content, tags[], createdAt, updatedAt, attachmentIds[]}
+標題："Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif
 
-versions：按 itemId 保存快照 {versionId, itemId, title, content, tags, createdAt, createdBy, createdAtTS}，每次儲存建立一版，可「回滾到此版本」或「刪除此版本」。
+正文：Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif
 
-attachments：儲存 Blob 與中繼資料 {attachmentId, itemId, name, type, size, blob}。
 
-trash：軟刪除的 items 與其版本（保留附件引用），可還原或永久清除（清除時連帶刪除其版本與附件）。
+排版與網格：
 
+Magazine Grid：容器寬 min(1200px, 92vw)；基線 8px；欄距 24–32px；Hero 全幅，內容模組採左右錯位交錯（圖左文右/文左圖右）。
 
-匯出/匯入：
+留白：段落上下 16–32px；模組上下 56–72px；關鍵模組周邊使用奶油白/象牙白過渡帶。
 
-產出單一 .json（含 items、versions、trash、attachmentsMeta）。提供選項：是否內嵌附件（Base64）。若不內嵌，僅輸出附件中繼資料。
 
-匯入：支援覆蓋/合併兩種模式；提供試算（先顯示預計新增/覆蓋/丟棄數量）後再執行。
+組件/區塊：
 
+Header：固定透明；滾動 48px 後以柔黑漸層（smoke→透明）出現；下方細霧銀分隔線。
 
-UI/UX（「呼吸感」與列印友善）：
+Hero：靜態影像（可本地放置或用漸層光掃背景） + 字母階梯延遲 0.3s；副標 0.6s 漸顯。
 
-系統字型堆疊、基本字級 16px、行高 1.6、間距以 8px 系列。
+Editorial Blocks：交錯圖文、引言區（左側垂直分割線）、黑白/柔光過渡以塑造「翻頁」感。
 
-雙欄：左側清單 + 右側編輯；頂部工具列。
+Footer：精簡、細分隔線、小字版權。
 
-快捷鍵：N 新增、S 儲存、Del 移至回收桶、/ 搜尋。
 
-@media print：列印僅輸出右側「詳情視圖」的乾淨版面（自動隱藏工具列與清單）。
+動效：
 
+進場/滾動：duration 0.6–1.0s, easing: cubic-bezier(0.33, 1, 0.68, 1)；IntersectionObserver 驅動。
 
-相容性：
+Hover：文字 scale(1.02) + color 由霧灰→純黑，200ms。
 
-目標：Chromium/Firefox/Safari（近兩年）；Edge 舊版盡量相容（若 IndexedDB 受限自動降級）。
+背景光影：Gradient Sweep 緩慢左右/對角掃動（Hero/章節過場）。
 
 
-歷史與回滾/刪除：
+可存取性：
 
-每個項目的「版本時間軸」面板，可回滾（以該版本覆蓋現行草稿）與刪除版本。
+鍵盤序（Header→Hero→清單→編輯器）；焦點可見（霧銀外框 + 玫瑰金投影 1px）。
 
-全域「回收桶」檢視：可還原或永久刪除（含相關版本與附件）。
+對比 AA；語意標籤與 ARIA。
 
 
-性能與容量：
+列印：
 
-清單虛擬化（簡易分頁/漸進載入）。
+僅輸出詳情內容；隱藏 Header/清單/動效；文字黑色、紙白背景，分隔線改細灰。
 
-版本與活動日誌可選擇性壓縮/裁剪（例如保留近 N 版；預設 50 版/項上限，可在設定中調整）。
 
 
-安全/隱私：無外呼、無追蹤、無 eval。檔案操作一律走使用者手動選檔/下載。
 
+成功標準：
 
-交付物：
+視覺：符合色彩/字體/網格/動效規範；Hero 字母延遲明顯但不干擾。
 
-app.html（單一檔，全部內嵌）
+互動：滾動節奏流暢；Hover 102% 視覺反饋；交錯模組翻頁感成立。
 
-README-使用說明與測試清單（純文字內容隨附於本回覆，亦可於應用內「說明」對話框檢視）
+功能：資料留存/回滾/回收桶/歷史刪除可用；匯出/匯入成功；列印乾淨。
 
 
-/speckit.analyze 一致性檢查（含新增需求）：
+/speckit.plan 技術與架構：
 
-本地留存/刪除/回滾/歷史可刪：以 versions 與 trash 模型實現；提供回滾與版本刪除；回收桶永久刪除聯動清理附件，符合需求。
+執行模式：file:// 單檔為主；IndexedDB 優先、localStorage 回退（附件停用）。
 
-大資料量與二進位附件：IndexedDB 能處理大量記錄與 Blob；在 file:// 下於主流瀏覽器可用。若降級 localStorage，將禁用附件並提示限制，確保可用性。
+前端：原生 HTML/CSS/JS，無外部依賴。動效以 CSS + IntersectionObserver，避免大型庫。
 
-列印友善 + 呼吸感：以排版與 @media print 支援；列表隱藏、保留詳細內容與標題、欄位。
+模組分層（單檔內邏輯分區）：
 
-不加密：匯出/匯入不含加密；README 提醒使用者資料保護責任。 風險與緩解：
+1. Design Tokens（:root 變數）→ 色彩、字級、陰影、半徑、動效參數
 
-瀏覽器差異：提供啟動自檢面板（顯示：協定/DB後端/附件可用性）。
 
-超大附件匯出：Base64 會膨脹 33%；提供「不內嵌附件」選項並提示檔案體積。
+2. Layout（Header/Hero/Grid/Footer）
 
-版本無上限：預設上限 50 版/項，可在「設定」中調整；達上限時自動採用「先入先出」清理策略。
+
+3. Editorial Blocks（交錯圖文/引言）
+
+
+4. App Shell（清單、編輯器、版本抽屜、回收桶對話框）
+
+
+5. Data Layer（IDB/LS 抽象；版本與附件管理）
+
+
+6. Import/Export（JSON；可選 Base64 附件）
+
+
+7. Print Styles（@media print）
+
+
+
+動效規畫：
+
+--easing-emphasized: cubic-bezier(0.33,1,0.68,1)
+
+--dur-stagger: 300ms（Hero 字母）
+
+--dur-breathe-min: 600ms / --dur-breathe-max: 1000ms（滾動進場）
+
+Gradient Sweep：background: conic-gradient(...) + background-position/opacity 漸變 或 CSS 動畫。
+
+
+資料策略：
+
+版本上限預設 50/項（FIFO）；可在設定中調整。
+
+匯出：{meta, items, versions, trash, attachmentsMeta, attachments?}；可選 Base64 內嵌。
+
+匯入：覆蓋/合併雙模式 + 事前試算。
+
+
+相容與回退：
+
+檢測 IndexedDB；若不可用 → 顯示提示並降級（附件停用）。
+
+舊 Edge 可用性盡量；IE 不支援。
+
+
+測試與驗收：
+
+手動檢測單（離線 CRUD、版本回滾/刪版、回收桶還原/清除、附件上傳/下載、匯出/匯入、列印）。
+
+視覺驗收：Hero 字母延遲、Header 漸層出現、交錯模組翻頁過渡、Hover 102%。
+
+
+版面套件（不寫程式庫，僅版型約定）：
+
+block-hero, block-quote, block-split（圖文交錯）, block-divider（柔光過渡）——可在內容區重複使用，未來套入特定領域即可替換文案/影像。
+
+
+/speckit.analyze 一致性檢核：
+
+美學到程式落地：以 Tokens 控制色彩/字級/動效；Magazine Grid 與 Editorial Blocks 對應到具體 CSS 區塊；符合方向三敘述。
+
+Hero 與動效節奏：字母 0.3s 階梯、滾動 0.6–1.0s、Hover 102% 已明確化；以原生 API 可實作。
+
+離線與大容量：IndexedDB 支援大量資料與 Blob；localStorage 回退策略完整；附件回退停用並提示。
+
+列印友善：專用 @media print；輸出詳情視圖；黑白對比。 風險與對策：
+
+字型差異（未嵌）→ 以多重堆疊與字級/行高保守設定確保風格趨近一致。
+
+超大附件導致匯出檔膨脹 → Base64 選項預設關；提供警示。
+
+舊版瀏覽器 IndexedDB 兼容性 → 啟動檢測 + 清晰回退提示。 後續可定制點：
+
+一鍵切換「Vogue 主題」與「Bazaar 主題」：僅切 Tokens（色彩/陰影/分隔線）與部分動效參數即可。
+
+
+/speckit.implement 產出物與任務（不含程式碼；待您下達 /speckit.implement code 我再生成單一 app.html）：
+
+檔案：app.html（單檔、內嵌 CSS/JS/SVG）
+
+區塊結構：
+
+1. <header>（透明→柔黑漸層 on scroll）
+
+
+2. block-hero（靜態影像位/或漸層光掃 + 標題字母延遲 0.3s）
+
+
+3. block-split × N（交錯圖文；黑白/柔光過渡）
+
+
+4. App Shell（清單/搜尋、編輯器、版本抽屜、回收桶對話框、匯入匯出）
+
+
+5. <footer>（細分隔線）
+
+
+6. @media print（僅詳情）
+
+
+
+Design Tokens（:root）：
+
+顏色：--ink-black #000 --ivory #F8F8F6 --rose-gold #C7A27C --smoke #1A1A1A --mist-silver #C0C4C9 --cream #FAF7F2 --soft-gray #6B7280
+
+字級：--fs-display 48/56 --fs-h1 32/40 --fs-body 16/28（以 / 表示字級/行高）
+
+陰影/半徑：--shadow-soft 0 6px 20px rgba(0,0,0,.07) --radius-2xl 16px
+
+動效：--easing-emphasized cubic-bezier(0.33,1,0.68,1) --dur-stagger 300ms --dur-breathe-min 600ms --dur-breathe-max 1000ms
+
+
+動效流程：
+
+IntersectionObserver 標記 .reveal；進場轉場 opacity/translateY 與 Gradient Sweep。
+
+Hero 標題以 JS 切字母 .char 並延遲（步進 30–40ms/字，總約 0.3s）。
+
+
+測試清單（最終驗收）：
+
+1. 視覺：Header 漸層、Hero 字母延遲、交錯模組、Hover 102%。
+
+
+2. 功能：CRUD、版本（回滾/刪版）、回收桶（還原/清除）、附件（IDB 模式）、匯出/匯入（含/不含附件）、列印。
+
+
+3. 相容：Chrome/Edge/Firefox/Safari 近兩年版本；file:// 模式。
