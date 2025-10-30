@@ -632,48 +632,8 @@
         </div>
     </div>
 
-
-    <script>
-      /* (minified xlsx.js content) */
-      /* @version 0.19.3 */
-      /* (The minified code is very large, approximately 1.5MB. 
-         For this demonstration, I will use a placeholder.
-         In a real implementation, the full minified code from
-         https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js
-         would be pasted here.)
-      */
-      var XLSX = (function() {
-          /* --- PASTE MINIFIED XLSX.FULL.MIN.JS HERE --- */
-          /* --- This is a placeholder for the actual library --- */
-          /* --- The full library is ~1.5MB and too large to paste here --- */
-          /* --- For the tool to work, you MUST replace this block --- */
-          /* --- with the content of xlsx.full.min.js --- */
-          console.warn("XLSX.js library is not embedded. Please download xlsx.full.min.js from SheetJS and paste its content here.");
-          
-          // Mockup objects for snippet to run without error
-          return {
-              read: function() { 
-                  console.error("XLSX.read is not implemented. Embed full library.");
-                  return { Sheets: {}, SheetNames: [] };
-              },
-              utils: {
-                  sheet_to_json: function() {
-                      console.error("XLSX.utils.sheet_to_json is not implemented. Embed full library.");
-                      return [];
-                  }
-              }
-          };
-          /* --- END OF XLSX.JS PASTE AREA --- */
-      })();
-      /* NOTE: Due to environment limitations, I cannot paste the 1.5MB+ minified
-        `xlsx.full.min.js` library here. 
-        
-        *** TO MAKE THIS FILE WORK: ***
-        1. Go to: https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js
-        2. Copy the entire content of that file.
-        3. Paste it, replacing the placeholder <script> block above.
-      */
-    </script>
+    <!-- ✅ 改為本地離線引用的 Xlsx.js -->
+    <script src="./xlsx.full.min.js"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
