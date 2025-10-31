@@ -137,6 +137,7 @@
         }
 
         .block-split {
+            /* MODIFICATION: Removed initial hidden styles to make it visible by default */
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: var(--spacing-xl);
@@ -145,13 +146,6 @@
             border: 1px solid var(--mist-silver);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-soft);
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity var(--dur-breathe) var(--easing-emphasized), transform var(--dur-breathe) var(--easing-emphasized);
-        }
-        .block-split.in-view {
-            opacity: 1;
-            transform: translateY(0);
         }
 
         /* Speckit App Shell: Form Controls & UI Elements */
@@ -273,10 +267,12 @@
             opacity: 0;
             transform: translateY(20px);
             transition: opacity var(--dur-breathe) var(--easing-emphasized), transform var(--dur-breathe) var(--easing-emphasized);
+            display: none; /* Hide until there is content */
         }
         #preview-container.visible {
              opacity: 1;
              transform: translateY(0);
+             display: block;
         }
 
         .preview-title {
@@ -340,6 +336,7 @@
                 padding: 0;
                 opacity: 1;
                 transform: none;
+                display: block !important;
             }
             .a4-page {
                 box-shadow: none;
@@ -369,7 +366,8 @@
             <p class="hero-subtitle">Vogue × Bazaar Hybrid Edition</p>
         </section>
 
-        <section class="block-split reveal" id="appContainer">
+        <!-- MODIFICATION: Removed the 'reveal' class so it's not targeted by the animation script -->
+        <section class="block-split" id="appContainer">
             <div class="form-section">
                 <div>
                     <div class="form-group">
@@ -446,21 +444,10 @@
         // Hero title letter animation
         const titleText = heroTitle.textContent;
         heroTitle.innerHTML = titleText.split('').map((char, i) => 
-            `<span class="char" style="animation-delay: ${i * var(--dur-stagger, 30)}ms">${char}</span>`
+            `<span class="char" style="animation-delay: ${i * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dur-stagger') || '30')}ms">${char}</span>`
         ).join('');
 
-        // Intersection Observer for reveal animations
-        const revealElements = document.querySelectorAll('.reveal');
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('in-view');
-                }
-            });
-        }, { threshold: 0.1 });
-
-        revealElements.forEach(el => observer.observe(el));
-
+        // MODIFICATION: The IntersectionObserver script that caused the issue has been removed.
 
         // --- App Functionality ---
         
@@ -550,4 +537,67 @@
             }
 
             // B2 & B3: Data Filtering & Sorting (sorting is maintained)
-            const p
+            const printData = numberedCustomers.filter(customer => customer.id >= start && customer.id <= end);
+            
+            if (printData.length > 0) {
+                generatePreview(printData, staticTitle);
+            } else {
+                showError('在指定範圍內未找到任何客戶。', [startIndexInput, endIndexInput]);
+            }
+        }
+
+        // S6: Layout and Preview Generation
+        function generatePreview(printData, staticTitle) {
+            previewOutput.innerHTML = ''; // Clear previous results
+            
+            if (printData.length === 0) {
+                previewContainer.classList.remove('visible');
+                return;
+            }
+
+            // S6-1: Title Generation
+            const finalTitle = `${staticTitle} - ${printData[0].name}`;
+            previewTitle.textContent = "預覽結果";
+
+            const LABELS_PER_PAGE = 4; // 1 column * 4 rows for 15x6cm labels on A4
+            let currentPage = null;
+            let labelCountOnPage = 0;
+
+            // S6-2: Label Generation
+            printData.forEach(customer => {
+                // Each customer gets TWO labels
+                for (let i = 0; i < 2; i++) {
+                    if (labelCountOnPage % LABELS_PER_PAGE === 0) {
+                        currentPage = document.createElement('div');
+                        currentPage.className = 'a4-page';
+                        previewOutput.appendChild(currentPage);
+                        labelCountOnPage = 0; // Reset for the new page
+                    }
+
+                    const labelBox = document.createElement('div');
+                    labelBox.className = 'label-box';
+
+                    // S6-3: Fill Content
+                    const titleElement = document.createElement('div');
+                    titleElement.className = 'label-title';
+                    titleElement.textContent = finalTitle;
+
+                    const nameElement = document.createElement('div');
+                    nameElement.className = 'label-name';
+                    nameElement.textContent = customer.name;
+
+                    labelBox.appendChild(titleElement);
+                    labelBox.appendChild(nameElement);
+                    currentPage.appendChild(labelBox);
+                    labelCountOnPage++;
+                }
+            });
+
+            // S6-4: Display Preview
+            previewContainer.classList.add('visible');
+            previewContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+    });
+    </script>
+</body>
+</html>
