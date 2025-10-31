@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Annual Task Cloner | Editorial Hybrid Shell</title>
+  <style>
+    /* =============================================================================
+       DESIGN TOKENS — Vogue × Bazaar Hybrid
+       ========================================================================== */
+    :root {
+      /* 色彩 */
+      --ink-black: #000000;
+      --ivory: #F8F8F6;
+      --rose-gold: #C7A27C;
+      --smoke: #1A1A1A;
+      --mist-silver: #C0C4C9;
+      --cream: #FAF7F2;
+      --soft-gray: #6B7280;
+
+      /* 字級 / 行高 */
+      --fs-display: 48px;
+      --lh-display: 56px;
+      --fs-h1: 32px;
+      --lh-h1: 40px;
+      --fs-body: 16px;
+      --lh-body: 28px;
+
+      /* 半徑 / 陰影 */
+      --radius-2xl: 16px;
+      --shadow-soft: 0 6px 20px rgba(0,0,0,.07);
+
+      /* 動效 */
+      --easing-emphasized: cubic-bezier(0.33, 1, 0.68, 1);
+      --dur-stagger: 300ms;
+      --dur-breathe-min: 600ms;
+      --dur-breathe-max: 1000ms;
+    }
+
+    /* =============================================================================
+       BASE & LAYOUT
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background-color: var(--ivory);
+      color: var(--ink-black);
+      line-height: var(--lh-body);
+      font-size: var(--fs-body);
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: min(1200px, 92vw);
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* =============================================================================
+       HEADER
+       ========================================================================== */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background: transparent;
+      transition: background 0.4s ease, backdrop-filter 0.4s ease;
+      backdrop-filter: blur(0);
+    }
+
+    header.scrolled {
+      background: linear-gradient(to bottom, var(--smoke), transparent 80%);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 0 var(--mist-silver);
+    }
+
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+    }
+
+    .logo {
+      font-family: "Playfair Display", "Didot", "Bodoni 72", Georgia, serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--ivory);
+    }
+
+    header.scrolled .logo {
+      color: var(--ink-black);
+    }
+
+    /* =============================================================================
+       HERO BLOCK
+       ========================================================================== */
+    .block-hero {
+      position: relative;
+      height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--cream) 0%, var(--ivory) 100%);
+      overflow: hidden;
+      margin: 0 -16px;
+    }
+
+    .hero-gradient-sweep {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 200%;
+      height: 100%;
+      background: conic-gradient(
+        transparent,
+        rgba(199, 162, 124, 0.05),
+        transparent 30%
+      );
+      animation: sweep 12s linear infinite;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    @keyframes sweep {
+      to { transform: translateX(100%); }
+    }
+
+    .hero-content {
+      text-align: center;
+      max-width: 800px;
+      z-index: 2;
+      padding: 0 24px;
+    }
+
+    .hero-title {
+      font-family: "Playfair Display", "Didot", serif;
+      font-size: var(--fs-display);
+      line-height: var(--lh-display);
+      margin-bottom: 24px;
+      opacity: 0;
+    }
+
+    .hero-subtitle {
+      font-size: var(--fs-body);
+      color: var(--soft-gray);
+      opacity: 0;
+      transition: opacity 0.6s var(--easing-emphasized);
+    }
+
+    /* =============================================================================
+       EDITORIAL BLOCKS — SPLIT / QUOTE / DIVIDER
+       ========================================================================== */
+    .block-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin: 72px 0;
+      align-items: center;
+    }
+
+    .block-split:nth-child(even) {
+      grid-template-columns: 1fr 1fr;
+      direction: rtl;
+    }
+
+    .block-split:nth-child(even) > * {
+      direction: ltr;
+    }
+
+    .block-split img {
+      width: 100%;
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .block-quote {
+      position: relative;
+      padding-left: 24px;
+      margin: 48px 0;
+      font-style: italic;
+      color: var(--soft-gray);
+    }
+
+    .block-quote::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: var(--rose-gold);
+    }
+
+    .block-divider {
+      height: 48px;
+      background: linear-gradient(to bottom, transparent, var(--cream), transparent);
+      margin: 56px 0;
+    }
+
+    /* =============================================================================
+       APP SHELL — UI COMPONENTS
+       ========================================================================== */
+    .app-shell {
+      margin: 72px 0;
+    }
+
+    .section-title {
+      font-family: "Playfair Display", serif;
+      font-size: var(--fs-h1);
+      margin-bottom: 32px;
+      position: relative;
+      display: inline-block;
+    }
+
+    .section-title::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 48px;
+      height: 2px;
+      background: var(--rose-gold);
+    }
+
+    /* 搜尋與複製表單 */
+    .cloner-form {
+      background: white;
+      padding: 32px;
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-soft);
+      margin-bottom: 48px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--smoke);
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--mist-silver);
+      border-radius: 8px;
+      font-size: var(--fs-body);
+    }
+
+    input:focus, button:focus {
+      outline: 2px solid var(--mist-silver);
+      box-shadow: 0 0 0 2px var(--rose-gold);
+    }
+
+    button {
+      background: var(--ink-black);
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.02);
+      background: var(--smoke);
+    }
+
+    .search-results {
+      margin-top: 16px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--mist-silver);
+      border-radius: 8px;
+      display: none;
+    }
+
+    .search-result-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--mist-silver);
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .search-result-item:hover {
+      background: var(--cream);
+    }
+
+    .feedback {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .feedback.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .feedback.error {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    /* 清單與編輯器簡化示意 */
+    .task-list {
+      background: white;
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-soft);
+      padding: 24px;
+    }
+
+    .task-item {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--mist-silver);
+    }
+
+    .task-item:last-child {
+      border-bottom: none;
+    }
+
+    /* =============================================================================
+       FOOTER
+       ========================================================================== */
+    footer {
+      margin: 120px 0 48px;
+      text-align: center;
+      color: var(--soft-gray);
+      font-size: 14px;
+      border-top: 1px solid var(--mist-silver);
+      padding-top: 24px;
+    }
+
+    /* =============================================================================
+       ANIMATIONS — REVEAL & HOVER
+       ========================================================================== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity var(--dur-breathe-min) var(--easing-emphasized),
+                  transform var(--dur-breathe-min) var(--easing-emphasized);
+    }
+
+    .reveal.appear {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    a, button, .interactive {
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    a:hover, .interactive:hover {
+      color: var(--ink-black);
+      transform: scale(1.02);
+    }
+
+    /* =============================================================================
+       PRINT STYLES
+       ========================================================================== */
+    @media print {
+      header, .block-hero, .cloner-form, .task-list, footer {
+        display: none !important;
+      }
+
+      body {
+        background: white;
+        color: black;
+      }
+
+      .print-only {
+        display: block !important;
+      }
+
+      .print-content {
+        display: block;
+        font-size: 14pt;
+        line-height: 1.6;
+      }
+    }
+
+    .print-only {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header id="main-header">
+    <div class="container">
+      <div class="header-inner">
+        <div class="logo">Task Vogue</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="block-hero reveal">
+      <div class="hero-gradient-sweep"></div>
+      <div class="hero-content">
+        <h1 class="hero-title" id="hero-title">Annual Task Cloner</h1>
+        <p class="hero-subtitle">複製年度例行子任務，無需重複輸入。標題與提醒文字一鍵繼承，排程留白待編。</p>
+      </div>
+    </section>
+
+    <div class="container">
+      <section class="app-shell reveal">
+        <h2 class="section-title">複製年度任務模板</h2>
+
+        <form id="clonerForm" class="cloner-form">
+          <div class="form-group">
+            <label for="sourceKeyword">來源子任務（關鍵字搜尋）</label>
+            <input type="text" id="sourceKeyword" placeholder="輸入任務標題關鍵字…" autocomplete="off" />
+            <div id="searchResults" class="search-results"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="targetProject">目標大項目名稱</label>
+            <input type="text" id="targetProject" placeholder="輸入現有項目名稱或新項目名稱" required />
+          </div>
+
+          <button type="submit">複製任務模板</button>
+          <div id="feedback" class="feedback" style="display:none;"></div>
+        </form>
+
+        <div class="block-divider"></div>
+
+        <h2 class="section-title">任務清單（示意）</h2>
+        <div class="task-list">
+          <div class="task-item"><strong>Q4 財報審核</strong> — 提醒：請確認會計準則更新</div>
+          <div class="task-item"><strong>年度績效面談</strong> — 提醒：提前一週通知主管</div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="container">
+        <p>© 2025 Task Vogue × Bazaar Hybrid Shell. All data stored locally.</p>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Hidden print view -->
+  <div class="print-only">
+    <div class="print-content" id="printContent"></div>
+  </div>
+
+  <script>
+    // =============================================================================
+    // DESIGN SYSTEM: ANIMATIONS & INTERACTIONS
+    // =============================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // Header scroll effect
+      const header = document.getElementById('main-header');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 48) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+      });
+
+      // Hero title letter stagger
+      const heroTitle = document.getElementById('hero-title');
+      const text = heroTitle.textContent;
+      heroTitle.innerHTML = '';
+      const letters = text.split('');
+      letters.forEach((letter, i) => {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.textContent = letter === ' ' ? '\u00A0' : letter;
+        span.style.display = 'inline-block';
+        span.style.opacity = '0';
+        span.style.animation = `fadeInChar 0.6s ${i * 40}ms forwards`;
+        heroTitle.appendChild(span);
+      });
+
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fadeInChar {
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .char {
+          transform: translateY(20px);
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Reveal blocks on scroll
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('appear');
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+      // =============================================================================
+      // DATA LAYER — SIMULATED (In real app: IndexedDB abstraction)
+      // =============================================================================
+      const mockTasks = [
+        { id: 't1', title: '年度預算規劃', projectId: 'p1', reminders: ['提醒：需包含通膨調整係數'], projectTitle: '財務規劃' },
+        { id: 't2', title: '員工滿意度調查', projectId: 'p2', reminders: ['提醒：匿名問卷需經法務審核'], projectTitle: '人資專案' },
+        { id: 't3', title: '客戶滿意度回訪', projectId: 'p3', reminders: ['提醒：優先聯絡 VIP 客戶'], projectTitle: '客戶成功' }
+      ];
+
+      const mockProjects = [
+        { id: 'p1', title: '財務規劃' },
+        { id: 'p2', title: '人資專案' },
+        { id: 'p3', title: '客戶成功' }
+      ];
+
+      // =============================================================================
+      // CLONER LOGIC — MATCHES SPEC
+      // =============================================================================
+      const sourceKeyword = document.getElementById('sourceKeyword');
+      const searchResults = document.getElementById('searchResults');
+      let selectedSource = null;
+
+      sourceKeyword.addEventListener('input', () => {
+        const term = sourceKeyword.value.trim().toLowerCase();
+        searchResults.innerHTML = '';
+        if (term.length < 2) {
+          searchResults.style.display = 'none';
+          return;
+        }
+
+        const results = mockTasks.filter(task =>
+          task.title.toLowerCase().includes(term)
+        );
+
+        if (results.length === 0) {
+          searchResults.style.display = 'block';
+          searchResults.innerHTML = '<div class="search-result-item" style="color:var(--soft-gray);">無符合結果</div>';
+          return;
+        }
+
+        searchResults.style.display = 'block';
+        results.forEach(task => {
+          const div = document.createElement('div');
+          div.className = 'search-result-item';
+          div.textContent = `${task.title}（${task.projectTitle}）`;
+          div.dataset.id = task.id;
+          div.addEventListener('click', () => {
+            selectedSource = task;
+            sourceKeyword.value = task.title;
+            searchResults.style.display = 'none';
+          });
+          searchResults.appendChild(div);
+        });
+      });
+
+      document.getElementById('clonerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const feedback = document.getElementById('feedback');
+
+        if (!selectedSource) {
+          showFeedback('請先從搜尋結果中選擇一個來源子任務。', 'error');
+          return;
+        }
+
+        const targetProjectName = document.getElementById('targetProject').value.trim();
+        if (!targetProjectName) {
+          showFeedback('請輸入目標大項目名稱。', 'error');
+          return;
+        }
+
+        // Step 2: Check if project exists or create new
+        let targetProject = mockProjects.find(p => p.title === targetProjectName);
+        if (!targetProject) {
+          const newId = `p${mockProjects.length + 1}`;
+          targetProject = { id: newId, title: targetProjectName };
+          mockProjects.push(targetProject);
+        }
+
+        // Step 3 & 4: Copy title + reminders, create new task (no scheduling)
+        const newTask = {
+          id: `t${Date.now()}`,
+          title: selectedSource.title,
+          projectId: targetProject.id,
+          reminders: [...(selectedSource.reminders || [])],
+          projectTitle: targetProject.title,
+          scheduled: null // explicitly un-scheduled
+        };
+
+        // In real app: await db.tasks.add(newTask);
+        mockTasks.push(newTask);
+
+        // Step 5: Success feedback
+        showFeedback(`子任務「${newTask.title}」已成功複製到「${targetProject.title}」。請手動進入編輯排程。`, 'success');
+
+        // Reset form
+        selectedSource = null;
+        sourceKeyword.value = '';
+        document.getElementById('targetProject').value = '';
+      });
+
+      function showFeedback(message, type) {
+        const feedback = document.getElementById('feedback');
+        feedback.textContent = message;
+        feedback.className = `feedback ${type}`;
+        feedback.style.display = 'block';
+        setTimeout(() => {
+          if (type === 'success') feedback.style.display = 'none';
+        }, 5000);
+      }
+
+      // Simulate print content
+      window.addEventListener('beforeprint', () => {
+        const content = `
+          <h1>Annual Task Cloner — 列印報告</h1>
+          <p>本工具用於複製年度例行子任務之標題與提醒文字，不包含原始排程資訊。</p>
+          <p>所有資料僅儲存於本機，未上傳至任何伺服器。</p>
+        `;
+        document.getElementById('printContent').innerHTML = content;
+      });
+    });
+  </script>
+</body>
+</html>
