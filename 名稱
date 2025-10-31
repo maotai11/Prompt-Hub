@@ -1,0 +1,458 @@
+<!DOCTYPE html><html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ArtSyn Hybrid — 單檔離線 A4 標籤產生器</title>
+<meta name="description" content="完全離線、單一 HTML 檔即可使用：客戶資料庫、排序、預覽、列印（A4）、JSON 匯出/匯入、版本、回收桶、（IDB 模式可附件）。方向三｜Editorial Vogue × Bazaar Hybrid。"/>
+<style>
+  :root{
+    /* ===== Design Tokens ===== */
+    --ink-black:#000000; /* Vogue 主字色 */
+    --ivory:#F8F8F6;     /* 象牙白背景 */
+    --rose-gold:#C7A27C; /* Bazaar 玫瑰金 */
+    --smoke:#1A1A1A;     /* 煙黑面 */
+    --mist-silver:#C0C4C9; /* 霧銀分隔/描邊 */
+    --cream:#FAF7F2;     /* 奶油白過渡 */
+    --soft-gray:#6B7280; /* 正文次要 */--fs-display: clamp(40px, 6vw, 56px);
+--fs-h1: clamp(26px, 3.2vw, 40px);
+--fs-h2: clamp(20px, 2.4vw, 28px);
+--fs-h3: clamp(18px, 2vw, 22px);
+--fs-body: 16px;
+--lh-display: 1.1;
+--lh-h: 1.25;
+--lh-body: 1.75;
+
+--shadow-soft: 0 6px 20px rgba(0,0,0,.07);
+--radius-2xl: 16px;
+
+--easing-emphasized: cubic-bezier(0.33,1,0.68,1);
+--dur-stagger: 300ms; /* Hero 字母階梯總節奏 */
+--dur-breathe-min: 600ms; /* 進場下限 */
+--dur-breathe-max: 1000ms;/* 進場上限 */
+
+/* Magazine Grid */
+--container-w: min(1200px, 92vw);
+--gutter: clamp(24px, 3vw, 32px);
+
+/* Print page */
+--a4-w: 210mm;
+--a4-h: 297mm;
+--print-margin: 12mm;
+
+}
+
+/* ===== Base ===== */ html,body{height:100%;} body{ margin:0; background:var(--ivory); color:var(--smoke); font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif; font-size:var(--fs-body); line-height:var(--lh-body); } a{color:inherit; text-decoration:none} *{box-sizing:border-box} .container{width:var(--container-w); margin:0 auto; padding:0 var(--gutter);}
+
+/* ===== Header ===== */ header{ position:fixed; inset:0 0 auto 0; height:64px; display:flex; align-items:center; z-index:50; background:linear-gradient(to bottom, rgba(26,26,26,.8), rgba(26,26,26,0)); color:white; transition:all .4s var(--easing-emphasized); border-bottom:1px solid transparent; } header.scrolled{ background:linear-gradient(to bottom, rgba(26,26,26,.9), rgba(26,26,26,.6)); border-bottom-color:rgba(192,196,201,.35);} header .wrap{display:flex; align-items:center; gap:16px; width:var(--container-w); margin:0 auto; padding:0 var(--gutter);} .brand{font-size:18px; letter-spacing:.08em; font-weight:700} .brand b{color:var(--rose-gold)} nav{margin-left:auto; display:flex; gap:12px} .btn{appearance:none; border:1px solid var(--mist-silver); background:linear-gradient(to bottom right, #fff, #f8f8f8); color:var(--smoke); padding:8px 12px; border-radius:12px; box-shadow:var(--shadow-soft); cursor:pointer; transition:transform .2s ease, color .2s ease, border-color .2s ease;} .btn:hover{ transform:scale(1.02); color:var(--ink-black); border-color:#A8ADB3 } .btn.ghost{ background:transparent; color:white; border-color: rgba(255,255,255,.4)} .btn.ghost:hover{ color:#fff; border-color:#fff }
+
+/* ===== Hero ===== */ .block-hero{ padding-top:96px; padding-bottom:64px; position:relative; overflow:hidden;} .hero-bg{ position:absolute; inset:0; background: conic-gradient(from 180deg at 50% 50%, rgba(199,162,124,.18), rgba(255,255,255,0) 25%, rgba(199,162,124,.18) 50%, rgba(255,255,255,0) 75%, rgba(199,162,124,.18)); animation: sweep 14s linear infinite; opacity:.6; filter:blur(40px);} @keyframes sweep{ 0%{transform:translateX(-10%)} 50%{transform:translateX(10%)} 100%{transform:translateX(-10%)} } .hero-inner{ position:relative; } .hero-title{ font-size:var(--fs-display); line-height:var(--lh-display); letter-spacing:.02em; color:var(--ink-black); font-weight:800;} .hero-title .char{ display:inline-block; opacity:0; transform:translateY(18px); } .hero-sub{ font-size:var(--fs-h3); color:var(--soft-gray); margin-top:8px; opacity:0; transform:translateY(10px); transition:all .8s var(--easing-emphasized) .2s;} .hero-ready .hero-sub{ opacity:1; transform:none }
+
+/* ===== Editorial Blocks (示意) ===== */ .blocks{ display:grid; grid-template-columns: 1fr; gap: clamp(40px, 6vw, 72px); padding: 24px 0 56px; } .block{ background:linear-gradient(to bottom, #fff, var(--cream)); border:1px solid var(--mist-silver); border-radius:var(--radius-2xl); box-shadow:var(--shadow-soft); padding: clamp(20px, 3vw, 28px); } .block h2{ font-size:var(--fs-h2); line-height:var(--lh-h); margin:0 0 12px } .muted{ color:var(--soft-gray) }
+
+/* ===== App Shell ===== */ .app{ display:grid; grid-template-columns: 320px 1fr; gap: var(--gutter); align-items:start; } .panel{ background:#fff; border:1px solid var(--mist-silver); border-radius:var(--radius-2xl); box-shadow:var(--shadow-soft); overflow:hidden; } .panel .head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--mist-silver); background:linear-gradient(to bottom,#fff,#f9f9f9);} .panel .head h3{ font-size:var(--fs-h3); margin:0 } .panel .body{ padding:12px 16px; }
+
+.list{ display:flex; flex-direction:column; gap:8px; } .list .item{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid #E5E7EB; border-radius:12px; background:#fff;} .list .item:hover{ transform:translateY(-1px); border-color:#D4D8DE }
+
+.toolbar{ display:flex; gap:8px; flex-wrap:wrap } .row{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px } .row3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-bottom:8px } .input, select{ width:100%; padding:10px 12px; border:1px solid #D5D8DE; border-radius:10px; background:#fff; font:inherit } .input:focus, select:focus, .btn:focus{ outline:2px solid var(--mist-silver); box-shadow:0 0 0 1px var(--rose-gold) inset }
+
+.caps{ text-transform:uppercase; letter-spacing:.08em; font-size:12px; color:var(--soft-gray) }
+
+/* ===== Preview Area ===== */ .preview-tabs{ display:flex; gap:8px; margin-bottom:12px } .tab{ padding:8px 10px; border-radius:10px; border:1px solid var(--mist-silver); background:#fff; cursor:pointer } .tab.active{ background:var(--ink-black); color:#fff; border-color:var(--ink-black) }
+
+.preview{ background:#fff; border:1px solid var(--mist-silver); border-radius:var(--radius-2xl); box-shadow:var(--shadow-soft); padding:12px; } .preview .a4{ width: calc(var(--a4-w) - 2var(--print-margin)); min-height: calc(var(--a4-h) - 2var(--print-margin)); margin:0 auto; background:#fff; border:1px dashed #E5E7EB; padding:10mm; } .frames{ display:grid; grid-template-columns: repeat(auto-fill, minmax(58mm, 1fr)); gap:6mm; align-content:start; } .frame{ aspect-ratio: 15 / 6; border:1px solid #CFCFCF; border-radius:12px; display:flex; align-items:center; justify-content:center; position:relative; padding:6mm; } .frame b{ font-size:14pt; color:var(--ink-black) } .frame small{ position:absolute; bottom:6px; right:10px; color:#999 }
+
+/* ===== Modals ===== */ dialog{ border:none; border-radius:16px; box-shadow:0 18px 60px rgba(0,0,0,.18); width:min(720px, 92vw); } dialog::backdrop{ background:rgba(0,0,0,.35) } .modal-head{ padding:14px 16px; border-bottom:1px solid var(--mist-silver); background:linear-gradient(to bottom,#fff,#f7f7f7); display:flex; justify-content:space-between; align-items:center } .modal-body{ padding:12px 16px; max-height:65vh; overflow:auto }
+
+/* ===== Reveal on scroll ===== */ .reveal{ opacity:0; transform:translateY(20px); transition: all .8s var(--easing-emphasized); } .revealed{ opacity:1; transform:none }
+
+/* ===== Utilities ===== */ .spacer{ height:1px; background:linear-gradient(to right, transparent, var(--mist-silver), transparent); margin:20px 0 } .right{ text-align:right }
+
+/* ===== Print Styles ===== */ @media print{ @page{ size: A4; margin: var(--print-margin); } header, .block-hero, .blocks .block:not(.printable), .controls, .preview-tabs{ display:none !important } body{ background:white } .preview{ border:none; box-shadow:none } .preview .a4{ border:none; padding:0; width:auto; min-height:auto } .frames{ gap:5mm } .frame{ break-inside:avoid; page-break-inside:avoid; border-color:#000 } } </style>
+
+</head>
+<body>
+  <!-- ===== Header ===== -->
+  <header id="hdr">
+    <div class="wrap">
+      <div class="brand" aria-label="品牌">🖼️ ArtSyn <b>Hybrid</b></div>
+      <nav>
+        <button class="btn ghost" id="btnImport" title="匯入 JSON">匯入</button>
+        <button class="btn ghost" id="btnExport" title="匯出 JSON">匯出</button>
+        <button class="btn ghost" id="btnDoc" title="匯出 Word(HTML)">匯出Word</button>
+        <button class="btn ghost" id="btnPrint" title="列印">列印</button>
+      </nav>
+    </div>
+  </header>  <!-- ===== Hero ===== -->  <section class="block-hero">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="container hero-inner">
+      <h1 class="hero-title" id="heroTitle">Editorial Vogue × Bazaar Hybrid — A4 標籤/名條</h1>
+      <p class="hero-sub">冷靜奢華的雜誌式網格，完全離線，一檔在手即可 CRUD／排序／預覽列印。</p>
+    </div>
+  </section>  <!-- ===== Main Blocks ===== -->  <main class="container blocks"><!-- 說明 / 控制 -->
+<section class="block reveal printable">
+  <h2>〈預覽與輸出控制〉</h2>
+  <div class="app">
+    <!-- 左：客戶清單與資料庫 -->
+    <aside class="panel" aria-label="客戶資料庫">
+      <div class="head">
+        <h3>客戶資料庫</h3>
+        <div class="toolbar">
+          <button class="btn" id="btnAdd">新增</button>
+          <button class="btn" id="btnSortAZ">A→Z</button>
+          <button class="btn" id="btnSortZA">Z→A</button>
+          <button class="btn" id="btnTrash">回收桶</button>
+        </div>
+      </div>
+      <div class="body">
+        <div class="row">
+          <input id="q" class="input" placeholder="搜尋客戶… (名稱/標籤)"/>
+          <input id="tag" class="input" placeholder="新增時預設標籤 (可空)"/>
+        </div>
+        <div class="list" id="list" aria-live="polite"></div>
+      </div>
+    </aside>
+
+    <!-- 右：預覽與排序 -->
+    <section class="panel" aria-label="預覽與排序">
+      <div class="head">
+        <h3>預覽區</h3>
+        <div class="toolbar controls">
+          <button class="btn" id="btnPickAll">選取全部</button>
+          <button class="btn" id="btnConfirm">確認選取</button>
+        </div>
+      </div>
+      <div class="body">
+        <div class="row3">
+          <label><span class="caps">年（YYY）</span><input id="yearYYY" class="input" inputmode="numeric" placeholder="例：114" value="114"></label>
+          <label><span class="caps">起始月</span><input id="mStart" class="input" inputmode="numeric" placeholder="例：09" value="09"></label>
+          <label><span class="caps">結束月</span><input id="mEnd" class="input" inputmode="numeric" placeholder="例：10" value="10"></label>
+        </div>
+        <div class="row3">
+          <label><span class="caps">期數（份數）</span><input id="count" class="input" type="number" min="1" value="6"></label>
+          <label><span class="caps">每位客戶張數</span><input id="perClient" class="input" type="number" min="1" value="2"></label>
+          <label><span class="caps">排序</span>
+            <select id="order">
+              <option value="asc">A→Z</option>
+              <option value="desc">Z→A</option>
+              <option value="custom">自訂序</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="preview-tabs">
+          <button class="tab active" data-tab="p1">預覽1｜A4 標籤排版</button>
+          <button class="tab" data-tab="p2">預覽2｜排序清單</button>
+        </div>
+
+        <div class="preview" id="preview">
+          <div class="tab-panel" id="p1" role="tabpanel">
+            <div class="a4">
+              <div class="frames" id="frames"></div>
+            </div>
+          </div>
+          <div class="tab-panel" id="p2" role="tabpanel" hidden>
+            <ol id="ordered" style="padding:18px 24px;">
+              <!-- 1. 客戶A 2. 客戶B ... -->
+            </ol>
+            <p class="muted" style="padding:0 24px 12px">拖曳或使用每列的▲▼微調鍵以調整自訂序。</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- 說明 -->
+<section class="block reveal">
+  <h2>〈列印與 Word 匯出說明〉</h2>
+  <ul>
+    <li>列印：按右上角「列印」或 <kbd>Ctrl/Cmd + P</kbd>。系統將以 A4 紙張自動分頁，框比例固定 <b>15:6</b>，跨頁自動延續。</li>
+    <li>Word 匯出：產生 .doc 相容之 HTML（無外掛），於 Word 開啟後依 A4 尺寸分頁。</li>
+    <li>完全離線：資料儲存於 <b>IndexedDB</b>（若瀏覽器不支援，降級至 localStorage，附件停用）。</li>
+  </ul>
+</section>
+
+  </main>  <!-- ===== Dialogs ===== -->  <dialog id="dlgPick">
+    <div class="modal-head"><strong>確認選取客戶</strong><button class="btn" onclick="dlgPick.close()">關閉</button></div>
+    <div class="modal-body">
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="pickAll"> 全選/全不選</label>
+      <div id="pickList" class="list"></div>
+      <div class="right" style="margin-top:12px"><button class="btn" id="btnApplyPick">套用</button></div>
+    </div>
+  </dialog>  <dialog id="dlgTrash">
+    <div class="modal-head"><strong>回收桶</strong><button class="btn" onclick="dlgTrash.close()">關閉</button></div>
+    <div class="modal-body">
+      <div id="trashList" class="list"></div>
+    </div>
+  </dialog><script>
+/* =========================================================
+   Data Layer：IndexedDB 優先，localStorage 回退
+   models: customers, versions, trash
+   ========================================================= */
+const DB_NAME = 'artsyn-hybrid-db';
+const DB_VER = 1;
+let useLS = false; // fallback flag
+let db = null;
+
+function openDB(){
+  return new Promise((resolve)=>{
+    if(!('indexedDB' in window)){
+      useLS = true; resolve(); return;
+    }
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = (e)=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('customers')){
+        d.createObjectStore('customers', {keyPath:'id'});
+      }
+      if(!d.objectStoreNames.contains('versions')){
+        d.createObjectStore('versions', {keyPath:'versionId'});
+      }
+      if(!d.objectStoreNames.contains('trash')){
+        d.createObjectStore('trash', {keyPath:'id'});
+      }
+    };
+    req.onsuccess = ()=>{ db = req.result; resolve(); };
+    req.onerror = ()=>{ useLS = true; resolve(); };
+  });
+}
+
+const LS_KEYS = { customers:'hyb_customers', versions:'hyb_versions', trash:'hyb_trash' };
+
+async function dbGetAll(store){
+  if(useLS){ return JSON.parse(localStorage.getItem(LS_KEYS[store])||'[]'); }
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(store,'readonly');
+    const os = tx.objectStore(store);
+    const req = os.getAll();
+    req.onsuccess = ()=>resolve(req.result||[]);
+    req.onerror = reject;
+  });
+}
+async function dbPut(store, value){
+  if(useLS){
+    const arr = JSON.parse(localStorage.getItem(LS_KEYS[store])||'[]');
+    const idx = arr.findIndex(x=>x[(store==='versions'?'versionId':'id')]===value[(store==='versions'?'versionId':'id')]);
+    if(idx>-1) arr[idx]=value; else arr.push(value);
+    localStorage.setItem(LS_KEYS[store], JSON.stringify(arr));
+    return;
+  }
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(store,'readwrite');
+    tx.objectStore(store).put(value);
+    tx.oncomplete=resolve; tx.onerror=reject;
+  });
+}
+async function dbBulkPut(store, values){ for(const v of values) await dbPut(store,v); }
+async function dbDelete(store, key){
+  if(useLS){
+    const arr = JSON.parse(localStorage.getItem(LS_KEYS[store])||'[]').filter(x=>x[(store==='versions'?'versionId':'id')]!==key);
+    localStorage.setItem(LS_KEYS[store], JSON.stringify(arr)); return;
+  }
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(store,'readwrite');
+    tx.objectStore(store).delete(key);
+    tx.oncomplete=resolve; tx.onerror=reject;
+  });
+}
+
+function uuid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36) }
+
+/* =========================================================
+   State & Rendering
+   ========================================================= */
+const state = {
+  customers: [], // {id,name,tags:string[]}
+  trash: [],
+  versions: [],
+  filter:'',
+  preselect: new Set(),
+  customOrder: [],
+};
+
+function snapshot(reason){
+  const v = { versionId: uuid(), createdAtTS: Date.now(), reason, customers: state.customers };
+  state.versions.unshift(v);
+  dbPut('versions', v);
+  // 保留最多50版
+  if(state.versions.length>50){ const last = state.versions.pop(); dbDelete('versions', last.versionId); }
+}
+
+function renderList(){
+  const list = document.getElementById('list');
+  list.innerHTML='';
+  const q = state.filter.toLowerCase();
+  const data = state.customers.filter(c=>!q||c.name.toLowerCase().includes(q)|| (c.tags||[]).some(t=>t.toLowerCase().includes(q)));
+  if(data.length===0){ list.innerHTML = `<div class="muted">尚無資料。按「新增」建立客戶。</div>`; return; }
+  data.sort((a,b)=> a.name.localeCompare(b.name,'zh-Hant'));
+  for(const c of data){
+    const row = document.createElement('div');
+    row.className='item';
+    row.innerHTML = `<div style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${state.preselect.has(c.id)?'checked':''} data-id="${c.id}" aria-label="選取"> <strong>${c.name}</strong> <span class="muted">${(c.tags||[]).join(', ')}</span></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn" data-act="edit">編輯</button>
+      <button class="btn" data-act="del">刪除</button>
+      <button class="btn" data-act="up">▲</button>
+      <button class="btn" data-act="down">▼</button>
+    </div>`;
+    row.querySelector('input[type="checkbox"]').addEventListener('change', (e)=>{
+      if(e.target.checked) state.preselect.add(c.id); else state.preselect.delete(c.id);
+      buildPreviews();
+    });
+    row.querySelector('[data-act="edit"]').onclick = ()=>{
+      const name = prompt('客戶名稱', c.name); if(!name) return;
+      const tag = prompt('標籤(以逗號分隔)', (c.tags||[]).join(','))||'';
+      c.name = name.trim(); c.tags = tag.split(',').map(s=>s.trim()).filter(Boolean);
+      snapshot('edit customer'); dbPut('customers', c).then(renderList).then(buildPreviews);
+    };
+    row.querySelector('[data-act="del"]').onclick = ()=>{
+      if(!confirm('移至回收桶？')) return;
+      state.trash.unshift(c); dbPut('trash', c); state.customers = state.customers.filter(x=>x.id!==c.id); dbDelete('customers', c.id);
+      state.preselect.delete(c.id);
+      snapshot('delete customer'); renderList(); buildPreviews();
+    };
+    row.querySelector('[data-act="up"]').onclick = ()=> moveCustom(c.id, -1);
+    row.querySelector('[data-act="down"]').onclick = ()=> moveCustom(c.id, +1);
+    list.appendChild(row);
+  }
+}
+
+function moveCustom(id, delta){
+  const order = state.customOrder.length? state.customOrder : state.customOrder = state.customers.map(c=>c.id);
+  const i = order.indexOf(id); if(i<0) return;
+  const j = Math.max(0, Math.min(order.length-1, i+delta));
+  [order[i], order[j]] = [order[j], order[i]];
+  buildPreviews(); renderOrderedList();
+}
+
+function buildFrames(){
+  const frames = document.getElementById('frames');
+  frames.innerHTML='';
+  const yyy = document.getElementById('yearYYY').value.trim();
+  const ms = document.getElementById('mStart').value.trim();
+  const me = document.getElementById('mEnd').value.trim();
+  const cnt = Math.max(1, parseInt(document.getElementById('count').value||'1'));
+  const per = Math.max(1, parseInt(document.getElementById('perClient').value||'1'));
+  const selected = getOrderedSelected();
+  // 產生（每位客戶 * 每位張數），若期數>1，以循環方式重覆
+  const labels = [];
+  for(const c of selected){ for(let k=0;k<per;k++){ labels.push({customer:c.name}); } }
+  // 若需要期數份數，重複至指定數量
+  while(labels.length < cnt){ labels.push(...labels.slice(0, Math.min(cnt-labels.length, labels.length||1))); if(labels.length===0) break; }
+  labels.length = Math.min(labels.length, cnt);
+
+  labels.forEach((lb, i)=>{
+    const el = document.createElement('div'); el.className='frame';
+    el.innerHTML = `<div style="text-align:center">
+      <b>${yyy}年${ms}-${me}月　${lb.customer}</b>
+    </div>
+    <small>${i+1}</small>`;
+    frames.appendChild(el);
+  });
+}
+
+function renderOrderedList(){
+  const ol = document.getElementById('ordered'); ol.innerHTML='';
+  const arr = getOrderedSelected();
+  arr.forEach((c, idx)=>{
+    const li = document.createElement('li');
+    li.style.display='flex'; li.style.alignItems='center'; li.style.justifyContent='space-between'; li.style.padding='8px 10px'; li.style.border='1px solid #E5E7EB'; li.style.borderRadius='10px'; li.style.margin='6px 0';
+    li.innerHTML = `<div><strong>${idx+1}. ${c.name}</strong></div>
+    <div style="display:flex;gap:6px">
+      <button class="btn" aria-label="上移">▲</button>
+      <button class="btn" aria-label="下移">▼</button>
+    </div>`;
+    li.querySelectorAll('button')[0].onclick = ()=>{ moveCustom(c.id,-1); };
+    li.querySelectorAll('button')[1].onclick = ()=>{ moveCustom(c.id,+1); };
+    ol.appendChild(li);
+  });
+}
+
+function getOrderedSelected(){
+  const orderMode = document.getElementById('order').value;
+  let arr = state.customers.filter(c=> state.preselect.has(c.id));
+  if(orderMode==='asc') arr.sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
+  else if(orderMode==='desc') arr.sort((a,b)=>b.name.localeCompare(a.name,'zh-Hant'));
+  else if(orderMode==='custom'){
+    const order = state.customOrder.length? state.customOrder : state.customOrder = state.customers.map(c=>c.id);
+    arr.sort((a,b)=> order.indexOf(a.id)-order.indexOf(b.id));
+  }
+  return arr;
+}
+
+function buildPreviews(){ buildFrames(); renderOrderedList(); }
+
+/* =========================================================
+   Import / Export / Word
+   ========================================================= */
+function exportJSON(){
+  const data = { meta:{app:'ArtSyn Hybrid', ts:Date.now(), version:'1.0'}, customers: state.customers, versions: state.versions, trash: state.trash };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='artsyn-data.json'; a.click(); }
+
+function importJSON(){
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+  inp.onchange = async ()=>{
+    const file = inp.files[0]; if(!file) return; const text = await file.text();
+    try{ const data = JSON.parse(text);
+      if(confirm('匯入將覆蓋現有資料。確定？')){
+        // 清空現有
+        state.customers=[]; state.trash=[]; state.versions=[]; state.preselect.clear(); state.customOrder=[];
+        if(!useLS){
+          await new Promise((res)=>{ const tx = db.transaction(['customers','versions','trash'],'readwrite'); tx.objectStore('customers').clear(); tx.objectStore('versions').clear(); tx.objectStore('trash').clear(); tx.oncomplete=res; });
+        } else {
+          localStorage.removeItem(LS_KEYS.customers); localStorage.removeItem(LS_KEYS.versions); localStorage.removeItem(LS_KEYS.trash);
+        }
+        // 寫入
+        await dbBulkPut('customers', data.customers||[]); await dbBulkPut('versions', data.versions||[]); await dbBulkPut('trash', data.trash||[]);
+        state.customers = data.customers||[]; state.versions = data.versions||[]; state.trash = data.trash||[];
+        renderList(); buildPreviews();
+      }
+    }catch(err){ alert('JSON 解析失敗：'+err.message); }
+  };
+  inp.click();
+}
+
+function exportWord(){
+  // 將 A4 頁面 frames 以內嵌樣式輸出為 .doc 相容 HTML
+  const yyy = document.getElementById('yearYYY').value.trim();
+  const ms = document.getElementById('mStart').value.trim();
+  const me = document.getElementById('mEnd').value.trim();
+  const framesHTML = document.getElementById('frames').innerHTML;
+  const styles = `
+  @page { size: A4; margin: 12mm; }
+  body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', 'Microsoft JhengHei', Arial, sans-serif;}
+  .frames{ display:grid; grid-template-columns: repeat(auto-fill, minmax(58mm, 1fr)); gap:6mm; }
+  .frame{ aspect-ratio: 15 / 6; border:1px solid #000; border-radius:12px; display:flex; align-items:center; justify-content:center; padding:6mm; position:relative }
+  .frame b{ font-size:14pt }
+  .frame small{ position:absolute; bottom:6px; right:10px; color:#666 }
+  `;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${yyy}年${ms}-${me}月 標籤</title><style>${styles}</style></head><body><div class="frames">${framesHTML}</div></body></html>`;const blob = new Blob([html], {type:'application/msword'}); const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=${yyy}年${ms}-${me}月-標籤.doc; a.click(); }
+
+/* ========================================================= UI Events & Init ========================================================= */ function bind(){ document.getElementById('btnAdd').onclick = ()=>{ const name = prompt('客戶名稱'); if(!name) return; const tag = document.getElementById('tag').value.trim(); const item = { id: uuid(), name: name.trim(), tags: tag? tag.split(',').map(s=>s.trim()) : [] }; state.customers.push(item); dbPut('customers', item); state.preselect.add(item.id); snapshot('add customer'); renderList(); buildPreviews(); }; document.getElementById('q').oninput = (e)=>{ state.filter = e.target.value; renderList(); }; document.getElementById('btnSortAZ').onclick = ()=>{ state.customers.sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant')); snapshot('sort A-Z'); renderList(); buildPreviews(); }; document.getElementById('btnSortZA').onclick = ()=>{ state.customers.sort((a,b)=>b.name.localeCompare(a.name,'zh-Hant')); snapshot('sort Z-A'); renderList(); buildPreviews(); }; document.getElementById('btnTrash').onclick = showTrash;
+
+document.getElementById('btnPickAll').onclick = ()=>{ state.preselect = new Set(state.customers.map(c=>c.id)); renderList(); buildPreviews(); }; document.getElementById('btnConfirm').onclick = openPicker;
+
+['yearYYY','mStart','mEnd','count','perClient','order'].forEach(id=>{ document.getElementById(id).addEventListener('input', buildPreviews); document.getElementById(id).addEventListener('change', buildPreviews); });
+
+document.getElementById('btnExport').onclick = exportJSON; document.getElementById('btnImport').onclick = importJSON; document.getElementById('btnDoc').onclick = exportWord; document.getElementById('btnPrint').onclick = ()=>window.print();
+
+// Tabs document.querySelectorAll('.tab').forEach(t=> t.onclick = ()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.tab-panel').forEach(x=>x.hidden=true); t.classList.add('active'); document.getElementById(t.dataset.tab).hidden=false; });
+
+// Header scroll effect const hdr = document.getElementById('hdr'); document.addEventListener('scroll', ()=>{ hdr.classList.toggle('scrolled', window.scrollY>48); }); }
+
+function openPicker(){ const dlg = document.getElementById('dlgPick'); const list = document.getElementById('pickList'); list.innerHTML=''; document.getElementById('pickAll').checked = state.preselect.size === state.customers.length; document.getElementById('pickAll').onchange = (e)=>{ if(e.target.checked) state.preselect = new Set(state.customers.map(c=>c.id)); else state.preselect.clear(); openPicker(); buildPreviews(); }; const data = [...state.customers].sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant')); data.forEach(c=>{ const row = document.createElement('div'); row.className='item'; row.innerHTML = <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${state.preselect.has(c.id)?'checked':''}> ${c.name}</label>; row.querySelector('input').onchange = (e)=>{ if(e.target.checked) state.preselect.add(c.id); else state.preselect.delete(c.id); }; list.appendChild(row); }); document.getElementById('btnApplyPick').onclick = ()=>{ dlg.close(); renderList(); buildPreviews(); }; dlg.showModal(); }
+
+function showTrash(){ const dlg = document.getElementById('dlgTrash'); const list = document.getElementById('trashList'); list.innerHTML=''; if(state.trash.length===0){ list.innerHTML='<div class="muted">回收桶是空的。</div>'; } state.trash.forEach(c=>{ const row = document.createElement('div'); row.className='item'; row.innerHTML = <div><strong>${c.name}</strong></div> <div style="display:flex;gap:6px"> <button class="btn" data-act="restore">還原</button> <button class="btn" data-act="purge">永久刪除</button> </div>; row.querySelector('[data-act="restore"]').onclick = ()=>{ state.customers.push(c); dbPut('customers', c); state.trash = state.trash.filter(x=>x.id!==c.id); dbDelete('trash', c.id); snapshot('restore'); renderList(); buildPreviews(); showTrash(); }; row.querySelector('[data-act="purge"]').onclick = ()=>{ if(!confirm('永久刪除不可復原，確定？')) return; state.trash = state.trash.filter(x=>x.id!==c.id); dbDelete('trash', c.id); showTrash(); }; list.appendChild(row); }); dlg.showModal(); }
+
+/* Reveal on scroll */ function setupReveal(){ const io = new IntersectionObserver((ents)=>{ for(const e of ents){ if(e.isIntersecting){ e.target.classList.add('revealed'); io.unobserve(e.target); } } }, {threshold:.15}); document.querySelectorAll('.reveal').forEach(el=> io.observe(el)); }
+
+/* Hero stagger letters */ function heroStagger(){ const h = document.getElementById('heroTitle'); const txt = h.textContent; h.textContent=''; txt.split('').forEach((ch,i)=>{ const span = document.createElement('span'); span.className='char'; span.textContent=ch; span.style.transition = all .6s var(--easing-emphasized) ${(i*30)%300/1000}s; h.appendChild(span); }); requestAnimationFrame(()=>{ h.classList.add('hero-ready'); h.querySelectorAll('.char').forEach(el=>{ el.style.opacity=1; el.style.transform='none'; }); }); }
+
+async function init(){ await openDB(); state.customers = await dbGetAll('customers'); state.trash = await dbGetAll('trash'); state.versions = await dbGetAll('versions'); if(state.customers.length===0){ // demo data state.customers = [ {id:uuid(), name:'客戶A', tags:['VIP']}, {id:uuid(), name:'客戶B', tags:['一般']}, {id:uuid(), name:'客戶C', tags:['重點']}, ]; await dbBulkPut('customers', state.customers); } state.preselect = new Set(state.customers.map(c=>c.id)); bind(); renderList(); buildPreviews(); setupReveal(); heroStagger(); }
+
+init(); </script>
+
+</body>
+</html>
