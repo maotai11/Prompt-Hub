@@ -160,49 +160,8 @@
     }
 
     /* =============================================================================
-       EDITORIAL BLOCKS — SPLIT / QUOTE / DIVIDER
+       EDITORIAL BLOCKS
        ========================================================================== */
-    .block-split {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 32px;
-      margin: 72px 0;
-      align-items: center;
-    }
-
-    .block-split:nth-child(even) {
-      grid-template-columns: 1fr 1fr;
-      direction: rtl;
-    }
-
-    .block-split:nth-child(even) > * {
-      direction: ltr;
-    }
-
-    .block-split img {
-      width: 100%;
-      border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-soft);
-    }
-
-    .block-quote {
-      position: relative;
-      padding-left: 24px;
-      margin: 48px 0;
-      font-style: italic;
-      color: var(--soft-gray);
-    }
-
-    .block-quote::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      height: 100%;
-      width: 4px;
-      background: var(--rose-gold);
-    }
-
     .block-divider {
       height: 48px;
       background: linear-gradient(to bottom, transparent, var(--cream), transparent);
@@ -234,7 +193,6 @@
       background: var(--rose-gold);
     }
 
-    /* 搜尋與複製表單 */
     .cloner-form {
       background: white;
       padding: 32px;
@@ -254,7 +212,7 @@
       color: var(--smoke);
     }
 
-    input, button {
+    input, button, select, textarea {
       width: 100%;
       padding: 12px 16px;
       border: 1px solid var(--mist-silver);
@@ -262,7 +220,12 @@
       font-size: var(--fs-body);
     }
 
-    input:focus, button:focus {
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    input:focus, button:focus, select:focus, textarea:focus {
       outline: 2px solid var(--mist-silver);
       box-shadow: 0 0 0 2px var(--rose-gold);
     }
@@ -273,11 +236,18 @@
       cursor: pointer;
       font-weight: 600;
       transition: transform 0.2s, background 0.2s;
+      width: auto;
     }
 
     button:hover {
       transform: scale(1.02);
       background: var(--smoke);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .search-results {
@@ -320,23 +290,6 @@
       color: #c62828;
     }
 
-    /* 清單與編輯器簡化示意 */
-    .task-list {
-      background: white;
-      border-radius: var(--radius-2xl);
-      box-shadow: var(--shadow-soft);
-      padding: 24px;
-    }
-
-    .task-item {
-      padding: 16px 0;
-      border-bottom: 1px solid var(--mist-silver);
-    }
-
-    .task-item:last-child {
-      border-bottom: none;
-    }
-
     /* =============================================================================
        FOOTER
        ========================================================================== */
@@ -350,7 +303,7 @@
     }
 
     /* =============================================================================
-       ANIMATIONS — REVEAL & HOVER
+       ANIMATIONS
        ========================================================================== */
     .reveal {
       opacity: 0;
@@ -364,20 +317,11 @@
       transform: translateY(0);
     }
 
-    a, button, .interactive {
-      transition: color 0.2s, transform 0.2s;
-    }
-
-    a:hover, .interactive:hover {
-      color: var(--ink-black);
-      transform: scale(1.02);
-    }
-
     /* =============================================================================
        PRINT STYLES
        ========================================================================== */
     @media print {
-      header, .block-hero, .cloner-form, .task-list, footer {
+      header, .block-hero, .cloner-form, footer {
         display: none !important;
       }
 
@@ -385,20 +329,6 @@
         background: white;
         color: black;
       }
-
-      .print-only {
-        display: block !important;
-      }
-
-      .print-content {
-        display: block;
-        font-size: 14pt;
-        line-height: 1.6;
-      }
-    }
-
-    .print-only {
-      display: none;
     }
   </style>
 </head>
@@ -416,36 +346,87 @@
       <div class="hero-gradient-sweep"></div>
       <div class="hero-content">
         <h1 class="hero-title" id="hero-title">Annual Task Cloner</h1>
-        <p class="hero-subtitle">複製年度例行子任務，無需重複輸入。標題與提醒文字一鍵繼承，排程留白待編。</p>
+        <p class="hero-subtitle">建立年度任務模板，隔年一鍵複製。標題與提醒文字完整繼承，排程留白待編。</p>
       </div>
     </section>
 
     <div class="container">
       <section class="app-shell reveal">
-        <h2 class="section-title">複製年度任務模板</h2>
+        <!-- 新建任務模板 -->
+        <h2 class="section-title">建立任務模板</h2>
 
-        <form id="clonerForm" class="cloner-form">
+        <!-- 新建母任務 -->
+        <div class="cloner-form">
           <div class="form-group">
-            <label for="sourceKeyword">來源子任務（關鍵字搜尋）</label>
-            <input type="text" id="sourceKeyword" placeholder="輸入任務標題關鍵字…" autocomplete="off" />
-            <div id="searchResults" class="search-results"></div>
+            <label for="newMasterName">新建母任務</label>
+            <div class="btn-row">
+              <input type="text" id="newMasterName" placeholder="例如：2025 財務規劃" />
+              <button type="button" id="createMasterBtn">建立母任務</button>
+            </div>
           </div>
+        </div>
 
+        <!-- 新建子任務 -->
+        <div class="cloner-form">
+          <h3 style="margin-bottom:16px; font-family: 'Playfair Display', serif;">新建子任務</h3>
           <div class="form-group">
-            <label for="targetProject">目標大項目名稱</label>
-            <input type="text" id="targetProject" placeholder="輸入現有項目名稱或新項目名稱" required />
+            <label for="subMasterSelect">所屬母任務</label>
+            <select id="subMasterSelect">
+              <option value="">— 請先建立母任務 —</option>
+            </select>
           </div>
-
-          <button type="submit">複製任務模板</button>
-          <div id="feedback" class="feedback" style="display:none;"></div>
-        </form>
+          <div class="form-group">
+            <label for="newSubTitle">子任務標題</label>
+            <input type="text" id="newSubTitle" placeholder="例如：年度預算規劃" />
+          </div>
+          <div class="form-group">
+            <label for="newSubReminders">提醒文字（每行一則）</label>
+            <textarea id="newSubReminders" placeholder="提醒：需包含通膨調整係數&#10;提醒：法務需會簽"></textarea>
+          </div>
+          <button type="button" id="createSubBtn">建立子任務</button>
+        </div>
 
         <div class="block-divider"></div>
 
-        <h2 class="section-title">任務清單（示意）</h2>
-        <div class="task-list">
-          <div class="task-item"><strong>Q4 財報審核</strong> — 提醒：請確認會計準則更新</div>
-          <div class="task-item"><strong>年度績效面談</strong> — 提醒：提前一週通知主管</div>
+        <!-- 複製年度任務模板 -->
+        <h2 class="section-title">複製年度任務模板</h2>
+        <form id="clonerForm" class="cloner-form">
+          <h3 style="margin-bottom:16px; font-family: 'Playfair Display', serif;">來源設定</h3>
+
+          <div class="form-group">
+            <label for="sourceMasterKeyword">來源母任務（關鍵字）</label>
+            <input type="text" id="sourceMasterKeyword" placeholder="輸入母任務名稱…" autocomplete="off" />
+            <div id="masterSearchResults" class="search-results"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="sourceSubKeyword">來源子任務（關鍵字）</label>
+            <input type="text" id="sourceSubKeyword" placeholder="輸入子任務標題…" autocomplete="off" />
+            <div id="subSearchResults" class="search-results"></div>
+          </div>
+
+          <h3 style="margin:24px 0 16px; font-family: 'Playfair Display', serif;">目標設定</h3>
+
+          <div class="form-group">
+            <label for="targetMaster">目標母任務名稱</label>
+            <input type="text" id="targetMaster" placeholder="輸入現有或新母任務名稱" required />
+          </div>
+
+          <button type="submit">複製子任務模板</button>
+          <div id="feedback" class="feedback" style="display:none;"></div>
+        </form>
+
+        <!-- 匯出/匯入 -->
+        <div class="cloner-form">
+          <h3 style="margin-bottom:16px; font-family: 'Playfair Display', serif;">資料管理</h3>
+          <div class="btn-row">
+            <button type="button" id="exportBtn">匯出 JSON</button>
+            <button type="button" id="importBtn" style="background:var(--rose-gold);">匯入 JSON</button>
+            <input type="file" id="importFile" accept=".json" style="display:none;" />
+          </div>
+          <p style="margin-top:12px; font-size:14px; color:var(--soft-gray);">
+            匯出包含所有母任務、子任務與設定。資料僅儲存於本機。
+          </p>
         </div>
       </section>
     </div>
@@ -457,182 +438,283 @@
     </footer>
   </main>
 
-  <!-- Hidden print view -->
-  <div class="print-only">
-    <div class="print-content" id="printContent"></div>
-  </div>
-
   <script>
     // =============================================================================
-    // DESIGN SYSTEM: ANIMATIONS & INTERACTIONS
+    // DATA MODEL — 符合 /speckit.specify
+    // =============================================================================
+    let appData = {
+      masters: JSON.parse(localStorage.getItem('masters') || '[]'),
+      subtasks: JSON.parse(localStorage.getItem('subtasks') || '[]')
+    };
+
+    function saveData() {
+      localStorage.setItem('masters', JSON.stringify(appData.masters));
+      localStorage.setItem('subtasks', JSON.stringify(appData.subtasks));
+    }
+
+    // =============================================================================
+    // UI UTILS
+    // =============================================================================
+    function renderMasterSelect() {
+      const select = document.getElementById('subMasterSelect');
+      select.innerHTML = '<option value="">— 請選擇母任務 —</option>';
+      if (appData.masters.length === 0) {
+        select.innerHTML = '<option value="">— 請先建立母任務 —</option>';
+        return;
+      }
+      appData.masters.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.title;
+        select.appendChild(opt);
+      });
+    }
+
+    function showFeedback(message, type) {
+      const el = document.getElementById('feedback');
+      el.textContent = message;
+      el.className = `feedback ${type}`;
+      el.style.display = 'block';
+      if (type === 'success') {
+        setTimeout(() => { el.style.display = 'none'; }, 5000);
+      }
+    }
+
+    // =============================================================================
+    // CREATE MASTER
+    // =============================================================================
+    document.getElementById('createMasterBtn').addEventListener('click', () => {
+      const name = document.getElementById('newMasterName').value.trim();
+      if (!name) return showFeedback('請輸入母任務名稱', 'error');
+      const newMaster = { id: 'm' + Date.now(), title: name, createdAt: Date.now() };
+      appData.masters.push(newMaster);
+      saveData();
+      document.getElementById('newMasterName').value = '';
+      renderMasterSelect();
+      showFeedback(`母任務「${name}」已建立`, 'success');
+    });
+
+    // =============================================================================
+    // CREATE SUBTASK
+    // =============================================================================
+    document.getElementById('createSubBtn').addEventListener('click', () => {
+      const masterId = document.getElementById('subMasterSelect').value;
+      const title = document.getElementById('newSubTitle').value.trim();
+      const remindersText = document.getElementById('newSubReminders').value;
+      if (!masterId) return showFeedback('請選擇所屬母任務', 'error');
+      if (!title) return showFeedback('請輸入子任務標題', 'error');
+      const reminders = remindersText.split('\n').map(r => r.trim()).filter(r => r);
+      const newSub = {
+        id: 's' + Date.now(),
+        masterId,
+        title,
+        reminders,
+        createdAt: Date.now()
+      };
+      appData.subtasks.push(newSub);
+      saveData();
+      document.getElementById('newSubTitle').value = '';
+      document.getElementById('newSubReminders').value = '';
+      showFeedback(`子任務「${title}」已建立`, 'success');
+    });
+
+    // =============================================================================
+    // CLONER LOGIC
+    // =============================================================================
+    let selectedSourceMaster = null;
+    let selectedSourceSub = null;
+
+    // 搜尋母任務
+    document.getElementById('sourceMasterKeyword').addEventListener('input', () => {
+      const term = document.getElementById('sourceMasterKeyword').value.trim().toLowerCase();
+      const resultsEl = document.getElementById('masterSearchResults');
+      resultsEl.innerHTML = '';
+      if (term.length < 1) {
+        resultsEl.style.display = 'none';
+        return;
+      }
+      const results = appData.masters.filter(m => m.title.toLowerCase().includes(term));
+      resultsEl.style.display = 'block';
+      if (results.length === 0) {
+        resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--soft-gray);">無符合母任務</div>';
+        return;
+      }
+      results.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'search-result-item';
+        div.textContent = m.title;
+        div.addEventListener('click', () => {
+          selectedSourceMaster = m;
+          document.getElementById('sourceMasterKeyword').value = m.title;
+          resultsEl.style.display = 'none';
+          // 清空子任務選擇
+          selectedSourceSub = null;
+          document.getElementById('sourceSubKeyword').value = '';
+          document.getElementById('subSearchResults').style.display = 'none';
+        });
+        resultsEl.appendChild(div);
+      });
+    });
+
+    // 搜尋子任務（限於已選母任務）
+    document.getElementById('sourceSubKeyword').addEventListener('input', () => {
+      if (!selectedSourceMaster) {
+        document.getElementById('subSearchResults').style.display = 'block';
+        document.getElementById('subSearchResults').innerHTML = '<div class="search-result-item" style="color:var(--soft-gray);">請先選擇來源母任務</div>';
+        return;
+      }
+      const term = document.getElementById('sourceSubKeyword').value.trim().toLowerCase();
+      const resultsEl = document.getElementById('subSearchResults');
+      resultsEl.innerHTML = '';
+      if (term.length < 1) {
+        resultsEl.style.display = 'none';
+        return;
+      }
+      const results = appData.subtasks
+        .filter(s => s.masterId === selectedSourceMaster.id && s.title.toLowerCase().includes(term));
+      resultsEl.style.display = 'block';
+      if (results.length === 0) {
+        resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--soft-gray);">此母任務下無符合子任務</div>';
+        return;
+      }
+      results.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'search-result-item';
+        div.textContent = s.title;
+        div.addEventListener('click', () => {
+          selectedSourceSub = s;
+          document.getElementById('sourceSubKeyword').value = s.title;
+          resultsEl.style.display = 'none';
+        });
+        resultsEl.appendChild(div);
+      });
+    });
+
+    // 複製表單提交
+    document.getElementById('clonerForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!selectedSourceMaster) return showFeedback('請選擇來源母任務', 'error');
+      if (!selectedSourceSub) return showFeedback('請選擇來源子任務', 'error');
+
+      const targetName = document.getElementById('targetMaster').value.trim();
+      if (!targetName) return showFeedback('請輸入目標母任務名稱', 'error');
+
+      // 檢查目標母任務是否存在
+      let targetMaster = appData.masters.find(m => m.title === targetName);
+      if (!targetMaster) {
+        targetMaster = { id: 'm' + Date.now(), title: targetName, createdAt: Date.now() };
+        appData.masters.push(targetMaster);
+      }
+
+      // 建立新子任務（無排程）
+      const newSub = {
+        id: 's' + Date.now(),
+        masterId: targetMaster.id,
+        title: selectedSourceSub.title,
+        reminders: [...(selectedSourceSub.reminders || [])],
+        createdAt: Date.now()
+      };
+      appData.subtasks.push(newSub);
+      saveData();
+
+      // 成功提示
+      showFeedback(`子任務「${newSub.title}」已複製到「${targetMaster.title}」。請手動編輯排程。`, 'success');
+
+      // 重置
+      selectedSourceMaster = null;
+      selectedSourceSub = null;
+      document.getElementById('sourceMasterKeyword').value = '';
+      document.getElementById('sourceSubKeyword').value = '';
+      document.getElementById('targetMaster').value = '';
+    });
+
+    // =============================================================================
+    // EXPORT / IMPORT
+    // =============================================================================
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const data = {
+        meta: { version: '1.0', exportedAt: new Date().toISOString() },
+        masters: appData.masters,
+        subtasks: appData.subtasks
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `annual-task-cloner-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('importBtn').addEventListener('click', () => {
+      document.getElementById('importFile').click();
+    });
+
+    document.getElementById('importFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (imported.masters && imported.subtasks) {
+            appData.masters = imported.masters;
+            appData.subtasks = imported.subtasks;
+            saveData();
+            renderMasterSelect();
+            showFeedback('資料匯入成功！', 'success');
+          } else {
+            throw new Error('無效資料結構');
+          }
+        } catch (err) {
+          showFeedback('匯入失敗：' + err.message, 'error');
+        }
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+    });
+
+    // =============================================================================
+    // INIT
     // =============================================================================
     document.addEventListener('DOMContentLoaded', () => {
-      // Header scroll effect
+      // Header scroll
       const header = document.getElementById('main-header');
       window.addEventListener('scroll', () => {
-        if (window.scrollY > 48) {
-          header.classList.add('scrolled');
-        } else {
-          header.classList.remove('scrolled');
-        }
+        header.classList.toggle('scrolled', window.scrollY > 48);
       });
 
-      // Hero title letter stagger
+      // Hero animation
       const heroTitle = document.getElementById('hero-title');
       const text = heroTitle.textContent;
       heroTitle.innerHTML = '';
-      const letters = text.split('');
-      letters.forEach((letter, i) => {
+      text.split('').forEach((char, i) => {
         const span = document.createElement('span');
-        span.className = 'char';
-        span.textContent = letter === ' ' ? '\u00A0' : letter;
-        span.style.display = 'inline-block';
+        span.textContent = char === ' ' ? '\u00A0' : char;
         span.style.opacity = '0';
-        span.style.animation = `fadeInChar 0.6s ${i * 40}ms forwards`;
+        span.style.display = 'inline-block';
+        span.style.animation = `fadeIn 0.6s ${i * 40}ms forwards`;
         heroTitle.appendChild(span);
       });
-
       const style = document.createElement('style');
       style.textContent = `
-        @keyframes fadeInChar {
+        @keyframes fadeIn {
           to { opacity: 1; transform: translateY(0); }
         }
-        .char {
+        .hero-title span {
           transform: translateY(20px);
         }
       `;
       document.head.appendChild(style);
 
-      // Reveal blocks on scroll
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('appear');
-          }
-        });
+      // Reveal
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('appear'));
       }, { threshold: 0.1 });
-
       document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-      // =============================================================================
-      // DATA LAYER — SIMULATED (In real app: IndexedDB abstraction)
-      // =============================================================================
-      const mockTasks = [
-        { id: 't1', title: '年度預算規劃', projectId: 'p1', reminders: ['提醒：需包含通膨調整係數'], projectTitle: '財務規劃' },
-        { id: 't2', title: '員工滿意度調查', projectId: 'p2', reminders: ['提醒：匿名問卷需經法務審核'], projectTitle: '人資專案' },
-        { id: 't3', title: '客戶滿意度回訪', projectId: 'p3', reminders: ['提醒：優先聯絡 VIP 客戶'], projectTitle: '客戶成功' }
-      ];
-
-      const mockProjects = [
-        { id: 'p1', title: '財務規劃' },
-        { id: 'p2', title: '人資專案' },
-        { id: 'p3', title: '客戶成功' }
-      ];
-
-      // =============================================================================
-      // CLONER LOGIC — MATCHES SPEC
-      // =============================================================================
-      const sourceKeyword = document.getElementById('sourceKeyword');
-      const searchResults = document.getElementById('searchResults');
-      let selectedSource = null;
-
-      sourceKeyword.addEventListener('input', () => {
-        const term = sourceKeyword.value.trim().toLowerCase();
-        searchResults.innerHTML = '';
-        if (term.length < 2) {
-          searchResults.style.display = 'none';
-          return;
-        }
-
-        const results = mockTasks.filter(task =>
-          task.title.toLowerCase().includes(term)
-        );
-
-        if (results.length === 0) {
-          searchResults.style.display = 'block';
-          searchResults.innerHTML = '<div class="search-result-item" style="color:var(--soft-gray);">無符合結果</div>';
-          return;
-        }
-
-        searchResults.style.display = 'block';
-        results.forEach(task => {
-          const div = document.createElement('div');
-          div.className = 'search-result-item';
-          div.textContent = `${task.title}（${task.projectTitle}）`;
-          div.dataset.id = task.id;
-          div.addEventListener('click', () => {
-            selectedSource = task;
-            sourceKeyword.value = task.title;
-            searchResults.style.display = 'none';
-          });
-          searchResults.appendChild(div);
-        });
-      });
-
-      document.getElementById('clonerForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const feedback = document.getElementById('feedback');
-
-        if (!selectedSource) {
-          showFeedback('請先從搜尋結果中選擇一個來源子任務。', 'error');
-          return;
-        }
-
-        const targetProjectName = document.getElementById('targetProject').value.trim();
-        if (!targetProjectName) {
-          showFeedback('請輸入目標大項目名稱。', 'error');
-          return;
-        }
-
-        // Step 2: Check if project exists or create new
-        let targetProject = mockProjects.find(p => p.title === targetProjectName);
-        if (!targetProject) {
-          const newId = `p${mockProjects.length + 1}`;
-          targetProject = { id: newId, title: targetProjectName };
-          mockProjects.push(targetProject);
-        }
-
-        // Step 3 & 4: Copy title + reminders, create new task (no scheduling)
-        const newTask = {
-          id: `t${Date.now()}`,
-          title: selectedSource.title,
-          projectId: targetProject.id,
-          reminders: [...(selectedSource.reminders || [])],
-          projectTitle: targetProject.title,
-          scheduled: null // explicitly un-scheduled
-        };
-
-        // In real app: await db.tasks.add(newTask);
-        mockTasks.push(newTask);
-
-        // Step 5: Success feedback
-        showFeedback(`子任務「${newTask.title}」已成功複製到「${targetProject.title}」。請手動進入編輯排程。`, 'success');
-
-        // Reset form
-        selectedSource = null;
-        sourceKeyword.value = '';
-        document.getElementById('targetProject').value = '';
-      });
-
-      function showFeedback(message, type) {
-        const feedback = document.getElementById('feedback');
-        feedback.textContent = message;
-        feedback.className = `feedback ${type}`;
-        feedback.style.display = 'block';
-        setTimeout(() => {
-          if (type === 'success') feedback.style.display = 'none';
-        }, 5000);
-      }
-
-      // Simulate print content
-      window.addEventListener('beforeprint', () => {
-        const content = `
-          <h1>Annual Task Cloner — 列印報告</h1>
-          <p>本工具用於複製年度例行子任務之標題與提醒文字，不包含原始排程資訊。</p>
-          <p>所有資料僅儲存於本機，未上傳至任何伺服器。</p>
-        `;
-        document.getElementById('printContent').innerHTML = content;
-      });
+      // Init UI
+      renderMasterSelect();
     });
   </script>
 </body>
