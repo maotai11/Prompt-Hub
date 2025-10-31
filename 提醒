@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Annual Task Cloner | Editorial Hybrid Shell</title>
   <style>
-    /* =============================================================================
-       DESIGN TOKENS — Vogue × Bazaar Hybrid
-       ========================================================================== */
     :root {
-      /* 色彩 */
       --ink-black: #000000;
       --ivory: #F8F8F6;
       --rose-gold: #C7A27C;
@@ -17,29 +13,20 @@
       --mist-silver: #C0C4C9;
       --cream: #FAF7F2;
       --soft-gray: #6B7280;
-
-      /* 字級 / 行高 */
-      --fs-display: 48px;
-      --lh-display: 56px;
+      --fs-display: 40px;
+      --lh-display: 48px;
       --fs-h1: 32px;
       --lh-h1: 40px;
       --fs-body: 16px;
       --lh-body: 28px;
-
-      /* 半徑 / 陰影 */
       --radius-2xl: 16px;
       --shadow-soft: 0 6px 20px rgba(0,0,0,.07);
-
-      /* 動效 */
       --easing-emphasized: cubic-bezier(0.33, 1, 0.68, 1);
       --dur-stagger: 300ms;
       --dur-breathe-min: 600ms;
       --dur-breathe-max: 1000ms;
     }
 
-    /* =============================================================================
-       BASE & LAYOUT
-       ========================================================================== */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -65,9 +52,6 @@
       padding: 0 16px;
     }
 
-    /* =============================================================================
-       HEADER
-       ========================================================================== */
     header {
       position: fixed;
       top: 0;
@@ -103,12 +87,9 @@
       color: var(--ink-black);
     }
 
-    /* =============================================================================
-       HERO BLOCK
-       ========================================================================== */
     .block-hero {
       position: relative;
-      height: 80vh;
+      height: 60vh;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -148,7 +129,7 @@
       font-family: "Playfair Display", "Didot", serif;
       font-size: var(--fs-display);
       line-height: var(--lh-display);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       opacity: 0;
     }
 
@@ -159,26 +140,20 @@
       transition: opacity 0.6s var(--easing-emphasized);
     }
 
-    /* =============================================================================
-       EDITORIAL BLOCKS
-       ========================================================================== */
     .block-divider {
       height: 48px;
       background: linear-gradient(to bottom, transparent, var(--cream), transparent);
       margin: 56px 0;
     }
 
-    /* =============================================================================
-       APP SHELL — UI COMPONENTS
-       ========================================================================== */
     .app-shell {
-      margin: 72px 0;
+      margin: 60px 0;
     }
 
     .section-title {
       font-family: "Playfair Display", serif;
       font-size: var(--fs-h1);
-      margin-bottom: 32px;
+      margin-bottom: 28px;
       position: relative;
       display: inline-block;
     }
@@ -195,14 +170,14 @@
 
     .cloner-form {
       background: white;
-      padding: 32px;
+      padding: 28px;
       border-radius: var(--radius-2xl);
       box-shadow: var(--shadow-soft);
-      margin-bottom: 48px;
+      margin-bottom: 40px;
     }
 
     .form-group {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     label {
@@ -250,26 +225,44 @@
       flex-wrap: wrap;
     }
 
-    .search-results {
-      margin-top: 16px;
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-wrapper input {
+      margin-bottom: 0;
+    }
+
+    .search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--mist-silver);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
       max-height: 200px;
       overflow-y: auto;
-      border: 1px solid var(--mist-silver);
-      border-radius: 8px;
+      z-index: 100;
       display: none;
     }
 
-    .search-result-item {
-      padding: 12px 16px;
+    .search-dropdown.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      padding: 10px 16px;
       cursor: pointer;
       border-bottom: 1px solid var(--mist-silver);
     }
 
-    .search-result-item:last-child {
+    .dropdown-item:last-child {
       border-bottom: none;
     }
 
-    .search-result-item:hover {
+    .dropdown-item:hover {
       background: var(--cream);
     }
 
@@ -290,21 +283,15 @@
       color: #c62828;
     }
 
-    /* =============================================================================
-       FOOTER
-       ========================================================================== */
     footer {
-      margin: 120px 0 48px;
+      margin: 100px 0 40px;
       text-align: center;
       color: var(--soft-gray);
       font-size: 14px;
       border-top: 1px solid var(--mist-silver);
-      padding-top: 24px;
+      padding-top: 20px;
     }
 
-    /* =============================================================================
-       ANIMATIONS
-       ========================================================================== */
     .reveal {
       opacity: 0;
       transform: translateY(20px);
@@ -317,9 +304,6 @@
       transform: translateY(0);
     }
 
-    /* =============================================================================
-       PRINT STYLES
-       ========================================================================== */
     @media print {
       header, .block-hero, .cloner-form, footer {
         display: none !important;
@@ -352,10 +336,8 @@
 
     <div class="container">
       <section class="app-shell reveal">
-        <!-- 新建任務模板 -->
         <h2 class="section-title">建立任務模板</h2>
 
-        <!-- 新建母任務 -->
         <div class="cloner-form">
           <div class="form-group">
             <label for="newMasterName">新建母任務</label>
@@ -366,7 +348,6 @@
           </div>
         </div>
 
-        <!-- 新建子任務 -->
         <div class="cloner-form">
           <h3 style="margin-bottom:16px; font-family: 'Playfair Display', serif;">新建子任務</h3>
           <div class="form-group">
@@ -380,29 +361,32 @@
             <input type="text" id="newSubTitle" placeholder="例如：年度預算規劃" />
           </div>
           <div class="form-group">
-            <label for="newSubReminders">提醒文字（每行一則）</label>
-            <textarea id="newSubReminders" placeholder="提醒：需包含通膨調整係數&#10;提醒：法務需會簽"></textarea>
+            <label for="newSubReminders">提醒文字（可包含多則，自由格式）</label>
+            <textarea id="newSubReminders" placeholder="提醒：需包含通膨調整係數，並經法務會簽"></textarea>
           </div>
           <button type="button" id="createSubBtn">建立子任務</button>
         </div>
 
         <div class="block-divider"></div>
 
-        <!-- 複製年度任務模板 -->
         <h2 class="section-title">複製年度任務模板</h2>
         <form id="clonerForm" class="cloner-form">
           <h3 style="margin-bottom:16px; font-family: 'Playfair Display', serif;">來源設定</h3>
 
           <div class="form-group">
-            <label for="sourceMasterKeyword">來源母任務（關鍵字）</label>
-            <input type="text" id="sourceMasterKeyword" placeholder="輸入母任務名稱…" autocomplete="off" />
-            <div id="masterSearchResults" class="search-results"></div>
+            <label for="sourceMasterKeyword">來源母任務</label>
+            <div class="search-wrapper">
+              <input type="text" id="sourceMasterKeyword" placeholder="輸入母任務名稱…" autocomplete="off" />
+              <div id="masterDropdown" class="search-dropdown"></div>
+            </div>
           </div>
 
           <div class="form-group">
-            <label for="sourceSubKeyword">來源子任務（關鍵字）</label>
-            <input type="text" id="sourceSubKeyword" placeholder="輸入子任務標題…" autocomplete="off" />
-            <div id="subSearchResults" class="search-results"></div>
+            <label for="sourceSubKeyword">來源子任務（可搜標題或提醒文字）</label>
+            <div class="search-wrapper">
+              <input type="text" id="sourceSubKeyword" placeholder="輸入關鍵字…" autocomplete="off" />
+              <div id="subDropdown" class="search-dropdown"></div>
+            </div>
           </div>
 
           <h3 style="margin:24px 0 16px; font-family: 'Playfair Display', serif;">目標設定</h3>
@@ -416,7 +400,6 @@
           <div id="feedback" class="feedback" style="display:none;"></div>
         </form>
 
-        <!-- 匯出/匯入 -->
         <div class="cloner-form">
           <h3 style="margin-bottom:16px; font-family: 'Playfair Display', serif;">資料管理</h3>
           <div class="btn-row">
@@ -439,9 +422,6 @@
   </main>
 
   <script>
-    // =============================================================================
-    // DATA MODEL — 符合 /speckit.specify
-    // =============================================================================
     let appData = {
       masters: JSON.parse(localStorage.getItem('masters') || '[]'),
       subtasks: JSON.parse(localStorage.getItem('subtasks') || '[]')
@@ -452,9 +432,6 @@
       localStorage.setItem('subtasks', JSON.stringify(appData.subtasks));
     }
 
-    // =============================================================================
-    // UI UTILS
-    // =============================================================================
     function renderMasterSelect() {
       const select = document.getElementById('subMasterSelect');
       select.innerHTML = '<option value="">— 請選擇母任務 —</option>';
@@ -480,9 +457,7 @@
       }
     }
 
-    // =============================================================================
     // CREATE MASTER
-    // =============================================================================
     document.getElementById('createMasterBtn').addEventListener('click', () => {
       const name = document.getElementById('newMasterName').value.trim();
       if (!name) return showFeedback('請輸入母任務名稱', 'error');
@@ -494,21 +469,18 @@
       showFeedback(`母任務「${name}」已建立`, 'success');
     });
 
-    // =============================================================================
-    // CREATE SUBTASK
-    // =============================================================================
+    // CREATE SUBTASK — REMINDERS AS SINGLE STRING ARRAY
     document.getElementById('createSubBtn').addEventListener('click', () => {
       const masterId = document.getElementById('subMasterSelect').value;
       const title = document.getElementById('newSubTitle').value.trim();
-      const remindersText = document.getElementById('newSubReminders').value;
+      const remindersText = document.getElementById('newSubReminders').value.trim();
       if (!masterId) return showFeedback('請選擇所屬母任務', 'error');
       if (!title) return showFeedback('請輸入子任務標題', 'error');
-      const reminders = remindersText.split('\n').map(r => r.trim()).filter(r => r);
       const newSub = {
         id: 's' + Date.now(),
         masterId,
         title,
-        reminders,
+        reminders: remindersText ? [remindersText] : [],
         createdAt: Date.now()
       };
       appData.subtasks.push(newSub);
@@ -518,95 +490,107 @@
       showFeedback(`子任務「${title}」已建立`, 'success');
     });
 
-    // =============================================================================
-    // CLONER LOGIC
-    // =============================================================================
+    // SEARCH MASTER DROPDOWN
     let selectedSourceMaster = null;
     let selectedSourceSub = null;
 
-    // 搜尋母任務
     document.getElementById('sourceMasterKeyword').addEventListener('input', () => {
       const term = document.getElementById('sourceMasterKeyword').value.trim().toLowerCase();
-      const resultsEl = document.getElementById('masterSearchResults');
-      resultsEl.innerHTML = '';
-      if (term.length < 1) {
-        resultsEl.style.display = 'none';
+      const dropdown = document.getElementById('masterDropdown');
+      dropdown.innerHTML = '';
+      if (term.length === 0) {
+        dropdown.classList.remove('show');
         return;
       }
       const results = appData.masters.filter(m => m.title.toLowerCase().includes(term));
-      resultsEl.style.display = 'block';
       if (results.length === 0) {
-        resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--soft-gray);">無符合母任務</div>';
-        return;
-      }
-      results.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'search-result-item';
-        div.textContent = m.title;
-        div.addEventListener('click', () => {
-          selectedSourceMaster = m;
-          document.getElementById('sourceMasterKeyword').value = m.title;
-          resultsEl.style.display = 'none';
-          // 清空子任務選擇
-          selectedSourceSub = null;
-          document.getElementById('sourceSubKeyword').value = '';
-          document.getElementById('subSearchResults').style.display = 'none';
+        dropdown.innerHTML = '<div class="dropdown-item" style="color:var(--soft-gray);">無符合母任務</div>';
+      } else {
+        results.forEach(m => {
+          const div = document.createElement('div');
+          div.className = 'dropdown-item';
+          div.textContent = m.title;
+          div.addEventListener('click', () => {
+            selectedSourceMaster = m;
+            document.getElementById('sourceMasterKeyword').value = m.title;
+            dropdown.classList.remove('show');
+            selectedSourceSub = null;
+            document.getElementById('sourceSubKeyword').value = '';
+            document.getElementById('subDropdown').classList.remove('show');
+          });
+          dropdown.appendChild(div);
         });
-        resultsEl.appendChild(div);
-      });
+      }
+      dropdown.classList.add('show');
     });
 
-    // 搜尋子任務（限於已選母任務）
+    // SEARCH SUBTASK DROPDOWN (TITLE + REMINDERS)
     document.getElementById('sourceSubKeyword').addEventListener('input', () => {
       if (!selectedSourceMaster) {
-        document.getElementById('subSearchResults').style.display = 'block';
-        document.getElementById('subSearchResults').innerHTML = '<div class="search-result-item" style="color:var(--soft-gray);">請先選擇來源母任務</div>';
+        const dropdown = document.getElementById('subDropdown');
+        dropdown.innerHTML = '<div class="dropdown-item" style="color:var(--soft-gray);">請先選擇來源母任務</div>';
+        dropdown.classList.add('show');
         return;
       }
       const term = document.getElementById('sourceSubKeyword').value.trim().toLowerCase();
-      const resultsEl = document.getElementById('subSearchResults');
-      resultsEl.innerHTML = '';
-      if (term.length < 1) {
-        resultsEl.style.display = 'none';
+      const dropdown = document.getElementById('subDropdown');
+      dropdown.innerHTML = '';
+      if (term.length === 0) {
+        dropdown.classList.remove('show');
         return;
       }
-      const results = appData.subtasks
-        .filter(s => s.masterId === selectedSourceMaster.id && s.title.toLowerCase().includes(term));
-      resultsEl.style.display = 'block';
+      const results = appData.subtasks.filter(s =>
+        s.masterId === selectedSourceMaster.id &&
+        (
+          s.title.toLowerCase().includes(term) ||
+          (s.reminders && s.reminders.join(' ').toLowerCase().includes(term))
+        )
+      );
       if (results.length === 0) {
-        resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--soft-gray);">此母任務下無符合子任務</div>';
-        return;
-      }
-      results.forEach(s => {
-        const div = document.createElement('div');
-        div.className = 'search-result-item';
-        div.textContent = s.title;
-        div.addEventListener('click', () => {
-          selectedSourceSub = s;
-          document.getElementById('sourceSubKeyword').value = s.title;
-          resultsEl.style.display = 'none';
+        dropdown.innerHTML = '<div class="dropdown-item" style="color:var(--soft-gray);">此母任務下無符合子任務</div>';
+      } else {
+        results.forEach(s => {
+          const div = document.createElement('div');
+          div.className = 'dropdown-item';
+          div.dataset.id = s.id;
+          let content = `<strong>${s.title}</strong>`;
+          if (s.reminders && s.reminders.length) {
+            const preview = s.reminders[0].length > 50 ? s.reminders[0].substring(0, 50) + '...' : s.reminders[0];
+            content += `<br><small style="color:var(--soft-gray);">提醒：${preview}</small>`;
+          }
+          div.innerHTML = content;
+          div.addEventListener('click', () => {
+            selectedSourceSub = s;
+            document.getElementById('sourceSubKeyword').value = s.title;
+            dropdown.classList.remove('show');
+          });
+          dropdown.appendChild(div);
         });
-        resultsEl.appendChild(div);
-      });
+      }
+      dropdown.classList.add('show');
     });
 
-    // 複製表單提交
+    // CLOSE DROPDOWN ON CLICK OUTSIDE
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-wrapper')) {
+        document.querySelectorAll('.search-dropdown').forEach(el => el.classList.remove('show'));
+      }
+    });
+
+    // CLONE FORM
     document.getElementById('clonerForm').addEventListener('submit', (e) => {
       e.preventDefault();
       if (!selectedSourceMaster) return showFeedback('請選擇來源母任務', 'error');
       if (!selectedSourceSub) return showFeedback('請選擇來源子任務', 'error');
-
       const targetName = document.getElementById('targetMaster').value.trim();
       if (!targetName) return showFeedback('請輸入目標母任務名稱', 'error');
 
-      // 檢查目標母任務是否存在
       let targetMaster = appData.masters.find(m => m.title === targetName);
       if (!targetMaster) {
         targetMaster = { id: 'm' + Date.now(), title: targetName, createdAt: Date.now() };
         appData.masters.push(targetMaster);
       }
 
-      // 建立新子任務（無排程）
       const newSub = {
         id: 's' + Date.now(),
         masterId: targetMaster.id,
@@ -617,10 +601,8 @@
       appData.subtasks.push(newSub);
       saveData();
 
-      // 成功提示
       showFeedback(`子任務「${newSub.title}」已複製到「${targetMaster.title}」。請手動編輯排程。`, 'success');
 
-      // 重置
       selectedSourceMaster = null;
       selectedSourceSub = null;
       document.getElementById('sourceMasterKeyword').value = '';
@@ -628,9 +610,7 @@
       document.getElementById('targetMaster').value = '';
     });
 
-    // =============================================================================
     // EXPORT / IMPORT
-    // =============================================================================
     document.getElementById('exportBtn').addEventListener('click', () => {
       const data = {
         meta: { version: '1.0', exportedAt: new Date().toISOString() },
@@ -674,17 +654,13 @@
       reader.readAsText(file);
     });
 
-    // =============================================================================
     // INIT
-    // =============================================================================
     document.addEventListener('DOMContentLoaded', () => {
-      // Header scroll
       const header = document.getElementById('main-header');
       window.addEventListener('scroll', () => {
         header.classList.toggle('scrolled', window.scrollY > 48);
       });
 
-      // Hero animation
       const heroTitle = document.getElementById('hero-title');
       const text = heroTitle.textContent;
       heroTitle.innerHTML = '';
@@ -707,13 +683,15 @@
       `;
       document.head.appendChild(style);
 
-      // Reveal
       const observer = new IntersectionObserver(entries => {
-        entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('appear'));
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('appear');
+          }
+        });
       }, { threshold: 0.1 });
       document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-      // Init UI
       renderMasterSelect();
     });
   </script>
