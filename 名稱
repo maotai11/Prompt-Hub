@@ -1,460 +1,2364 @@
-<!DOCTYPE html><html lang="zh-Hant-TW">
+<!DOCTYPE html>
+<html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ArtSyn Hybrid — 單檔離線 A4 標籤產生器</title>
-<meta name="description" content="完全離線、單一 HTML 檔即可使用：客戶資料庫、排序、預覽、列印（A4）、JSON 匯出/匯入、版本、回收桶、（IDB 模式可附件）。方向三｜Editorial Vogue × Bazaar Hybrid。"/>
-<style>
-  :root{
-    /* ===== Design Tokens ===== */
-    --ink-black:#000000; /* Vogue 主字色 */
-    --ivory:#F8F8F6;     /* 象牙白背景 */
-    --rose-gold:#C7A27C; /* Bazaar 玫瑰金 */
-    --smoke:#1A1A1A;     /* 煙黑面 */
-    --mist-silver:#C0C4C9; /* 霧銀分隔/描邊 */
-    --cream:#FAF7F2;     /* 奶油白過渡 */
-    --soft-gray:#6B7280; /* 正文次要 */--fs-display: clamp(40px, 6vw, 56px);
---fs-h1: clamp(26px, 3.2vw, 40px);
---fs-h2: clamp(20px, 2.4vw, 28px);
---fs-h3: clamp(18px, 2vw, 22px);
---fs-body: 16px;
---lh-display: 1.1;
---lh-h: 1.25;
---lh-body: 1.75;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A R C H I V E</title>
+    <!--
+      A R C H I V E: 離線優先的編輯應用程式殼
+      版本: 1.0.0
+      規範: Speckit (Vogue × Bazaar Hybrid)
+      
+      此為一單一、獨立的 HTML 檔案。無需網路連線，
+      所有資料 (包含項目、版本、附件) 均儲存於您本地的瀏覽器資料庫 (IndexedDB) 中。
+      
+      - 無外部 CDN 或字型檔案。
+      - 無追蹤、無伺服器呼叫。
+      - 100% 私有並可離線運作。
+    -->
+    <style>
+        /* --------------------------------- */
+        /* 1. CSS 重設 (Reset)                */
+        /* --------------------------------- */
 
---shadow-soft: 0 6px 20px rgba(0,0,0,.07);
---radius-2xl: 16px;
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
---easing-emphasized: cubic-bezier(0.33,1,0.68,1);
---dur-stagger: 300ms; /* Hero 字母階梯總節奏 */
---dur-breathe-min: 600ms; /* 進場下限 */
---dur-breathe-max: 1000ms;/* 進場上限 */
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
 
-/* Magazine Grid */
---container-w: min(1200px, 92vw);
---gutter: clamp(24px, 3vw, 32px);
+        body {
+            font-family: var(--font-body);
+            background-color: var(--ivory);
+            color: var(--soft-gray);
+            line-height: 1.6;
+            overflow-x: hidden; /* 防止水平滾動 */
+        }
 
-/* Print page */
---a4-w: 210mm;
---a4-h: 297mm;
---print-margin: 12mm;
+        /* --------------------------------- */
+        /* 2. 設計 Token (Design Tokens)    */
+        /* 遵循 Speckit 規範                 */
+        /* --------------------------------- */
 
-}
+        :root {
+            /* 色彩 (Colors) */
+            --ink-black: #000000;
+            --ivory: #F8F8F6;
+            --rose-gold: #C7A27C;
+            --smoke: #1A1A1A;
+            --mist-silver: #C0C4C9;
+            --cream: #FAF7F2;
+            --soft-gray: #6B7280;
 
-/* ===== Base ===== */ html,body{height:100%;} body{ margin:0; background:var(--ivory); color:var(--smoke); font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif; font-size:var(--fs-body); line-height:var(--lh-body); } a{color:inherit; text-decoration:none} *{box-sizing:border-box} .container{width:var(--container-w); margin:0 auto; padding:0 var(--gutter);}
+            /* 字體堆疊 (Fonts) */
+            --font-display: "Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
+            --font-body: Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
 
-/* ===== Header ===== */ header{ position:fixed; inset:0 0 auto 0; height:64px; display:flex; align-items:center; z-index:50; background:linear-gradient(to bottom, rgba(26,26,26,.8), rgba(26,26,26,0)); color:white; transition:all .4s var(--easing-emphasized); border-bottom:1px solid transparent; } header.scrolled{ background:linear-gradient(to bottom, rgba(26,26,26,.9), rgba(26,26,26,.6)); border-bottom-color:rgba(192,196,201,.35);} header .wrap{display:flex; align-items:center; gap:16px; width:var(--container-w); margin:0 auto; padding:0 var(--gutter);} .brand{font-size:18px; letter-spacing:.08em; font-weight:700} .brand b{color:var(--rose-gold)} nav{margin-left:auto; display:flex; gap:12px} .btn{appearance:none; border:1px solid var(--mist-silver); background:linear-gradient(to bottom right, #fff, #f8f8f8); color:var(--smoke); padding:8px 12px; border-radius:12px; box-shadow:var(--shadow-soft); cursor:pointer; transition:transform .2s ease, color .2s ease, border-color .2s ease;} .btn:hover{ transform:scale(1.02); color:var(--ink-black); border-color:#A8ADB3 } .btn.ghost{ background:transparent; color:white; border-color: rgba(255,255,255,.4)} .btn.ghost:hover{ color:#fff; border-color:#fff }
+            /* 字級 (Typography Scale) */
+            --fs-display: clamp(2.5rem, 6vw, 4rem);
+            --fs-h1: clamp(1.8rem, 4vw, 2.25rem);
+            --fs-h2: 1.5rem;
+            --fs-h3: 1.25rem;
+            --fs-body: 1rem;
+            --fs-small: 0.875rem;
 
-/* ===== Hero ===== */ .block-hero{ padding-top:96px; padding-bottom:64px; position:relative; overflow:hidden;} .hero-bg{ position:absolute; inset:0; background: conic-gradient(from 180deg at 50% 50%, rgba(199,162,124,.18), rgba(255,255,255,0) 25%, rgba(199,162,124,.18) 50%, rgba(255,255,255,0) 75%, rgba(199,162,124,.18)); animation: sweep 14s linear infinite; opacity:.6; filter:blur(40px);} @keyframes sweep{ 0%{transform:translateX(-10%)} 50%{transform:translateX(10%)} 100%{transform:translateX(-10%)} } .hero-inner{ position:relative; } .hero-title{ font-size:var(--fs-display); line-height:var(--lh-display); letter-spacing:.02em; color:var(--ink-black); font-weight:800;} .hero-title .char{ display:inline-block; opacity:0; transform:translateY(18px); } .hero-sub{ font-size:var(--fs-h3); color:var(--soft-gray); margin-top:8px; opacity:0; transform:translateY(10px); transition:all .8s var(--easing-emphasized) .2s;} .hero-ready .hero-sub{ opacity:1; transform:none }
+            /* 網格與間距 (Grid & Spacing) */
+            --grid-max-width: 1200px;
+            --grid-padding: 24px;
+            --baseline: 8px;
 
-/* ===== Editorial Blocks (示意) ===== */ .blocks{ display:grid; grid-template-columns: 1fr; gap: clamp(40px, 6vw, 72px); padding: 24px 0 56px; } .block{ background:linear-gradient(to bottom, #fff, var(--cream)); border:1px solid var(--mist-silver); border-radius:var(--radius-2xl); box-shadow:var(--shadow-soft); padding: clamp(20px, 3vw, 28px); } .block h2{ font-size:var(--fs-h2); line-height:var(--lh-h); margin:0 0 12px } .muted{ color:var(--soft-gray) }
+            /* 圓角 (Radius) */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 16px;
 
-/* ===== App Shell ===== */ .app{ display:grid; grid-template-columns: 320px 1fr; gap: var(--gutter); align-items:start; } .panel{ background:#fff; border:1px solid var(--mist-silver); border-radius:var(--radius-2xl); box-shadow:var(--shadow-soft); overflow:hidden; } .panel .head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--mist-silver); background:linear-gradient(to bottom,#fff,#f9f9f9);} .panel .head h3{ font-size:var(--fs-h3); margin:0 } .panel .body{ padding:12px 16px; }
+            /* 陰影 (Shadows) */
+            --shadow-soft: 0 6px 20px rgba(0, 0, 0, .07);
+            --shadow-focus: 0 0 0 2px var(--ivory), 0 0 0 4px var(--rose-gold); /* 鍵盤焦點 */
 
-.list{ display:flex; flex-direction:column; gap:8px; } .list .item{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid #E5E7EB; border-radius:12px; background:#fff;} .list .item:hover{ transform:translateY(-1px); border-color:#D4D8DE }
+            /* 動效 (Animation) */
+            --easing-emphasized: cubic-bezier(0.33, 1, 0.68, 1);
+            --dur-stagger: 30ms; /* 字母階梯延遲 (300ms 總時長) */
+            --dur-breathe-min: 600ms;
+            --dur-breathe-max: 1000ms;
+            --dur-fast: 200ms; /* Hover */
+            --dur-medium: 300ms; /* Header/Modal */
+        }
 
-.toolbar{ display:flex; gap:8px; flex-wrap:wrap } .row{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px } .row3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-bottom:8px } .input, select{ width:100%; padding:10px 12px; border:1px solid #D5D8DE; border-radius:10px; background:#fff; font:inherit } .input:focus, select:focus, .btn:focus{ outline:2px solid var(--mist-silver); box-shadow:0 0 0 1px var(--rose-gold) inset }
+        /* --------------------------------- */
+        /* 3. 基礎排版 (Base Typography)     */
+        /* --------------------------------- */
 
-.caps{ text-transform:uppercase; letter-spacing:.08em; font-size:12px; color:var(--soft-gray) }
+        h1, h2, h3, h4, .font-display {
+            font-family: var(--font-display);
+            color: var(--ink-black);
+            font-weight: 400; /* Playfair Display 適合較細的字重 */
+            line-height: 1.2;
+            margin-bottom: calc(var(--baseline) * 2);
+        }
 
-/* ===== Preview Area ===== */ .preview-tabs{ display:flex; gap:8px; margin-bottom:12px } .tab{ padding:8px 10px; border-radius:10px; border:1px solid var(--mist-silver); background:#fff; cursor:pointer } .tab.active{ background:var(--ink-black); color:#fff; border-color:var(--ink-black) }
+        h1, .font-display { font-size: var(--fs-display); }
+        h2 { font-size: var(--fs-h1); }
+        h3 { font-size: var(--fs-h2); }
 
-.preview{ background:#fff; border:1px solid var(--mist-silver); border-radius:var(--radius-2xl); box-shadow:var(--shadow-soft); padding:12px; } .preview .a4{ width: calc(var(--a4-w) - 2var(--print-margin)); min-height: calc(var(--a4-h) - 2var(--print-margin)); margin:0 auto; background:#fff; border:1px dashed #E5E7EB; padding:10mm; } .frames{ display:grid; grid-template-columns: repeat(auto-fill, minmax(58mm, 1fr)); gap:6mm; align-content:start; } .frame{ aspect-ratio: 15 / 6; border:1px solid #CFCFCF; border-radius:12px; display:flex; align-items:center; justify-content:center; position:relative; padding:6mm; } .frame b{ font-size:14pt; color:var(--ink-black) } .frame small{ position:absolute; bottom:6px; right:10px; color:#999 }
+        p {
+            margin-bottom: calc(var(--baseline) * 2);
+            line-height: 1.7; /* 增加閱讀舒適度 */
+        }
 
-/* ===== Modals ===== */ dialog{ border:none; border-radius:16px; box-shadow:0 18px 60px rgba(0,0,0,.18); width:min(720px, 92vw); } dialog::backdrop{ background:rgba(0,0,0,.35) } .modal-head{ padding:14px 16px; border-bottom:1px solid var(--mist-silver); background:linear-gradient(to bottom,#fff,#f7f7f7); display:flex; justify-content:space-between; align-items:center } .modal-body{ padding:12px 16px; max-height:65vh; overflow:auto }
+        a {
+            color: var(--rose-gold);
+            text-decoration: none;
+            transition: color var(--dur-fast) ease;
+        }
 
-/* ===== Reveal on scroll ===== */ .reveal{ opacity:1; transform:none } .js .reveal{ opacity:0; transform:translateY(20px); transition: all .8s var(--easing-emphasized); } .revealed{ opacity:1; transform:none }
+        a:hover,
+        button:hover {
+            color: var(--ink-black);
+        }
 
-/* ===== Utilities ===== */ .spacer{ height:1px; background:linear-gradient(to right, transparent, var(--mist-silver), transparent); margin:20px 0 } .right{ text-align:right }
+        /* --------------------------------- */
+        /* 4. 佈局 (Layout & Grid)          */
+        /* --------------------------------- */
 
-/* ===== Print Styles ===== */ @media print{ @page{ size: A4; margin: var(--print-margin); } header, .block-hero, .blocks .block:not(.printable), .controls, .preview-tabs{ display:none !important } body{ background:white } .preview{ border:none; box-shadow:none } .preview .a4{ border:none; padding:0; width:auto; min-height:auto } .frames{ gap:5mm } .frame{ break-inside:avoid; page-break-inside:avoid; border-color:#000 } } </style>
+        .container {
+            width: min(var(--grid-max-width), 92vw);
+            margin-left: auto;
+            margin-right: auto;
+        }
 
+        .main-content {
+            padding-top: 100px; /* 預留 Header 空間 */
+            min-height: 100vh;
+        }
+
+        /* --------------------------------- */
+        /* 5. 組件 (Components)             */
+        /* --------------------------------- */
+
+        /* Header (固定式/漸變) */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: calc(var(--baseline) * 3) 0;
+            z-index: 100;
+            background: transparent;
+            transition: background var(--dur-medium) ease, box-shadow var(--dur-medium) ease;
+        }
+
+        .app-header.is-scrolled {
+            background: linear-gradient(180deg, var(--smoke) 70%, transparent);
+            box-shadow: 0 1px 0 rgba(192, 196, 201, 0.3); /* --mist-silver with alpha */
+        }
+
+        .app-header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-logo {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--ink-black);
+            font-weight: 400;
+            transition: color var(--dur-medium) ease;
+            letter-spacing: 1px;
+        }
+
+        .app-header.is-scrolled .app-logo {
+            color: var(--ivory);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: calc(var(--baseline) * 2);
+        }
+
+        /* 按鈕 (Button) */
+        .button {
+            font-family: var(--font-body);
+            font-size: var(--fs-small);
+            font-weight: 500;
+            padding: var(--baseline) calc(var(--baseline) * 2);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--mist-silver);
+            background-color: transparent;
+            color: var(--ink-black);
+            cursor: pointer;
+            text-align: center;
+            transition: all var(--dur-fast) ease;
+            white-space: nowrap;
+        }
+
+        .button:hover {
+            transform: scale(1.02); /* 102% Hover */
+            color: var(--ink-black);
+            border-color: var(--ink-black);
+        }
+
+        /* 霧灰 → 純黑 (Speckit) */
+        .button.hover-mist {
+            color: var(--soft-gray);
+            border-color: var(--mist-silver);
+        }
+        .button.hover-mist:hover {
+            color: var(--ink-black);
+            border-color: var(--ink-black);
+        }
+        
+        .app-header.is-scrolled .button {
+            color: var(--ivory);
+            border-color: var(--ivory);
+        }
+        .app-header.is-scrolled .button:hover {
+            color: var(--smoke);
+            background-color: var(--ivory);
+            border-color: var(--ivory);
+        }
+
+        .button.primary {
+            background-color: var(--smoke);
+            color: var(--ivory);
+            border-color: var(--smoke);
+        }
+        .button.primary:hover {
+            background-color: var(--ink-black);
+            border-color: var(--ink-black);
+        }
+
+        .button.accent {
+            background-color: var(--rose-gold);
+            color: var(--ink-black);
+            border-color: var(--rose-gold);
+        }
+        .button.accent:hover {
+            filter: brightness(1.1);
+            border-color: var(--rose-gold);
+        }
+        
+        .button.danger {
+            background-color: transparent;
+            color: #D93025;
+            border-color: #D93025;
+        }
+        .button.danger:hover {
+            background-color: #D93025;
+            color: var(--ivory);
+        }
+
+        /* 焦點可見性 (Accessibility Focus) */
+        .button:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        .item-card:focus-visible,
+        .list-tab:focus-visible {
+            outline: none;
+            box-shadow: var(--shadow-focus);
+        }
+
+        /* Hero (靜態影像 + 輕動態文字) */
+        .block-hero {
+            min-height: 50vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: calc(var(--baseline) * 10) 0;
+            background-color: var(--cream); /* 背景色替代靜態影像 */
+            border-bottom: 1px solid var(--mist-silver);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 漸層光掃 (Gradient Sweep) */
+        .block-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: conic-gradient(from 90deg at 50% 50%, 
+                var(--cream) 0%, 
+                var(--ivory) 30%, 
+                var(--cream) 60%, 
+                var(--cream) 100%);
+            opacity: 0.5;
+            animation: gradient-sweep 20s linear infinite;
+        }
+
+        @keyframes gradient-sweep {
+            0% { transform: translateX(0) rotate(0deg); }
+            100% { transform: translateX(0) rotate(360deg); }
+        }
+
+        .hero-title {
+            font-size: var(--fs-display);
+            line-height: 1.1;
+            margin-bottom: calc(var(--baseline) * 3);
+            position: relative; /* 確保在光掃之上 */
+        }
+
+        /* 字母階梯延遲 0.3s (Speckit) */
+        .hero-title .char {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--dur-breathe-min) var(--easing-emphasized), 
+                        transform var(--dur-breathe-min) var(--easing-emphasized);
+        }
+
+        .hero-title.is-visible .char {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-subtitle {
+            font-size: var(--fs-h3);
+            color: var(--soft-gray);
+            font-family: var(--font-body);
+            max-width: 600px;
+            opacity: 0;
+            transition: opacity var(--dur-breathe-max) ease calc(var(--dur-stagger) * 10); /* 0.6s+ 延遲 */
+            position: relative;
+        }
+
+        .hero-subtitle.is-visible {
+            opacity: 1;
+        }
+
+        /* App Shell (列表與編輯器) */
+        .app-shell {
+            padding: calc(var(--baseline) * 6) 0;
+        }
+
+        .list-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: calc(var(--baseline) * 4);
+        }
+
+        .search-bar {
+            flex-grow: 1;
+            max-width: 400px;
+        }
+
+        input[type="text"],
+        input[type="search"],
+        textarea {
+            font-family: var(--font-body);
+            font-size: var(--fs-body);
+            padding: calc(var(--baseline) * 1.5);
+            border: 1px solid var(--mist-silver);
+            background: var(--cream);
+            border-radius: var(--radius-md);
+            width: 100%;
+            transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+        }
+
+        textarea {
+            min-height: 250px;
+            line-height: 1.7;
+        }
+
+        /* 項目列表 (Item List) - 雜誌網格 */
+        .item-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: calc(var(--baseline) * 3); /* 24px 欄距 */
+        }
+
+        .item-card {
+            background: var(--cream);
+            padding: calc(var(--baseline) * 3);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--mist-silver);
+            cursor: pointer;
+            transition: all var(--dur-fast) ease;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Hover 102% (Speckit) */
+        .item-card:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-soft);
+            border-color: var(--rose-gold);
+        }
+
+        .item-card h3 {
+            font-size: var(--fs-h3);
+            color: var(--ink-black);
+            margin-bottom: var(--baseline);
+            /* 限制標題行數 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .item-card-content {
+            font-size: var(--fs-body);
+            color: var(--soft-gray);
+            flex-grow: 1;
+            margin-bottom: var(--baseline);
+            /* 限制內容行數 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .item-card-meta {
+            font-size: var(--fs-small);
+            color: var(--soft-gray);
+            opacity: 0.7;
+        }
+
+        .item-tags {
+            margin-bottom: var(--baseline);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--baseline);
+        }
+
+        .tag {
+            font-size: var(--fs-small);
+            background: rgba(199, 162, 124, 0.2); /* rose-gold alpha */
+            color: var(--rose-gold);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+        }
+        
+        .empty-list-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: calc(var(--baseline) * 10) 0;
+            color: var(--soft-gray);
+            font-family: var(--font-display);
+            font-size: var(--fs-h3);
+            border: 1px dashed var(--mist-silver);
+            border-radius: var(--radius-md);
+            background: var(--cream);
+        }
+
+        /* 編輯器抽屜 (Editor Drawer) */
+        .editor-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: min(70vw, 800px);
+            background: var(--ivory);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform var(--dur-breathe-min) var(--easing-emphasized);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-drawer.is-open {
+            transform: translateX(0);
+        }
+
+        .editor-header {
+            padding: calc(var(--baseline) * 2) calc(var(--baseline) * 4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--mist-silver);
+            background: var(--cream);
+            flex-shrink: 0;
+        }
+
+        .editor-header h2 {
+            margin-bottom: 0;
+        }
+
+        .editor-body {
+            padding: calc(var(--baseline) * 4);
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .form-group {
+            margin-bottom: calc(var(--baseline) * 3);
+        }
+
+        .form-group label {
+            display: block;
+            font-family: var(--font-display);
+            font-size: var(--fs-h3);
+            color: var(--ink-black);
+            margin-bottom: var(--baseline);
+        }
+
+        .editor-footer {
+            padding: calc(var(--baseline) * 2) calc(var(--baseline) * 4);
+            border-top: 1px solid var(--mist-silver);
+            background: var(--cream);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .editor-footer .button-group {
+            display: flex;
+            gap: var(--baseline);
+        }
+
+        /* 詳情面板 (版本/附件) */
+        .details-panel {
+            border-top: 1px solid var(--mist-silver);
+            margin-top: calc(var(--baseline) * 3);
+            padding-top: calc(var(--baseline) * 3);
+        }
+
+        .details-tabs {
+            display: flex;
+            gap: calc(var(--baseline) * 2);
+            border-bottom: 1px solid var(--mist-silver);
+            margin-bottom: calc(var(--baseline) * 2);
+        }
+
+        .list-tab {
+            font-family: var(--font-display);
+            font-size: var(--fs-h3);
+            padding-bottom: var(--baseline);
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            color: var(--soft-gray);
+        }
+
+        .list-tab.active,
+        .list-tab:hover {
+            color: var(--ink-black);
+            border-bottom-color: var(--rose-gold);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 版本歷史 (Versions) */
+        .version-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-md);
+        }
+        
+        .version-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--baseline) calc(var(--baseline) * 2);
+            border-bottom: 1px solid var(--mist-silver);
+            background: var(--cream);
+        }
+        .version-item:last-child {
+            border-bottom: none;
+        }
+        .version-item-info {
+            font-size: var(--fs-small);
+        }
+        .version-item-info .reason {
+            color: var(--soft-gray);
+            font-style: italic;
+        }
+        
+        /* 附件 (Attachments) - 僅 IDB */
+        .attachments-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: var(--baseline);
+        }
+        
+        .attachment-item {
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-md);
+            padding: var(--baseline);
+            font-size: var(--fs-small);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .drop-zone {
+            border: 2px dashed var(--mist-silver);
+            border-radius: var(--radius-md);
+            padding: calc(var(--baseline) * 4);
+            text-align: center;
+            color: var(--soft-gray);
+            background: var(--cream);
+            transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+        }
+        
+        .drop-zone.is-dragging {
+            background-color: rgba(199, 162, 124, 0.2); /* rose-gold alpha */
+            border-color: var(--rose-gold);
+        }
+        
+        .idb-only { display: none; } /* 預設隱藏附件功能 */
+
+        /* --------------------------------- */
+        /* 6. 彈出式視窗 (Modals)          */
+        /* --------------------------------- */
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--dur-medium) ease, visibility var(--dur-medium) ease;
+        }
+
+        .modal-overlay.is-open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--ivory);
+            padding: calc(var(--baseline) * 4);
+            border-radius: var(--radius-lg);
+            max-width: 600px;
+            width: 90vw;
+            box-shadow: var(--shadow-soft);
+            transform: scale(0.95);
+            transition: transform var(--dur-medium) var(--easing-emphasized);
+        }
+
+        .modal-overlay.is-open .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: calc(var(--baseline) * 2);
+        }
+
+        .modal-header h2 {
+            margin-bottom: 0;
+        }
+
+        .modal-close-button {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--soft-gray);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .modal-close-button:hover {
+            color: var(--ink-black);
+        }
+
+        .modal-body {
+            margin-bottom: calc(var(--baseline) * 3);
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--baseline);
+        }
+        
+        /* 回收桶列表 */
+        .trash-list {
+            max-height: 40vh;
+            overflow-y: auto;
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-md);
+            background: var(--cream);
+        }
+        
+        .trash-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--baseline) calc(var(--baseline) * 2);
+            border-bottom: 1px solid var(--mist-silver);
+        }
+        .trash-item:last-child { border-bottom: none; }
+
+        /* 匯出/匯入 */
+        .io-options {
+            display: flex;
+            flex-direction: column;
+            gap: var(--baseline);
+        }
+        
+        .io-options .button {
+            width: 100%;
+        }
+
+        /* --------------------------------- */
+        /* 7. 狀態與輔助 (States & Helpers) */
+        /* --------------------------------- */
+
+        /* 呼吸感滾動 (Speckit) */
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--dur-breathe-min) var(--easing-emphasized), 
+                        transform var(--dur-breathe-min) var(--easing-emphasized);
+        }
+
+        .reveal-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 提示訊息 (Toast) */
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: var(--baseline) calc(var(--baseline) * 2);
+            background: var(--smoke);
+            color: var(--ivory);
+            border-radius: var(--radius-md);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity var(--dur-medium) ease, transform var(--dur-medium) ease;
+        }
+        .toast-notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast-notification.success {
+            background-color: #28a745;
+        }
+        .toast-notification.error {
+            background-color: #dc3545;
+        }
+        .toast-notification.warning {
+            background-color: #ffc107;
+            color: var(--ink-black);
+        }
+        
+        .no-print {
+            /* 在 JS 中用於標記，主要由 @media print 控制 */
+        }
+        
+        /* --------------------------------- */
+        /* 8. 頁尾 (Footer)                 */
+        /* --------------------------------- */
+
+        .app-footer {
+            padding: calc(var(--baseline) * 4) 0;
+            margin-top: calc(var(--baseline) * 6);
+            border-top: 1px solid var(--mist-silver);
+            font-size: var(--fs-small);
+            color: var(--soft-gray);
+            text-align: center;
+        }
+
+        /* --------------------------------- */
+        /* 9. 列印樣式 (Print Styles)       */
+        /* --------------------------------- */
+        
+        @media print {
+            body {
+                background: #fff;
+                color: #000;
+                font-family: Georgia, "Times New Roman", serif; /* 列印時使用襯線體 */
+            }
+
+            /* 隱藏所有非內容元素 */
+            .app-header,
+            .app-footer,
+            .list-controls,
+            .editor-header,
+            .editor-footer,
+            .details-panel,
+            .modal-overlay,
+            .no-print {
+                display: none !important;
+            }
+
+            .container {
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+
+            /* 列印模式切換 */
+            body.printing-list .item-list {
+                display: block; /* 移除網格 */
+            }
+            body.printing-list .editor-drawer {
+                display: none;
+            }
+            body.printing-list .item-card {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                page-break-inside: avoid;
+                transform: none !important;
+            }
+            
+            body.printing-item .item-list,
+            body.printing-item .block-hero {
+                display: none;
+            }
+            
+            body.printing-item .editor-drawer {
+                display: block !important;
+                position: static;
+                width: 100%;
+                transform: none;
+                box-shadow: none;
+                height: auto;
+                overflow: visible;
+            }
+            
+            body.printing-item .editor-body {
+                padding: 0;
+                overflow: visible;
+                height: auto;
+            }
+            
+            h1, h2, h3 {
+                color: #000;
+                page-break-after: avoid;
+            }
+            
+            a {
+                color: #000;
+                text-decoration: underline;
+            }
+        }
+
+    </style>
 </head>
 <body>
-  <!-- ===== Header ===== -->
-  <header id="hdr">
-    <div class="wrap">
-      <div class="brand" aria-label="品牌">🖼️ ArtSyn <b>Hybrid</b></div>
-      <nav>
-        <button class="btn ghost" id="btnImport" title="匯入 JSON">匯入</button>
-        <button class="btn ghost" id="btnExport" title="匯出 JSON">匯出</button>
-        <button class="btn ghost" id="btnDoc" title="匯出 Word(HTML)">匯出Word</button>
-        <button class="btn ghost" id="btnPrint" title="列印">列印</button>
-      </nav>
-    </div>
-  </header>  <!-- ===== Hero ===== -->  <section class="block-hero">
-    <div class="hero-bg" aria-hidden="true"></div>
-    <div class="container hero-inner">
-      <h1 class="hero-title" id="heroTitle">Editorial Vogue × Bazaar Hybrid — A4 標籤/名條</h1>
-      <p class="hero-sub">冷靜奢華的雜誌式網格，完全離線，一檔在手即可 CRUD／排序／預覽列印。</p>
-    </div>
-  </section>  <!-- ===== Main Blocks ===== -->  <main class="container blocks"><!-- 說明 / 控制 -->
-<section class="block reveal printable">
-  <h2>〈預覽與輸出控制〉</h2>
-  <div class="app">
-    <!-- 左：客戶清單與資料庫 -->
-    <aside class="panel" aria-label="客戶資料庫">
-      <div class="head">
-        <h3>客戶資料庫</h3>
-        <div class="toolbar">
-          <button class="btn" id="btnAdd">新增</button>
-          <button class="btn" id="btnSortAZ">A→Z</button>
-          <button class="btn" id="btnSortZA">Z→A</button>
-          <button class="btn" id="btnTrash">回收桶</button>
+
+    <!-- 1. 應用程式標頭 (Header) -->
+    <header class="app-header no-print">
+        <div class="container">
+            <div class="app-logo" role="banner">A R C H I V E</div>
+            <nav class="nav-buttons" role="navigation">
+                <button class="button hover-mist" id="btn-trash" aria-label="開啟回收桶">回收桶</button>
+                <button class="button hover-mist" id="btn-io" aria-label="匯入或匯出資料">匯入/匯出</button>
+                <button class="button primary" id="btn-new-item" aria-label="新增項目">新增筆記</button>
+            </nav>
         </div>
-      </div>
-      <div class="body">
-        <div class="row">
-          <input id="q" class="input" placeholder="搜尋客戶… (名稱/標籤)"/>
-          <input id="tag" class="input" placeholder="新增時預設標籤 (可空)"/>
-        </div>
-        <div class="list" id="list" aria-live="polite"></div>
-      </div>
+    </header>
+
+    <!-- 2. 主內容區域 (Main Content) -->
+    <main class="main-content">
+
+        <!-- 2.1 Hero 區塊 -->
+        <section class="block-hero no-print">
+            <div class="container">
+                <h1 class="hero-title" aria-label="ARCHIVE">A R C H I V E</h1>
+                <p class="hero-subtitle">一個私密、離線、屬於您的編輯空間。</p>
+            </div>
+        </section>
+
+        <!-- 2.2 App 應用程式殼 -->
+        <section class="app-shell container">
+            
+            <!-- 控制項 (搜尋/新增) -->
+            <div class="list-controls no-print">
+                <div class="search-bar">
+                    <input type="search" id="search-input" placeholder="搜尋標題、內容或標籤...">
+                </div>
+            </div>
+
+            <!-- 項目列表 (雜誌網格) -->
+            <div class="item-list" id="item-list-container" role="feed">
+                <!-- 項目卡片將由 JS 動態載入 -->
+            </div>
+            
+            <div class="empty-list-message" id="empty-list-message" style="display: none;">
+                尚未建立任何筆記。點擊「新增筆記」開始。
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- 3. 頁尾 (Footer) -->
+    <footer class="app-footer no-print">
+        <p>A R C H I V E 離線應用程式殼。資料完全儲存於本地。</p>
+        <p id="db-status-message" style="font-size: var(--fs-small); color: var(--rose-gold);"></p>
+    </footer>
+
+    <!-- 4. 編輯器抽屜 (Editor Drawer) -->
+    <aside class="editor-drawer" id="editor-drawer" role="form" aria-labelledby="editor-title">
+        
+        <header class="editor-header no-print">
+            <h2 id="editor-title">編輯筆記</h2>
+            <button class="button" id="btn-editor-close" aria-label="關閉編輯器">關閉</button>
+        </header>
+
+        <form id="editor-form" class="editor-body">
+            <!-- 隱藏的 ID 欄位 -->
+            <input type="hidden" id="editor-item-id">
+            
+            <div class="form-group">
+                <label for="editor-title-input">標題</label>
+                <input type="text" id="editor-title-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="editor-content-input">內容</label>
+                <textarea id="editor-content-input"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="editor-tags-input">標籤 (以逗號分隔)</label>
+                <input type="text" id="editor-tags-input">
+            </div>
+
+            <!-- 詳情面板 (版本/附件) -->
+            <div class="details-panel no-print">
+                <nav class="details-tabs">
+                    <button type="button" class="list-tab active" data-tab="versions" role="tab" aria-controls="tab-versions">版本歷史</button>
+                    <button type="button" class="list-tab idb-only" data-tab="attachments" role="tab" aria-controls="tab-attachments">附件</button>
+                </nav>
+
+                <!-- 版本歷史 -->
+                <div id="tab-versions" class="tab-content active" role="tabpanel">
+                    <div class="version-list" id="version-list-container">
+                        <!-- 版本項目將由 JS 載入 -->
+                    </div>
+                    <p id="version-empty-message" style="font-size: var(--fs-small); color: var(--soft-gray); margin-top: 8px;">尚無歷史版本。</p>
+                </div>
+
+                <!-- 附件 (僅 IDB) -->
+                <div id="tab-attachments" class="tab-content idb-only" role="tabpanel">
+                    <div class="drop-zone" id="attachment-drop-zone">
+                        <p>拖放檔案至此，或點擊選擇檔案</p>
+                        <input type="file" id="attachment-file-input" multiple style="display: none;">
+                    </div>
+                    <div class="attachments-list" id="attachment-list-container" style="margin-top: 16px;">
+                        <!-- 附件項目將由 JS 載入 -->
+                    </div>
+                </div>
+
+            </div>
+
+        </form>
+
+        <footer class="editor-footer no-print">
+            <div class="button-group">
+                <button type="button" class="button danger" id="btn-editor-delete" aria-label="刪除此筆記">刪除</button>
+                <button type="button" class="button" id="btn-editor-print" aria-label="列印此筆記">列印</button>
+            </div>
+            <div class="button-group">
+                <button type="submit" class="button primary" form="editor-form" aria-label="儲存筆記">儲存</button>
+            </div>
+        </footer>
     </aside>
 
-    <!-- 右：預覽與排序 -->
-    <section class="panel" aria-label="預覽與排序">
-      <div class="head">
-        <h3>預覽區</h3>
-        <div class="toolbar controls">
-          <button class="btn" id="btnPickAll">選取全部</button>
-          <button class="btn" id="btnConfirm">確認選取</button>
-        </div>
-      </div>
-      <div class="body">
-        <div class="row3">
-          <label><span class="caps">年（YYY）</span><input id="yearYYY" class="input" inputmode="numeric" placeholder="例：114" value="114"></label>
-          <label><span class="caps">起始月</span><input id="mStart" class="input" inputmode="numeric" placeholder="例：09" value="09"></label>
-          <label><span class="caps">結束月</span><input id="mEnd" class="input" inputmode="numeric" placeholder="例：10" value="10"></label>
-        </div>
-        <div class="row3">
-          <label><span class="caps">期數（份數）</span><input id="count" class="input" type="number" min="1" value="6"></label>
-          <label><span class="caps">每位客戶張數</span><input id="perClient" class="input" type="number" min="1" value="2"></label>
-          <label><span class="caps">排序</span>
-            <select id="order">
-              <option value="asc">A→Z</option>
-              <option value="desc">Z→A</option>
-              <option value="custom">自訂序</option>
-            </select>
-          </label>
-        </div>
+    <!-- 5. 彈出式視窗 (Modals) -->
 
-        <div class="preview-tabs">
-          <button class="tab active" data-tab="p1">預覽1｜A4 標籤排版</button>
-          <button class="tab" data-tab="p2">預覽2｜排序清單</button>
-        </div>
-
-        <div class="preview" id="preview">
-          <div class="tab-panel" id="p1" role="tabpanel">
-            <div class="a4">
-              <div class="frames" id="frames"></div>
+    <!-- 回收桶 Modal -->
+    <div class="modal-overlay" id="trash-modal" role="dialog" aria-modal="true" aria-labelledby="trash-modal-title">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 id="trash-modal-title">回收桶</h2>
+                <button class="modal-close-button" data-modal-close="trash-modal" aria-label="關閉">&times;</button>
+            </header>
+            <div class="modal-body">
+                <p>項目將在此處保留 30 天（或直到您永久刪除）。</p>
+                <div class="trash-list" id="trash-list-container">
+                    <!-- 回收桶項目由 JS 載入 -->
+                </div>
+                <p id="trash-empty-message" style="text-align: center; padding: 16px; display: none;">回收桶是空的。</p>
             </div>
-          </div>
-          <div class="tab-panel" id="p2" role="tabpanel" hidden>
-            <ol id="ordered" style="padding:18px 24px;">
-              <!-- 1. 客戶A 2. 客戶B ... -->
-            </ol>
-            <p class="muted" style="padding:0 24px 12px">拖曳或使用每列的▲▼微調鍵以調整自訂序。</p>
-          </div>
+            <footer class="modal-footer">
+                <button class="button danger" id="btn-empty-trash" aria-label="清空回收桶">清空回收桶</button>
+                <button class="button" data-modal-close="trash-modal">關閉</button>
+            </footer>
         </div>
-
-      </div>
-    </section>
-  </div>
-</section>
-
-<!-- 說明 -->
-<section class="block reveal">
-  <h2>〈列印與 Word 匯出說明〉</h2>
-  <ul>
-    <li>列印：按右上角「列印」或 <kbd>Ctrl/Cmd + P</kbd>。系統將以 A4 紙張自動分頁，框比例固定 <b>15:6</b>，跨頁自動延續。</li>
-    <li>Word 匯出：產生 .doc 相容之 HTML（無外掛），於 Word 開啟後依 A4 尺寸分頁。</li>
-    <li>完全離線：資料儲存於 <b>IndexedDB</b>（若瀏覽器不支援，降級至 localStorage，附件停用）。</li>
-  </ul>
-</section>
-
-  </main>  <!-- ===== Dialogs ===== -->  <dialog id="dlgPick">
-    <div class="modal-head"><strong>確認選取客戶</strong><button class="btn" onclick="dlgPick.close()">關閉</button></div>
-    <div class="modal-body">
-      <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="pickAll"> 全選/全不選</label>
-      <div id="pickList" class="list"></div>
-      <div class="right" style="margin-top:12px"><button class="btn" id="btnApplyPick">套用</button></div>
     </div>
-  </dialog>  <dialog id="dlgTrash">
-    <div class="modal-head"><strong>回收桶</strong><button class="btn" onclick="dlgTrash.close()">關閉</button></div>
-    <div class="modal-body">
-      <div id="trashList" class="list"></div>
+
+    <!-- 匯入/匯出 Modal -->
+    <div class="modal-overlay" id="io-modal" role="dialog" aria-modal="true" aria-labelledby="io-modal-title">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 id="io-modal-title">匯入 / 匯出</h2>
+                <button class="modal-close-button" data-modal-close="io-modal" aria-label="關閉">&times;</button>
+            </header>
+            <div class="modal-body io-options">
+                <p>將所有資料（包含筆記、版本和標籤）匯出為 JSON 檔案。附件（若支援）可選擇性地內嵌為 Base64。</p>
+                
+                <label style="font-size: var(--fs-small); display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="export-include-attachments" class="idb-only">
+                    <span class="idb-only">內嵌附件 (檔案可能很大)</span>
+                </label>
+                
+                <button class="button primary" id="btn-export-data">匯出資料</button>
+                
+                <hr style="border: none; border-top: 1px solid var(--mist-silver; margin: 16px 0;">
+                
+                <p>從 JSON 檔案匯入資料。這可能會覆蓋現有資料。</p>
+                <input type="file" id="import-file-input" accept=".json">
+                <button class="button" id="btn-import-data" disabled>匯入資料 (選擇檔案)</button>
+            </div>
+            <footer class="modal-footer">
+                <button class="button" data-modal-close="io-modal">關閉</button>
+            </footer>
+        </div>
     </div>
-  </dialog><script>
-// 啟用 JS 標記，若 JS 無法執行則保留所有內容可見（避免整頁空白）
-try{ document.documentElement.classList.add('js'); }catch(e){}
-/* =========================================================
-   Data Layer：IndexedDB 優先，localStorage 回退
-   models: customers, versions, trash
-   ========================================================= */
-const DB_NAME = 'artsyn-hybrid-db';
-const DB_VER = 1;
-let useLS = false; // fallback flag
-let db = null;
 
-function openDB(){
-  return new Promise((resolve)=>{
-    if(!('indexedDB' in window)){
-      useLS = true; resolve(); return;
-    }
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = (e)=>{
-      const d = e.target.result;
-      if(!d.objectStoreNames.contains('customers')){
-        d.createObjectStore('customers', {keyPath:'id'});
-      }
-      if(!d.objectStoreNames.contains('versions')){
-        d.createObjectStore('versions', {keyPath:'versionId'});
-      }
-      if(!d.objectStoreNames.contains('trash')){
-        d.createObjectStore('trash', {keyPath:'id'});
-      }
-    };
-    req.onsuccess = ()=>{ db = req.result; resolve(); };
-    req.onerror = ()=>{ useLS = true; resolve(); };
-  });
-}
-
-const LS_KEYS = { customers:'hyb_customers', versions:'hyb_versions', trash:'hyb_trash' };
-
-async function dbGetAll(store){
-  if(useLS){ return JSON.parse(localStorage.getItem(LS_KEYS[store])||'[]'); }
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction(store,'readonly');
-    const os = tx.objectStore(store);
-    const req = os.getAll();
-    req.onsuccess = ()=>resolve(req.result||[]);
-    req.onerror = reject;
-  });
-}
-async function dbPut(store, value){
-  if(useLS){
-    const arr = JSON.parse(localStorage.getItem(LS_KEYS[store])||'[]');
-    const idx = arr.findIndex(x=>x[(store==='versions'?'versionId':'id')]===value[(store==='versions'?'versionId':'id')]);
-    if(idx>-1) arr[idx]=value; else arr.push(value);
-    localStorage.setItem(LS_KEYS[store], JSON.stringify(arr));
-    return;
-  }
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction(store,'readwrite');
-    tx.objectStore(store).put(value);
-    tx.oncomplete=resolve; tx.onerror=reject;
-  });
-}
-async function dbBulkPut(store, values){ for(const v of values) await dbPut(store,v); }
-async function dbDelete(store, key){
-  if(useLS){
-    const arr = JSON.parse(localStorage.getItem(LS_KEYS[store])||'[]').filter(x=>x[(store==='versions'?'versionId':'id')]!==key);
-    localStorage.setItem(LS_KEYS[store], JSON.stringify(arr)); return;
-  }
-  return new Promise((resolve,reject)=>{
-    const tx = db.transaction(store,'readwrite');
-    tx.objectStore(store).delete(key);
-    tx.oncomplete=resolve; tx.onerror=reject;
-  });
-}
-
-function uuid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36) }
-
-/* =========================================================
-   State & Rendering
-   ========================================================= */
-const state = {
-  customers: [], // {id,name,tags:string[]}
-  trash: [],
-  versions: [],
-  filter:'',
-  preselect: new Set(),
-  customOrder: [],
-};
-
-function snapshot(reason){
-  const v = { versionId: uuid(), createdAtTS: Date.now(), reason, customers: state.customers };
-  state.versions.unshift(v);
-  dbPut('versions', v);
-  // 保留最多50版
-  if(state.versions.length>50){ const last = state.versions.pop(); dbDelete('versions', last.versionId); }
-}
-
-function renderList(){
-  const list = document.getElementById('list');
-  list.innerHTML='';
-  const q = state.filter.toLowerCase();
-  const data = state.customers.filter(c=>!q||c.name.toLowerCase().includes(q)|| (c.tags||[]).some(t=>t.toLowerCase().includes(q)));
-  if(data.length===0){ list.innerHTML = `<div class="muted">尚無資料。按「新增」建立客戶。</div>`; return; }
-  data.sort((a,b)=> a.name.localeCompare(b.name,'zh-Hant'));
-  for(const c of data){
-    const row = document.createElement('div');
-    row.className='item';
-    row.innerHTML = `<div style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${state.preselect.has(c.id)?'checked':''} data-id="${c.id}" aria-label="選取"> <strong>${c.name}</strong> <span class="muted">${(c.tags||[]).join(', ')}</span></div>
-    <div style="display:flex;gap:6px">
-      <button class="btn" data-act="edit">編輯</button>
-      <button class="btn" data-act="del">刪除</button>
-      <button class="btn" data-act="up">▲</button>
-      <button class="btn" data-act="down">▼</button>
-    </div>`;
-    row.querySelector('input[type="checkbox"]').addEventListener('change', (e)=>{
-      if(e.target.checked) state.preselect.add(c.id); else state.preselect.delete(c.id);
-      buildPreviews();
-    });
-    row.querySelector('[data-act="edit"]').onclick = ()=>{
-      const name = prompt('客戶名稱', c.name); if(!name) return;
-      const tag = prompt('標籤(以逗號分隔)', (c.tags||[]).join(','))||'';
-      c.name = name.trim(); c.tags = tag.split(',').map(s=>s.trim()).filter(Boolean);
-      snapshot('edit customer'); dbPut('customers', c).then(renderList).then(buildPreviews);
-    };
-    row.querySelector('[data-act="del"]').onclick = ()=>{
-      if(!confirm('移至回收桶？')) return;
-      state.trash.unshift(c); dbPut('trash', c); state.customers = state.customers.filter(x=>x.id!==c.id); dbDelete('customers', c.id);
-      state.preselect.delete(c.id);
-      snapshot('delete customer'); renderList(); buildPreviews();
-    };
-    row.querySelector('[data-act="up"]').onclick = ()=> moveCustom(c.id, -1);
-    row.querySelector('[data-act="down"]').onclick = ()=> moveCustom(c.id, +1);
-    list.appendChild(row);
-  }
-}
-
-function moveCustom(id, delta){
-  const order = state.customOrder.length? state.customOrder : state.customOrder = state.customers.map(c=>c.id);
-  const i = order.indexOf(id); if(i<0) return;
-  const j = Math.max(0, Math.min(order.length-1, i+delta));
-  [order[i], order[j]] = [order[j], order[i]];
-  buildPreviews(); renderOrderedList();
-}
-
-function buildFrames(){
-  const frames = document.getElementById('frames');
-  frames.innerHTML='';
-  const yyy = document.getElementById('yearYYY').value.trim();
-  const ms = document.getElementById('mStart').value.trim();
-  const me = document.getElementById('mEnd').value.trim();
-  const cnt = Math.max(1, parseInt(document.getElementById('count').value||'1'));
-  const per = Math.max(1, parseInt(document.getElementById('perClient').value||'1'));
-  const selected = getOrderedSelected();
-  // 產生（每位客戶 * 每位張數），若期數>1，以循環方式重覆
-  const labels = [];
-  for(const c of selected){ for(let k=0;k<per;k++){ labels.push({customer:c.name}); } }
-  // 若需要期數份數，重複至指定數量
-  while(labels.length < cnt){ labels.push(...labels.slice(0, Math.min(cnt-labels.length, labels.length||1))); if(labels.length===0) break; }
-  labels.length = Math.min(labels.length, cnt);
-
-  labels.forEach((lb, i)=>{
-    const el = document.createElement('div'); el.className='frame';
-    el.innerHTML = `<div style="text-align:center">
-      <b>${yyy}年${ms}-${me}月　${lb.customer}</b>
+    <!-- 確認視窗 Modal (通用) -->
+    <div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 id="confirm-modal-title">請確認</h2>
+            </header>
+            <div class="modal-body">
+                <p id="confirm-modal-message">您確定要執行此操作嗎？</p>
+            </div>
+            <footer class="modal-footer">
+                <button class="button" id="btn-confirm-cancel">取消</button>
+                <button class="button danger" id="btn-confirm-action">確認</button>
+            </footer>
+        </div>
     </div>
-    <small>${i+1}</small>`;
-    frames.appendChild(el);
-  });
-}
+    
+    <!-- 提示訊息 (Toast) 容器 -->
+    <div id="toast-container" class="toast-notification" role="alert" aria-live="assertive"></div>
 
-function renderOrderedList(){
-  const ol = document.getElementById('ordered'); ol.innerHTML='';
-  const arr = getOrderedSelected();
-  arr.forEach((c, idx)=>{
-    const li = document.createElement('li');
-    li.style.display='flex'; li.style.alignItems='center'; li.style.justifyContent='space-between'; li.style.padding='8px 10px'; li.style.border='1px solid #E5E7EB'; li.style.borderRadius='10px'; li.style.margin='6px 0';
-    li.innerHTML = `<div><strong>${idx+1}. ${c.name}</strong></div>
-    <div style="display:flex;gap:6px">
-      <button class="btn" aria-label="上移">▲</button>
-      <button class="btn" aria-label="下移">▼</button>
-    </div>`;
-    li.querySelectorAll('button')[0].onclick = ()=>{ moveCustom(c.id,-1); };
-    li.querySelectorAll('button')[1].onclick = ()=>{ moveCustom(c.id,+1); };
-    ol.appendChild(li);
-  });
-}
 
-function getOrderedSelected(){
-  const orderMode = document.getElementById('order').value;
-  let arr = state.customers.filter(c=> state.preselect.has(c.id));
-  if(orderMode==='asc') arr.sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
-  else if(orderMode==='desc') arr.sort((a,b)=>b.name.localeCompare(a.name,'zh-Hant'));
-  else if(orderMode==='custom'){
-    const order = state.customOrder.length? state.customOrder : state.customOrder = state.customers.map(c=>c.id);
-    arr.sort((a,b)=> order.indexOf(a.id)-order.indexOf(b.id));
-  }
-  return arr;
-}
+    <!-- --------------------------------- -->
+    <!-- 10. 應用程式腳本 (JavaScript)   -->
+    <!-- --------------------------------- -->
+    
+    <script>
+        // 立即執行函式 (IIFE) 以避免污染全域範圍
+        (function() {
+            "use strict";
 
-function buildPreviews(){ buildFrames(); renderOrderedList(); }
+            // --- 1. 常數與狀態管理 ---
 
-/* =========================================================
-   Import / Export / Word
-   ========================================================= */
-function exportJSON(){
-  const data = { meta:{app:'ArtSyn Hybrid', ts:Date.now(), version:'1.0'}, customers: state.customers, versions: state.versions, trash: state.trash };
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='artsyn-data.json'; a.click(); }
+            const DB_NAME = 'ArchiveAppDB';
+            const DB_VERSION = 1;
+            const STORES = {
+                ITEMS: 'items',
+                VERSIONS: 'versions',
+                ATTACHMENTS: 'attachments',
+                TRASH: 'trash'
+            };
 
-function importJSON(){
-  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
-  inp.onchange = async ()=>{
-    const file = inp.files[0]; if(!file) return; const text = await file.text();
-    try{ const data = JSON.parse(text);
-      if(confirm('匯入將覆蓋現有資料。確定？')){
-        // 清空現有
-        state.customers=[]; state.trash=[]; state.versions=[]; state.preselect.clear(); state.customOrder=[];
-        if(!useLS){
-          await new Promise((res)=>{ const tx = db.transaction(['customers','versions','trash'],'readwrite'); tx.objectStore('customers').clear(); tx.objectStore('versions').clear(); tx.objectStore('trash').clear(); tx.oncomplete=res; });
-        } else {
-          localStorage.removeItem(LS_KEYS.customers); localStorage.removeItem(LS_KEYS.versions); localStorage.removeItem(LS_KEYS.trash);
-        }
-        // 寫入
-        await dbBulkPut('customers', data.customers||[]); await dbBulkPut('versions', data.versions||[]); await dbBulkPut('trash', data.trash||[]);
-        state.customers = data.customers||[]; state.versions = data.versions||[]; state.trash = data.trash||[];
-        renderList(); buildPreviews();
-      }
-    }catch(err){ alert('JSON 解析失敗：'+err.message); }
-  };
-  inp.click();
-}
+            // 應用程式狀態
+            let state = {
+                db: null, // 資料庫實例
+                dbMode: 'idb', // 'idb' 或 'ls' (localStorage)
+                currentItemId: null, // 當前在編輯器中開啟的項目 ID
+                currentModal: null, // 當前開啟的 modal
+                confirmCallback: null // 確認視窗的回呼函式
+            };
 
-function exportWord(){
-  // 將 A4 頁面 frames 以內嵌樣式輸出為 .doc 相容 HTML
-  const yyy = document.getElementById('yearYYY').value.trim();
-  const ms = document.getElementById('mStart').value.trim();
-  const me = document.getElementById('mEnd').value.trim();
-  const framesHTML = document.getElementById('frames').innerHTML;
-  const styles = `
-  @page { size: A4; margin: 12mm; }
-  body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', 'Microsoft JhengHei', Arial, sans-serif;}
-  .frames{ display:grid; grid-template-columns: repeat(auto-fill, minmax(58mm, 1fr)); gap:6mm; }
-  .frame{ aspect-ratio: 15 / 6; border:1px solid #000; border-radius:12px; display:flex; align-items:center; justify-content:center; padding:6mm; position:relative }
-  .frame b{ font-size:14pt }
-  .frame small{ position:absolute; bottom:6px; right:10px; color:#666 }
-  `;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${yyy}年${ms}-${me}月 標籤</title><style>${styles}</style></head><body><div class="frames">${framesHTML}</div></body></html>`;const blob = new Blob([html], {type:'application/msword'}); const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=${yyy}年${ms}-${me}月-標籤.doc; a.click(); }
+            // --- 2. DOM 節點快取 ---
+            
+            // 快取 DOM 查詢結果
+            const $ = (selector) => document.querySelector(selector);
+            const $$ = (selector) => document.querySelectorAll(selector);
 
-/* ========================================================= UI Events & Init ========================================================= */ function bind(){ document.getElementById('btnAdd').onclick = ()=>{ const name = prompt('客戶名稱'); if(!name) return; const tag = document.getElementById('tag').value.trim(); const item = { id: uuid(), name: name.trim(), tags: tag? tag.split(',').map(s=>s.trim()) : [] }; state.customers.push(item); dbPut('customers', item); state.preselect.add(item.id); snapshot('add customer'); renderList(); buildPreviews(); }; document.getElementById('q').oninput = (e)=>{ state.filter = e.target.value; renderList(); }; document.getElementById('btnSortAZ').onclick = ()=>{ state.customers.sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant')); snapshot('sort A-Z'); renderList(); buildPreviews(); }; document.getElementById('btnSortZA').onclick = ()=>{ state.customers.sort((a,b)=>b.name.localeCompare(a.name,'zh-Hant')); snapshot('sort Z-A'); renderList(); buildPreviews(); }; document.getElementById('btnTrash').onclick = showTrash;
+            const dom = {
+                header: $('.app-header'),
+                heroTitle: $('.hero-title'),
+                heroSubtitle: $('.hero-subtitle'),
+                itemListContainer: $('#item-list-container'),
+                emptyListMessage: $('#empty-list-message'),
+                
+                // 編輯器
+                editorDrawer: $('#editor-drawer'),
+                editorForm: $('#editor-form'),
+                editorTitle: $('#editor-title'),
+                editorItemId: $('#editor-item-id'),
+                editorTitleInput: $('#editor-title-input'),
+                editorContentInput: $('#editor-content-input'),
+                editorTagsInput: $('#editor-tags-input'),
+                
+                // 詳情面板
+                detailTabs: $$('.list-tab'),
+                tabContents: $$('.tab-content'),
+                versionListContainer: $('#version-list-container'),
+                versionEmptyMessage: $('#version-empty-message'),
+                
+                // 附件 (IDB)
+                idbOnlyElements: $$('.idb-only'),
+                attachmentDropZone: $('#attachment-drop-zone'),
+                attachmentFileInput: $('#attachment-file-input'),
+                attachmentListContainer: $('#attachment-list-container'),
+                
+                // 控制項
+                btnNewItem: $('#btn-new-item'),
+                btnEditorClose: $('#btn-editor-close'),
+                btnEditorDelete: $('#btn-editor-delete'),
+                btnEditorPrint: $('#btn-editor-print'),
+                
+                // 搜尋
+                searchInput: $('#search-input'),
+                
+                // 回收桶
+                btnTrash: $('#btn-trash'),
+                trashModal: $('#trash-modal'),
+                trashListContainer: $('#trash-list-container'),
+                trashEmptyMessage: $('#trash-empty-message'),
+                btnEmptyTrash: $('#btn-empty-trash'),
+                
+                // 匯入/匯出
+                btnIO: $('#btn-io'),
+                ioModal: $('#io-modal'),
+                btnExport: $('#btn-export-data'),
+                exportIncludeAttachments: $('#export-include-attachments'),
+                btnImport: $('#btn-import-data'),
+                importFileInput: $('#import-file-input'),
+                
+                // 確認視窗
+                confirmModal: $('#confirm-modal'),
+                confirmModalTitle: $('#confirm-modal-title'),
+                confirmModalMessage: $('#confirm-modal-message'),
+                btnConfirmCancel: $('#btn-confirm-cancel'),
+                btnConfirmAction: $('#btn-confirm-action'),
+                
+                // 狀態
+                toastContainer: $('#toast-container'),
+                dbStatusMessage: $('#db-status-message'),
+            };
 
-document.getElementById('btnPickAll').onclick = ()=>{ state.preselect = new Set(state.customers.map(c=>c.id)); renderList(); buildPreviews(); }; document.getElementById('btnConfirm').onclick = openPicker;
+            // --- 3. 資料庫層 (Data Layer) ---
+            
+            /**
+             * 資料服務抽象層
+             * 無論使用 IndexedDB 還是 localStorage，都提供一致的 API
+             */
+            const dataService = {
+                // --- 項目 (Items) ---
+                getItem: async (id) => {
+                    if (state.dbMode === 'idb') {
+                        return await idbGet(STORES.ITEMS, id);
+                    } else {
+                        return lsGet(STORES.ITEMS, id);
+                    }
+                },
+                getAllItems: async () => {
+                    if (state.dbMode === 'idb') {
+                        return await idbGetAll(STORES.ITEMS);
+                    } else {
+                        return lsGetAll(STORES.ITEMS);
+                    }
+                },
+                saveItem: async (item) => {
+                    if (state.dbMode === 'idb') {
+                        return await idbPut(STORES.ITEMS, item);
+                    } else {
+                        return lsPut(STORES.ITEMS, item);
+                    }
+                },
+                deleteItem: async (id) => {
+                    if (state.dbMode === 'idb') {
+                        return await idbDelete(STORES.ITEMS, id);
+                    } else {
+                        return lsDelete(STORES.ITEMS, id);
+                    }
+                },
 
-['yearYYY','mStart','mEnd','count','perClient','order'].forEach(id=>{ document.getElementById(id).addEventListener('input', buildPreviews); document.getElementById(id).addEventListener('change', buildPreviews); });
+                // --- 版本 (Versions) ---
+                getVersionsByItemId: async (itemId) => {
+                    if (state.dbMode === 'idb') {
+                        const allVersions = await idbGetAll(STORES.VERSIONS);
+                        // IDB 不易建立索引，在此手動過濾並排序
+                        return allVersions
+                            .filter(v => v.itemId === itemId)
+                            .sort((a, b) => b.createdAtTS - a.createdAtTS);
+                    } else {
+                        const allVersions = lsGetAll(STORES.VERSIONS);
+                        return allVersions
+                            .filter(v => v.itemId === itemId)
+                            .sort((a, b) => b.createdAtTS - a.createdAtTS);
+                    }
+                },
+                saveVersion: async (version) => {
+                    if (state.dbMode === 'idb') {
+                        // IDB 使用 autoIncrement key
+                        delete version.versionId; 
+                        return await idbAdd(STORES.VERSIONS, version);
+                    } else {
+                        // LS 模擬 autoIncrement
+                        version.versionId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+                        return lsAdd(STORES.VERSIONS, version);
+                    }
+                },
 
-document.getElementById('btnExport').onclick = exportJSON; document.getElementById('btnImport').onclick = importJSON; document.getElementById('btnDoc').onclick = exportWord; document.getElementById('btnPrint').onclick = ()=>window.print();
+                // --- 回收桶 (Trash) ---
+                getTrashItems: async () => {
+                    if (state.dbMode === 'idb') {
+                        return await idbGetAll(STORES.TRASH);
+                    } else {
+                        return lsGetAll(STORES.TRASH);
+                    }
+                },
+                trashItem: async (item) => {
+                    // 軟刪除：1. 存入回收桶 2. 從主列表刪除
+                    const trashEntry = {
+                        ...item,
+                        deletedAt: Date.now()
+                    };
+                    
+                    if (state.dbMode === 'idb') {
+                        await idbPut(STORES.TRASH, trashEntry);
+                        await idbDelete(STORES.ITEMS, item.id);
+                    } else {
+                        lsPut(STORES.TRASH, trashEntry);
+                        lsDelete(STORES.ITEMS, item.id);
+                    }
+                },
+                restoreTrashItem: async (id) => {
+                    // 1. 從回收桶取得 2. 存回主列表 3. 從回收桶刪除
+                    let item;
+                    if (state.dbMode === 'idb') {
+                        item = await idbGet(STORES.TRASH, id);
+                        if (!item) return;
+                        delete item.deletedAt;
+                        await idbPut(STORES.ITEMS, item);
+                        await idbDelete(STORES.TRASH, id);
+                    } else {
+                        item = lsGet(STORES.TRASH, id);
+                        if (!item) return;
+                        delete item.deletedAt;
+                        lsPut(STORES.ITEMS, item);
+                        lsDelete(STORES.TRASH, id);
+                    }
+                },
+                purgeTrashItem: async (id) => {
+                    // 永久刪除 (也應刪除相關的版本和附件)
+                    if (state.dbMode === 'idb') {
+                        await idbDelete(STORES.TRASH, id);
+                        // TODO: 級聯刪除版本和附件
+                    } else {
+                        lsDelete(STORES.TRASH, id);
+                    }
+                },
+                emptyTrash: async () => {
+                    if (state.dbMode === 'idb') {
+                        await idbClear(STORES.TRASH);
+                        // TODO: 級聯刪除
+                    } else {
+                        lsClear(STORES.TRASH);
+                    }
+                },
+                
+                // --- 附件 (Attachments - IDB Only) ---
+                saveAttachment: async (file, itemId) => {
+                    if (state.dbMode !== 'idb') return null;
+                    const attachment = {
+                        id: crypto.randomUUID(),
+                        itemId: itemId,
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        blob: file, // 儲存 Blob 物件
+                        createdAt: Date.now()
+                    };
+                    await idbAdd(STORES.ATTACHMENTS, attachment);
+                    return attachment;
+                },
+                getAttachmentsByItemId: async (itemId) => {
+                    if (state.dbMode !== 'idb') return [];
+                    const all = await idbGetAll(STORES.ATTACHMENTS);
+                    return all.filter(a => a.itemId === itemId);
+                },
+                deleteAttachment: async (id) => {
+                    if (state.dbMode !== 'idb') return;
+                    await idbDelete(STORES.ATTACHMENTS, id);
+                },
+                getAttachmentBlob: async (id) => {
+                    if (state.dbMode !== 'idb') return null;
+                    const attachment = await idbGet(STORES.ATTACHMENTS, id);
+                    return attachment ? attachment.blob : null;
+                },
+                
+                // --- 匯出/匯入 ---
+                exportData: async (includeAttachments = false) => {
+                    const data = {
+                        meta: { exportedAt: Date.now(), version: '1.0' },
+                        items: await dataService.getAllItems(),
+                        versions: (state.dbMode === 'idb' ? await idbGetAll(STORES.VERSIONS) : lsGetAll(STORES.VERSIONS)),
+                        trash: await dataService.getTrashItems(),
+                        attachments: []
+                    };
+                    
+                    if (state.dbMode === 'idb' && includeAttachments) {
+                        const attachments = await idbGetAll(STORES.ATTACHMENTS);
+                        for (const att of attachments) {
+                            const base64 = await blobToBase64(att.blob);
+                            data.attachments.push({ ...att, blob: base64 });
+                        }
+                    }
+                    return data;
+                },
+                
+                importData: async (data) => {
+                    // 簡易匯入：清空並取代
+                    if (state.dbMode === 'idb') {
+                        await idbClear(STORES.ITEMS);
+                        await idbClear(STORES.VERSIONS);
+                        await idbClear(STORES.TRASH);
+                        await idbClear(STORES.ATTACHMENTS);
+                        
+                        for (const item of data.items || []) await idbPut(STORES.ITEMS, item);
+                        for (const version of data.versions || []) await idbAdd(STORES.VERSIONS, version);
+                        for (const item of data.trash || []) await idbPut(STORES.TRASH, item);
+                        
+                        if (data.attachments) {
+                            for (const att of data.attachments) {
+                                const blob = base64ToBlob(att.blob, att.type);
+                                await idbAdd(STORES.ATTACHMENTS, { ...att, blob });
+                            }
+                        }
+                    } else {
+                        // LS 模式
+                        lsClear(STORES.ITEMS);
+                        lsClear(STORES.VERSIONS);
+                        lsClear(STORES.TRASH);
+                        
+                        (data.items || []).forEach(item => lsPut(STORES.ITEMS, item));
+                        (data.versions || []).forEach(ver => lsAdd(STORES.VERSIONS, ver));
+                        (data.trash || []).forEach(item => lsPut(STORES.TRASH, item));
+                        // LS 模式不匯入附件
+                    }
+                }
+            };
+            
+            // --- 3.1 IndexedDB (IDB) 輔助函式 ---
+            
+            function initDB() {
+                return new Promise((resolve, reject) => {
+                    if (!window.indexedDB) {
+                        state.dbMode = 'ls';
+                        console.warn('IndexedDB not supported. Falling back to localStorage. Attachments will be disabled.');
+                        dom.dbStatusMessage.textContent = '警告：瀏覽器不支援 IndexedDB，附件功能已停用。資料將儲存於 localStorage。';
+                        dom.idbOnlyElements.forEach(el => el.style.display = 'none');
+                        resolve();
+                        return;
+                    }
 
-// Tabs document.querySelectorAll('.tab').forEach(t=> t.onclick = ()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.tab-panel').forEach(x=>x.hidden=true); t.classList.add('active'); document.getElementById(t.dataset.tab).hidden=false; });
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-// Header scroll effect const hdr = document.getElementById('hdr'); document.addEventListener('scroll', ()=>{ hdr.classList.toggle('scrolled', window.scrollY>48); }); }
+                    request.onupgradeneeded = (event) => {
+                        state.db = event.target.result;
+                        if (!state.db.objectStoreNames.contains(STORES.ITEMS)) {
+                            state.db.createObjectStore(STORES.ITEMS, { keyPath: 'id' });
+                        }
+                        if (!state.db.objectStoreNames.contains(STORES.VERSIONS)) {
+                            // 使用 autoIncrement 作為 key，並建立 itemId 索引 (雖然我們稍後手動過濾)
+                            const versionStore = state.db.createObjectStore(STORES.VERSIONS, { autoIncrement: true });
+                            versionStore.createIndex('itemIdIndex', 'itemId', { unique: false });
+                        }
+                        if (!state.db.objectStoreNames.contains(STORES.ATTACHMENTS)) {
+                            state.db.createObjectStore(STORES.ATTACHMENTS, { keyPath: 'id' });
+                        }
+                        if (!state.db.objectStoreNames.contains(STORES.TRASH)) {
+                            state.db.createObjectStore(STORES.TRASH, { keyPath: 'id' });
+                        }
+                    };
 
-function openPicker(){ const dlg = document.getElementById('dlgPick'); const list = document.getElementById('pickList'); list.innerHTML=''; document.getElementById('pickAll').checked = state.preselect.size === state.customers.length; document.getElementById('pickAll').onchange = (e)=>{ if(e.target.checked) state.preselect = new Set(state.customers.map(c=>c.id)); else state.preselect.clear(); openPicker(); buildPreviews(); }; const data = [...state.customers].sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant')); data.forEach(c=>{ const row = document.createElement('div'); row.className='item'; row.innerHTML = <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${state.preselect.has(c.id)?'checked':''}> ${c.name}</label>; row.querySelector('input').onchange = (e)=>{ if(e.target.checked) state.preselect.add(c.id); else state.preselect.delete(c.id); }; list.appendChild(row); }); document.getElementById('btnApplyPick').onclick = ()=>{ dlg.close(); renderList(); buildPreviews(); }; dlg.showModal(); }
+                    request.onsuccess = (event) => {
+                        state.db = event.target.result;
+                        state.dbMode = 'idb';
+                        console.log('IndexedDB initialized successfully.');
+                        dom.dbStatusMessage.textContent = '資料庫已連線 (IndexedDB)。';
+                        dom.idbOnlyElements.forEach(el => el.style.display = ''); // 顯示附件功能
+                        resolve();
+                    };
 
-function showTrash(){ const dlg = document.getElementById('dlgTrash'); const list = document.getElementById('trashList'); list.innerHTML=''; if(state.trash.length===0){ list.innerHTML='<div class="muted">回收桶是空的。</div>'; } state.trash.forEach(c=>{ const row = document.createElement('div'); row.className='item'; row.innerHTML = <div><strong>${c.name}</strong></div> <div style="display:flex;gap:6px"> <button class="btn" data-act="restore">還原</button> <button class="btn" data-act="purge">永久刪除</button> </div>; row.querySelector('[data-act="restore"]').onclick = ()=>{ state.customers.push(c); dbPut('customers', c); state.trash = state.trash.filter(x=>x.id!==c.id); dbDelete('trash', c.id); snapshot('restore'); renderList(); buildPreviews(); showTrash(); }; row.querySelector('[data-act="purge"]').onclick = ()=>{ if(!confirm('永久刪除不可復原，確定？')) return; state.trash = state.trash.filter(x=>x.id!==c.id); dbDelete('trash', c.id); showTrash(); }; list.appendChild(row); }); dlg.showModal(); }
+                    request.onerror = (event) => {
+                        state.dbMode = 'ls';
+                        console.error('IndexedDB error:', event.target.error);
+                        dom.dbStatusMessage.textContent = '錯誤：無法載入 IndexedDB，降級至 localStorage。';
+                        dom.idbOnlyElements.forEach(el => el.style.display = 'none');
+                        reject(event.target.error);
+                    };
+                });
+            }
 
-/* Reveal on scroll */ function setupReveal(){ const io = new IntersectionObserver((ents)=>{ for(const e of ents){ if(e.isIntersecting){ e.target.classList.add('revealed'); io.unobserve(e.target); } } }, {threshold:.15}); document.querySelectorAll('.reveal').forEach(el=> io.observe(el)); }
+            function idbGet(storeName, key) {
+                return new Promise((resolve, reject) => {
+                    const tx = state.db.transaction(storeName, 'readonly');
+                    const store = tx.objectStore(storeName);
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            
+            function idbGetAll(storeName) {
+                return new Promise((resolve, reject) => {
+                    const tx = state.db.transaction(storeName, 'readonly');
+                    const store = tx.objectStore(storeName);
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
 
-/* Hero stagger letters */ function heroStagger(){ const h = document.getElementById('heroTitle'); const txt = h.textContent; h.textContent=''; txt.split('').forEach((ch,i)=>{ const span = document.createElement('span'); span.className='char'; span.textContent=ch; span.style.transition = all .6s var(--easing-emphasized) ${(i*30)%300/1000}s; h.appendChild(span); }); requestAnimationFrame(()=>{ h.classList.add('hero-ready'); h.querySelectorAll('.char').forEach(el=>{ el.style.opacity=1; el.style.transform='none'; }); }); }
+            function idbPut(storeName, item) {
+                return new Promise((resolve, reject) => {
+                    const tx = state.db.transaction(storeName, 'readwrite');
+                    const store = tx.objectStore(storeName);
+                    const request = store.put(item);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                    tx.oncomplete = () => resolve();
+                });
+            }
 
-async function init(){ await openDB(); state.customers = await dbGetAll('customers'); state.trash = await dbGetAll('trash'); state.versions = await dbGetAll('versions'); if(state.customers.length===0){ // demo data state.customers = [ {id:uuid(), name:'客戶A', tags:['VIP']}, {id:uuid(), name:'客戶B', tags:['一般']}, {id:uuid(), name:'客戶C', tags:['重點']}, ]; await dbBulkPut('customers', state.customers); } state.preselect = new Set(state.customers.map(c=>c.id)); bind(); renderList(); buildPreviews(); setupReveal(); heroStagger(); }
+            function idbAdd(storeName, item) {
+                return new Promise((resolve, reject) => {
+                    const tx = state.db.transaction(storeName, 'readwrite');
+                    const store = tx.objectStore(storeName);
+                    const request = store.add(item);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
 
-init(); </script>
+            function idbDelete(storeName, key) {
+                return new Promise((resolve, reject) => {
+                    const tx = state.db.transaction(storeName, 'readwrite');
+                    const store = tx.objectStore(storeName);
+                    const request = store.delete(key);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            function idbClear(storeName) {
+                return new Promise((resolve, reject) => {
+                    const tx = state.db.transaction(storeName, 'readwrite');
+                    const store = tx.objectStore(storeName);
+                    const request = store.clear();
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            
+            // --- 3.2 localStorage (LS) 備援函式 ---
+            
+            function lsGetStore(storeName) {
+                return JSON.parse(localStorage.getItem(storeName) || '[]');
+            }
+            
+            function lsSetStore(storeName, data) {
+                localStorage.setItem(storeName, JSON.stringify(data));
+            }
+            
+            function lsGet(storeName, id) {
+                const store = lsGetStore(storeName);
+                return store.find(item => item.id === id);
+            }
+            
+            function lsGetAll(storeName) {
+                return lsGetStore(storeName);
+            }
+            
+            function lsPut(storeName, item) {
+                let store = lsGetStore(storeName);
+                const index = store.findIndex(i => i.id === item.id);
+                if (index > -1) {
+                    store[index] = item; // 更新
+                } else {
+                    store.push(item); // 新增
+                }
+                lsSetStore(storeName, store);
+            }
+            
+            function lsAdd(storeName, item) {
+                 let store = lsGetStore(storeName);
+                 store.push(item);
+                 lsSetStore(storeName, store);
+            }
+            
+            function lsDelete(storeName, id) {
+                let store = lsGetStore(storeName);
+                store = store.filter(item => item.id !== id);
+                lsSetStore(storeName, store);
+            }
+            
+            function lsClear(storeName) {
+                lsSetStore(storeName, []);
+            }
+
+
+            // --- 4. UI 邏輯層 (UI Logic) ---
+
+            /**
+             * 渲染項目列表
+             */
+            async function renderItemList() {
+                const query = dom.searchInput.value.toLowerCase();
+                let items = await dataService.getAllItems();
+                
+                // 排序：最新的在最前面
+                items.sort((a, b) => b.updatedAt - a.updatedAt);
+                
+                // 篩選
+                if (query) {
+                    items = items.filter(item => 
+                        item.title.toLowerCase().includes(query) ||
+                        item.content.toLowerCase().includes(query) ||
+                        item.tags.some(tag => tag.toLowerCase().includes(query))
+                    );
+                }
+
+                dom.itemListContainer.innerHTML = ''; // 清空
+                
+                if (items.length === 0) {
+                    dom.emptyListMessage.style.display = query ? 'none' : 'block';
+                } else {
+                    dom.emptyListMessage.style.display = 'none';
+                    const fragment = document.createDocumentFragment();
+                    items.forEach(item => {
+                        fragment.appendChild(createItemCard(item));
+                    });
+                    dom.itemListContainer.appendChild(fragment);
+                }
+            }
+
+            /**
+             * 建立單一項目卡片 (Item Card)
+             */
+            function createItemCard(item) {
+                const card = document.createElement('article');
+                card.className = 'item-card reveal-on-scroll';
+                card.dataset.itemId = item.id;
+                card.setAttribute('role', 'listitem');
+                card.setAttribute('tabindex', '0'); // 可用鍵盤對焦
+                
+                // 標籤
+                const tagsHTML = (item.tags || [])
+                    .map(tag => `<span class="tag">${escapeHTML(tag)}</span>`)
+                    .join('');
+
+                card.innerHTML = `
+                    <div class="item-tags">${tagsHTML}</div>
+                    <h3>${escapeHTML(item.title)}</h3>
+                    <div class="item-card-content">
+                        ${escapeHTML(item.content.substring(0, 100)) + (item.content.length > 100 ? '...' : '')}
+                    </div>
+                    <div class="item-card-meta">
+                        更新於: ${formatDate(item.updatedAt)}
+                    </div>
+                `;
+                
+                // 監聽點擊和鍵盤 Enter
+                card.addEventListener('click', () => handleOpenItem(item.id));
+                card.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        handleOpenItem(item.id);
+                    }
+                });
+                
+                return card;
+            }
+
+            /**
+             * 開啟編輯器
+             */
+            async function openEditor(item) {
+                if (item) {
+                    // 編輯現有項目
+                    state.currentItemId = item.id;
+                    dom.editorTitle.textContent = '編輯筆記';
+                    dom.editorItemId.value = item.id;
+                    dom.editorTitleInput.value = item.title;
+                    dom.editorContentInput.value = item.content;
+                    dom.editorTagsInput.value = (item.tags || []).join(', ');
+                    dom.btnEditorDelete.style.display = 'block';
+                    dom.btnEditorPrint.style.display = 'block';
+                    
+                    // 載入版本和附件
+                    await renderVersions(item.id);
+                    if (state.dbMode === 'idb') {
+                        await renderAttachments(item.id);
+                    }
+                    
+                } else {
+                    // 新增項目
+                    state.currentItemId = null;
+                    dom.editorTitle.textContent = '新增筆記';
+                    dom.editorForm.reset(); // 清空表單
+                    dom.editorItemId.value = '';
+                    dom.btnEditorDelete.style.display = 'none';
+                    dom.btnEditorPrint.style.display = 'none';
+                    renderVersions(null); // 清空
+                    renderAttachments(null); // 清空
+                }
+                
+                // 預設選中第一個 tab
+                switchTab('versions');
+                
+                dom.editorDrawer.classList.add('is-open');
+                dom.editorTitleInput.focus();
+            }
+
+            /**
+             * 關閉編輯器
+             */
+            function closeEditor() {
+                dom.editorDrawer.classList.remove('is-open');
+                state.currentItemId = null;
+                dom.editorForm.reset();
+            }
+
+            /**
+             * 渲染版本歷史
+             */
+            async function renderVersions(itemId) {
+                if (!itemId) {
+                    dom.versionListContainer.innerHTML = '';
+                    dom.versionEmptyMessage.style.display = 'block';
+                    return;
+                }
+                
+                const versions = await dataService.getVersionsByItemId(itemId);
+                
+                if (versions.length === 0) {
+                    dom.versionListContainer.innerHTML = '';
+                    dom.versionEmptyMessage.style.display = 'block';
+                    return;
+                }
+
+                dom.versionEmptyMessage.style.display = 'none';
+                dom.versionListContainer.innerHTML = versions.map(v => `
+                    <div class="version-item">
+                        <div class="version-item-info">
+                            <strong>${formatDate(v.createdAtTS)}</strong>
+                            <span class="reason">${v.reason ? escapeHTML(v.reason) : ''}</span>
+                        </div>
+                        <div class="button-group">
+                            <button class="button" data-version-id="${v.versionId}" data-action="preview">預覽</button>
+                            <button class="button accent" data-version-id="${v.versionId}" data-action="revert">還原</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            /**
+             * 渲染附件列表 (IDB only)
+             */
+            async function renderAttachments(itemId) {
+                if (state.dbMode !== 'idb' || !itemId) {
+                    dom.attachmentListContainer.innerHTML = '';
+                    return;
+                }
+                
+                const attachments = await dataService.getAttachmentsByItemId(itemId);
+                dom.attachmentListContainer.innerHTML = attachments.map(a => `
+                    <div class="attachment-item">
+                        <span title="${escapeHTML(a.name)}">${escapeHTML(a.name)}</span>
+                        <button data-att-id="${a.id}" data-action="download" title="下載">⬇️</button>
+                        <button data-att-id="${a.id}" data-action="delete" title="刪除">❌</button>
+                    </div>
+                `).join('');
+            }
+
+            /**
+             * 渲染回收桶
+             */
+            async function renderTrashList() {
+                const items = await dataService.getTrashItems();
+                items.sort((a, b) => b.deletedAt - a.deletedAt); // 最新的在前面
+
+                if (items.length === 0) {
+                    dom.trashListContainer.innerHTML = '';
+                    dom.trashEmptyMessage.style.display = 'block';
+                    return;
+                }
+                
+                dom.trashEmptyMessage.style.display = 'none';
+                dom.trashListContainer.innerHTML = items.map(item => `
+                    <div class="trash-item">
+                        <div class="trash-item-info">
+                            <strong>${escapeHTML(item.title)}</strong>
+                            <br>
+                            <small>刪除於: ${formatDate(item.deletedAt)}</small>
+                        </div>
+                        <div class="button-group">
+                            <button class="button" data-trash-id="${item.id}" data-action="restore">還原</button>
+                            <button class="button danger" data-trash-id="${item.id}" data-action="purge">永久刪除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            /**
+             * 顯示 Modal
+             */
+            function showModal(modalElement) {
+                if (state.currentModal) {
+                    closeModal(state.currentModal);
+                }
+                modalElement.classList.add('is-open');
+                state.currentModal = modalElement;
+            }
+
+            /**
+             * 關閉 Modal
+             */
+            function closeModal(modalElement) {
+                if (!modalElement) modalElement = state.currentModal;
+                if (modalElement) {
+                    modalElement.classList.remove('is-open');
+                    if (state.currentModal === modalElement) {
+                        state.currentModal = null;
+                    }
+                }
+            }
+
+            /**
+             * 顯示確認視窗
+             */
+            function showConfirm(title, message, onConfirm) {
+                dom.confirmModalTitle.textContent = title;
+                dom.confirmModalMessage.textContent = message;
+                state.confirmCallback = onConfirm;
+                showModal(dom.confirmModal);
+            }
+
+            /**
+             * 顯示提示訊息 (Toast)
+             */
+            function showToast(message, type = 'info', duration = 3000) {
+                const toast = dom.toastContainer;
+                toast.textContent = message;
+                toast.className = `toast-notification ${type}`; // 移除舊的 show
+                
+                // 強制重繪以觸發 transition
+                void toast.offsetWidth; 
+                
+                toast.classList.add('show');
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, duration);
+            }
+            
+            /**
+             * 切換編輯器中的 Tab
+             */
+            function switchTab(tabName) {
+                dom.tabContents.forEach(tab => {
+                    tab.classList.toggle('active', tab.id === `tab-${tabName}`);
+                });
+                dom.detailTabs.forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.tab === tabName);
+                });
+            }
+            
+            // --- 5. 事件處理 (Event Handlers) ---
+
+            /**
+             * 初始化事件監聽
+             */
+            function bindEventListeners() {
+                // 滾動效果
+                window.addEventListener('scroll', handleScrollEffects);
+                
+                // 控制項
+                dom.btnNewItem.addEventListener('click', handleNewItem);
+                dom.searchInput.addEventListener('input', handleSearch);
+                
+                // 編輯器
+                dom.btnEditorClose.addEventListener('click', closeEditor);
+                dom.editorForm.addEventListener('submit', handleSaveItem);
+                dom.btnEditorDelete.addEventListener('click', handleDeleteItem);
+                dom.btnEditorPrint.addEventListener('click', handlePrintItem);
+                
+                // 詳情面板 Tabs
+                dom.detailTabs.forEach(tab => {
+                    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+                });
+                
+                // 版本歷史按鈕 (事件委派)
+                dom.versionListContainer.addEventListener('click', handleVersionAction);
+                
+                // 附件 (事件委派)
+                dom.attachmentListContainer.addEventListener('click', handleAttachmentAction);
+                dom.attachmentDropZone.addEventListener('click', () => dom.attachmentFileInput.click());
+                dom.attachmentFileInput.addEventListener('change', handleAttachmentFileSelect);
+                
+                // 拖放
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dom.attachmentDropZone.addEventListener(eventName, preventDefaults, false);
+                    document.body.addEventListener(eventName, preventDefaults, false); // 全局防止意外拖放
+                });
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dom.attachmentDropZone.addEventListener(eventName, () => dom.attachmentDropZone.classList.add('is-dragging'), false);
+                });
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dom.attachmentDropZone.addEventListener(eventName, () => dom.attachmentDropZone.classList.remove('is-dragging'), false);
+                });
+                dom.attachmentDropZone.addEventListener('drop', handleAttachmentDrop, false);
+                
+                // Modals (關閉)
+                $$('[data-modal-close]').forEach(btn => {
+                    btn.addEventListener('click', () => closeModal($(btn.dataset.modalClose)));
+                });
+                
+                // 回收桶
+                dom.btnTrash.addEventListener('click', handleOpenTrash);
+                dom.trashListContainer.addEventListener('click', handleTrashAction);
+                dom.btnEmptyTrash.addEventListener('click', handleEmptyTrash);
+                
+                // 匯入/匯出
+                dom.btnIO.addEventListener('click', () => showModal(dom.ioModal));
+                dom.btnExport.addEventListener('click', handleExportData);
+                dom.importFileInput.addEventListener('change', () => {
+                    dom.btnImport.disabled = !dom.importFileInput.files.length;
+                });
+                dom.btnImport.addEventListener('click', handleImportData);
+                
+                // 確認視窗
+                dom.btnConfirmCancel.addEventListener('click', () => {
+                    closeModal(dom.confirmModal);
+                    state.confirmCallback = null;
+                });
+                dom.btnConfirmAction.addEventListener('click', () => {
+                    if (typeof state.confirmCallback === 'function') {
+                        state.confirmCallback();
+                    }
+                    closeModal(dom.confirmModal);
+                    state.confirmCallback = null;
+                });
+            }
+
+            /**
+             * 處理：開啟項目
+             */
+            async function handleOpenItem(id) {
+                const item = await dataService.getItem(id);
+                if (item) {
+                    openEditor(item);
+                }
+            }
+            
+            /**
+             * 處理：新增項目
+             */
+            function handleNewItem() {
+                openEditor(null);
+            }
+
+            /**
+             * 處理：儲存項目 (新增或更新)
+             */
+            async function handleSaveItem(event) {
+                event.preventDefault();
+                
+                const id = dom.editorItemId.value || crypto.randomUUID();
+                const now = Date.now();
+                
+                const oldItem = state.currentItemId ? await dataService.getItem(state.currentItemId) : null;
+                
+                const item = {
+                    id: id,
+                    title: dom.editorTitleInput.value.trim(),
+                    content: dom.editorContentInput.value,
+                    tags: dom.editorTagsInput.value.split(',').map(t => t.trim()).filter(Boolean),
+                    createdAt: oldItem ? oldItem.createdAt : now,
+                    updatedAt: now
+                };
+                
+                if (!item.title) {
+                    showToast('標題為必填項', 'error');
+                    return;
+                }
+                
+                // 儲存版本
+                if (oldItem) {
+                    // 只有在內容或標題變更時才儲存版本
+                    if (oldItem.title !== item.title || oldItem.content !== item.content) {
+                        const version = {
+                            itemId: oldItem.id,
+                            title: oldItem.title,
+                            content: oldItem.content,
+                            tags: oldItem.tags,
+                            createdAtTS: oldItem.updatedAt,
+                            reason: '編輯儲存'
+                        };
+                        await dataService.saveVersion(version);
+                    }
+                } else {
+                    // 建立新項目時也建立一個 "初始版本"
+                    const version = {
+                        itemId: item.id,
+                        title: item.title,
+                        content: item.content,
+                        tags: item.tags,
+                        createdAtTS: item.createdAt,
+                        reason: '建立新項目'
+                    };
+                    await dataService.saveVersion(version);
+                }
+
+                await dataService.saveItem(item);
+                
+                showToast('儲存成功', 'success');
+                closeEditor();
+                await renderItemList();
+            }
+
+            /**
+             * 處理：刪除項目 (軟刪除)
+             */
+            function handleDeleteItem() {
+                const id = state.currentItemId;
+                if (!id) return;
+                
+                showConfirm('刪除筆記', '您確定要將此筆記移至回收桶嗎？', async () => {
+                    const item = await dataService.getItem(id);
+                    if (item) {
+                        await dataService.trashIt(item);
+                        showToast('已移至回收桶', 'success');
+                        closeEditor();
+                        await renderItemList();
+                    }
+                });
+            }
+            
+            /**
+             * 處理：列印項目
+             */
+            function handlePrintItem() {
+                document.body.classList.add('printing-item');
+                document.body.classList.remove('printing-list');
+                window.print();
+                // 列印後清除 class
+                setTimeout(() => {
+                    document.body.classList.remove('printing-item');
+                }, 1000);
+            }
+            
+            /**
+             * 處理：搜尋
+             */
+            function handleSearch() {
+                // 使用 debounce 避免過度頻繁
+                debounce(renderItemList, 300)();
+            }
+
+            /**
+             * 處理：滾動 (Header 漸變 / 項目淡入)
+             */
+            function handleScrollEffects() {
+                // Header
+                if (window.scrollY > 48) { // 48px (Speckit)
+                    dom.header.classList.add('is-scrolled');
+                } else {
+                    dom.header.classList.remove('is-scrolled');
+                }
+                
+                // 滾動淡入
+                const items = $$('.reveal-on-scroll:not(.is-visible)');
+                items.forEach(item => {
+                    if (isElementInViewport(item)) {
+                        item.classList.add('is-visible');
+                    }
+                });
+            }
+            
+            /**
+             * 處理：版本動作 (還原/預覽)
+             */
+            async function handleVersionAction(event) {
+                const button = event.target.closest('button');
+                if (!button) return;
+
+                const action = button.dataset.action;
+                const versionId = button.dataset.versionId;
+                
+                // 從 IDB/LS 找出該版本
+                const allVersions = await dataService.getVersionsByItemId(state.currentItemId);
+                const version = allVersions.find(v => v.versionId.toString() === versionId);
+                
+                if (!version) return;
+
+                if (action === 'revert') {
+                    showConfirm('還原版本', `您確定要還原到 ${formatDate(version.createdAtTS)} 的版本嗎？目前內容將被存為一個新版本。`, async () => {
+                        // 1. 先將目前編輯器中的內容存為一個新版本
+                        const currentVersion = {
+                            itemId: state.currentItemId,
+                            title: dom.editorTitleInput.value,
+                            content: dom.editorContentInput.value,
+                            tags: dom.editorTagsInput.value.split(',').map(t => t.trim()).filter(Boolean),
+                            createdAtTS: Date.now(),
+                            reason: '還原前自動儲存'
+                        };
+                        await dataService.saveVersion(currentVersion);
+                        
+                        // 2. 將編輯器內容替換為舊版本
+                        dom.editorTitleInput.value = version.title;
+                        dom.editorContentInput.value = version.content;
+                        dom.editorTagsInput.value = (version.tags || []).join(', ');
+                        
+                        // 3. 重新渲染版本列表 (因為多了一個)
+                        await renderVersions(state.currentItemId);
+                        showToast('已還原版本', 'success');
+                    });
+                }
+                
+                if (action === 'preview') {
+                    // TODO: 實作一個預覽 Modal
+                    alert(`預覽版本 ${formatDate(version.createdAtTS)}:\n標題: ${version.title}\n內容: ${version.content.substring(0, 50)}...`);
+                }
+            }
+            
+            /**
+             * 處理：附件動作 (下載/刪除)
+             */
+            async function handleAttachmentAction(event) {
+                if (state.dbMode !== 'idb') return;
+                
+                const button = event.target.closest('button');
+                if (!button) return;
+                
+                const id = button.dataset.attId;
+                const action = button.dataset.action;
+                
+                if (action === 'download') {
+                    const blob = await dataService.getAttachmentBlob(id);
+                    if (blob) {
+                        const att = await dataService.getAttachmentBlob(id); // 抱歉，需要 att 的 name
+                        const attInfo = await dataService.getItem(id); // 重新獲取資訊
+                        
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = attInfo ? attInfo.name : 'download';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }
+                }
+                
+                if (action === 'delete') {
+                    showConfirm('刪除附件', '您確定要永久刪除此附件嗎？', async () => {
+                        await dataService.deleteAttachment(id);
+                        await renderAttachments(state.currentItemId);
+                        showToast('附件已刪除', 'success');
+                    });
+                }
+            }
+            
+            /**
+             * 處理：附件拖放
+             */
+            async function handleAttachmentDrop(event) {
+                event.preventDefault();
+                if (state.dbMode !== 'idb' || !state.currentItemId) return;
+                
+                const files = event.dataTransfer.files;
+                if (files.length > 0) {
+                    for (const file of files) {
+                        await dataService.saveAttachment(file, state.currentItemId);
+                    }
+                    await renderAttachments(state.currentItemId);
+                    showToast(`已上傳 ${files.length} 個附件`, 'success');
+                }
+            }
+            
+            /**
+             * 處理：附件選擇
+             */
+            async function handleAttachmentFileSelect(event) {
+                if (state.dbMode !== 'idb' || !state.currentItemId) return;
+                
+                const files = event.target.files;
+                if (files.length > 0) {
+                    for (const file of files) {
+                        await dataService.saveAttachment(file, state.currentItemId);
+                    }
+                    await renderAttachments(state.currentItemId);
+                    showToast(`已上傳 ${files.length} 個附件`, 'success');
+                }
+            }
+
+            /**
+             * 處理：開啟回收桶
+             */
+            async function handleOpenTrash() {
+                await renderTrashList();
+                showModal(dom.trashModal);
+            }
+            
+            /**
+             * 處理：回收桶動作 (還原/永久刪除)
+             */
+            async function handleTrashAction(event) {
+                const button = event.target.closest('button');
+                if (!button) return;
+                
+                const id = button.dataset.trashId;
+                const action = button.dataset.action;
+                
+                if (action === 'restore') {
+                    await dataService.restoreTrashItem(id);
+                    showToast('項目已還原', 'success');
+                    await renderTrashList();
+                    await renderItemList(); // 主列表可能已變更
+                }
+                
+                if (action === 'purge') {
+                    showConfirm('永久刪除', '此操作無法復原。您確定要永久刪除此項目及其所有相關資料嗎？', async () => {
+                        await dataService.purgeTrashItem(id);
+                        showToast('項目已永久刪除', 'success');
+                        await renderTrashList();
+                    });
+                }
+            }
+            
+            /**
+             * 處理：清空回收桶
+             */
+            function handleEmptyTrash() {
+                showConfirm('清空回收桶', '您確定要永久刪除回收桶中的所有項目嗎？', async () => {
+                    await dataService.emptyTrash();
+                    showToast('回收桶已清空', 'success');
+                    await renderTrashList();
+                });
+            }
+
+            /**
+             * 處理：匯出資料
+             */
+            async function handleExportData() {
+                const includeAttachments = state.dbMode === 'idb' && dom.exportIncludeAttachments.checked;
+                try {
+                    const data = await dataService.exportData(includeAttachments);
+                    const json = JSON.stringify(data, null, 2);
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `archive_export_${formatDate(Date.now(), true)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    showToast('匯出成功', 'success');
+                } catch (err) {
+                    console.error('Export failed:', err);
+                    showToast('匯出失敗', 'error');
+                }
+            }
+            
+            /**
+             * 處理：匯入資料
+             */
+            function handleImportData() {
+                const file = dom.importFileInput.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        showConfirm('匯入資料', '這將會覆蓋您目前所有的本地資料。此操作無法復原。您確定要繼續嗎？', async () => {
+                            await dataService.importData(data);
+                            await renderItemList(); // 重新整理列表
+                            closeModal(dom.ioModal);
+                            showToast('匯入成功', 'success');
+                        });
+                        
+                    } catch (err) {
+                        console.error('Import failed:', err);
+                        showToast('匯入失敗：檔案格式錯誤', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // --- 6. 輔助工具 (Utilities) ---
+
+            /**
+             * Debounce (防抖)
+             */
+            let debounceTimer;
+            function debounce(func, delay) {
+                return function() {
+                    const context = this;
+                    const args = arguments;
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => func.apply(context, args), delay);
+                };
+            }
+            
+            /**
+             * 檢查元素是否在可視範圍內
+             */
+            function isElementInViewport(el) {
+                const rect = el.getBoundingClientRect();
+                return (
+                    rect.top >= 0 &&
+                    rect.left >= 0 &&
+                    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+                );
+            }
+            
+            /**
+             * 格式化日期
+             */
+            function formatDate(timestamp, fileSafe = false) {
+                const date = new Date(timestamp);
+                if (fileSafe) {
+                    return date.toISOString().replace(/[:.]/g, '-');
+                }
+                return date.toLocaleString('zh-TW', { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+            
+            /**
+             * 防止預設行為 (用於拖放)
+             */
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            /**
+             * HTML 轉義
+             */
+            function escapeHTML(str) {
+                return String(str).replace(/[&<>"']/g, function(match) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;'
+                    }[match];
+                });
+            }
+            
+            /**
+             * Blob 轉 Base64 (用於匯出)
+             */
+            function blobToBase64(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]); // 只取 data
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            }
+            
+            /**
+             * Base64 轉 Blob (用於匯入)
+             */
+            function base64ToBlob(base64, type) {
+                const byteCharacters = atob(base64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                return new Blob([byteArray], { type: type });
+            }
+
+            // --- 7. Hero 動畫 (Speckit) ---
+            
+            function initHeroAnimation() {
+                const text = dom.heroTitle.textContent.trim();
+                dom.heroTitle.innerHTML = text.split('').map(char => 
+                    `<span class="char" aria-hidden="true">${char === ' ' ? '&nbsp;' : char}</span>`
+                ).join('');
+                
+                // 使用 IntersectionObserver 確保可見時才播放
+                const observer = new IntersectionObserver((entries) => {
+                    if (entries[0].isIntersecting) {
+                        setTimeout(() => {
+                            dom.heroTitle.classList.add('is-visible');
+                            const chars = dom.heroTitle.querySelectorAll('.char');
+                            chars.forEach((char, i) => {
+                                // 總 0.3s -> 30ms * 10 
+                                char.style.transitionDelay = `${i * (300 / chars.length)}ms`; 
+                            });
+                            
+                            dom.heroSubtitle.classList.add('is-visible');
+                            
+                        }, 300); // 延遲 300ms 開始
+                        observer.disconnect(); // 播放一次即可
+                    }
+                }, { threshold: 0.1 });
+
+                observer.observe(dom.heroTitle);
+            }
+
+            // --- 8. 初始化 (Initialization) ---
+
+            async function init() {
+                try {
+                    await initDB();
+                    bindEventListeners();
+                    initHeroAnimation();
+                    await renderItemList();
+                    handleScrollEffects(); // 立即檢查一次
+                    
+                    console.log('Archive App Shell initialized.');
+                    
+                } catch (err) {
+                    console.error('Initialization failed:', err);
+                    dom.dbStatusMessage.textContent = '應用程式初始化失敗。請嘗試重新整理。';
+                }
+            }
+
+            // 啟動應用程式
+            document.addEventListener('DOMContentLoaded', init);
+
+        })();
+    </script>
 
 </body>
 </html>
+
