@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>標籤生成器 | Speckit Framework</title>
+    <style>
+        /* Speckit Constitution: Design Tokens & Base Styles */
+        :root {
+            /* Colors */
+            --ink-black: #000000;
+            --ivory: #F8F8F6;
+            --rose-gold: #C7A27C;
+            --smoke: #1A1A1A;
+            --mist-silver: #C0C4C9;
+            --cream: #FAF7F2;
+            --soft-gray: #6B7280;
+
+            /* Typography */
+            --font-display: "Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
+            --font-body: Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+
+            /* Sizing & Spacing */
+            --fs-display: clamp(2.5rem, 5vw, 3.5rem); /* 40px-56px */
+            --fs-h1: clamp(1.75rem, 4vw, 2rem);      /* 28px-32px */
+            --fs-body: 1rem;                         /* 16px */
+            --line-height-display: 1.2;
+            --line-height-body: 1.75;
+            --grid-container: min(1200px, 92vw);
+            --spacing-md: 16px;
+            --spacing-lg: 32px;
+            --spacing-xl: 56px;
+
+            /* Effects */
+            --shadow-soft: 0 6px 20px rgba(0,0,0,.07);
+            --radius-md: 8px;
+            --radius-lg: 16px;
+            
+            /* Animation */
+            --easing-emphasized: cubic-bezier(0.33, 1, 0.68, 1);
+            --dur-stagger: 30ms;
+            --dur-short: 200ms;
+            --dur-medium: 400ms;
+            --dur-breathe: 800ms;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--ivory);
+            color: var(--soft-gray);
+            font-family: var(--font-body);
+            font-size: var(--fs-body);
+            line-height: var(--line-height-body);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Speckit Layout: Header, Main, Grid, Footer */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: var(--spacing-md) 0;
+            z-index: 100;
+            transition: background-color var(--dur-medium) ease-out, box-shadow var(--dur-medium) ease-out;
+        }
+        .app-header.scrolled {
+            background: linear-gradient(180deg, var(--smoke) 0%, rgba(26,26,26,0.8) 70%, transparent 100%);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            box-shadow: 0 1px 0 0 var(--mist-silver);
+        }
+        .header-content {
+            width: var(--grid-container);
+            margin: 0 auto;
+            color: var(--cream);
+            font-family: var(--font-display);
+        }
+
+        .main-container {
+            width: var(--grid-container);
+            margin: 0 auto;
+            padding-top: 120px; /* Space for header */
+        }
+        
+        .app-footer {
+            width: var(--grid-container);
+            margin: var(--spacing-xl) auto;
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--mist-silver);
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--mist-silver);
+        }
+
+        /* Speckit Editorial Blocks: Hero, Split */
+        .block-hero {
+            text-align: center;
+            padding: var(--spacing-xl) 0;
+            margin-bottom: var(--spacing-xl);
+            background: radial-gradient(circle, var(--cream) 0%, var(--ivory) 70%);
+        }
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: var(--fs-display);
+            line-height: var(--line-height-display);
+            color: var(--ink-black);
+            margin-bottom: var(--spacing-md);
+        }
+        .hero-title .char {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: letter-reveal var(--dur-breathe) var(--easing-emphasized) forwards;
+        }
+        @keyframes letter-reveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+            opacity: 0;
+            animation: fade-in 1s ease 0.6s forwards;
+        }
+        @keyframes fade-in {
+            to { opacity: 1; }
+        }
+
+        .block-split {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--spacing-xl);
+            padding: var(--spacing-xl);
+            background-color: var(--cream);
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-soft);
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--dur-breathe) var(--easing-emphasized), transform var(--dur-breathe) var(--easing-emphasized);
+        }
+        .block-split.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Speckit App Shell: Form Controls & UI Elements */
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--ink-black);
+            margin-bottom: 8px;
+            font-family: var(--font-display);
+        }
+        
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-md);
+            background-color: var(--ivory);
+            font-family: var(--font-body);
+            font-size: var(--fs-body);
+            transition: border-color var(--dur-short), box-shadow var(--dur-short);
+        }
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--rose-gold);
+            box-shadow: 0 0 0 2px rgba(199, 162, 124, 0.3);
+        }
+        
+        .form-textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-md);
+            background-color: transparent;
+            color: var(--soft-gray);
+            font-size: var(--fs-body);
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform var(--dur-short), color var(--dur-short), background-color var(--dur-short);
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            color: var(--ink-black);
+        }
+        
+        .btn-primary {
+            background-color: var(--smoke);
+            color: var(--ivory);
+            border-color: var(--smoke);
+        }
+        .btn-primary:hover {
+            background-color: var(--ink-black);
+            color: var(--ivory);
+        }
+        
+        /* Modal for errors */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--dur-medium), visibility var(--dur-medium);
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: var(--cream);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--rose-gold);
+            text-align: center;
+            max-width: 400px;
+            transform: scale(0.9);
+            transition: transform var(--dur-medium) var(--easing-emphasized);
+        }
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
+        .modal-content p {
+            margin-bottom: var(--spacing-lg);
+            color: var(--ink-black);
+        }
+
+        /* Preview Area */
+        #preview-container {
+            margin-top: var(--spacing-xl);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--dur-breathe) var(--easing-emphasized), transform var(--dur-breathe) var(--easing-emphasized);
+        }
+        #preview-container.visible {
+             opacity: 1;
+             transform: translateY(0);
+        }
+
+        .preview-title {
+            font-family: var(--font-display);
+            font-size: var(--fs-h1);
+            color: var(--ink-black);
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--mist-silver);
+            padding-bottom: var(--spacing-md);
+        }
+
+        .a4-page {
+            background: white;
+            width: 21cm;
+            height: 29.7cm;
+            padding: 1cm;
+            margin: 1cm auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 1cm;
+        }
+
+        .label-box {
+            width: 15cm;
+            height: 6cm;
+            border: 1px solid var(--ink-black);
+            padding: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .label-title {
+            font-size: 14pt;
+            font-weight: normal;
+        }
+
+        .label-name {
+            font-size: 24pt;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        /* Speckit Print Styles */
+        @media print {
+            body {
+                background-color: #fff;
+            }
+            .app-header, .app-footer, .block-hero, .block-split, .preview-title {
+                display: none !important;
+            }
+            .main-container {
+                padding-top: 0;
+            }
+            #preview-container {
+                margin: 0;
+                padding: 0;
+                opacity: 1;
+                transform: none;
+            }
+            .a4-page {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                height: auto;
+                page-break-after: always;
+            }
+            .label-box {
+                border: 1px solid #000;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header" id="appHeader">
+        <div class="header-content">
+            Speckit Label Generator
+        </div>
+    </header>
+
+    <main class="main-container">
+
+        <section class="block-hero">
+            <h1 class="hero-title" id="heroTitle">快速批量標籤生成</h1>
+            <p class="hero-subtitle">Vogue × Bazaar Hybrid Edition</p>
+        </section>
+
+        <section class="block-split reveal" id="appContainer">
+            <div class="form-section">
+                <div>
+                    <div class="form-group">
+                        <label for="customerNameList">1. 客戶姓名列表 (CustomerNameList)</label>
+                        <textarea id="customerNameList" class="form-textarea" placeholder="請輸入姓名，以逗號 (,) 或換行分隔..."></textarea>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label for="printTitleStatic">2. 第二塊標題 (PrintTitleStatic)</label>
+                        <input type="text" id="printTitleStatic" class="form-input" placeholder="請輸入標籤的靜態標題...">
+                    </div>
+                    <div class="button-group">
+                        <button id="btnGenerateAll" class="btn btn-primary">預覽列印 (全體模式)</button>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>3. 自定義選擇 (獨立模式)</label>
+                        <div style="display: flex; gap: 16px;">
+                            <input type="number" id="startIndex" class="form-input" placeholder="起始序號 (StartIndex)">
+                            <input type="number" id="endIndex" class="form-input" placeholder="結束序號 (EndIndex)">
+                        </div>
+                    </div>
+                     <div class="button-group">
+                        <button id="btnGenerateRange" class="btn">自定義預覽</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-info">
+                <h3>預覽說明</h3>
+                <p>點擊生成按鈕後，符合列印標準的 A4 預覽將顯示於下方。</p>
+                <p>每個客戶姓名將生成兩份相同的 $15 \text{ cm} \times 6 \text{ cm}$ 標籤。</p>
+                <p>一頁 A4 最多可容納 4 個標籤。</p>
+            </div>
+        </section>
+
+        <section id="preview-container">
+             <h2 id="previewTitle" class="preview-title"></h2>
+             <div id="previewOutput"></div>
+        </section>
+
+    </main>
+
+    <footer class="app-footer">
+        © 2025 Speckit Framework. All rights reserved.
+    </footer>
+
+    <!-- Modal for Error Messages -->
+    <div class="modal-overlay" id="errorModal">
+        <div class="modal-content">
+            <p id="errorMessage"></p>
+            <button id="closeModalBtn" class="btn">關閉</button>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Speckit UI Enhancements ---
+        const appHeader = document.getElementById('appHeader');
+        const heroTitle = document.getElementById('heroTitle');
+        
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 48) {
+                appHeader.classList.add('scrolled');
+            } else {
+                appHeader.classList.remove('scrolled');
+            }
+        });
+
+        // Hero title letter animation
+        const titleText = heroTitle.textContent;
+        heroTitle.innerHTML = titleText.split('').map((char, i) => 
+            `<span class="char" style="animation-delay: ${i * var(--dur-stagger, 30)}ms">${char}</span>`
+        ).join('');
+
+        // Intersection Observer for reveal animations
+        const revealElements = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        revealElements.forEach(el => observer.observe(el));
+
+
+        // --- App Functionality ---
+        
+        // DOM Elements
+        const customerNameListInput = document.getElementById('customerNameList');
+        const printTitleStaticInput = document.getElementById('printTitleStatic');
+        const startIndexInput = document.getElementById('startIndex');
+        const endIndexInput = document.getElementById('endIndex');
+        
+        const btnGenerateAll = document.getElementById('btnGenerateAll');
+        const btnGenerateRange = document.getElementById('btnGenerateRange');
+
+        const previewContainer = document.getElementById('preview-container');
+        const previewTitle = document.getElementById('previewTitle');
+        const previewOutput = document.getElementById('previewOutput');
+        
+        const errorModal = document.getElementById('errorModal');
+        const errorMessage = document.getElementById('errorMessage');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Event Listeners
+        btnGenerateAll.addEventListener('click', handleGenerateAll);
+        btnGenerateRange.addEventListener('click', handleGenerateRange);
+        closeModalBtn.addEventListener('click', hideError);
+        errorModal.addEventListener('click', (e) => {
+            if (e.target === errorModal) hideError();
+        });
+
+        // --- Core Logic ---
+
+        function showError(message, fieldsToClear = []) {
+            errorMessage.textContent = message;
+            errorModal.classList.add('visible');
+            fieldsToClear.forEach(field => field.value = '');
+        }
+
+        function hideError() {
+            errorModal.classList.remove('visible');
+        }
+
+        // P1 & P2: Data cleaning, numbering, and sorting
+        function parseAndNumberNames(nameString) {
+            if (!nameString.trim()) return [];
+            
+            return nameString
+                .split(/[\n,]+/) // Split by newline or comma
+                .map(name => name.trim()) // Trim whitespace
+                .filter(name => name.length > 0) // Filter out empty entries
+                .map((name, index) => ({ id: index + 1, name: name })); // Assign 1-based index
+        }
+
+        function handleGenerateAll() {
+            const numberedCustomers = parseAndNumberNames(customerNameListInput.value);
+            const staticTitle = printTitleStaticInput.value.trim();
+
+            if (numberedCustomers.length === 0) {
+                showError('請輸入至少一位客戶姓名。', [customerNameListInput]);
+                return;
+            }
+            if (!staticTitle) {
+                showError('請輸入第二塊標題。', [printTitleStaticInput]);
+                return;
+            }
+
+            generatePreview(numberedCustomers, staticTitle);
+        }
+
+        function handleGenerateRange() {
+            const numberedCustomers = parseAndNumberNames(customerNameListInput.value);
+            const staticTitle = printTitleStaticInput.value.trim();
+            
+            const start = parseInt(startIndexInput.value, 10);
+            const end = parseInt(endIndexInput.value, 10);
+
+            // B1: Error Checking
+            if (numberedCustomers.length === 0) {
+                showError('客戶列表為空，無法進行範圍篩選。', [customerNameListInput]);
+                return;
+            }
+            if (!staticTitle) {
+                showError('請輸入第二塊標題。', [printTitleStaticInput]);
+                return;
+            }
+            if (isNaN(start) || isNaN(end) || start < 1 || start > end || end > numberedCustomers.length) {
+                showError(`序號範圍無效。有效範圍應為 1 至 ${numberedCustomers.length} 之間，且起始序號需小於或等於結束序號。`, [startIndexInput, endIndexInput]);
+                return;
+            }
+
+            // B2 & B3: Data Filtering & Sorting (sorting is maintained)
+            const p
