@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離線薪資核對工具</title>
+    
+    <style>
+        /* --- [ 1. Speckit Design Tokens ] --- */
+        :root {
+            /* 色彩 (Colors) */
+            --ink-black: #000000;
+            --ivory: #F8F8F6;
+            --rose-gold: #C7A27C;
+            --smoke: #1A1A1A;
+            --mist-silver: #C0C4C9;
+            --cream: #FAF7F2;
+            --soft-gray: #6B7280;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+
+            /* 字體堆疊 (Font Stacks) */
+            --font-serif: "Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
+            --font-sans: Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+
+            /* 動效 (Motion) */
+            --easing-emphasized: cubic-bezier(0.33, 1, 0.68, 1);
+            --dur-breathe: 0.6s;
+
+            /* 陰影/圓角 */
+            --shadow-soft: 0 6px 20px rgba(0, 0, 0, .07);
+            --radius-m: 8px;
+            --radius-l: 12px;
+        }
+
+        /* --- [ 2. Base & Layout ] --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--ivory);
+            color: var(--ink-black);
+            line-height: 1.6;
+            padding-bottom: 5rem;
+        }
+
+        .container {
+            width: min(1400px, 92vw);
+            margin: 0 auto;
+            padding-top: 2rem;
+        }
+
+        header {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--mist-silver);
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-family: var(--font-serif);
+            font-weight: 700;
+            font-size: 2.5rem;
+            color: var(--smoke);
+            text-align: center;
+        }
+
+        .section {
+            background-color: #FFFFFF;
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-l);
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            padding: 1.25rem 2rem;
+            background-color: var(--cream);
+            border-bottom: 1px solid var(--mist-silver);
+        }
+
+        .section-header h2 {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            color: var(--smoke);
+        }
+        
+        .section-header p {
+            font-size: 0.9rem;
+            color: var(--soft-gray);
+        }
+
+        .section-content {
+            padding: 2rem;
+            display: grid;
+            gap: 2rem;
+        }
+
+        /* --- [ 3. Components ] --- */
+        
+        /* 檔案上傳區 */
+        .file-upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        .file-drop-zone {
+            border: 2px dashed var(--mist-silver);
+            border-radius: var(--radius-m);
+            padding: 2rem;
+            text-align: center;
+            background-color: var(--ivory);
+            transition: background-color 0.3s;
+        }
+
+        .file-drop-zone.dragover {
+            background-color: var(--cream);
+            border-color: var(--rose-gold);
+        }
+        
+        .file-drop-zone label {
+            font-weight: 600;
+            color: var(--smoke);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-drop-zone input[type="file"] {
+            display: none;
+        }
+        
+        .file-drop-zone .file-name {
+            color: var(--soft-gray);
+            margin-top: 1rem;
+            font-style: italic;
+        }
+        
+        .file-drop-zone .file-success {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* 欄位匹配區 */
+        #mapping-section {
+            display: none; /* 預設隱藏 */
+        }
+        
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .mapping-table th, .mapping-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--mist-silver);
+            vertical-align: top;
+        }
+        
+        .mapping-table th {
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+            color: var(--smoke);
+            width: 20%;
+        }
+        
+        .mapping-table td {
+            width: 40%;
+        }
+        
+        .mapping-table .logical-field {
+            font-weight: 600;
+            color: var(--rose-gold);
+        }
+        
+        .mapping-table .logical-field small {
+            display: block;
+            font-weight: 400;
+            color: var(--soft-gray);
+        }
+
+        .mapping-table select {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: var(--radius-m);
+            border: 1px solid var(--mist-silver);
+            background-color: #FFF;
+            font-family: var(--font-sans);
+        }
+        
+        .mapping-table select[multiple] {
+            height: 150px;
+        }
+
+        /* 操作按鈕區 */
+        .actions-grid {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-m);
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .btn-primary {
+            background-color: var(--rose-gold);
+            color: #FFF;
+        }
+        .btn-primary:hover {
+            opacity: 0.85;
+            box-shadow: 0 4px 12px rgba(199, 162, 124, 0.4);
+        }
+        
+        .btn-secondary {
+            background-color: var(--smoke);
+            color: #FFF;
+        }
+        .btn-secondary:hover {
+            opacity: 0.85;
+        }
+
+        .btn:disabled {
+            background-color: var(--mist-silver);
+            cursor: not-allowed;
+        }
+        
+        /* 結果報告區 */
+        #results-section {
+            display: none; /* 預設隱藏 */
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--mist-silver);
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab-link {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--soft-gray);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px; /* 蓋住父層 border */
+        }
+        
+        .tab-link.active {
+            color: var(--rose-gold);
+            border-bottom-color: var(--rose-gold);
+        }
+        
+        .tab-content {
+            display: none;
+            /* Speckit 呼吸感進場動效 */
+            animation: fadeIn var(--dur-breathe) var(--easing-emphasized);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .report-block {
+            margin-bottom: 2rem;
+        }
+        
+        .report-block h3 {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            color: var(--smoke);
+            border-bottom: 1px solid var(--mist-silver);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .report-block .status-success {
+            font-size: 1.1rem;
+            color: var(--success);
+            font-weight: 600;
+        }
+        
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        .report-table th, .report-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid var(--mist-silver);
+        }
+        
+        .report-table thead {
+            background-color: var(--smoke);
+            color: #FFF;
+        }
+        
+        .report-table tbody tr:nth-child(even) {
+            background-color: var(--cream);
+        }
+        
+        .report-table .cell-diff {
+            background-color: var(--warning);
+            color: var(--ink-black);
+            font-weight: 600;
+        }
+        .report-table .cell-error {
+            background-color: var(--danger);
+            color: #FFF;
+            font-weight: 600;
+        }
+        
+        .report-table .cell-total {
+            font-weight: 700;
+            background-color: var(--cream);
+        }
+        
+        .report-table .cell-grand-total {
+            font-weight: 700;
+            font-size: 1rem;
+            background-color: var(--smoke);
+            color: #FFF;
+        }
+        
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+        .error-message {
+            color: var(--danger);
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <h1>離線薪資核對工具</h1>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="section">
+            <div class="section-header">
+                <h2>1. 載入檔案</h2>
+                <p>請上傳 Excel 檔案 (.xlsx)。所有資料僅在您的瀏覽器中處理，不會上傳至任何伺服器。</p>
+            </div>
+            <div class="section-content file-upload-grid">
+                <div class="file-drop-zone" id="drop-zone-1">
+                    <label for="file-input-1">檔案 1 (主檔案 / 舊檔案)</label>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('file-input-1').click();">選擇檔案</button>
+                    <input type="file" id="file-input-1" accept=".xlsx" data-key="main">
+                    <div class="file-name" id="file-name-1">尚未選擇檔案</div>
+                </div>
+                <div class="file-drop-zone" id="drop-zone-2">
+                    <label for="file-input-2">檔案 2 (比較用 / 新檔案)</label>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('file-input-2').click();">選擇檔案</button>
+                    <input type="file" id="file-input-2" accept=".xlsx" data-key="compare">
+                    <div class="file-name" id="file-name-2">尚未選擇檔案 (用於差異核對)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="mapping-section">
+            <div class="section-header">
+                <h2>2. 欄位匹配</h2>
+                <p>請將 Excel 中的欄位對應到系統所需的邏輯欄位。這是核對與計算的基礎。</p>
+            </div>
+            <div class="section-content">
+                <table class="mapping-table">
+                    <thead>
+                        <tr>
+                            <th>邏輯欄位 (系統需要)</th>
+                            <th>檔案 1 (主檔案) 欄位</th>
+                            <th>檔案 2 (比較檔案) 欄位</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mapping-table-body">
+                        </tbody>
+                </table>
+                <div id="mapping-error" class="error-message hidden"></div>
+            </div>
+        </section>
+        
+        <section class="section">
+            <div class="section-header">
+                <h2>3. 執行操作</h2>
+                <p>匹配欄位後，請選擇要執行的任務。</p>
+            </div>
+            <div class="section-content actions-grid">
+                <button class="btn btn-primary" id="btn-run-check" disabled>執行：1:1 及所得稅核對</button>
+                <button class="btn btn-primary" id="btn-run-diff" disabled>執行：檔案差異核對</button>
+                <button class="btn btn-primary" id="btn-run-calc" disabled>執行：薪資加總計算</button>
+            </div>
+        </section>
+        
+        <section class="section" id="results-section">
+            <div class="section-header">
+                <h2>4. 結果報告</h2>
+            </div>
+            <div class="section-content" style="padding: 0;">
+                <nav class="tabs" id="tabs-nav">
+                    <span class="tab-link active" data-tab="tab-check">核對報告</span>
+                    <span class="tab-link" data-tab="tab-diff">差異報告</span>
+                    <span class="tab-link" data-tab="tab-calc">加總報告</span>
+                </nav>
+                <div style="padding: 2rem;">
+                    <div id="tab-check" class="tab-content active">
+                        <div class="report-block" id="report-check-1to1"></div>
+                        <div class="report-block" id="report-check-tax"></div>
+                    </div>
+                    <div id="tab-diff" class="tab-content">
+                        <div class="report-block" id="report-diff-summary"></div>
+                    </div>
+                    <div id="tab-calc" class="tab-content">
+                        <div class="report-block" id="report-calc-summary"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ✅ 以本地檔案方式載入 SheetJS -->
+    <script src="./xlsx.full.min.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // 檢查 XLSX 函式庫是否已正確嵌入
+        if (typeof XLSX === 'undefined') {
+            alert('錯誤：XLSX.js 函式庫遺失！\n\n請確認本檔案同資料夾下已放置 xlsx.full.min.js，並確保 <script src="./xlsx.full.min.js"></script> 可正確載入。');
+            document.body.innerHTML = '<h1>XLSX.js 函式庫載入失敗，應用程式無法啟動。</h1>';
+            return;
+        }
+
+        const App = {
+            // 應用程式狀態
+            state: {
+                files: {
+                    main: null, // { name, headers:[], data:[{...},...], rawData: [[]] }
+                    compare: null
+                },
+                mappings: {} // { employeeId: { main: 'A', compare: 'B' }, ... }
+            },
+
+            // 系統需要的邏輯欄位定義
+            logicalFields: {
+                // 索引鍵 (必要)
+                employeeId: { label: '員工代號', required: true, multiple: false, group: 'key' },
+                employeeName: { label: '員工姓名', required: true, multiple: false, group: 'key' },
+                // 核對用
+                salaryForTaxCheck: { label: '薪資 (用於所得稅核對)', required: false, multiple: true, group: 'check' },
+                taxForTaxCheck: { label: '所得稅 (用於所得稅核對)', required: false, multiple: true, group: 'check' },
+                // 計算用
+                salary: { label: '薪資 (月)', required: false, multiple: true, group: 'calc' },
+                selfContrib: { label: '自提 (月)', required: false, multiple: true, group: 'calc' },
+                bonus: { label: '獎金 (月)', required: false, multiple: true, group: 'calc' },
+                taxFreeOvertime: { label: '加班免稅額', required: false, multiple: true, group: 'calc' },
+                incomeTax: { label: '所得稅 (總)', required: false, multiple: true, group: 'calc' },
+                yearEndBonus: { label: '年終獎金', required: false, multiple: true, group: 'calc' },
+            },
+
+            // DOM 節點
+            nodes: {
+                dropZone1: document.getElementById('drop-zone-1'),
+                dropZone2: document.getElementById('drop-zone-2'),
+                fileInput1: document.getElementById('file-input-1'),
+                fileInput2: document.getElementById('file-input-2'),
+                fileName1: document.getElementById('file-name-1'),
+                fileName2: document.getElementById('file-name-2'),
+                mappingSection: document.getElementById('mapping-section'),
+                mappingBody: document.getElementById('mapping-table-body'),
+                mappingError: document.getElementById('mapping-error'),
+                btnCheck: document.getElementById('btn-run-check'),
+                btnDiff: document.getElementById('btn-run-diff'),
+                btnCalc: document.getElementById('btn-run-calc'),
+                resultsSection: document.getElementById('results-section'),
+                tabsNav: document.getElementById('tabs-nav'),
+                tabLinks: document.querySelectorAll('.tab-link'),
+                tabContents: document.querySelectorAll('.tab-content'),
+                reportCheck1to1: document.getElementById('report-check-1to1'),
+                reportCheckTax: document.getElementById('report-check-tax'),
+                reportDiff: document.getElementById('report-diff-summary'),
+                reportCalc: document.getElementById('report-calc-summary'),
+            },
+
+            // 初始化
+            init() {
+                this.initDragDrop(this.nodes.dropZone1, this.nodes.fileInput1);
+                this.initDragDrop(this.nodes.dropZone2, this.nodes.fileInput2);
+                
+                this.nodes.fileInput1.addEventListener('change', this.handleFileSelect.bind(this));
+                this.nodes.fileInput2.addEventListener('change', this.handleFileSelect.bind(this));
+
+                this.nodes.btnCheck.addEventListener('click', this.runChecks.bind(this));
+                this.nodes.btnDiff.addEventListener('click', this.runDiff.bind(this));
+                this.nodes.btnCalc.addEventListener('click', this.runCalc.bind(this));
+                
+                this.nodes.tabsNav.addEventListener('click', this.handleTabClick.bind(this));
+                
+                this.buildMappingTable();
+            },
+            
+            // --- 1. 檔案處理 ---
+            
+            initDragDrop(zone, input) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    zone.addEventListener(eventName, e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, false);
+                });
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    zone.addEventListener(eventName, () => zone.classList.add('dragover'), false);
+                });
+                ['dragleave', 'drop'].forEach(eventName => {
+                    zone.addEventListener(eventName, () => zone.classList.remove('dragover'), false);
+                });
+                zone.addEventListener('drop', e => {
+                    input.files = e.dataTransfer.files;
+                    input.dispatchEvent(new Event('change')); // 手動觸發 change 事件
+                }, false);
+            },
+            
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                const fileKey = e.target.dataset.key; // 'main' or 'compare'
+                
+                if (!file) return;
+
+                const fileNameNode = (fileKey === 'main') ? this.nodes.fileName1 : this.nodes.fileName2;
+                fileNameNode.textContent = `讀取中： ${file.name}`;
+                fileNameNode.className = 'file-name';
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 使用 header: 1 取得陣列的陣列，以應對無標題列
+                        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (rawData.length === 0) {
+                            throw new Error('Excel 檔案為空。');
+                        }
+
+                        // 嘗試偵測標題列 (第一列)
+                        const headers = this.generateHeaders(rawData[0], rawData[0].length);
+
+                        this.state.files[fileKey] = {
+                            name: file.name,
+                            headers: headers, // [ {key: 'A', name: '員工代號'}, {key: 'B', name: '姓名'}... ]
+                            rawData: rawData,
+                            data: null // 稍後處理
+                        };
+                        
+                        fileNameNode.textContent = `已載入： ${file.name} ( ${rawData.length} 列 )`;
+                        fileNameNode.className = 'file-name file-success';
+                        
+                        this.updateMappingOptions(fileKey);
+                        this.nodes.mappingSection.style.display = 'block';
+                        this.updateButtonStates();
+
+                    } catch (err) {
+                        console.error(err);
+                        fileNameNode.textContent = `檔案讀取失敗： ${err.message}`;
+                        fileNameNode.className = 'file-name error-message';
+                        this.state.files[fileKey] = null;
+                        this.updateMappingOptions(fileKey); // 清空
+                        this.updateButtonStates();
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            },
+            
+            // 產生標題。如果 row 1 是字串，就用它；否則用 A, B, C
+            generateHeaders(firstRow, colCount) {
+                const headers = [];
+                for (let i = 0; i < colCount; i++) {
+                    const colName = XLSX.utils.encode_col(i); // "A", "B", "C"...
+                    const firstRowVal = (firstRow[i] !== null && firstRow[i] !== undefined) ? String(firstRow[i]).trim() : "";
+                    let displayName = `${colName}`;
+                    if(firstRowVal) {
+                        displayName += ` (${firstRowVal})`;
+                    }
+                    headers.push({ key: colName, name: displayName, index: i });
+                }
+                return headers;
+            },
+            
+            // --- 2. 欄位匹配 ---
+
+            buildMappingTable() {
+                const tbody = this.nodes.mappingBody;
+                tbody.innerHTML = ''; // 清空
+                
+                for (const key in this.logicalFields) {
+                    const field = this.logicalFields[key];
+                    const tr = document.createElement('tr');
+                    
+                    tr.innerHTML = `
+                        <td>
+                            <span class="logical-field">${field.label} ${field.required ? '*' : ''}</span>
+                            <small>${field.multiple ? '可複選' : '單選'}</small>
+                        </td>
+                        <td>
+                            <select id="map-main-${key}" data-key="main" data-logic-key="${key}" ${field.multiple ? 'multiple' : ''}></select>
+                        </td>
+                        <td>
+                            <select id="map-compare-${key}" data-key="compare" data-logic-key="${key}" ${field.multiple ? 'multiple' : ''}></select>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+                
+                // 綁定儲存事件
+                tbody.querySelectorAll('select').forEach(sel => {
+                    sel.addEventListener('change', this.saveMappings.bind(this));
+                });
+            },
+            
+            updateMappingOptions(fileKey) { // 'main' or 'compare'
+                const headers = this.state.files[fileKey] ? this.state.files[fileKey].headers : [];
+                
+                const selects = this.nodes.mappingBody.querySelectorAll(`select[data-key="${fileKey}"]`);
+                
+                selects.forEach(sel => {
+                    const logicKey = sel.dataset.logicKey;
+                    const field = this.logicalFields[logicKey];
+                    
+                    // 保存目前選中的值
+                    const selectedValues = Array.from(sel.selectedOptions).map(opt => opt.value);
+                    
+                    sel.innerHTML = ''; // 清空選項
+                    
+                    if (!field.multiple) {
+                        const opt = document.createElement('option');
+                        opt.value = "";
+                        opt.textContent = "-- 請選擇 --";
+                        sel.appendChild(opt);
+                    }
+                    
+                    headers.forEach(h => {
+                        const opt = document.createElement('option');
+                        opt.value = h.key; // "A", "B", "C"
+                        opt.textContent = h.name; // "A (員工代號)"
+                        
+                        if (selectedValues.includes(h.key)) {
+                            opt.selected = true;
+                        }
+                        
+                        sel.appendChild(opt);
+                    });
+                });
+            },
+
+            saveMappings() {
+                this.nodes.mappingError.classList.add('hidden');
+                const mappings = {};
+                let isValid = true;
+                let errorMsg = "以下必要欄位尚未匹配 (檔案 1)：";
+
+                for (const key in this.logicalFields) {
+                    const field = this.logicalFields[key];
+                    
+                    const selMain = document.getElementById(`map-main-${key}`);
+                    const selCompare = document.getElementById(`map-compare-${key}`);
+                    
+                    const mainVal = field.multiple ? Array.from(selMain.selectedOptions).map(o => o.value) : selMain.value;
+                    const compareVal = field.multiple ? Array.from(selCompare.selectedOptions).map(o => o.value) : selCompare.value;
+                    
+                    mappings[key] = { main: mainVal, compare: compareVal };
+                    
+                    // 僅檢查 檔案 1 (主檔案) 的必要欄位
+                    if (field.required && (!mainVal || mainVal.length === 0)) {
+                        isValid = false;
+                        errorMsg += ` ${field.label},`;
+                    }
+                }
+                
+                this.state.mappings = mappings;
+                this.updateButtonStates(); // 儲存後更新按鈕狀態
+                
+                if (!isValid) {
+                    this.nodes.mappingError.textContent = errorMsg.slice(0, -1) + "。";
+                    this.nodes.mappingError.classList.remove('hidden');
+                    return false;
+                }
+                
+                // 儲存成功，處理資料
+                this.processData('main');
+                if (this.state.files.compare) {
+                    this.processData('compare');
+                }
+                
+                return true;
+            },
+            
+            // 將 rawData [[]] 根據 Mappings 轉換為 data [{}]
+            processData(fileKey) {
+                const file = this.state.files[fileKey];
+                if (!file || !file.rawData) return;
+                
+                const mappings = this.state.mappings;
+                const headers = file.headers; // [ {key: 'A', index: 0}, ... ]
+                
+                // 建立一個從 "A", "B" 到 index 0, 1 的映射
+                const headerIndexMap = new Map(headers.map(h => [h.key, h.index]));
+                
+                // 建立一個從 "logicKey" 到 index(es) 的映射
+                const logicIndexMap = {};
+                for (const logicKey in mappings) {
+                    const mappedCols = mappings[logicKey][fileKey]; // "A" or ["A", "B"]
+                    
+                    if (this.logicalFields[logicKey].multiple) {
+                        logicIndexMap[logicKey] = mappedCols.map(col => headerIndexMap.get(col)).filter(i => i !== undefined);
+                    } else {
+                        logicIndexMap[logicKey] = headerIndexMap.get(mappedCols); // index or undefined
+                    }
+                }
+
+                const processedData = [];
+                for (let i = 0; i < file.rawData.length; i++) {
+                    const row = file.rawData[i];
+                    const newRow = { __rowNum: i + 1 }; // 保存原始行號 (1-based)
+                    
+                    for (const logicKey in logicIndexMap) {
+                        const idx = logicIndexMap[logicKey];
+                        
+                        if (this.logicalFields[logicKey].multiple) {
+                            // 對於多選欄位，我們儲存一個陣列
+                            newRow[logicKey] = idx.map(i => row[i]);
+                        } else {
+                            if (idx !== undefined) {
+                                newRow[logicKey] = row[idx];
+                            }
+                        }
+                    }
+                    processedData.push(newRow);
+                }
+                
+                file.data = processedData; // 儲存處理好的資料
+                console.log(`Processed data for ${fileKey}:`, file.data);
+            },
+            
+            // 更新按鈕狀態
+            updateButtonStates() {
+                const mainFileLoaded = !!this.state.files.main;
+                const compareFileLoaded = !!this.state.files.compare;
+                const mappingsSaved = this.saveMappings(); // 順便儲存
+                
+                // 檢查是否已儲存 (檢查 state.mappings 是否有值)
+                const mappingsReady = this.state.mappings && this.state.mappings.employeeId && this.state.mappings.employeeId.main;
+                
+                this.nodes.btnCheck.disabled = !(mainFileLoaded && mappingsReady);
+                this.nodes.btnCalc.disabled = !(mainFileLoaded && mappingsReady);
+                this.nodes.btnDiff.disabled = !(mainFileLoaded && compareFileLoaded && mappingsReady);
+            },
+            
+            // --- 3. 執行操作 ---
+            
+            runChecks() {
+                if (!this.saveMappings()) return; // 確保 Mappings 是最新的
+                this.nodes.resultsSection.style.display = 'block';
+                this.showTab('tab-check');
+                
+                this.runCheck_1to1();
+                this.runCheck_Tax();
+            },
+            
+            runDiff() {
+                if (!this.saveMappings()) return;
+                this.nodes.resultsSection.style.display = 'block';
+                this.showTab('tab-diff');
+                
+                this.runCheck_Diff();
+            },
+            
+            runCalc() {
+                if (!this.saveMappings()) return;
+                this.nodes.resultsSection.style.display = 'block';
+                this.showTab('tab-calc');
+                
+                this.runCheck_Calculation();
+            },
+
+            // --- 4. 核對邏輯 ---
+
+            // 4a. 1:1 核對
+            runCheck_1to1() {
+                const data = this.state.files.main.data;
+                const idKey = 'employeeId';
+                const nameKey = 'employeeName';
+                
+                const idToNames = new Map();
+                const nameToIds = new Map();
+                
+                data.forEach(row => {
+                    const id = row[idKey];
+                    const name = row[nameKey];
+                    const rowNum = row['__rowNum'];
+                    
+                    if (id === null || id === undefined || String(id).trim() === '') return;
+                    if (name === null || name === undefined || String(name).trim() === '') return;
+
+                    if (!idToNames.has(id)) idToNames.set(id, new Map());
+                    idToNames.get(id).set(name, (idToNames.get(id).get(name) || 0) + 1);
+                    
+                    if (!nameToIds.has(name)) nameToIds.set(name, new Map());
+                    nameToIds.get(name).set(id, (nameToIds.get(name).get(id) || 0) + 1);
+                });
+                
+                let html = '<h3>員工代號 1:1 核對</h3>';
+                const errors = [];
+                
+                idToNames.forEach((namesMap, id) => {
+                    if (namesMap.size > 1) {
+                        errors.push(`
+                            <tr>
+                                <td class="cell-error">員工代號 ( ${id} )</td>
+                                <td>對應到多個姓名： <strong>${Array.from(namesMap.keys()).join(', ')}</strong></td>
+                            </tr>
+                        `);
+                    }
+                });
+                
+                nameToIds.forEach((idsMap, name) => {
+                    if (idsMap.size > 1) {
+                         errors.push(`
+                            <tr>
+                                <td class="cell-error">員工姓名 ( ${name} )</td>
+                                <td>對應到多個代號： <strong>${Array.from(idsMap.keys()).join(', ')}</strong></td>
+                            </tr>
+                        `);
+                    }
+                });
+                
+                if (errors.length > 0) {
+                    html += '<table class="report-table"><thead><tr><th>問題項目</th><th>對應內容</th></tr></thead><tbody>'
+                    html += errors.join('');
+                    html += '</tbody></table>';
+                } else {
+                    html += '<p class="status-success">✓ 員工代號與姓名 1:1 核對通過。</p>';
+                }
+                
+                this.nodes.reportCheck1to1.innerHTML = html;
+            },
+            
+            // 4b. 所得稅核對
+            runCheck_Tax() {
+                const data = this.state.files.main.data;
+                const salaryKeys = this.state.mappings.salaryForTaxCheck.main;
+                const taxKeys = this.state.mappings.taxForTaxCheck.main;
+                
+                let html = '<h3>所得稅核對 (薪資 > 88,501)</h3>';
+                
+                // 檢查欄位是否匹配
+                if (salaryKeys.length === 0 || taxKeys.length === 0) {
+                    html += '<p>未匹配用於核對的「薪資」或「所得稅」欄位，跳過此項檢查。</p>';
+                    this.nodes.reportCheckTax.innerHTML = html;
+                    return;
+                }
+                
+                if (salaryKeys.length !== taxKeys.length) {
+                    html += `<p class="error-message">錯誤：匹配的薪資欄位 (${salaryKeys.length}個) 與所得稅欄位 (${taxKeys.length}個) 數量不符，無法核對。</p>`;
+                    this.nodes.reportCheckTax.innerHTML = html;
+                    return;
+                }
+
+                const errors = [];
+                const idKey = 'employeeId';
+                const nameKey = 'employeeName';
+                
+                // 取得 salary/tax 欄位的 index
+                const headerMap = new Map(this.state.files.main.headers.map(h => [h.key, h]));
+                const salaryHeaders = salaryKeys.map(k => headerMap.get(k));
+                const taxHeaders = taxKeys.map(k => headerMap.get(k));
+
+                data.forEach(row => {
+                    for (let i = 0; i < salaryHeaders.length; i++) {
+                        const salaryHeader = salaryHeaders[i];
+                        const taxHeader = taxHeaders[i];
+                        
+                        // row.salaryForTaxCheck[i]
+                        const salary = parseFloat(row.salaryForTaxCheck[i]);
+                        const tax = parseFloat(row.taxForTaxCheck[i]);
+                        
+                        if (isNaN(salary)) continue; // 不是數字不檢查
+
+                        if (salary > 88501) {
+                            const expectedTax = salary * 0.05; // 88501 * 0.05 = 4425.05
+                            
+                            if (isNaN(tax) || tax < expectedTax) {
+                                errors.push(`
+                                    <tr>
+                                        <td>${row[idKey]}</td>
+                                        <td>${row[nameKey]}</td>
+                                        <td>${salaryHeader.name}</td>
+                                        <td class="cell-error">${salary}</td>
+                                        <td>${taxHeader.name}</td>
+                                        <td class="cell-error">${isNaN(tax) ? '無數值' : tax}</td>
+                                        <td>應 > ${expectedTax.toFixed(2)}</td>
+                                    </tr>
+                                `);
+                            }
+                        }
+                    }
+                });
+                
+                if (errors.length > 0) {
+                    html += '<table class="report-table"><thead><tr><th>代號</th><th>姓名</th><th>薪資欄位</th><th>薪資</th><th>所得稅欄位</th><th>所得稅</th><th>備註</th></tr></thead><tbody>'
+                    html += errors.join('');
+                    html += '</tbody></table>';
+                } else {
+                    html += '<p class="status-success">✓ 所得稅核對通過 (或無符合 > 88,501 之資料)。</p>';
+                }
+                
+                this.nodes.reportCheckTax.innerHTML = html;
+            },
+            
+            // 4c. 檔案差異核對
+            runCheck_Diff() {
+                const dataMain = this.state.files.main.data;
+                const dataCompare = this.state.files.compare.data;
+                const idKey = 'employeeId';
+                
+                const mainMap = new Map(dataMain.map(row => [row[idKey], row]));
+                const compareMap = new Map(dataCompare.map(row => [row[idKey], row]));
+                
+                const headersMain = new Map(this.state.files.main.headers.map(h => [h.index, h]));
+                const headersCompare = new Map(this.state.files.compare.headers.map(h => [h.index, h]));
+                
+                // 取得所有在 mapping 中被選到的欄位 (key: logicKey, value: {main: index, compare: index})
+                const mappedIndices = {};
+                for (const logicKey in this.state.mappings) {
+                    const map = this.state.mappings[logicKey];
+                    const headerMap = new Map(this.state.files.main.headers.map(h => [h.key, h]));
+                    const headerCompare = new Map(this.state.files.compare.headers.map(h => [h.key, h]));
+                    const mainIndices = Array.isArray(map.main) ? map.main.map(k => headerMap.get(k)?.index) : [headerMap.get(map.main)?.index];
+                    const compareIndices = Array.isArray(map.compare) ? map.compare.map(k => headerCompare.get(k)?.index) : [headerCompare.get(map.compare)?.index];
+                    
+                    // 只比較有對應的
+                    if (mainIndices.length > 0 && mainIndices.length === compareIndices.length) {
+                         for(let i=0; i < mainIndices.length; i++) {
+                            const mainIdx = mainIndices[i];
+                            const compIdx = compareIndices[i];
+                            if(mainIdx !== undefined && compIdx !== undefined) {
+                                // 用 main file 的 header name 當 key
+                                mappedIndices[headersMain.get(mainIdx).name] = { main: mainIdx, compare: compIdx };
+                            }
+                         }
+                    }
+                }
+                
+                let html = '<h3>檔案差異核對 (以檔案 1 為主)</h3>';
+                const changes = [];
+                const added = [];
+                const removed = [];
+
+                mainMap.forEach((mainRow, id) => {
+                    const compareRow = compareMap.get(id);
+                    const mainRaw = this.state.files.main.rawData[mainRow.__rowNum - 1];
+                    
+                    if (!compareRow) {
+                        removed.push(mainRow);
+                        return;
+                    }
+                    
+                    const compareRaw = this.state.files.compare.rawData[compareRow.__rowNum - 1];
+
+                    // 比較所有被 mapping 的欄位
+                    for (const headerName in mappedIndices) {
+                        const { main: mainIdx, compare: compareIdx } = mappedIndices[headerName];
+                        
+                        const valMain = mainRaw[mainIdx];
+                        const valCompare = compareRaw[compareIdx];
+                        
+                        // 簡單比較 (可優化)
+                        if (String(valMain || "") !== String(valCompare || "")) {
+                            changes.push(`
+                                <tr>
+                                    <td>${id}</td>
+                                    <td>${mainRow.employeeName}</td>
+                                    <td>${headerName}</td>
+                                    <td>${valMain || '空'}</td>
+                                    <td class="cell-diff">${valCompare || '空'}</td>
+                                </tr>
+                            `);
+                        }
+                    }
+                    compareMap.delete(id); // 從 compareMap 移除，剩下的是新增的
+                });
+
+                // 剩下的 compareMap 是新增的
+                compareMap.forEach(row => added.push(row));
+                
+                if (changes.length > 0) {
+                    html += '<h4>變動項目</h4>'
+                    html += '<table class="report-table"><thead><tr><th>代號</th><th>姓名</th><th>變動欄位</th><th>檔案 1 (舊)</th><th>檔案 2 (新)</th></tr></thead><tbody>'
+                    html += changes.join('');
+                    html += '</tbody></table>';
+                }
+                
+                if (added.length > 0) {
+                    html += '<h4 style="margin-top: 1.5rem;">新增項目 (存在於檔案 2，但不存在於檔案 1)</h4>'
+                    html += '<table class="report-table"><thead><tr><th>代號</th><th>姓名</th></tr></thead><tbody>'
+                    html += added.map(row => `<tr><td>${row.employeeId}</td><td>${row.employeeName}</td></tr>`).join('');
+                    html += '</tbody></table>';
+                }
+                
+                if (removed.length > 0) {
+                    html += '<h4 style="margin-top: 1.5rem;">移除項目 (存在於檔案 1，但不存在於檔案 2)</h4>'
+                    html += '<table class="report-table"><thead><tr><th>代號</th><th>姓名</th></tr></thead><tbody>'
+                    html += removed.map(row => `<tr><td>${row.employeeId}</td><td>${row.employeeName}</td></tr>`).join('');
+                    html += '</tbody></table>';
+                }
+                
+                if (changes.length === 0 && added.length === 0 && removed.length === 0) {
+                     html += '<p class="status-success">✓ 兩個檔案在所有已匹配欄位中的資料完全一致。</p>';
+                }
+
+                this.nodes.reportDiff.innerHTML = html;
+            },
+            
+            // 4d. 薪資加總計算
+            runCheck_Calculation() {
+                const data = this.state.files.main.data;
+                const idKey = 'employeeId';
+                const nameKey = 'employeeName';
+
+                // 先執行 1:1 檢查
+                const idToNames = new Map();
+                data.forEach(row => {
+                    const id = row[idKey];
+                    const name = row[nameKey];
+                    if (id && name) {
+                        if (!idToNames.has(id)) idToNames.set(id, new Set());
+                        idToNames.get(id).add(name);
+                    }
+                });
+                
+                const errors1to1 = Array.from(idToNames.entries()).filter(([id, names]) => names.size > 1);
+                
+                if (errors1to1.length > 0) {
+                    this.nodes.reportCalc.innerHTML = `<p class="error-message">錯誤：員工代號與姓名非 1:1，無法進行加總。請先至「核對報告」修正問題。</p>`;
+                    return;
+                }
+                
+                // 1:1 通過，建立 員工ID -> 姓名 的映射
+                const employeeNameMap = new Map();
+                data.forEach(row => {
+                    if (row[idKey] && row[nameKey]) {
+                        employeeNameMap.set(row[idKey], row[nameKey]);
+                    }
+                });
+
+                const employeeTotals = new Map();
+                const grandTotals = {
+                    netSum: 0,
+                    taxFreeOvertime: 0,
+                    incomeTax: 0,
+                    yearEndBonus: 0
+                };
+                
+                // 輔助函式：加總陣列中的數字
+                const sumArray = (arr) => (arr || []).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+                
+                data.forEach(row => {
+                    const id = row[idKey];
+                    if (!id) return; // 沒有 ID 的行跳過
+                    
+                    if (!employeeTotals.has(id)) {
+                        employeeTotals.set(id, {
+                            netSum: 0,
+                            taxFreeOvertime: 0,
+                            incomeTax: 0,
+                            yearEndBonus: 0
+                        });
+                    }
+                    
+                    const totals = employeeTotals.get(id);
+                    
+                    // 計算 (薪-自提+獎) 合計
+                    const salaries = row.salary || [];
+                    const contribs = row.selfContrib || [];
+                    const bonuses = row.bonus || [];
+                    
+                    let rowNetSum = 0;
+                    for (let i = 0; i < salaries.length; i++) {
+                        const s = parseFloat(salaries[i]) || 0;
+                        const c = parseFloat(contribs[i]) || 0;
+                        const b = parseFloat(bonuses[i]) || 0;
+                        rowNetSum += (s - c + b);
+                    }
+                    totals.netSum += rowNetSum;
+                    
+                    // 加總其他欄位
+                    totals.taxFreeOvertime += sumArray(row.taxFreeOvertime);
+                    totals.incomeTax += sumArray(row.incomeTax);
+                    totals.yearEndBonus += sumArray(row.yearEndBonus);
+                });
+
+                let html = '<h3>薪資加總計算報告</h3>';
+                html += '<table class="report-table"><thead><tr><th>員工代號</th><th>員工姓名</th><th>(薪-自提+獎) 合計</th><th>加班免稅額合計</th><th>所得稅合計</th><th>年終獎金合計</th></tr></thead><tbody>';
+                
+                // 格式化數字
+                const formatNum = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
+                employeeTotals.forEach((totals, id) => {
+                    html += `
+                        <tr>
+                            <td>${id}</td>
+                            <td>${employeeNameMap.get(id) || 'N/A'}</td>
+                            <td class="cell-total">${formatNum(totals.netSum)}</td>
+                            <td class="cell-total">${formatNum(totals.taxFreeOvertime)}</td>
+                            <td class="cell-total">${formatNum(totals.incomeTax)}</td>
+                            <td class="cell-total">${formatNum(totals.yearEndBonus)}</td>
+                        </tr>
+                    `;
+                    // 累加到總計
+                    grandTotals.netSum += totals.netSum;
+                    grandTotals.taxFreeOvertime += totals.taxFreeOvertime;
+                    grandTotals.incomeTax += totals.incomeTax;
+                    grandTotals.yearEndBonus += totals.yearEndBonus;
+                });
+                
+                // 總計列
+                html += `
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="cell-grand-total" colspan="2">全體總計</td>
+                            <td class="cell-grand-total">${formatNum(grandTotals.netSum)}</td>
+                            <td class="cell-grand-total">${formatNum(grandTotals.taxFreeOvertime)}</td>
+                            <td class="cell-grand-total">${formatNum(grandTotals.incomeTax)}</td>
+                            <td class="cell-grand-total">${formatNum(grandTotals.yearEndBonus)}</td>
+                        </tr>
+                    </tfoot>
+                    </table>
+                `;
+                
+                this.nodes.reportCalc.innerHTML = html;
+            },
+            
+            // --- 5. UI 輔助 ---
+            
+            handleTabClick(e) {
+                const target = e.target.closest('.tab-link');
+                if (!target) return;
+                
+                const tabId = target.dataset.tab;
+                this.showTab(tabId);
+            },
+            
+            showTab(tabId) {
+                this.nodes.tabLinks.forEach(link => {
+                    link.classList.toggle('active', link.dataset.tab === tabId);
+                });
+                this.nodes.tabContents.forEach(content => {
+                    content.classList.toggle('active', content.id === tabId);
+                });
+            }
+        };
+
+        // 啟動應用程式
+        App.init();
+
+    });
+    </script>
+
+</body>
+</html>
