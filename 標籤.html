@@ -1,5 +1,7 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,9 +23,12 @@
             --font-body: Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
 
             /* Sizing & Spacing */
-            --fs-display: clamp(2.5rem, 5vw, 3.5rem); /* 40px-56px */
-            --fs-h1: clamp(1.75rem, 4vw, 2rem);      /* 28px-32px */
-            --fs-body: 1rem;                         /* 16px */
+            --fs-display: clamp(2.5rem, 5vw, 3.5rem);
+            /* 40px-56px */
+            --fs-h1: clamp(1.75rem, 4vw, 2rem);
+            /* 28px-32px */
+            --fs-body: 1rem;
+            /* 16px */
             --line-height-display: 1.2;
             --line-height-body: 1.75;
             --grid-container: min(1200px, 92vw);
@@ -32,10 +37,10 @@
             --spacing-xl: 56px;
 
             /* Effects */
-            --shadow-soft: 0 6px 20px rgba(0,0,0,.07);
+            --shadow-soft: 0 6px 20px rgba(0, 0, 0, .07);
             --radius-md: 8px;
             --radius-lg: 16px;
-            
+
             /* Animation */
             --easing-emphasized: cubic-bezier(0.33, 1, 0.68, 1);
             --dur-stagger: 30ms;
@@ -44,7 +49,9 @@
             --dur-breathe: 800ms;
         }
 
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
@@ -74,12 +81,14 @@
             z-index: 100;
             transition: background-color var(--dur-medium) ease-out, box-shadow var(--dur-medium) ease-out;
         }
+
         .app-header.scrolled {
-            background: linear-gradient(180deg, var(--smoke) 0%, rgba(26,26,26,0.8) 70%, transparent 100%);
+            background: linear-gradient(180deg, var(--smoke) 0%, rgba(26, 26, 26, 0.8) 70%, transparent 100%);
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
             box-shadow: 0 1px 0 0 var(--mist-silver);
         }
+
         .header-content {
             width: var(--grid-container);
             margin: 0 auto;
@@ -90,9 +99,10 @@
         .main-container {
             width: var(--grid-container);
             margin: 0 auto;
-            padding-top: 120px; /* Space for header */
+            padding-top: 120px;
+            /* Space for header */
         }
-        
+
         .app-footer {
             width: var(--grid-container);
             margin: var(--spacing-xl) auto;
@@ -110,6 +120,7 @@
             margin-bottom: var(--spacing-xl);
             background: radial-gradient(circle, var(--cream) 0%, var(--ivory) 70%);
         }
+
         .hero-title {
             font-family: var(--font-display);
             font-size: var(--fs-display);
@@ -117,14 +128,19 @@
             color: var(--ink-black);
             margin-bottom: var(--spacing-md);
         }
+
         .hero-title .char {
             display: inline-block;
             opacity: 0;
             transform: translateY(20px);
             animation: letter-reveal var(--dur-breathe) var(--easing-emphasized) forwards;
         }
+
         @keyframes letter-reveal {
-            to { opacity: 1; transform: translateY(0); }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .hero-subtitle {
@@ -132,8 +148,11 @@
             opacity: 0;
             animation: fade-in 1s ease 0.6s forwards;
         }
+
         @keyframes fade-in {
-            to { opacity: 1; }
+            to {
+                opacity: 1;
+            }
         }
 
         .block-split {
@@ -154,7 +173,7 @@
             flex-direction: column;
             gap: var(--spacing-lg);
         }
-        
+
         .form-group {
             display: flex;
             flex-direction: column;
@@ -166,8 +185,9 @@
             margin-bottom: 8px;
             font-family: var(--font-display);
         }
-        
-        .form-input, .form-textarea {
+
+        .form-input,
+        .form-textarea {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--mist-silver);
@@ -177,12 +197,14 @@
             font-size: var(--fs-body);
             transition: border-color var(--dur-short), box-shadow var(--dur-short);
         }
-        .form-input:focus, .form-textarea:focus {
+
+        .form-input:focus,
+        .form-textarea:focus {
             outline: none;
             border-color: var(--rose-gold);
             box-shadow: 0 0 0 2px rgba(199, 162, 124, 0.3);
         }
-        
+
         .form-textarea {
             min-height: 150px;
             resize: vertical;
@@ -211,17 +233,18 @@
             transform: scale(1.02);
             color: var(--ink-black);
         }
-        
+
         .btn-primary {
             background-color: var(--smoke);
             color: var(--ivory);
             border-color: var(--smoke);
         }
+
         .btn-primary:hover {
             background-color: var(--ink-black);
             color: var(--ivory);
         }
-        
+
         /* Modal for errors */
         .modal-overlay {
             position: fixed;
@@ -229,7 +252,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -238,10 +261,12 @@
             visibility: hidden;
             transition: opacity var(--dur-medium), visibility var(--dur-medium);
         }
+
         .modal-overlay.visible {
             opacity: 1;
             visibility: visible;
         }
+
         .modal-content {
             background-color: var(--cream);
             padding: var(--spacing-lg);
@@ -253,9 +278,11 @@
             transform: scale(0.9);
             transition: transform var(--dur-medium) var(--easing-emphasized);
         }
+
         .modal-overlay.visible .modal-content {
             transform: scale(1);
         }
+
         .modal-content p {
             margin-bottom: var(--spacing-lg);
             color: var(--ink-black);
@@ -267,12 +294,14 @@
             opacity: 0;
             transform: translateY(20px);
             transition: opacity var(--dur-breathe) var(--easing-emphasized), transform var(--dur-breathe) var(--easing-emphasized);
-            display: none; /* Hide until there is content */
+            display: none;
+            /* Hide until there is content */
         }
+
         #preview-container.visible {
-             opacity: 1;
-             transform: translateY(0);
-             display: block;
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
         }
 
         .preview-title {
@@ -290,7 +319,7 @@
             height: 29.7cm;
             padding: 1cm;
             margin: 1cm auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
@@ -308,7 +337,7 @@
             justify-content: center;
             text-align: center;
         }
-        
+
         .label-title {
             font-size: 14pt;
             font-weight: normal;
@@ -325,12 +354,19 @@
             body {
                 background-color: #fff;
             }
-            .app-header, .app-footer, .block-hero, .block-split, .preview-title {
+
+            .app-header,
+            .app-footer,
+            .block-hero,
+            .block-split,
+            .preview-title {
                 display: none !important;
             }
+
             .main-container {
                 padding-top: 0;
             }
+
             #preview-container {
                 margin: 0;
                 padding: 0;
@@ -338,6 +374,7 @@
                 transform: none;
                 display: block !important;
             }
+
             .a4-page {
                 box-shadow: none;
                 margin: 0;
@@ -345,12 +382,14 @@
                 height: auto;
                 page-break-after: always;
             }
+
             .label-box {
                 border: 1px solid #000;
             }
         }
     </style>
 </head>
+
 <body>
 
     <header class="app-header" id="appHeader">
@@ -372,7 +411,8 @@
                 <div>
                     <div class="form-group">
                         <label for="customerNameList">1. 客戶姓名列表 (CustomerNameList)</label>
-                        <textarea id="customerNameList" class="form-textarea" placeholder="請輸入姓名，以逗號 (,) 或換行分隔..."></textarea>
+                        <textarea id="customerNameList" class="form-textarea"
+                            placeholder="請輸入姓名，以逗號 (,) 或換行分隔..."></textarea>
                     </div>
                 </div>
                 <div>
@@ -392,7 +432,7 @@
                             <input type="number" id="endIndex" class="form-input" placeholder="結束序號 (EndIndex)">
                         </div>
                     </div>
-                     <div class="button-group">
+                    <div class="button-group">
                         <button id="btnGenerateRange" class="btn">自定義預覽</button>
                     </div>
                 </div>
@@ -407,8 +447,8 @@
         </section>
 
         <section id="preview-container">
-             <h2 id="previewTitle" class="preview-title"></h2>
-             <div id="previewOutput"></div>
+            <h2 id="previewTitle" class="preview-title"></h2>
+            <div id="previewOutput"></div>
         </section>
 
     </main>
@@ -427,177 +467,178 @@
 
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- Speckit UI Enhancements ---
-        const appHeader = document.getElementById('appHeader');
-        const heroTitle = document.getElementById('heroTitle');
-        
-        // Header scroll effect
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 48) {
-                appHeader.classList.add('scrolled');
-            } else {
-                appHeader.classList.remove('scrolled');
-            }
-        });
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Speckit UI Enhancements ---
+            const appHeader = document.getElementById('appHeader');
+            const heroTitle = document.getElementById('heroTitle');
 
-        // Hero title letter animation
-        const titleText = heroTitle.textContent;
-        heroTitle.innerHTML = titleText.split('').map((char, i) => 
-            `<span class="char" style="animation-delay: ${i * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dur-stagger') || '30')}ms">${char}</span>`
-        ).join('');
-
-        // MODIFICATION: The IntersectionObserver script that caused the issue has been removed.
-
-        // --- App Functionality ---
-        
-        // DOM Elements
-        const customerNameListInput = document.getElementById('customerNameList');
-        const printTitleStaticInput = document.getElementById('printTitleStatic');
-        const startIndexInput = document.getElementById('startIndex');
-        const endIndexInput = document.getElementById('endIndex');
-        
-        const btnGenerateAll = document.getElementById('btnGenerateAll');
-        const btnGenerateRange = document.getElementById('btnGenerateRange');
-
-        const previewContainer = document.getElementById('preview-container');
-        const previewTitle = document.getElementById('previewTitle');
-        const previewOutput = document.getElementById('previewOutput');
-        
-        const errorModal = document.getElementById('errorModal');
-        const errorMessage = document.getElementById('errorMessage');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-
-        // Event Listeners
-        btnGenerateAll.addEventListener('click', handleGenerateAll);
-        btnGenerateRange.addEventListener('click', handleGenerateRange);
-        closeModalBtn.addEventListener('click', hideError);
-        errorModal.addEventListener('click', (e) => {
-            if (e.target === errorModal) hideError();
-        });
-
-        // --- Core Logic ---
-
-        function showError(message, fieldsToClear = []) {
-            errorMessage.textContent = message;
-            errorModal.classList.add('visible');
-            fieldsToClear.forEach(field => field.value = '');
-        }
-
-        function hideError() {
-            errorModal.classList.remove('visible');
-        }
-
-        // P1 & P2: Data cleaning, numbering, and sorting
-        function parseAndNumberNames(nameString) {
-            if (!nameString.trim()) return [];
-            
-            return nameString
-                .split(/[\n,]+/) // Split by newline or comma
-                .map(name => name.trim()) // Trim whitespace
-                .filter(name => name.length > 0) // Filter out empty entries
-                .map((name, index) => ({ id: index + 1, name: name })); // Assign 1-based index
-        }
-
-        function handleGenerateAll() {
-            const numberedCustomers = parseAndNumberNames(customerNameListInput.value);
-            const staticTitle = printTitleStaticInput.value.trim();
-
-            if (numberedCustomers.length === 0) {
-                showError('請輸入至少一位客戶姓名。', [customerNameListInput]);
-                return;
-            }
-            if (!staticTitle) {
-                showError('請輸入第二塊標題。', [printTitleStaticInput]);
-                return;
-            }
-
-            generatePreview(numberedCustomers, staticTitle);
-        }
-
-        function handleGenerateRange() {
-            const numberedCustomers = parseAndNumberNames(customerNameListInput.value);
-            const staticTitle = printTitleStaticInput.value.trim();
-            
-            const start = parseInt(startIndexInput.value, 10);
-            const end = parseInt(endIndexInput.value, 10);
-
-            // B1: Error Checking
-            if (numberedCustomers.length === 0) {
-                showError('客戶列表為空，無法進行範圍篩選。', [customerNameListInput]);
-                return;
-            }
-            if (!staticTitle) {
-                showError('請輸入第二塊標題。', [printTitleStaticInput]);
-                return;
-            }
-            if (isNaN(start) || isNaN(end) || start < 1 || start > end || end > numberedCustomers.length) {
-                showError(`序號範圍無效。有效範圍應為 1 至 ${numberedCustomers.length} 之間，且起始序號需小於或等於結束序號。`, [startIndexInput, endIndexInput]);
-                return;
-            }
-
-            // B2 & B3: Data Filtering & Sorting (sorting is maintained)
-            const printData = numberedCustomers.filter(customer => customer.id >= start && customer.id <= end);
-            
-            if (printData.length > 0) {
-                generatePreview(printData, staticTitle);
-            } else {
-                showError('在指定範圍內未找到任何客戶。', [startIndexInput, endIndexInput]);
-            }
-        }
-
-        // S6: Layout and Preview Generation
-        function generatePreview(printData, staticTitle) {
-            previewOutput.innerHTML = ''; // Clear previous results
-            
-            if (printData.length === 0) {
-                previewContainer.classList.remove('visible');
-                return;
-            }
-
-            // S6-1: Title Generation
-            const finalTitle = `${staticTitle} - ${printData[0].name}`;
-            previewTitle.textContent = "預覽結果";
-
-            const LABELS_PER_PAGE = 4; // 1 column * 4 rows for 15x6cm labels on A4
-            let currentPage = null;
-            let labelCountOnPage = 0;
-
-            // S6-2: Label Generation
-            printData.forEach(customer => {
-                // Each customer gets TWO labels
-                for (let i = 0; i < 2; i++) {
-                    if (labelCountOnPage % LABELS_PER_PAGE === 0) {
-                        currentPage = document.createElement('div');
-                        currentPage.className = 'a4-page';
-                        previewOutput.appendChild(currentPage);
-                        labelCountOnPage = 0; // Reset for the new page
-                    }
-
-                    const labelBox = document.createElement('div');
-                    labelBox.className = 'label-box';
-
-                    // S6-3: Fill Content
-                    const titleElement = document.createElement('div');
-                    titleElement.className = 'label-title';
-                    titleElement.textContent = finalTitle;
-
-                    const nameElement = document.createElement('div');
-                    nameElement.className = 'label-name';
-                    nameElement.textContent = customer.name;
-
-                    labelBox.appendChild(titleElement);
-                    labelBox.appendChild(nameElement);
-                    currentPage.appendChild(labelBox);
-                    labelCountOnPage++;
+            // Header scroll effect
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 48) {
+                    appHeader.classList.add('scrolled');
+                } else {
+                    appHeader.classList.remove('scrolled');
                 }
             });
 
-            // S6-4: Display Preview
-            previewContainer.classList.add('visible');
-            previewContainer.scrollIntoView({ behavior: 'smooth' });
-        }
-    });
+            // Hero title letter animation
+            const titleText = heroTitle.textContent;
+            heroTitle.innerHTML = titleText.split('').map((char, i) =>
+                `<span class="char" style="animation-delay: ${i * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dur-stagger') || '30')}ms">${char}</span>`
+            ).join('');
+
+            // MODIFICATION: The IntersectionObserver script that caused the issue has been removed.
+
+            // --- App Functionality ---
+
+            // DOM Elements
+            const customerNameListInput = document.getElementById('customerNameList');
+            const printTitleStaticInput = document.getElementById('printTitleStatic');
+            const startIndexInput = document.getElementById('startIndex');
+            const endIndexInput = document.getElementById('endIndex');
+
+            const btnGenerateAll = document.getElementById('btnGenerateAll');
+            const btnGenerateRange = document.getElementById('btnGenerateRange');
+
+            const previewContainer = document.getElementById('preview-container');
+            const previewTitle = document.getElementById('previewTitle');
+            const previewOutput = document.getElementById('previewOutput');
+
+            const errorModal = document.getElementById('errorModal');
+            const errorMessage = document.getElementById('errorMessage');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+
+            // Event Listeners
+            btnGenerateAll.addEventListener('click', handleGenerateAll);
+            btnGenerateRange.addEventListener('click', handleGenerateRange);
+            closeModalBtn.addEventListener('click', hideError);
+            errorModal.addEventListener('click', (e) => {
+                if (e.target === errorModal) hideError();
+            });
+
+            // --- Core Logic ---
+
+            function showError(message, fieldsToClear = []) {
+                errorMessage.textContent = message;
+                errorModal.classList.add('visible');
+                fieldsToClear.forEach(field => field.value = '');
+            }
+
+            function hideError() {
+                errorModal.classList.remove('visible');
+            }
+
+            // P1 & P2: Data cleaning, numbering, and sorting
+            function parseAndNumberNames(nameString) {
+                if (!nameString.trim()) return [];
+
+                return nameString
+                    .split(/[\n,]+/) // Split by newline or comma
+                    .map(name => name.trim()) // Trim whitespace
+                    .filter(name => name.length > 0) // Filter out empty entries
+                    .map((name, index) => ({ id: index + 1, name: name })); // Assign 1-based index
+            }
+
+            function handleGenerateAll() {
+                const numberedCustomers = parseAndNumberNames(customerNameListInput.value);
+                const staticTitle = printTitleStaticInput.value.trim();
+
+                if (numberedCustomers.length === 0) {
+                    showError('請輸入至少一位客戶姓名。', [customerNameListInput]);
+                    return;
+                }
+                if (!staticTitle) {
+                    showError('請輸入第二塊標題。', [printTitleStaticInput]);
+                    return;
+                }
+
+                generatePreview(numberedCustomers, staticTitle);
+            }
+
+            function handleGenerateRange() {
+                const numberedCustomers = parseAndNumberNames(customerNameListInput.value);
+                const staticTitle = printTitleStaticInput.value.trim();
+
+                const start = parseInt(startIndexInput.value, 10);
+                const end = parseInt(endIndexInput.value, 10);
+
+                // B1: Error Checking
+                if (numberedCustomers.length === 0) {
+                    showError('客戶列表為空，無法進行範圍篩選。', [customerNameListInput]);
+                    return;
+                }
+                if (!staticTitle) {
+                    showError('請輸入第二塊標題。', [printTitleStaticInput]);
+                    return;
+                }
+                if (isNaN(start) || isNaN(end) || start < 1 || start > end || end > numberedCustomers.length) {
+                    showError(`序號範圍無效。有效範圍應為 1 至 ${numberedCustomers.length} 之間，且起始序號需小於或等於結束序號。`, [startIndexInput, endIndexInput]);
+                    return;
+                }
+
+                // B2 & B3: Data Filtering & Sorting (sorting is maintained)
+                const printData = numberedCustomers.filter(customer => customer.id >= start && customer.id <= end);
+
+                if (printData.length > 0) {
+                    generatePreview(printData, staticTitle);
+                } else {
+                    showError('在指定範圍內未找到任何客戶。', [startIndexInput, endIndexInput]);
+                }
+            }
+
+            // S6: Layout and Preview Generation
+            function generatePreview(printData, staticTitle) {
+                previewOutput.innerHTML = ''; // Clear previous results
+
+                if (printData.length === 0) {
+                    previewContainer.classList.remove('visible');
+                    return;
+                }
+
+                // S6-1: Title Generation
+                const finalTitle = staticTitle; // 只使用第二塊標題，不加客戶名稱
+                previewTitle.textContent = "預覽結果";
+
+                const LABELS_PER_PAGE = 4; // 1 column * 4 rows for 15x6cm labels on A4
+                let currentPage = null;
+                let labelCountOnPage = 0;
+
+                // S6-2: Label Generation
+                printData.forEach(customer => {
+                    // Each customer gets TWO labels
+                    for (let i = 0; i < 2; i++) {
+                        if (labelCountOnPage % LABELS_PER_PAGE === 0) {
+                            currentPage = document.createElement('div');
+                            currentPage.className = 'a4-page';
+                            previewOutput.appendChild(currentPage);
+                            labelCountOnPage = 0; // Reset for the new page
+                        }
+
+                        const labelBox = document.createElement('div');
+                        labelBox.className = 'label-box';
+
+                        // S6-3: Fill Content
+                        const titleElement = document.createElement('div');
+                        titleElement.className = 'label-title';
+                        titleElement.textContent = finalTitle;
+
+                        const nameElement = document.createElement('div');
+                        nameElement.className = 'label-name';
+                        nameElement.textContent = customer.name;
+
+                        labelBox.appendChild(titleElement);
+                        labelBox.appendChild(nameElement);
+                        currentPage.appendChild(labelBox);
+                        labelCountOnPage++;
+                    }
+                });
+
+                // S6-4: Display Preview
+                previewContainer.classList.add('visible');
+                previewContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
     </script>
 </body>
+
 </html>
