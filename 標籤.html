@@ -349,6 +349,86 @@
             margin-top: 8px;
         }
 
+        /* Custom Selection Styles */
+        .customer-selection-container {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-lg);
+            background-color: var(--ivory);
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-md);
+            display: none;
+        }
+
+        .customer-selection-container.visible {
+            display: block;
+        }
+
+        .customer-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .customer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: var(--cream);
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--dur-short);
+        }
+
+        .customer-item:hover {
+            background-color: var(--rose-gold);
+            color: var(--ivory);
+        }
+
+        .customer-item.selected {
+            background-color: var(--smoke);
+            color: var(--ivory);
+            border-color: var(--smoke);
+        }
+
+        .customer-checkbox {
+            margin-right: 8px;
+        }
+
+        .customer-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .customer-number {
+            font-size: 0.8rem;
+            color: var(--soft-gray);
+        }
+
+        .customer-item.selected .customer-number {
+            color: var(--mist-silver);
+        }
+
+        .selection-controls {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background-color: var(--rose-gold);
+            color: var(--ivory);
+            border-color: var(--rose-gold);
+        }
+
+        .btn-secondary:hover {
+            background-color: #B8956A;
+            color: var(--ivory);
+        }
+
         /* Speckit Print Styles */
         @media print {
             body {
@@ -359,7 +439,8 @@
             .app-footer,
             .block-hero,
             .block-split,
-            .preview-title {
+            .preview-title,
+            .customer-selection-container {
                 display: none !important;
             }
 
@@ -427,13 +508,12 @@
                 <div>
                     <div class="form-group">
                         <label>3. 自定義選擇 (獨立模式)</label>
-                        <div style="display: flex; gap: 16px;">
-                            <input type="number" id="startIndex" class="form-input" placeholder="起始序號 (StartIndex)">
-                            <input type="number" id="endIndex" class="form-input" placeholder="結束序號 (EndIndex)">
-                        </div>
+                        <p style="font-size: 0.9rem; color: var(--soft-gray); margin-bottom: 12px;">
+                            先輸入客戶姓名列表和標題，然後點擊「建立選擇列表」來選擇特定客戶進行列印
+                        </p>
                     </div>
                     <div class="button-group">
-                        <button id="btnGenerateRange" class="btn">自定義預覽</button>
+                        <button id="btnCreateSelection" class="btn btn-secondary">建立選擇列表</button>
                     </div>
                 </div>
             </div>
@@ -443,6 +523,22 @@
                 <p>點擊生成按鈕後，符合列印標準的 A4 預覽將顯示於下方。</p>
                 <p>每個客戶姓名將生成兩份相同的 $15 \text{ cm} \times 6 \text{ cm}$ 標籤。</p>
                 <p>一頁 A4 最多可容納 4 個標籤。</p>
+            </div>
+        </section>
+
+        <!-- Customer Selection Container -->
+        <section class="customer-selection-container" id="customerSelectionContainer">
+            <h3 style="font-family: var(--font-display); color: var(--ink-black); margin-bottom: var(--spacing-md);">
+                客戶選擇列表
+            </h3>
+            <p style="color: var(--soft-gray); margin-bottom: var(--spacing-md);">
+                請選擇要列印標籤的客戶（可多選）：
+            </p>
+            <div id="customerList" class="customer-list"></div>
+            <div class="selection-controls">
+                <button id="btnSelectAll" class="btn">全選</button>
+                <button id="btnDeselectAll" class="btn">取消全選</button>
+                <button id="btnPrintSelected" class="btn btn-primary">列印選中客戶</button>
             </div>
         </section>
 
@@ -494,11 +590,16 @@
             // DOM Elements
             const customerNameListInput = document.getElementById('customerNameList');
             const printTitleStaticInput = document.getElementById('printTitleStatic');
-            const startIndexInput = document.getElementById('startIndex');
-            const endIndexInput = document.getElementById('endIndex');
 
             const btnGenerateAll = document.getElementById('btnGenerateAll');
-            const btnGenerateRange = document.getElementById('btnGenerateRange');
+            const btnCreateSelection = document.getElementById('btnCreateSelection');
+
+            // Customer Selection Elements
+            const customerSelectionContainer = document.getElementById('customerSelectionContainer');
+            const customerList = document.getElementById('customerList');
+            const btnSelectAll = document.getElementById('btnSelectAll');
+            const btnDeselectAll = document.getElementById('btnDeselectAll');
+            const btnPrintSelected = document.getElementById('btnPrintSelected');
 
             const previewContainer = document.getElementById('preview-container');
             const previewTitle = document.getElementById('previewTitle');
@@ -508,9 +609,16 @@
             const errorMessage = document.getElementById('errorMessage');
             const closeModalBtn = document.getElementById('closeModalBtn');
 
+            // Global variables for customer selection
+            let allCustomers = [];
+            let selectedCustomers = new Set();
+
             // Event Listeners
             btnGenerateAll.addEventListener('click', handleGenerateAll);
-            btnGenerateRange.addEventListener('click', handleGenerateRange);
+            btnCreateSelection.addEventListener('click', handleCreateSelection);
+            btnSelectAll.addEventListener('click', handleSelectAll);
+            btnDeselectAll.addEventListener('click', handleDeselectAll);
+            btnPrintSelected.addEventListener('click', handlePrintSelected);
             closeModalBtn.addEventListener('click', hideError);
             errorModal.addEventListener('click', (e) => {
                 if (e.target === errorModal) hideError();
@@ -555,35 +663,111 @@
                 generatePreview(numberedCustomers, staticTitle);
             }
 
-            function handleGenerateRange() {
+            // New Custom Selection Functions
+            function handleCreateSelection() {
                 const numberedCustomers = parseAndNumberNames(customerNameListInput.value);
                 const staticTitle = printTitleStaticInput.value.trim();
 
-                const start = parseInt(startIndexInput.value, 10);
-                const end = parseInt(endIndexInput.value, 10);
-
-                // B1: Error Checking
                 if (numberedCustomers.length === 0) {
-                    showError('客戶列表為空，無法進行範圍篩選。', [customerNameListInput]);
+                    showError('請先輸入客戶姓名列表。', [customerNameListInput]);
                     return;
                 }
                 if (!staticTitle) {
-                    showError('請輸入第二塊標題。', [printTitleStaticInput]);
-                    return;
-                }
-                if (isNaN(start) || isNaN(end) || start < 1 || start > end || end > numberedCustomers.length) {
-                    showError(`序號範圍無效。有效範圍應為 1 至 ${numberedCustomers.length} 之間，且起始序號需小於或等於結束序號。`, [startIndexInput, endIndexInput]);
+                    showError('請先輸入第二塊標題。', [printTitleStaticInput]);
                     return;
                 }
 
-                // B2 & B3: Data Filtering & Sorting (sorting is maintained)
-                const printData = numberedCustomers.filter(customer => customer.id >= start && customer.id <= end);
+                // Store customers globally
+                allCustomers = numberedCustomers;
+                selectedCustomers.clear();
 
-                if (printData.length > 0) {
-                    generatePreview(printData, staticTitle);
+                // Create customer selection list
+                createCustomerSelectionList(numberedCustomers);
+
+                // Show selection container
+                customerSelectionContainer.classList.add('visible');
+                customerSelectionContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function createCustomerSelectionList(customers) {
+                customerList.innerHTML = '';
+
+                customers.forEach(customer => {
+                    const customerItem = document.createElement('div');
+                    customerItem.className = 'customer-item';
+                    customerItem.dataset.customerId = customer.id;
+
+                    customerItem.innerHTML = `
+                        <input type="checkbox" class="customer-checkbox" id="customer-${customer.id}">
+                        <div class="customer-info">
+                            <div>${customer.name}</div>
+                            <div class="customer-number">編號: ${customer.id}</div>
+                        </div>
+                    `;
+
+                    // Add click event
+                    customerItem.addEventListener('click', (e) => {
+                        if (e.target.type !== 'checkbox') {
+                            const checkbox = customerItem.querySelector('.customer-checkbox');
+                            checkbox.checked = !checkbox.checked;
+                        }
+                        toggleCustomerSelection(customer.id, customerItem);
+                    });
+
+                    // Add checkbox change event
+                    const checkbox = customerItem.querySelector('.customer-checkbox');
+                    checkbox.addEventListener('change', () => {
+                        toggleCustomerSelection(customer.id, customerItem);
+                    });
+
+                    customerList.appendChild(customerItem);
+                });
+            }
+
+            function toggleCustomerSelection(customerId, customerItem) {
+                const checkbox = customerItem.querySelector('.customer-checkbox');
+
+                if (checkbox.checked) {
+                    selectedCustomers.add(customerId);
+                    customerItem.classList.add('selected');
                 } else {
-                    showError('在指定範圍內未找到任何客戶。', [startIndexInput, endIndexInput]);
+                    selectedCustomers.delete(customerId);
+                    customerItem.classList.remove('selected');
                 }
+            }
+
+            function handleSelectAll() {
+                allCustomers.forEach(customer => {
+                    selectedCustomers.add(customer.id);
+                    const customerItem = customerList.querySelector(`[data-customer-id="${customer.id}"]`);
+                    const checkbox = customerItem.querySelector('.customer-checkbox');
+                    checkbox.checked = true;
+                    customerItem.classList.add('selected');
+                });
+            }
+
+            function handleDeselectAll() {
+                selectedCustomers.clear();
+                const customerItems = customerList.querySelectorAll('.customer-item');
+                customerItems.forEach(item => {
+                    const checkbox = item.querySelector('.customer-checkbox');
+                    checkbox.checked = false;
+                    item.classList.remove('selected');
+                });
+            }
+
+            function handlePrintSelected() {
+                if (selectedCustomers.size === 0) {
+                    showError('請至少選擇一位客戶進行列印。');
+                    return;
+                }
+
+                const staticTitle = printTitleStaticInput.value.trim();
+                const selectedCustomerData = allCustomers.filter(customer =>
+                    selectedCustomers.has(customer.id)
+                );
+
+                generatePreview(selectedCustomerData, staticTitle);
             }
 
             // S6: Layout and Preview Generation
