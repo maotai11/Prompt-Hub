@@ -1,255 +1,160 @@
 /speckit.constitution 目標：交付一個完全離線、單一 HTML 檔即可使用的應用殼（含資料/版本/附件/回收桶/匯出匯入），嚴禁外部連結/CDN；所有資源內嵌或以系統字型堆疊替代。 設計原則：
 
 美學：冷靜奢華 × 光影留白 × 動態呼吸感。雜誌式網格（Magazine Grid） + 柔和交錯留白；Hero 採「靜態影像 + 輕動態文字（0.3s 字母延遲）」。
-
 互動節奏：滾動與進場動效以0.6–1.0s的呼吸節奏；Hover 文字102% 輕放大、霧灰→純黑。
-
 可攜與私有：無網路開啟即用；不蒐集、不外呼；資料完全本地。
 
 相容與可用性：近兩年 Chrome/Edge/Firefox/Safari（file:// 首選）；IndexedDB 優先，localStorage 回退（附件停用）；鍵盤可達與可列印。
-
 可維護性：設計代碼化（Design Tokens） + 版型模組化（Editorial Blocks），同時約束排版、色彩、動效。 驗收：
 
 離線飛航模式下，自檔案系統雙擊開啟可完成 CRUD、版本、回收桶、附件（若 IndexedDB 可用）、匯出/匯入與列印。
-
 UI 符合本規範之色彩/字體/網格/動效；滾動節奏與 Hero 動態達標。
 
 
 /speckit.specify 功能範圍（應用殼保持通用，可日後套入特定領域）：
 
 模型：
-
 items: {id, title, content, tags[], createdAt, updatedAt, attachmentIds[]}
-
 versions: {versionId, itemId, title, content, tags[], createdAtTS, reason}
-
 attachments（IndexedDB 模式）: {attachmentId, itemId, name, type, size, blob}
 
 trash: 軟刪除 items（可還原/永久刪）
 
-
 能力：清單/搜尋、編輯器、附件上傳/下載（拖放）、版本時間軸（回滾/刪版）、回收桶（還原/清除）、JSON 匯出/匯入（可選內嵌附件 Base64）、列印友善。
 
 非功能性：
-
-單檔 ≤ 2MB（不嵌字型）；TTI ≤ 1s；互動 < 100ms；無 eval。
+TTI ≤ 1s；互動 < 100ms；無 eval。
 
 file:// 模式下運作；若降級 localStorage，提示附件不可用。
 
 
 UI/UX 規格（方向三 Hybrid）：
-
 色彩（Design Tokens）：
-
 --ink-black: #000000（Vogue 主字色）
-
 --ivory: #F8F8F6（象牙白背景）
-
 --rose-gold: #C7A27C（Bazaar 玫瑰金點綴）
-
 --smoke: #1A1A1A（煙黑面）
-
 --mist-silver: #C0C4C9（霧銀分隔/描邊）
-
 --cream: #FAF7F2（奶油白過渡）
-
 --soft-gray: #6B7280（正文次要）
 
 
 字體堆疊（不嵌字型；以系統/常見字型回退）：
-
 標題："Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif
-
 正文：Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif
 
 
 排版與網格：
-
 Magazine Grid：容器寬 min(1200px, 92vw)；基線 8px；欄距 24–32px；Hero 全幅，內容模組採左右錯位交錯（圖左文右/文左圖右）。
-
 留白：段落上下 16–32px；模組上下 56–72px；關鍵模組周邊使用奶油白/象牙白過渡帶。
 
 
 組件/區塊：
-
 Header：固定透明；滾動 48px 後以柔黑漸層（smoke→透明）出現；下方細霧銀分隔線。
-
 Hero：靜態影像（可本地放置或用漸層光掃背景） + 字母階梯延遲 0.3s；副標 0.6s 漸顯。
-
 Editorial Blocks：交錯圖文、引言區（左側垂直分割線）、黑白/柔光過渡以塑造「翻頁」感。
-
 Footer：精簡、細分隔線、小字版權。
 
 
 動效：
-
 進場/滾動：duration 0.6–1.0s, easing: cubic-bezier(0.33, 1, 0.68, 1)；IntersectionObserver 驅動。
-
 Hover：文字 scale(1.02) + color 由霧灰→純黑，200ms。
-
 背景光影：Gradient Sweep 緩慢左右/對角掃動（Hero/章節過場）。
 
 
 可存取性：
-
 鍵盤序（Header→Hero→清單→編輯器）；焦點可見（霧銀外框 + 玫瑰金投影 1px）。
-
 對比 AA；語意標籤與 ARIA。
 
 
 列印：
-
 僅輸出詳情內容；隱藏 Header/清單/動效；文字黑色、紙白背景，分隔線改細灰。
 
 
 
 
 成功標準：
-
 視覺：符合色彩/字體/網格/動效規範；Hero 字母延遲明顯但不干擾。
-
 互動：滾動節奏流暢；Hover 102% 視覺反饋；交錯模組翻頁感成立。
-
 功能：資料留存/回滾/回收桶/歷史刪除可用；匯出/匯入成功；列印乾淨。
 
 
 /speckit.plan 技術與架構：
-
 執行模式：file:// 單檔為主；IndexedDB 優先、localStorage 回退（附件停用）。
-
 前端：原生 HTML/CSS/JS，無外部依賴。動效以 CSS + IntersectionObserver，避免大型庫。
 
 模組分層（單檔內邏輯分區）：
-
 1. Design Tokens（:root 變數）→ 色彩、字級、陰影、半徑、動效參數
-
-
 2. Layout（Header/Hero/Grid/Footer）
-
-
 3. Editorial Blocks（交錯圖文/引言）
-
-
 4. App Shell（清單、編輯器、版本抽屜、回收桶對話框）
-
-
 5. Data Layer（IDB/LS 抽象；版本與附件管理）
-
-
 6. Import/Export（JSON；可選 Base64 附件）
-
-
 7. Print Styles（@media print）
 
 
 
 動效規畫：
-
 --easing-emphasized: cubic-bezier(0.33,1,0.68,1)
-
 --dur-stagger: 300ms（Hero 字母）
-
 --dur-breathe-min: 600ms / --dur-breathe-max: 1000ms（滾動進場）
-
 Gradient Sweep：background: conic-gradient(...) + background-position/opacity 漸變 或 CSS 動畫。
 
 
 資料策略：
-
-版本上限預設 50/項（FIFO）；可在設定中調整。
-
 匯出：{meta, items, versions, trash, attachmentsMeta, attachments?}；可選 Base64 內嵌。
 
 匯入：覆蓋/合併雙模式 + 事前試算。
-
-
 相容與回退：
-
 檢測 IndexedDB；若不可用 → 顯示提示並降級（附件停用）。
-
 舊 Edge 可用性盡量；IE 不支援。
 
 
 測試與驗收：
-
 手動檢測單（離線 CRUD、版本回滾/刪版、回收桶還原/清除、附件上傳/下載、匯出/匯入、列印）。
-
 視覺驗收：Hero 字母延遲、Header 漸層出現、交錯模組翻頁過渡、Hover 102%。
 
 
 版面套件（不寫程式庫，僅版型約定）：
-
 block-hero, block-quote, block-split（圖文交錯）, block-divider（柔光過渡）——可在內容區重複使用，未來套入特定領域即可替換文案/影像。
 
 
 /speckit.analyze 一致性檢核：
-
 美學到程式落地：以 Tokens 控制色彩/字級/動效；Magazine Grid 與 Editorial Blocks 對應到具體 CSS 區塊；符合方向三敘述。
-
 Hero 與動效節奏：字母 0.3s 階梯、滾動 0.6–1.0s、Hover 102% 已明確化；以原生 API 可實作。
-
 離線與大容量：IndexedDB 支援大量資料與 Blob；localStorage 回退策略完整；附件回退停用並提示。
-
 列印友善：專用 @media print；輸出詳情視圖；黑白對比。 風險與對策：
-
 字型差異（未嵌）→ 以多重堆疊與字級/行高保守設定確保風格趨近一致。
-
 超大附件導致匯出檔膨脹 → Base64 選項預設關；提供警示。
-
 舊版瀏覽器 IndexedDB 兼容性 → 啟動檢測 + 清晰回退提示。 後續可定制點：
-
-一鍵切換「Vogue 主題」與「Bazaar 主題」：僅切 Tokens（色彩/陰影/分隔線）與部分動效參數即可。
 
 
 /speckit.implement 產出物與任務（不含程式碼；待您下達 /speckit.implement code 我再生成單一 app.html）：
-
 檔案：app.html（單檔、內嵌 CSS/JS/SVG）
 
 區塊結構：
-
 1. <header>（透明→柔黑漸層 on scroll）
-
-
 2. block-hero（靜態影像位/或漸層光掃 + 標題字母延遲 0.3s）
-
-
 3. block-split × N（交錯圖文；黑白/柔光過渡）
-
-
 4. App Shell（清單/搜尋、編輯器、版本抽屜、回收桶對話框、匯入匯出）
-
-
 5. <footer>（細分隔線）
-
-
 6. @media print（僅詳情）
 
 
 
 Design Tokens（:root）：
-
 顏色：--ink-black #000 --ivory #F8F8F6 --rose-gold #C7A27C --smoke #1A1A1A --mist-silver #C0C4C9 --cream #FAF7F2 --soft-gray #6B7280
-
 字級：--fs-display 48/56 --fs-h1 32/40 --fs-body 16/28（以 / 表示字級/行高）
-
 陰影/半徑：--shadow-soft 0 6px 20px rgba(0,0,0,.07) --radius-2xl 16px
-
 動效：--easing-emphasized cubic-bezier(0.33,1,0.68,1) --dur-stagger 300ms --dur-breathe-min 600ms --dur-breathe-max 1000ms
 
 
 動效流程：
-
 IntersectionObserver 標記 .reveal；進場轉場 opacity/translateY 與 Gradient Sweep。
-
 Hero 標題以 JS 切字母 .char 並延遲（步進 30–40ms/字，總約 0.3s）。
 
 
 測試清單（最終驗收）：
-
 1. 視覺：Header 漸層、Hero 字母延遲、交錯模組、Hover 102%。
-
-
 2. 功能：CRUD、版本（回滾/刪版）、回收桶（還原/清除）、附件（IDB 模式）、匯出/匯入（含/不含附件）、列印。
-
-
 3. 相容：Chrome/Edge/Firefox/Safari 近兩年版本；file:// 模式。
