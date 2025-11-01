@@ -1,0 +1,2356 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進銷貨管理系統</title>
+    <style>
+        /* --- Reset & Globals --- */
+        :root {
+            --color-bg: #f8f9fa;
+            --color-surface: #ffffff;
+            --color-border: #dee2e6;
+            --color-text-primary: #212529;
+            --color-text-secondary: #6c757d;
+            --color-primary: #0d6efd;
+            --color-primary-hover: #0b5ed7;
+            --color-success: #198754;
+            --color-warning: #ffc107;
+            --color-danger: #dc3545;
+            --color-danger-bg: #f8d7da;
+            --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --border-radius: 0.375rem;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        [data-theme="dark"] {
+            --color-bg: #121212;
+            --color-surface: #1e1e1e;
+            --color-border: #444;
+            --color-text-primary: #e0e0e0;
+            --color-text-secondary: #a0a0a0;
+            --color-primary: #3b82f6;
+            --color-primary-hover: #2563eb;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font-family-sans-serif);
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* --- Layout --- */
+        .app-container {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            grid-template-areas:
+                "header header"
+                "sidebar main";
+        }
+
+        .app-header {
+            grid-area: header;
+            display: flex;
+            align-items: center;
+            padding: 0 var(--spacing-lg);
+            background-color: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            justify-content: space-between;
+        }
+
+        .app-sidebar {
+            grid-area: sidebar;
+            background-color: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            padding: var(--spacing-md);
+        }
+
+        .main-content {
+            grid-area: main;
+            overflow-y: auto;
+            padding: var(--spacing-lg);
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* --- Components --- */
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-item a {
+            display: block;
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-decoration: none;
+            color: var(--color-text-secondary);
+            border-radius: var(--border-radius);
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .nav-item a:hover {
+            background-color: var(--color-bg);
+        }
+
+        .nav-item a.active {
+            background-color: var(--color-primary);
+            color: white;
+            font-weight: 500;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: 500;
+            text-align: center;
+            text-decoration: none;
+            border: 1px solid transparent;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-surface);
+            color: var(--color-text-primary);
+            border-color: var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--color-bg);
+        }
+
+        .btn-danger {
+            background-color: var(--color-danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-header {
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 500;
+            color: var(--color-text-secondary);
+        }
+
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            font-size: 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--spacing-md);
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: var(--spacing-md) var(--spacing-sm);
+            border-bottom: 1px solid var(--color-border);
+            vertical-align: middle;
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--color-text-secondary);
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .stock-negative {
+            color: var(--color-danger);
+            font-weight: bold;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .stat-card {
+            background-color: var(--color-surface);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-title {
+            font-size: 1rem;
+            color: var(--color-text-secondary);
+            margin: 0 0 var(--spacing-sm) 0;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            margin-top: var(--spacing-lg);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+        }
+
+        .toast-container {
+            position: fixed;
+            bottom: var(--spacing-lg);
+            right: var(--spacing-lg);
+            z-index: 1010;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .toast {
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            color: white;
+            box-shadow: var(--shadow-md);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background-color: var(--color-success);
+        }
+
+        .toast.error {
+            background-color: var(--color-danger);
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .stock-info {
+            margin-top: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background-color: var(--color-bg);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+        }
+
+        .stock-warning {
+            background-color: var(--color-danger-bg);
+            border-color: var(--color-danger);
+            color: var(--color-danger);
+        }
+
+        .stock-sufficient {
+            background-color: #d1edff;
+            border-color: var(--color-success);
+            color: var(--color-success);
+        }
+
+        .suggested-products {
+            margin-top: var(--spacing-sm);
+        }
+
+        .suggested-products ul {
+            margin: var(--spacing-xs) 0;
+            padding-left: var(--spacing-lg);
+        }
+
+        .text-muted {
+            color: var(--color-text-secondary);
+        }
+
+        .product-selector-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-xs);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+
+        .product-selector-item:hover {
+            background-color: var(--color-bg);
+        }
+
+        .collapse-panel {
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-md);
+            overflow: hidden;
+        }
+
+        .collapse-header {
+            background-color: var(--color-bg);
+            padding: var(--spacing-md);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-border);
+            transition: background-color 0.2s;
+        }
+
+        .collapse-header:hover {
+            background-color: var(--color-border);
+        }
+
+        .collapse-header.active {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .collapse-content {
+            display: none;
+            padding: var(--spacing-md);
+        }
+
+        .collapse-content.active {
+            display: block;
+        }
+
+        .collapse-arrow {
+            transition: transform 0.2s;
+        }
+
+        .collapse-arrow.rotated {
+            transform: rotate(90deg);
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .transaction-table th,
+        .transaction-table td {
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--color-border);
+            text-align: left;
+        }
+
+        .transaction-table th {
+            background-color: var(--color-bg);
+            font-weight: 600;
+        }
+
+        .transaction-inbound {
+            color: var(--color-success);
+        }
+
+        .transaction-outbound {
+            color: var(--color-danger);
+        }
+
+        .cumulative-stock {
+            font-weight: bold;
+        }
+
+        .final-stock {
+            background-color: var(--color-bg);
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">庫存管理</div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="export-btn">匯出資料</button>
+                <button class="btn btn-secondary" id="import-btn">匯入資料</button>
+                <input type="file" id="import-file-input" accept=".json" style="display: none;">
+            </div>
+        </header>
+
+        <aside class="app-sidebar">
+            <div class="btn-group" style="width: 100%; margin-bottom: var(--spacing-lg);">
+                <button class="btn btn-primary" data-page="inbound" style="flex: 1;">進貨</button>
+                <button class="btn btn-primary" data-page="outbound" style="flex: 1;">銷貨</button>
+            </div>
+            <ul class="nav-list">
+                <li class="nav-item"><a href="#dashboard" class="nav-link active" data-page="dashboard">首頁</a></li>
+                <li class="nav-item"><a href="#products" class="nav-link" data-page="products">商品</a></li>
+                <li class="nav-item"><a href="#history" class="nav-link" data-page="history">進銷貨紀錄</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <!-- PAGE: 首頁 -->
+            <div id="dashboard" class="page active">
+                <h1 class="card-title">庫存概覽</h1>
+                <div class="dashboard-grid" style="margin-top: var(--spacing-lg);">
+                    <div class="stat-card">
+                        <h2 class="stat-title">總庫存量</h2>
+                        <p class="stat-value" id="total-stock-value">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h2 class="stat-title">商品種類</h2>
+                        <p class="stat-value" id="product-variety-value">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h2 class="stat-title">總庫存成本</h2>
+                        <p class="stat-value" id="total-cost-value">0</p>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: var(--spacing-lg);">
+                    <h2 class="card-title">商品交易記錄查詢</h2>
+                    <div style="display: flex; gap: var(--spacing-md); align-items: end; margin-bottom: var(--spacing-md);">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="transaction-query-date">截止日期</label>
+                            <input type="date" id="transaction-query-date" class="form-control" style="width: 200px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0; flex: 1;">
+                            <label class="form-label">選擇商品（可多選）</label>
+                            <div id="product-selector" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-sm);">
+                                <!-- 動態生成商品選擇列表 -->
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="query-transactions-btn">查詢記錄</button>
+                    </div>
+                    <div id="transaction-query-results" style="display: none;">
+                        <!-- 動態生成查詢結果 -->
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: var(--spacing-lg);">
+                    <h2 class="card-title">負庫存警告</h2>
+                    <table id="negative-stock-table">
+                        <thead>
+                            <tr>
+                                <th>商品代號</th>
+                                <th>商品名稱</th>
+                                <th class="text-right">庫存量</th>
+                            </tr>
+                        </thead>
+                        <tbody><!-- dynamic content --></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PAGE: 商品 -->
+            <div id="products" class="page">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h1 class="card-title">商品列表</h1>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="add-product-btn">新增商品</button>
+                        <button class="btn btn-secondary" id="batch-add-product-btn">批量新增</button>
+                        <button class="btn btn-danger" id="batch-delete-product-btn"
+                            style="display: none;">批量刪除</button>
+                    </div>
+                </div>
+                <div style="margin-bottom: var(--spacing-md);">
+                    <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                        <input type="checkbox" id="select-all-products"> 全選
+                    </label>
+                </div>
+                <table id="product-table">
+                    <thead>
+                        <tr>
+                            <th width="40px">選擇</th>
+                            <th>商品代號</th>
+                            <th>商品名稱</th>
+                            <th class="text-right">當前庫存量</th>
+                            <th class="text-right">平均單價</th>
+                            <th>最後更新</th>
+                            <th width="120px">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody><!-- dynamic content --></tbody>
+                </table>
+            </div>
+
+            <!-- PAGE: 進銷貨紀錄 -->
+            <div id="history" class="page">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                    <h1 class="card-title">進銷貨紀錄</h1>
+                    <button class="btn btn-danger" id="batch-delete-history-btn" style="display: none;">批量刪除</button>
+                </div>
+                <div class="filters card">
+                    <div class="form-group"><label class="form-label" for="filter-start-date">開始日期</label><input
+                            type="date" id="filter-start-date" class="form-control"></div>
+                    <div class="form-group"><label class="form-label" for="filter-end-date">結束日期</label><input
+                            type="date" id="filter-end-date" class="form-control"></div>
+                    <div class="form-group"><label class="form-label" for="filter-product">商品</label><input type="text"
+                            id="filter-product" class="form-control" placeholder="輸入商品名稱"></div>
+                    <div class="form-group"><label class="form-label" for="filter-type">操作類型</label><select
+                            id="filter-type" class="form-control">
+                            <option value="">全部</option>
+                            <option value="inbound">進貨</option>
+                            <option value="outbound">銷貨</option>
+                        </select></div>
+                    <button class="btn btn-secondary" id="reset-filters-btn">重設</button>
+                </div>
+                <div style="margin-bottom: var(--spacing-md);">
+                    <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                        <input type="checkbox" id="select-all-history"> 全選
+                    </label>
+                </div>
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th width="40px">選擇</th>
+                            <th>時間</th>
+                            <th>商品名稱</th>
+                            <th>操作類型</th>
+                            <th class="text-right">數量</th>
+                            <th class="text-right">單價</th>
+                            <th class="text-right">總計</th>
+                            <th width="120px">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody><!-- dynamic content --></tbody>
+                </table>
+            </div>
+
+            <!-- PAGE: 進貨 -->
+            <div id="inbound" class="page">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="card-title">新增進貨紀錄</h1>
+                    </div>
+                    <form id="inbound-form">
+                        <div class="form-group">
+                            <label class="form-label" for="inbound-mode">操作模式</label>
+                            <select id="inbound-mode" class="form-control" style="width: auto;">
+                                <option value="single">單筆新增</option>
+                                <option value="batch">批量新增</option>
+                            </select>
+                        </div>
+                        <!-- Single Mode -->
+                        <div id="inbound-single-fields">
+                            <div class="form-group">
+                                <label class="form-label" for="inbound-date">日期</label>
+                                <input type="date" id="inbound-date" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="inbound-product-name">商品名稱或代號</label>
+                                <input type="text" id="inbound-product-name" class="form-control"
+                                    list="product-datalist" required placeholder="輸入商品名稱或代號">
+                                <div id="inbound-stock-info" class="stock-info" style="display: none;">
+                                    <small class="text-muted">當前庫存：<span id="inbound-current-stock">0</span></small>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="inbound-quantity">數量</label>
+                                <input type="number" id="inbound-quantity" class="form-control" min="0" step="any"
+                                    required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="inbound-price">單價</label>
+                                <input type="number" id="inbound-price" class="form-control" min="0" step="any"
+                                    required>
+                            </div>
+                        </div>
+                        <!-- Batch Mode -->
+                        <div id="inbound-batch-fields" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" for="inbound-batch-data">批量資料</label>
+                                <textarea id="inbound-batch-data" class="form-control" rows="10"
+                                    placeholder="每行一筆記錄，格式：日期,商品名稱或代號,數量,單價"></textarea>
+                                <small>範例：2024-01-15,蘋果,10,50.5 或 01/15/2024,P001,10,50.5</small>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">確認進貨</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- PAGE: 銷貨 -->
+            <div id="outbound" class="page">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="card-title">新增銷貨紀錄</h1>
+                    </div>
+                    <form id="outbound-form">
+                        <div class="form-group">
+                            <label class="form-label" for="outbound-mode">操作模式</label>
+                            <select id="outbound-mode" class="form-control" style="width: auto;">
+                                <option value="single">單筆新增</option>
+                                <option value="batch">批量新增</option>
+                            </select>
+                        </div>
+                        <!-- Single Mode -->
+                        <div id="outbound-single-fields">
+                            <div class="form-group">
+                                <label class="form-label" for="outbound-date">日期</label>
+                                <input type="date" id="outbound-date" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="outbound-product-name">商品名稱或代號</label>
+                                <input type="text" id="outbound-product-name" class="form-control"
+                                    list="product-datalist" required placeholder="輸入商品名稱或代號">
+                                <div id="outbound-stock-info" class="stock-info" style="display: none;">
+                                    <small class="text-muted">當前庫存：<span id="outbound-current-stock">0</span></small>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="outbound-quantity">數量</label>
+                                <input type="number" id="outbound-quantity" class="form-control" min="0" step="any"
+                                    required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="outbound-price">單價</label>
+                                <input type="number" id="outbound-price" class="form-control" min="0" step="any"
+                                    required>
+                            </div>
+                        </div>
+                        <!-- Batch Mode -->
+                        <div id="outbound-batch-fields" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" for="outbound-batch-data">批量資料</label>
+                                <textarea id="outbound-batch-data" class="form-control" rows="10"
+                                    placeholder="每行一筆記錄，格式：日期,商品名稱或代號,數量,單價"></textarea>
+                                <small>範例：2024-01-15,蘋果,5,60 或 01/15/2024,P001,5,60</small>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">確認銷貨</button>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="generic-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">提示</h3>
+                <button class="modal-close" id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="modal-confirm-btn">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Add Modal -->
+    <div id="product-add-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">新增商品</h3>
+                <button class="modal-close" id="product-modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="product-add-form">
+                    <div class="form-group">
+                        <label class="form-label" for="product-code">商品代號</label>
+                        <input type="text" id="product-code" class="form-control" required placeholder="例如：P001">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="product-name">商品名稱</label>
+                        <input type="text" id="product-name" class="form-control" required placeholder="例如：蘋果">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="product-modal-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="product-modal-confirm-btn">確認新增</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Product Add Modal -->
+    <div id="batch-product-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">批量新增商品</h3>
+                <button class="modal-close" id="batch-modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="batch-product-data">批量商品資料</label>
+                    <textarea id="batch-product-data" class="form-control" rows="10"
+                        placeholder="每行一筆記錄，格式：商品代號,商品名稱&#10;例如：&#10;P001,蘋果&#10;P002,香蕉&#10;P003,橘子"></textarea>
+                    <small style="color: var(--color-text-secondary);">格式說明：每行輸入一個商品，使用逗號分隔代號和名稱</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="batch-modal-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="batch-modal-confirm-btn">確認新增</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="edit-product-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">編輯商品</h3>
+                <button class="modal-close" id="edit-product-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-product-form">
+                    <input type="hidden" id="edit-product-id">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-product-code">商品代號</label>
+                        <input type="text" id="edit-product-code" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-product-name">商品名稱</label>
+                        <input type="text" id="edit-product-name" class="form-control" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="edit-product-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="edit-product-confirm-btn">確認修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Transaction Modal -->
+    <div id="edit-transaction-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">編輯交易記錄</h3>
+                <button class="modal-close" id="edit-transaction-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-transaction-form">
+                    <input type="hidden" id="edit-transaction-id">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-transaction-date">日期</label>
+                        <input type="date" id="edit-transaction-date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-transaction-product">商品</label>
+                        <input type="text" id="edit-transaction-product" class="form-control" list="product-datalist"
+                            required readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-transaction-type">類型</label>
+                        <select id="edit-transaction-type" class="form-control" required disabled>
+                            <option value="inbound">進貨</option>
+                            <option value="outbound">銷貨</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-transaction-quantity">數量</label>
+                        <input type="number" id="edit-transaction-quantity" class="form-control" min="0" step="any"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-transaction-price">單價</label>
+                        <input type="number" id="edit-transaction-price" class="form-control" min="0" step="any"
+                            required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="edit-transaction-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="edit-transaction-confirm-btn">確認修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Datalist for product suggestions -->
+    <datalist id="product-datalist"></datalist>
+
+    <script type="module">
+        // --- Zero-Console-Issue Guard ---
+        window.addEventListener('error', (event) => {
+            event.preventDefault();
+            console.error('客戶端錯誤:', event.message, event.error);
+            if (typeof UI !== 'undefined' && UI.showToast) {
+                UI.showToast(`客戶端錯誤: ${event.message}`, 'error');
+            } else {
+                alert(`客戶端錯誤: ${event.message}`);
+            }
+        });
+        window.addEventListener('unhandledrejection', (event) => {
+            event.preventDefault();
+            console.error('未處理的 Promise 拒絕:', event.reason);
+            if (typeof UI !== 'undefined' && UI.showToast) {
+                UI.showToast(`未處理的 Promise 拒絕: ${event.reason}`, 'error');
+            } else {
+                alert(`未處理的 Promise 拒絕: ${event.reason}`);
+            }
+        });
+
+        // --- App Constants ---
+        const DB_KEY = 'inventoryApp';
+        const SCHEMA_VERSION = '1.0';
+
+        // --- Storage Module ---
+        const Storage = {
+            getState() {
+                try {
+                    const rawData = localStorage.getItem(DB_KEY);
+                    if (!rawData) return this.getInitialState();
+                    const data = JSON.parse(rawData);
+                    // Simple migration check
+                    if (data.meta?.schemaVersion !== SCHEMA_VERSION) {
+                        console.log("Schema version mismatch. Data migration needed (not implemented).");
+                        // For now, reset to initial state if schema is old
+                        return this.getInitialState();
+                    }
+                    return data;
+                } catch (e) {
+                    UI.showToast('讀取本地資料失敗，將使用初始資料。', 'error');
+                    return this.getInitialState();
+                }
+            },
+            setState(state) {
+                try {
+                    state.meta.exportedAt = new Date().toISOString();
+                    localStorage.setItem(DB_KEY, JSON.stringify(state));
+                } catch (e) {
+                    UI.showToast('儲存資料失敗，請檢查瀏覽器儲存空間。', 'error');
+                }
+            },
+            getInitialState() {
+                return {
+                    meta: {
+                        app: "inventory-app",
+                        schemaVersion: SCHEMA_VERSION,
+                        exportedAt: new Date().toISOString()
+                    },
+                    products: {}, // { 'uuid': { code, name, stock, avgPrice, updatedAt } }
+                    transactions: [], // [ { id, productId, type, qty, price, date } ]
+                };
+            }
+        };
+
+        // --- Central Store ---
+        class Store {
+            constructor() {
+                this.state = Storage.getState();
+                this._subscribers = [];
+            }
+
+            subscribe(callback) {
+                this._subscribers.push(callback);
+            }
+
+            _notify() {
+                this._subscribers.forEach(cb => cb(this.state));
+            }
+
+            commit(mutation, payload) {
+                mutation(this.state, payload);
+                Storage.setState(this.state);
+                this._notify();
+            }
+
+            getProductByName(name) {
+                return Object.values(this.state.products).find(p => p.name.toLowerCase() === name.toLowerCase());
+            }
+
+            getProductByCode(code) {
+                return Object.values(this.state.products).find(p => p.code.toLowerCase() === code.toLowerCase());
+            }
+
+            getProductById(id) {
+                return this.state.products[id];
+            }
+        }
+        const store = new Store();
+
+        // --- UI Module ---
+        const UI = {
+            // Page elements
+            pages: document.querySelectorAll('.page'),
+            navLinks: document.querySelectorAll('.nav-link, .btn[data-page]'),
+
+            // Dashboard elements
+            totalStockValue: document.getElementById('total-stock-value'),
+            productVarietyValue: document.getElementById('product-variety-value'),
+            totalCostValue: document.getElementById('total-cost-value'),
+            negativeStockTableBody: document.querySelector('#negative-stock-table tbody'),
+
+            // Products elements
+            productTableBody: document.querySelector('#product-table tbody'),
+
+            // History elements
+            historyTableBody: document.querySelector('#history-table tbody'),
+
+            // Form elements
+            inboundForm: document.getElementById('inbound-form'),
+            outboundForm: document.getElementById('outbound-form'),
+
+            // Modal elements
+            modal: document.getElementById('generic-modal'),
+            modalTitle: document.getElementById('modal-title'),
+            modalBody: document.getElementById('modal-body'),
+            modalConfirmBtn: document.getElementById('modal-confirm-btn'),
+            modalCancelBtn: document.getElementById('modal-cancel-btn'),
+            modalCloseBtn: document.getElementById('modal-close-btn'),
+            _modalConfirmResolver: null,
+
+            // Toast elements
+            toastContainer: document.getElementById('toast-container'),
+
+            // Datalist
+            productDatalist: document.getElementById('product-datalist'),
+
+            init() {
+                this.navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const pageId = e.currentTarget.dataset.page;
+                        this.navigateTo(pageId);
+                    });
+                });
+
+                this.modalCloseBtn.addEventListener('click', () => this.hideModal(false));
+                this.modalCancelBtn.addEventListener('click', () => this.hideModal(false));
+                this.modalConfirmBtn.addEventListener('click', () => this.hideModal(true));
+
+                document.getElementById('add-product-btn').addEventListener('click', () => {
+                    this.showProductAddModal();
+                });
+
+                document.getElementById('batch-add-product-btn').addEventListener('click', () => {
+                    this.showBatchProductModal();
+                });
+
+                // Initialize date fields with current date
+                this.initializeDateFields();
+                
+                // Initialize stock monitoring
+                this.initializeStockMonitoring();
+                
+                // Initialize product selector
+                this.initializeProductSelector();
+
+                // Form mode toggles
+                this.setupFormToggle('inbound-mode', 'inbound-single-fields', 'inbound-batch-fields');
+                this.setupFormToggle('outbound-mode', 'outbound-single-fields', 'outbound-batch-fields');
+
+                // Form submissions
+                this.inboundForm.addEventListener('submit', (e) => { e.preventDefault(); App.handleTransactionSubmit('inbound'); });
+                this.outboundForm.addEventListener('submit', (e) => { e.preventDefault(); App.handleTransactionSubmit('outbound'); });
+
+                // Filter listeners
+                const filters = ['filter-start-date', 'filter-end-date', 'filter-product', 'filter-type'];
+                filters.forEach(id => document.getElementById(id).addEventListener('input', () => this.renderHistory(store.state)));
+                document.getElementById('reset-filters-btn').addEventListener('click', () => {
+                    filters.forEach(id => document.getElementById(id).value = '');
+                    this.renderHistory(store.state);
+                });
+
+                // Import/Export Listeners
+                document.getElementById('export-btn').addEventListener('click', ImportExport.exportData);
+                document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
+                document.getElementById('import-file-input').addEventListener('change', ImportExport.importData);
+
+                // Batch delete listeners
+                document.getElementById('batch-delete-product-btn').addEventListener('click', () => UI.batchDeleteProducts());
+                document.getElementById('batch-delete-history-btn').addEventListener('click', () => UI.batchDeleteTransactions());
+                
+                // Transaction query listener
+                document.getElementById('query-transactions-btn').addEventListener('click', () => UI.queryProductTransactions());
+
+                // Select all listeners
+                document.getElementById('select-all-products').addEventListener('change', (e) => {
+                    const checkboxes = document.querySelectorAll('.product-checkbox');
+                    checkboxes.forEach(cb => cb.checked = e.target.checked);
+                    UI.updateBatchDeleteVisibility('product');
+                });
+
+                document.getElementById('select-all-history').addEventListener('change', (e) => {
+                    const checkboxes = document.querySelectorAll('.history-checkbox');
+                    checkboxes.forEach(cb => cb.checked = e.target.checked);
+                    UI.updateBatchDeleteVisibility('history');
+                });
+
+                // Checkbox change listeners (delegated)
+                document.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('product-checkbox')) {
+                        UI.updateBatchDeleteVisibility('product');
+                    } else if (e.target.classList.contains('history-checkbox')) {
+                        UI.updateBatchDeleteVisibility('history');
+                    }
+                });
+
+                // Button click listeners (delegated)
+                document.addEventListener('click', (e) => {
+                    console.log('Click event:', e.target.className, e.target.dataset);
+
+                    if (e.target.classList.contains('edit-product-btn')) {
+                        const productId = e.target.dataset.productId;
+                        console.log('Edit product clicked:', productId);
+                        UI.showEditProductModal(productId);
+                    } else if (e.target.classList.contains('delete-product-btn')) {
+                        const productId = e.target.dataset.productId;
+                        console.log('Delete product clicked:', productId);
+                        UI.deleteProduct(productId);
+                    } else if (e.target.classList.contains('edit-transaction-btn')) {
+                        const transactionId = e.target.dataset.transactionId;
+                        console.log('Edit transaction clicked:', transactionId);
+                        UI.showEditTransactionModal(transactionId);
+                    } else if (e.target.classList.contains('delete-transaction-btn')) {
+                        const transactionId = e.target.dataset.transactionId;
+                        console.log('Delete transaction clicked:', transactionId);
+                        UI.deleteTransaction(transactionId);
+                    }
+                });
+            },
+
+            setupFormToggle(selectId, singleId, batchId) {
+                const select = document.getElementById(selectId);
+                const singleFields = document.getElementById(singleId);
+                const batchFields = document.getElementById(batchId);
+                select.addEventListener('change', () => {
+                    if (select.value === 'single') {
+                        singleFields.style.display = 'block';
+                        batchFields.style.display = 'none';
+                    } else {
+                        singleFields.style.display = 'none';
+                        batchFields.style.display = 'block';
+                    }
+                });
+            },
+
+            navigateTo(pageId) {
+                this.pages.forEach(page => page.classList.remove('active'));
+                document.getElementById(pageId)?.classList.add('active');
+
+                this.navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.page === pageId) {
+                        link.classList.add('active');
+                    }
+                });
+
+                // Re-render active page to ensure data is fresh
+                switch (pageId) {
+                    case 'dashboard': this.renderDashboard(store.state); break;
+                    case 'products': this.renderProducts(store.state); break;
+                    case 'history': this.renderHistory(store.state); break;
+                }
+            },
+
+            render(state) {
+                this.renderDashboard(state);
+                this.renderProducts(state);
+                this.renderHistory(state);
+                this.updateProductDatalist(state);
+                this.renderProductSelector();
+            },
+
+            renderDashboard(state) {
+                const products = Object.values(state.products);
+                const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
+                const totalCost = products.reduce((sum, p) => sum + (p.stock * p.avgPrice), 0);
+
+                this.totalStockValue.textContent = totalStock.toLocaleString();
+                this.productVarietyValue.textContent = products.length;
+                this.totalCostValue.textContent = 'NT$ ' + totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                const negativeStockProducts = products.filter(p => p.stock < 0);
+                this.negativeStockTableBody.innerHTML = negativeStockProducts.length > 0
+                    ? negativeStockProducts.map(p => `<tr><td>${this.escapeHTML(p.code)}</td><td>${this.escapeHTML(p.name)}</td><td class="text-right stock-negative">${p.stock}</td></tr>`).join('')
+                    : '<tr><td colspan="3">沒有負庫存商品。</td></tr>';
+            },
+
+            renderProducts(state) {
+                const products = Object.values(state.products).sort((a, b) => a.code.localeCompare(b.code));
+                this.productTableBody.innerHTML = products.length > 0
+                    ? products.map(p => `
+                        <tr>
+                            <td><input type="checkbox" class="product-checkbox" data-product-id="${p.id}"></td>
+                            <td>${this.escapeHTML(p.code)}</td>
+                            <td>${this.escapeHTML(p.name)}</td>
+                            <td class="text-right ${p.stock < 0 ? 'stock-negative' : ''}">${p.stock.toLocaleString()}</td>
+                            <td class="text-right">NT$ ${p.avgPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>${new Date(p.updatedAt).toLocaleString()}</td>
+                            <td>
+                                <button class="btn btn-secondary btn-sm edit-product-btn" data-product-id="${p.id}">編輯</button>
+                                <button class="btn btn-danger btn-sm delete-product-btn" data-product-id="${p.id}">刪除</button>
+                            </td>
+                        </tr>`).join('')
+                    : '<tr><td colspan="7">尚未建立任何商品。</td></tr>';
+
+                // Update batch delete button visibility
+                this.updateBatchDeleteVisibility('product');
+            },
+
+            renderHistory(state) {
+                const startDate = document.getElementById('filter-start-date').value;
+                const endDate = document.getElementById('filter-end-date').value;
+                const productName = document.getElementById('filter-product').value.toLowerCase();
+                const type = document.getElementById('filter-type').value;
+
+                const filtered = state.transactions.filter(t => {
+                    const transactionDate = new Date(t.date);
+                    if (startDate && transactionDate < new Date(startDate)) return false;
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999); // Include the whole day
+                        if (transactionDate > end) return false;
+                    }
+                    if (type && t.type !== type) return false;
+                    if (productName) {
+                        const product = store.getProductById(t.productId);
+                        if (!product || !product.name.toLowerCase().includes(productName)) return false;
+                    }
+                    return true;
+                });
+
+                const sorted = filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+                this.historyTableBody.innerHTML = sorted.length > 0
+                    ? sorted.map(t => {
+                        const product = store.getProductById(t.productId);
+                        const total = t.qty * t.price;
+                        return `
+                        <tr>
+                            <td><input type="checkbox" class="history-checkbox" data-transaction-id="${t.id}"></td>
+                            <td>${new Date(t.date).toLocaleString()}</td>
+                            <td>${this.escapeHTML(product?.name || '未知商品')}</td>
+                            <td>${t.type === 'inbound' ? '進貨' : '銷貨'}</td>
+                            <td class="text-right">${t.qty.toLocaleString()}</td>
+                            <td class="text-right">NT$ ${t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td class="text-right">NT$ ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td>
+                                <button class="btn btn-secondary btn-sm edit-transaction-btn" data-transaction-id="${t.id}">編輯</button>
+                                <button class="btn btn-danger btn-sm delete-transaction-btn" data-transaction-id="${t.id}">刪除</button>
+                            </td>
+                        </tr>`
+                    }).join('')
+                    : '<tr><td colspan="8">沒有符合條件的紀錄。</td></tr>';
+
+                // Update batch delete button visibility
+                this.updateBatchDeleteVisibility('history');
+            },
+
+            updateProductDatalist(state) {
+                const products = Object.values(state.products);
+                this.productDatalist.innerHTML = products
+                    .map(p => [
+                        `<option value="${this.escapeHTML(p.name)}">${this.escapeHTML(p.code)} - ${this.escapeHTML(p.name)}</option>`,
+                        `<option value="${this.escapeHTML(p.code)}">${this.escapeHTML(p.code)} - ${this.escapeHTML(p.name)}</option>`
+                    ].join(''))
+                    .join('');
+            },
+
+            showModal({ title, body, confirmText = '確認', cancelText = '取消', showCancel = true }) {
+                this.modalTitle.textContent = title;
+                this.modalBody.innerHTML = body;
+                this.modalConfirmBtn.textContent = confirmText;
+                this.modalCancelBtn.textContent = cancelText;
+                this.modalCancelBtn.style.display = showCancel ? 'inline-block' : 'none';
+                this.modal.classList.add('active');
+
+                return new Promise(resolve => {
+                    this._modalConfirmResolver = resolve;
+                });
+            },
+
+            hideModal(result) {
+                this.modal.classList.remove('active');
+                if (this._modalConfirmResolver) {
+                    this._modalConfirmResolver(result);
+                    this._modalConfirmResolver = null;
+                }
+            },
+
+            showAlert(title, message) {
+                return this.showModal({ title, body: `<p>${this.escapeHTML(message)}</p>`, showCancel: false });
+            },
+
+            showConfirm(title, message) {
+                return this.showModal({ title, body: `<p>${this.escapeHTML(message)}</p>` });
+            },
+
+            showPrompt(title, message, defaultValue = '') {
+                const body = `
+                    <p>${this.escapeHTML(message)}</p>
+                    <input type="text" id="modal-prompt-input" class="form-control" value="${this.escapeHTML(defaultValue)}">
+                `;
+                return this.showModal({ title, body }).then(confirmed => {
+                    if (confirmed) {
+                        return document.getElementById('modal-prompt-input').value;
+                    }
+                    return null;
+                });
+            },
+
+            showProductAddModal() {
+                const modal = document.getElementById('product-add-modal');
+                const form = document.getElementById('product-add-form');
+                const codeInput = document.getElementById('product-code');
+                const nameInput = document.getElementById('product-name');
+
+                // Reset form
+                form.reset();
+
+                // Show modal
+                modal.classList.add('active');
+                codeInput.focus();
+
+                // Handle modal events
+                const closeModal = () => {
+                    modal.classList.remove('active');
+                };
+
+                const handleConfirm = () => {
+                    const code = codeInput.value.trim();
+                    const name = nameInput.value.trim();
+
+                    if (!code || !name) {
+                        UI.showToast('請填寫商品代號和名稱', 'error');
+                        return;
+                    }
+
+                    Services.createProduct(code, name);
+                    closeModal();
+                };
+
+                // Remove existing listeners
+                document.getElementById('product-modal-close-btn').onclick = closeModal;
+                document.getElementById('product-modal-cancel-btn').onclick = closeModal;
+                document.getElementById('product-modal-confirm-btn').onclick = handleConfirm;
+
+                // Handle form submission
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    handleConfirm();
+                };
+            },
+
+            showBatchProductModal() {
+                const modal = document.getElementById('batch-product-modal');
+                const textarea = document.getElementById('batch-product-data');
+
+                // Reset form
+                textarea.value = '';
+
+                // Show modal
+                modal.classList.add('active');
+                textarea.focus();
+
+                // Handle modal events
+                const closeModal = () => {
+                    modal.classList.remove('active');
+                };
+
+                const handleConfirm = () => {
+                    const data = textarea.value.trim();
+                    if (!data) {
+                        UI.showToast('請輸入商品資料', 'error');
+                        return;
+                    }
+
+                    Services.batchCreateProducts(data);
+                    closeModal();
+                };
+
+                // Remove existing listeners
+                document.getElementById('batch-modal-close-btn').onclick = closeModal;
+                document.getElementById('batch-modal-cancel-btn').onclick = closeModal;
+                document.getElementById('batch-modal-confirm-btn').onclick = handleConfirm;
+            },
+
+            showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                this.toastContainer.appendChild(toast);
+
+                setTimeout(() => toast.classList.add('show'), 10);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, 3000);
+            },
+
+            escapeHTML(str) {
+                if (typeof str !== 'string') return '';
+                const p = document.createElement('p');
+                p.textContent = str;
+                return p.innerHTML;
+            },
+
+            initializeDateFields() {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('inbound-date').value = today;
+                document.getElementById('outbound-date').value = today;
+                document.getElementById('transaction-query-date').value = today;
+            },
+
+            parseDate(dateStr) {
+                // Support formats: YYYY-MM-DD, MM/DD/YYYY
+                if (!dateStr) return null;
+
+                // Try YYYY-MM-DD format first
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                    return new Date(dateStr);
+                }
+
+                // Try MM/DD/YYYY format
+                if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+                    const [month, day, year] = dateStr.split('/');
+                    return new Date(year, month - 1, day);
+                }
+
+                return null;
+            },
+
+            formatDateForStorage(date) {
+                if (!date) return new Date().toISOString();
+                if (typeof date === 'string') {
+                    const parsed = this.parseDate(date);
+                    return parsed ? parsed.toISOString() : new Date().toISOString();
+                }
+                return date.toISOString();
+            },
+
+            initializeStockMonitoring() {
+                // Monitor product name input changes
+                const inboundProductInput = document.getElementById('inbound-product-name');
+                const outboundProductInput = document.getElementById('outbound-product-name');
+                const outboundQuantityInput = document.getElementById('outbound-quantity');
+
+                if (inboundProductInput) {
+                    inboundProductInput.addEventListener('input', () => {
+                        this.updateStockDisplay('inbound');
+                    });
+                }
+
+                if (outboundProductInput) {
+                    outboundProductInput.addEventListener('input', () => {
+                        this.updateStockDisplay('outbound');
+                    });
+                }
+
+                if (outboundQuantityInput) {
+                    outboundQuantityInput.addEventListener('input', () => {
+                        this.checkStockSufficiency();
+                    });
+                }
+            },
+
+            updateStockDisplay(type) {
+                const productInput = document.getElementById(`${type}-product-name`);
+                const stockInfo = document.getElementById(`${type}-stock-info`);
+                const stockSpan = document.getElementById(`${type}-current-stock`);
+
+                if (!productInput || !stockInfo || !stockSpan) return;
+
+                const productName = productInput.value.trim();
+                if (!productName) {
+                    stockInfo.style.display = 'none';
+                    return;
+                }
+
+                const product = store.getProductByName(productName) || store.getProductByCode(productName);
+                if (product) {
+                    stockSpan.textContent = product.stock.toLocaleString();
+                    stockInfo.style.display = 'block';
+                    
+                    // Add color coding based on stock level
+                    stockInfo.className = 'stock-info';
+                    if (product.stock <= 0) {
+                        stockInfo.classList.add('stock-warning');
+                    } else if (product.stock > 50) {
+                        stockInfo.classList.add('stock-sufficient');
+                    }
+                } else {
+                    stockInfo.style.display = 'none';
+                }
+            },
+
+            checkStockSufficiency() {
+                const productInput = document.getElementById('outbound-product-name');
+                const quantityInput = document.getElementById('outbound-quantity');
+                const stockInfo = document.getElementById('outbound-stock-info');
+
+                if (!productInput || !quantityInput || !stockInfo) return;
+
+                const productName = productInput.value.trim();
+                const quantity = parseFloat(quantityInput.value) || 0;
+
+                if (!productName || quantity <= 0) return;
+
+                const product = store.getProductByName(productName) || store.getProductByCode(productName);
+                if (!product) return;
+
+                if (quantity > product.stock) {
+                    this.showStockWarning(product, quantity);
+                }
+            },
+
+            showStockWarning(product, requestedQty) {
+                const shortage = requestedQty - product.stock;
+                const suggestedProducts = this.findSimilarProducts(product.name, product.stock);
+                
+                let suggestionHtml = '';
+                if (suggestedProducts.length > 0) {
+                    suggestionHtml = '<p>建議替換商品：</p><ul>';
+                    suggestedProducts.forEach(p => {
+                        suggestionHtml += `<li>${p.name} (庫存: ${p.stock.toLocaleString()})</li>`;
+                    });
+                    suggestionHtml += '</ul>';
+                }
+
+                const message = `本次銷貨數量 (${requestedQty.toLocaleString()}) 超出 "${product.name}" 的當前庫存量 (${product.stock.toLocaleString()})，將導致負庫存。${suggestionHtml}<br><br>是否繼續操作？`;
+                
+                return this.showModal({
+                    title: '庫存不足警告',
+                    body: message,
+                    confirmText: '繼續操作',
+                    cancelText: '取消'
+                });
+            },
+
+            findSimilarProducts(productName, minStock = 0) {
+                const allProducts = Object.values(store.state.products);
+                const keywords = productName.toLowerCase().split(/\s+/);
+                
+                return allProducts
+                    .filter(p => {
+                        if (p.name === productName || p.stock <= minStock) return false;
+                        const pName = p.name.toLowerCase();
+                        return keywords.some(keyword => pName.includes(keyword));
+                    })
+                    .sort((a, b) => b.stock - a.stock)
+                    .slice(0, 3);
+            },
+
+            initializeProductSelector() {
+                this.renderProductSelector();
+            },
+
+            renderProductSelector() {
+                const selector = document.getElementById('product-selector');
+                if (!selector) return;
+
+                const products = Object.values(store.state.products).sort((a, b) => a.code.localeCompare(b.code));
+                
+                selector.innerHTML = products.map(product => `
+                    <div class="product-selector-item">
+                        <input type="checkbox" id="product-${product.id}" value="${product.id}" class="product-checkbox-selector">
+                        <label for="product-${product.id}" style="cursor: pointer; flex: 1;">
+                            ${this.escapeHTML(product.code)} - ${this.escapeHTML(product.name)}
+                            <small class="text-muted">(當前庫存: ${product.stock.toLocaleString()})</small>
+                        </label>
+                    </div>
+                `).join('');
+            },
+
+            queryProductTransactions() {
+                const dateInput = document.getElementById('transaction-query-date');
+                const resultsDiv = document.getElementById('transaction-query-results');
+                const selectedProducts = Array.from(document.querySelectorAll('.product-checkbox-selector:checked'));
+
+                const queryDate = dateInput.value;
+
+                if (!queryDate) {
+                    this.showToast('請選擇截止日期', 'error');
+                    return;
+                }
+
+                if (selectedProducts.length === 0) {
+                    this.showToast('請至少選擇一個商品', 'error');
+                    return;
+                }
+
+                const results = selectedProducts.map(checkbox => {
+                    const productId = checkbox.value;
+                    const product = store.getProductById(productId);
+                    return this.generateProductTransactionReport(product, queryDate);
+                });
+
+                resultsDiv.innerHTML = results.join('');
+                resultsDiv.style.display = 'block';
+
+                // Add collapse functionality
+                this.initializeCollapseHandlers();
+            },
+
+            generateProductTransactionReport(product, targetDate) {
+                const targetDateTime = new Date(targetDate);
+                targetDateTime.setHours(23, 59, 59, 999);
+
+                // Get all transactions for this product up to the target date
+                const transactions = store.state.transactions
+                    .filter(t => t.productId === product.id && new Date(t.date) <= targetDateTime)
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                let cumulativeStock = 0;
+                const transactionRows = transactions.map(transaction => {
+                    const changeAmount = transaction.type === 'inbound' ? transaction.qty : -transaction.qty;
+                    cumulativeStock += changeAmount;
+                    
+                    return `
+                        <tr>
+                            <td>${new Date(transaction.date).toLocaleDateString('zh-TW')}</td>
+                            <td class="transaction-${transaction.type}">
+                                ${transaction.type === 'inbound' ? '進貨' : '銷貨'}
+                            </td>
+                            <td class="text-right ${transaction.type === 'inbound' ? 'transaction-inbound' : 'transaction-outbound'}">
+                                ${transaction.type === 'inbound' ? '+' : '-'}${transaction.qty.toLocaleString()}
+                            </td>
+                            <td class="text-right">NT$ ${transaction.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td class="text-right">NT$ ${(transaction.qty * transaction.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td class="text-right cumulative-stock">${cumulativeStock.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                const finalStockColor = cumulativeStock < 0 ? 'var(--color-danger)' : 'var(--color-success)';
+                const formattedDate = new Date(targetDate).toLocaleDateString('zh-TW');
+
+                return `
+                    <div class="collapse-panel">
+                        <div class="collapse-header" data-target="collapse-${product.id}">
+                            <div>
+                                <strong>${this.escapeHTML(product.code)} - ${this.escapeHTML(product.name)}</strong>
+                                <span class="text-muted">（截止 ${formattedDate}）</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                                <span>最終庫存: <strong style="color: ${finalStockColor}">${cumulativeStock.toLocaleString()}</strong></span>
+                                <span class="collapse-arrow">▶</span>
+                            </div>
+                        </div>
+                        <div class="collapse-content" id="collapse-${product.id}">
+                            ${transactions.length > 0 ? `
+                                <table class="transaction-table">
+                                    <thead>
+                                        <tr>
+                                            <th>日期</th>
+                                            <th>類型</th>
+                                            <th class="text-right">數量變化</th>
+                                            <th class="text-right">單價</th>
+                                            <th class="text-right">金額</th>
+                                            <th class="text-right">累積庫存</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${transactionRows}
+                                        <tr class="final-stock">
+                                            <td colspan="5"><strong>截止 ${formattedDate} 總庫存</strong></td>
+                                            <td class="text-right"><strong style="color: ${finalStockColor}">${cumulativeStock.toLocaleString()}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            ` : `
+                                <p class="text-muted">此商品在指定日期前沒有交易記錄</p>
+                                <div class="final-stock" style="padding: var(--spacing-md); text-align: center;">
+                                    <strong>截止 ${formattedDate} 總庫存: <span style="color: ${finalStockColor}">0</span></strong>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            },
+
+            initializeCollapseHandlers() {
+                document.querySelectorAll('.collapse-header').forEach(header => {
+                    header.addEventListener('click', () => {
+                        const targetId = header.dataset.target;
+                        const content = document.getElementById(targetId);
+                        const arrow = header.querySelector('.collapse-arrow');
+                        
+                        if (content.classList.contains('active')) {
+                            content.classList.remove('active');
+                            header.classList.remove('active');
+                            arrow.classList.remove('rotated');
+                        } else {
+                            content.classList.add('active');
+                            header.classList.add('active');
+                            arrow.classList.add('rotated');
+                        }
+                    });
+                });
+            },
+
+            updateBatchDeleteVisibility(type) {
+                const checkboxes = document.querySelectorAll(`.${type}-checkbox:checked`);
+                const batchBtn = document.getElementById(`batch-delete-${type}-btn`);
+                batchBtn.style.display = checkboxes.length > 0 ? 'inline-block' : 'none';
+            },
+
+            showEditProductModal(productId) {
+                const product = store.getProductById(productId);
+                if (!product) return;
+
+                const modal = document.getElementById('edit-product-modal');
+                document.getElementById('edit-product-id').value = productId;
+                document.getElementById('edit-product-code').value = product.code;
+                document.getElementById('edit-product-name').value = product.name;
+
+                modal.classList.add('active');
+
+                const closeModal = () => modal.classList.remove('active');
+
+                document.getElementById('edit-product-close-btn').onclick = closeModal;
+                document.getElementById('edit-product-cancel-btn').onclick = closeModal;
+                document.getElementById('edit-product-confirm-btn').onclick = () => {
+                    const code = document.getElementById('edit-product-code').value.trim();
+                    const name = document.getElementById('edit-product-name').value.trim();
+
+                    if (!code || !name) {
+                        UI.showToast('請填寫商品代號和名稱', 'error');
+                        return;
+                    }
+
+                    Services.updateProduct(productId, code, name);
+                    closeModal();
+                };
+            },
+
+            showEditTransactionModal(transactionId) {
+                const transaction = store.state.transactions.find(t => t.id === transactionId);
+                const product = store.getProductById(transaction.productId);
+                if (!transaction || !product) return;
+
+                const modal = document.getElementById('edit-transaction-modal');
+                document.getElementById('edit-transaction-id').value = transactionId;
+                document.getElementById('edit-transaction-date').value = new Date(transaction.date).toISOString().split('T')[0];
+                document.getElementById('edit-transaction-product').value = product.name;
+                document.getElementById('edit-transaction-type').value = transaction.type;
+                document.getElementById('edit-transaction-quantity').value = transaction.qty;
+                document.getElementById('edit-transaction-price').value = transaction.price;
+
+                modal.classList.add('active');
+
+                const closeModal = () => modal.classList.remove('active');
+
+                document.getElementById('edit-transaction-close-btn').onclick = closeModal;
+                document.getElementById('edit-transaction-cancel-btn').onclick = closeModal;
+                document.getElementById('edit-transaction-confirm-btn').onclick = () => {
+                    const date = UI.formatDateForStorage(document.getElementById('edit-transaction-date').value);
+                    const qty = parseFloat(document.getElementById('edit-transaction-quantity').value);
+                    const price = parseFloat(document.getElementById('edit-transaction-price').value);
+
+                    if (!qty || !price || qty <= 0 || price < 0) {
+                        UI.showToast('請填寫正確的數量和單價', 'error');
+                        return;
+                    }
+
+                    Services.updateTransaction(transactionId, { date, qty, price });
+                    closeModal();
+                };
+            },
+
+            deleteProduct(productId) {
+                console.log('UI.deleteProduct called with productId:', productId);
+                const product = store.getProductById(productId);
+                if (!product) {
+                    console.error('Product not found:', productId);
+                    return;
+                }
+
+                this.showConfirm('確認刪除', `確定要刪除商品 "${product.code} - ${product.name}" 嗎？此操作無法復原。`)
+                    .then(confirmed => {
+                        if (confirmed) {
+                            Services.deleteProduct(productId);
+                        }
+                    });
+            },
+
+            deleteTransaction(transactionId) {
+                this.showConfirm('確認刪除', '確定要刪除此交易記錄嗎？此操作無法復原。')
+                    .then(confirmed => {
+                        if (confirmed) {
+                            Services.deleteTransaction(transactionId);
+                        }
+                    });
+            },
+
+            batchDeleteProducts() {
+                const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+                const productIds = Array.from(checkboxes).map(cb => cb.dataset.productId);
+
+                if (productIds.length === 0) return;
+
+                this.showConfirm('批量刪除確認', `確定要刪除選中的 ${productIds.length} 個商品嗎？此操作無法復原。`)
+                    .then(confirmed => {
+                        if (confirmed) {
+                            Services.batchDeleteProducts(productIds);
+                        }
+                    });
+            },
+
+            batchDeleteTransactions() {
+                const checkboxes = document.querySelectorAll('.history-checkbox:checked');
+                const transactionIds = Array.from(checkboxes).map(cb => cb.dataset.transactionId);
+
+                if (transactionIds.length === 0) return;
+
+                this.showConfirm('批量刪除確認', `確定要刪除選中的 ${transactionIds.length} 筆交易記錄嗎？此操作無法復原。`)
+                    .then(confirmed => {
+                        if (confirmed) {
+                            Services.batchDeleteTransactions(transactionIds);
+                        }
+                    });
+            }
+        };
+
+        // --- Services (Business Logic) ---
+        const Services = {
+            createProduct(code, name) {
+                if (!code || code.trim() === '' || !name || name.trim() === '') {
+                    UI.showToast('商品代號和名稱不可為空', 'error');
+                    return false;
+                }
+
+                const trimmedCode = code.trim();
+                const trimmedName = name.trim();
+
+                if (store.getProductByCode(trimmedCode)) {
+                    UI.showToast(`商品代號 "${trimmedCode}" 已存在`, 'error');
+                    return false;
+                }
+
+                if (store.getProductByName(trimmedName)) {
+                    UI.showToast(`商品名稱 "${trimmedName}" 已存在`, 'error');
+                    return false;
+                }
+
+                const newId = self.crypto.randomUUID();
+                store.commit((state, payload) => {
+                    state.products[payload.id] = payload.product;
+                }, {
+                    id: newId,
+                    product: {
+                        id: newId,
+                        code: trimmedCode,
+                        name: trimmedName,
+                        stock: 0,
+                        avgPrice: 0,
+                        updatedAt: new Date().toISOString()
+                    }
+                });
+                UI.showToast(`商品 "${trimmedCode} - ${trimmedName}" 新增成功`, 'success');
+                return true;
+            },
+
+            batchCreateProducts(data) {
+                const lines = data.split('\n').filter(line => line.trim() !== '');
+                let successCount = 0;
+                let errorCount = 0;
+                const errors = [];
+
+                lines.forEach((line, index) => {
+                    const parts = line.split(',').map(part => part.trim());
+                    if (parts.length !== 2) {
+                        errors.push(`第 ${index + 1} 行格式錯誤：${line}`);
+                        errorCount++;
+                        return;
+                    }
+
+                    const [code, name] = parts;
+                    if (this.createProduct(code, name)) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(`第 ${index + 1} 行新增失敗：${line}`);
+                    }
+                });
+
+                if (successCount > 0) {
+                    UI.showToast(`成功新增 ${successCount} 個商品`, 'success');
+                }
+
+                if (errorCount > 0) {
+                    const errorMessage = `${errorCount} 個商品新增失敗：\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
+                    UI.showAlert('批量新增結果', errorMessage);
+                }
+            },
+
+            generateProductCode() {
+                const products = Object.values(store.state.products);
+                const existingCodes = products.map(p => p.code);
+
+                // Generate P001, P002, etc.
+                let counter = 1;
+                let newCode;
+                do {
+                    newCode = `P${counter.toString().padStart(3, '0')}`;
+                    counter++;
+                } while (existingCodes.includes(newCode));
+
+                return newCode;
+            },
+
+            async processTransaction(transactionData) {
+                // Step 1: Pre-validation
+                const { productName, qty, price, type, date } = transactionData;
+                if (!productName || !qty || !price) {
+                    return { success: false, message: '商品名稱、數量和單價為必填項。' };
+                }
+                if (isNaN(qty) || isNaN(price) || qty <= 0 || price < 0) {
+                    return { success: false, message: '數量必須為正數，單價不可為負數。' };
+                }
+
+                // Step 2: Product existence check
+                let product = store.getProductByName(productName) || store.getProductByCode(productName);
+                if (!product) {
+                    const createNew = await UI.showConfirm('商品不存在', `商品 "${productName}" 不存在。是否要立即建立此商品？`);
+                    if (createNew) {
+                        // Generate auto code if creating from name
+                        const autoCode = this.generateProductCode();
+                        this.createProduct(autoCode, productName);
+                        product = store.getProductByName(productName);
+                    } else {
+                        return { success: false, message: `操作取消：商品 "${productName}" 不存在。` };
+                    }
+                }
+
+                // Step 3: Outbound stock check (enhanced warning)
+                if (type === 'outbound' && qty > product.stock) {
+                    const proceed = await UI.showStockWarning(product, qty);
+                    if (!proceed) {
+                        return { success: false, message: '操作已取消。' };
+                    }
+                }
+
+                // Step 4: Data update
+                store.commit((state, payload) => {
+                    const { productId, transaction } = payload;
+                    let productToUpdate = state.products[productId];
+
+                    // 4.1: Add transaction record
+                    state.transactions.push(transaction);
+
+                    // 4.2: Update stock
+                    if (transaction.type === 'inbound') {
+                        productToUpdate.stock += transaction.qty;
+                    } else {
+                        productToUpdate.stock -= transaction.qty;
+                    }
+
+                    // 4.3: Update average price (inbound only)
+                    if (transaction.type === 'inbound') {
+                        const oldStock = productToUpdate.stock - transaction.qty;
+                        const oldTotalValue = oldStock * productToUpdate.avgPrice;
+                        const newTotalValue = oldTotalValue + (transaction.qty * transaction.price);
+                        productToUpdate.avgPrice = productToUpdate.stock > 0 ? newTotalValue / productToUpdate.stock : 0;
+                    }
+
+                    productToUpdate.updatedAt = new Date().toISOString();
+                }, {
+                    productId: product.id,
+                    transaction: {
+                        id: self.crypto.randomUUID(),
+                        productId: product.id,
+                        type,
+                        qty,
+                        price,
+                        date: date || new Date().toISOString()
+                    }
+                });
+
+                return { success: true, message: `${type === 'inbound' ? '進貨' : '銷貨'}成功！` };
+            },
+
+            updateProduct(productId, code, name) {
+                const trimmedCode = code.trim();
+                const trimmedName = name.trim();
+
+                // Check for duplicates (excluding current product)
+                const existingByCode = store.getProductByCode(trimmedCode);
+                if (existingByCode && existingByCode.id !== productId) {
+                    UI.showToast(`商品代號 "${trimmedCode}" 已存在`, 'error');
+                    return false;
+                }
+
+                const existingByName = store.getProductByName(trimmedName);
+                if (existingByName && existingByName.id !== productId) {
+                    UI.showToast(`商品名稱 "${trimmedName}" 已存在`, 'error');
+                    return false;
+                }
+
+                store.commit((state, payload) => {
+                    const product = state.products[payload.productId];
+                    product.code = payload.code;
+                    product.name = payload.name;
+                    product.updatedAt = new Date().toISOString();
+                }, { productId, code: trimmedCode, name: trimmedName });
+
+                UI.showToast('商品更新成功', 'success');
+                return true;
+            },
+
+            updateTransaction(transactionId, updates) {
+                const transaction = store.state.transactions.find(t => t.id === transactionId);
+                if (!transaction) {
+                    UI.showToast('交易記錄不存在', 'error');
+                    return false;
+                }
+
+                const product = store.getProductById(transaction.productId);
+                if (!product) {
+                    UI.showToast('關聯商品不存在', 'error');
+                    return false;
+                }
+
+                store.commit((state, payload) => {
+                    const { transactionId, updates } = payload;
+                    const transaction = state.transactions.find(t => t.id === transactionId);
+                    const product = state.products[transaction.productId];
+
+                    // Revert old transaction effect
+                    if (transaction.type === 'inbound') {
+                        product.stock -= transaction.qty;
+                    } else {
+                        product.stock += transaction.qty;
+                    }
+
+                    // Apply new transaction
+                    transaction.date = updates.date;
+                    transaction.qty = updates.qty;
+                    transaction.price = updates.price;
+
+                    if (transaction.type === 'inbound') {
+                        product.stock += transaction.qty;
+                        // Recalculate average price for inbound transactions
+                        const allInboundTransactions = state.transactions.filter(t =>
+                            t.productId === product.id && t.type === 'inbound'
+                        );
+                        const totalValue = allInboundTransactions.reduce((sum, t) => sum + (t.qty * t.price), 0);
+                        const totalQty = allInboundTransactions.reduce((sum, t) => sum + t.qty, 0);
+                        product.avgPrice = totalQty > 0 ? totalValue / totalQty : 0;
+                    } else {
+                        product.stock -= transaction.qty;
+                    }
+
+                    product.updatedAt = new Date().toISOString();
+                }, { transactionId, updates });
+
+                UI.showToast('交易記錄更新成功', 'success');
+                return true;
+            },
+
+            deleteProduct(productId) {
+                const product = store.getProductById(productId);
+                if (!product) {
+                    UI.showToast('商品不存在', 'error');
+                    return false;
+                }
+
+                // Check if product has transactions
+                const hasTransactions = store.state.transactions.some(t => t.productId === productId);
+                if (hasTransactions) {
+                    UI.showToast('無法刪除有交易記錄的商品', 'error');
+                    return false;
+                }
+
+                store.commit((state, payload) => {
+                    delete state.products[payload.productId];
+                }, { productId });
+
+                UI.showToast('商品刪除成功', 'success');
+                return true;
+            },
+
+            deleteTransaction(transactionId) {
+                const transaction = store.state.transactions.find(t => t.id === transactionId);
+                if (!transaction) {
+                    UI.showToast('交易記錄不存在', 'error');
+                    return false;
+                }
+
+                const product = store.getProductById(transaction.productId);
+                if (!product) {
+                    UI.showToast('關聯商品不存在', 'error');
+                    return false;
+                }
+
+                store.commit((state, payload) => {
+                    const { transactionId } = payload;
+                    const transactionIndex = state.transactions.findIndex(t => t.id === transactionId);
+                    const transaction = state.transactions[transactionIndex];
+                    const product = state.products[transaction.productId];
+
+                    // Revert transaction effect
+                    if (transaction.type === 'inbound') {
+                        product.stock -= transaction.qty;
+                    } else {
+                        product.stock += transaction.qty;
+                    }
+
+                    // Remove transaction
+                    state.transactions.splice(transactionIndex, 1);
+
+                    // Recalculate average price if it was an inbound transaction
+                    if (transaction.type === 'inbound') {
+                        const remainingInbound = state.transactions.filter(t =>
+                            t.productId === product.id && t.type === 'inbound'
+                        );
+                        if (remainingInbound.length > 0) {
+                            const totalValue = remainingInbound.reduce((sum, t) => sum + (t.qty * t.price), 0);
+                            const totalQty = remainingInbound.reduce((sum, t) => sum + t.qty, 0);
+                            product.avgPrice = totalValue / totalQty;
+                        } else {
+                            product.avgPrice = 0;
+                        }
+                    }
+
+                    product.updatedAt = new Date().toISOString();
+                }, { transactionId });
+
+                UI.showToast('交易記錄刪除成功', 'success');
+                return true;
+            },
+
+            batchDeleteProducts(productIds) {
+                let successCount = 0;
+                let failedCount = 0;
+                const errors = [];
+
+                productIds.forEach(productId => {
+                    const product = store.getProductById(productId);
+                    if (!product) {
+                        failedCount++;
+                        errors.push(`商品不存在: ${productId}`);
+                        return;
+                    }
+
+                    const hasTransactions = store.state.transactions.some(t => t.productId === productId);
+                    if (hasTransactions) {
+                        failedCount++;
+                        errors.push(`${product.code} - ${product.name}: 有交易記錄無法刪除`);
+                        return;
+                    }
+
+                    if (this.deleteProduct(productId)) {
+                        successCount++;
+                    } else {
+                        failedCount++;
+                    }
+                });
+
+                if (successCount > 0) {
+                    UI.showToast(`成功刪除 ${successCount} 個商品`, 'success');
+                }
+
+                if (failedCount > 0) {
+                    const errorMessage = `${failedCount} 個商品刪除失敗：\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
+                    UI.showAlert('批量刪除結果', errorMessage);
+                }
+            },
+
+            batchDeleteTransactions(transactionIds) {
+                let successCount = 0;
+
+                transactionIds.forEach(transactionId => {
+                    if (this.deleteTransaction(transactionId)) {
+                        successCount++;
+                    }
+                });
+
+                if (successCount > 0) {
+                    UI.showToast(`成功刪除 ${successCount} 筆交易記錄`, 'success');
+                }
+            }
+        };
+
+        // --- Import/Export Module ---
+        const ImportExport = {
+            exportData() {
+                try {
+                    const dataStr = JSON.stringify(store.state, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `inventory-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    UI.showToast('資料匯出成功', 'success');
+                } catch (e) {
+                    UI.showToast('資料匯出失敗', 'error');
+                }
+            },
+
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const importedState = JSON.parse(e.target.result);
+                        if (!importedState.meta || !importedState.products || !importedState.transactions) {
+                            throw new Error('無效的檔案格式');
+                        }
+
+                        const confirmed = await UI.showConfirm('匯入資料', '這將會覆蓋所有現有資料，確定要繼續嗎？');
+                        if (confirmed) {
+                            store.state = importedState;
+                            Storage.setState(store.state);
+                            store._notify();
+                            UI.showToast('資料匯入成功', 'success');
+                        }
+                    } catch (err) {
+                        UI.showToast(`匯入失敗: ${err.message}`, 'error');
+                    } finally {
+                        event.target.value = null; // Reset file input
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+
+        // --- App Controller ---
+        const App = {
+            init() {
+                UI.init();
+                store.subscribe((state) => {
+                    const activePage = document.querySelector('.page.active');
+                    if (activePage) {
+                        switch (activePage.id) {
+                            case 'dashboard': UI.renderDashboard(state); break;
+                            case 'products': UI.renderProducts(state); break;
+                            case 'history': UI.renderHistory(state); break;
+                        }
+                    } else { // Fallback if no page is active
+                        UI.render(state);
+                    }
+                    UI.updateProductDatalist(state);
+                });
+                UI.render(store.state);
+            },
+
+            async handleTransactionSubmit(type) {
+                const modeSelect = document.getElementById(`${type}-mode`);
+
+                if (modeSelect.value === 'single') {
+                    const dateValue = document.getElementById(`${type}-date`).value;
+                    const transactionData = {
+                        productName: document.getElementById(`${type}-product-name`).value.trim(),
+                        qty: parseFloat(document.getElementById(`${type}-quantity`).value),
+                        price: parseFloat(document.getElementById(`${type}-price`).value),
+                        date: UI.formatDateForStorage(dateValue),
+                        type: type
+                    };
+                    const result = await Services.processTransaction(transactionData);
+                    UI.showToast(result.message, result.success ? 'success' : 'error');
+                    if (result.success) {
+                        document.getElementById(`${type}-form`).reset();
+                        UI.initializeDateFields(); // Reset date to today
+                        UI.navigateTo('products');
+                    }
+                } else { // Batch mode
+                    const batchData = document.getElementById(`${type}-batch-data`).value.trim();
+                    const lines = batchData.split('\n').filter(line => line.trim() !== '');
+                    let successCount = 0;
+                    let failedLines = [];
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const parts = lines[i].split(',').map(p => p.trim());
+                        if (parts.length !== 4) {
+                            failedLines.push({ lineNum: i + 1, data: lines[i], reason: '格式錯誤，應為：日期,商品名稱,數量,單價' });
+                            continue;
+                        }
+
+                        const transactionData = {
+                            date: UI.formatDateForStorage(parts[0]),
+                            productName: parts[1],
+                            qty: parseFloat(parts[2]),
+                            price: parseFloat(parts[3]),
+                            type: type
+                        };
+
+                        const result = await Services.processTransaction(transactionData);
+                        if (result.success) {
+                            successCount++;
+                        } else {
+                            failedLines.push({ lineNum: i + 1, data: lines[i], reason: result.message });
+                        }
+                    }
+
+                    let summaryMessage = `批量處理完成！成功 ${successCount} 筆，失敗 ${failedLines.length} 筆。`;
+                    UI.showToast(summaryMessage, failedLines.length > 0 ? 'warning' : 'success');
+
+                    if (failedLines.length > 0) {
+                        const errorDetails = failedLines.map(f => `<li>行 ${f.lineNum} [${UI.escapeHTML(f.data)}]: ${UI.escapeHTML(f.reason)}</li>`).join('');
+                        UI.showAlert('批量處理失敗詳情', `<ul>${errorDetails}</ul>`);
+                    }
+
+                    if (successCount > 0) {
+                        document.getElementById(`${type}-form`).reset();
+                        modeSelect.dispatchEvent(new Event('change')); // Reset view to single
+                        UI.initializeDateFields(); // Reset date to today
+                        UI.navigateTo('products');
+                    }
+                }
+            }
+        };
+
+        // --- Start the App ---
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                console.log('Starting app initialization...');
+                console.log('UI object:', typeof UI);
+                console.log('App object:', typeof App);
+                App.init();
+                console.log('App initialization completed');
+            } catch (e) {
+                console.error('App initialization failed:', e);
+                document.body.innerHTML = `<div style="padding: 2rem; text-align: center;"><h1>應用程式初始化失敗</h1><p>${e.message}</p><pre>${e.stack}</pre></div>`;
+            }
+        });
+    </script>
+</body>
+
+</html>
