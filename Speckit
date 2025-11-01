@@ -139,5 +139,3 @@ guardrails:
 deliverables:
 /index.html（內含 <style> 與 <script type="module">）
 範例資料與自我驗證捷徑（在設定頁一鍵生成 50 筆測試資料）
-
-若您確認「匯入預設＝合併、歷史上限＝10,000」，我將直接產出最終單檔 HTML。
