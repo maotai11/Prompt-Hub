@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進階分攤計算工具 (年/月/日)</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --info-color: #17a2b8;
+            --light-gray: #f8f9fa;
+            --dark-gray: #343a40;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: var(--light-gray);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 25px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: var(--dark-gray);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 25px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+
+        .form-group,
+        .form-row {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.85em;
+            margin-top: 5px;
+            height: 1em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        button {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s, color 0.2s;
+        }
+
+        #calculateBtn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        #calculateBtn:hover {
+            background-color: #0056b3;
+        }
+
+        #exportBtn {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        #exportBtn:hover {
+            background-color: #218838;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        details {
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+
+        details summary {
+            padding: 10px;
+            background-color: var(--light-gray);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        details div {
+            padding: 15px;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        #results {
+            margin-top: 30px;
+            border-top: 2px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border: 1px solid var(--border-color);
+            padding: 10px 12px;
+            text-align: right;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: var(--light-gray);
+            font-weight: 600;
+        }
+
+        th:first-child,
+        td:first-child {
+            text-align: center;
+        }
+
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .copy-button {
+            background-color: var(--info-color);
+            color: white;
+            font-size: 0.9em;
+            padding: 8px 12px;
+            flex-grow: 0;
+        }
+
+        .copy-button:hover {
+            background-color: #138496;
+        }
+
+        .copy-single-button {
+            font-size: 0.8em;
+            padding: 5px 10px;
+            background-color: var(--secondary-color);
+            color: white;
+            flex-grow: 0;
+        }
+
+        .copy-single-button:hover {
+            background-color: #5a6268;
+        }
+
+        #calculationBreakdown {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>進階分攤計算工具</h1>
+        <p class="description">輸入金額、起日、迄日，系統按“起訖均含、日曆年/月、實際天數、四捨五入到2位、尾差併入最後一期”計算分攤金額並可匯出。</p>
+
+        <form id="calcForm" onsubmit="event.preventDefault(); calculateAmortization();">
+            <div class="form-group">
+                <label for="amount">總金額</label>
+                <input type="number" id="amount" step="0.01" placeholder="請輸入大於 0 的金額" required>
+                <div id="amountError" class="error-message"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startDate">起始日期 (含)</label>
+                    <input type="date" id="startDate" required>
+                    <div id="startDateError" class="error-message"></div>
+                </div>
+                <div class="form-group">
+                    <label for="endDate">結束日期 (含)</label>
+                    <input type="date" id="endDate" required>
+                    <div id="endDateError" class="error-message"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="periodType">分攤單位</label>
+                <select id="periodType">
+                    <option value="yearly">按年分攤</option>
+                    <option value="monthly">按月分攤</option>
+                    <option value="daily">按日分攤</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" id="calculateBtn">計算</button>
+                <button type="button" id="exportBtn" disabled>匯出 CSV</button>
+            </div>
+        </form>
+
+        <details>
+            <summary>高級設定（固定規則）</summary>
+            <div>
+                <ul>
+                    <li><b>年度/月份/日期口徑：</b>日曆年/月/日 (Calendar Year/Month/Day)</li>
+                    <li><b>天數口徑：</b>起始日與結束日均包含在內</li>
+                    <li><b>計日規則：</b>依該分攤單位內實際天數 (自動處理閏年)</li>
+                    <li><b>捨入與尾差：</b>金額四捨五入至小數點後 2 位，總計尾差併入最後一個分攤單位</li>
+                </ul>
+            </div>
+        </details>
+
+        <div id="results" style="display: none;">
+            <h2>計算結果</h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="summaryPrefix">摘要前綴 (選填)</label>
+                    <input type="text" id="summaryPrefix" placeholder="例如：專案A">
+                </div>
+                <div class="form-group">
+                    <label for="summaryNote">摘要 (選填)</label>
+                    <input type="text" id="summaryNote" placeholder="例如：第一期款">
+                </div>
+            </div>
+
+            <div id="resultsTableContainer"></div>
+            <div id="resultsSummary" class="summary"></div>
+
+            <div class="form-group toggle-switch">
+                <input type="checkbox" id="showBreakdownToggle">
+                <label for="showBreakdownToggle">顯示計算過程</label>
+            </div>
+            <div id="calculationBreakdown" style="display: none;"></div>
+
+            <div class="button-group" id="copyButtonsContainer">
+                <button type="button" id="copySummaryBtn" class="copy-button">複製組合摘要</button>
+                <button type="button" id="copyDetailsBtn" class="copy-button">複製完整明細</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const amountInput = document.getElementById('amount');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const periodTypeSelect = document.getElementById('periodType');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const summaryPrefixInput = document.getElementById('summaryPrefix');
+        const summaryNoteInput = document.getElementById('summaryNote');
+
+        const resultsDiv = document.getElementById('results');
+        const tableContainer = document.getElementById('resultsTableContainer');
+        const summaryContainer = document.getElementById('resultsSummary');
+
+        const showBreakdownToggle = document.getElementById('showBreakdownToggle');
+        const breakdownDiv = document.getElementById('calculationBreakdown');
+        const copySummaryBtn = document.getElementById('copySummaryBtn');
+        const copyDetailsBtn = document.getElementById('copyDetailsBtn');
+
+        const amountError = document.getElementById('amountError');
+        const startDateError = document.getElementById('startDateError');
+        const endDateError = document.getElementById('endDateError');
+
+        let calculationResult = null;
+
+        // --- Helper Functions ---
+        const daysBetweenInclusive = (d1, d2) => {
+            if (d1 > d2) return 0;
+            const oneDay = 86400000;
+            return Math.round((d2.getTime() - d1.getTime()) / oneDay) + 1;
+        };
+
+        const toMinguoDateString = (date) => {
+            const year = date.getUTCFullYear();
+            const month = date.getUTCMonth() + 1;
+            const day = date.getUTCDate();
+            const minguoYear = year - 1911;
+            return `${minguoYear}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+        };
+
+        // --- Core Functions ---
+        const validateInputs = () => {
+            // ... (validation logic remains the same, no changes needed)
+            let isValid = true;
+            amountError.textContent = '';
+            startDateError.textContent = '';
+            endDateError.textContent = '';
+
+            let amount = parseFloat(amountInput.value);
+            if (isNaN(amount) || amount <= 0) {
+                amountError.textContent = '金額必須是大於 0 的數字。';
+                isValid = false;
+            }
+
+            const startDateStr = startDateInput.value;
+            const endDateStr = endDateInput.value;
+            if (!startDateStr || !endDateStr) {
+                if (!startDateStr) startDateError.textContent = '起始日期為必填項。';
+                if (!endDateStr) endDateError.textContent = '結束日期為必填項。';
+                isValid = false;
+            }
+
+            if (!isValid) return { isValid: false };
+
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+
+            if (startDate > endDate) {
+                endDateError.textContent = '結束日期必須晚於或等於起始日期。';
+                isValid = false;
+            }
+
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            if (endYear - startYear > 100) {
+                startDateError.textContent = '日期跨度過大，不可超過 100 年。';
+                isValid = false;
+            }
+
+            if (!isValid) return { isValid: false };
+
+            const finalAmount = parseFloat(amount.toFixed(2));
+            return {
+                isValid: true,
+                amount: finalAmount,
+                startDate,
+                endDate
+            };
+        };
+
+        const calculateAmortization = () => {
+            resultsDiv.style.display = 'none';
+            exportBtn.disabled = true;
+            calculationResult = null;
+
+            const validation = validateInputs();
+            if (!validation.isValid) {
+                calculateBtn.disabled = true;
+                return;
+            }
+
+            const { amount, startDate, endDate } = validation;
+            const periodType = periodTypeSelect.value;
+
+            const startUTC = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
+            const endUTC = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
+
+            const totalDays = daysBetweenInclusive(startUTC, endUTC);
+            if (totalDays <= 0) return;
+
+            let resultsData = [];
+            let roundedTotal = 0;
+
+            if (periodType === 'yearly') {
+                const startYear = startUTC.getUTCFullYear();
+                const endYear = endUTC.getUTCFullYear();
+
+                for (let year = startYear; year <= endYear; year++) {
+                    const yearStart = new Date(Date.UTC(year, 0, 1));
+                    const yearEnd = new Date(Date.UTC(year, 11, 31));
+
+                    const effectiveStart = startUTC > yearStart ? startUTC : yearStart;
+                    const effectiveEnd = endUTC < yearEnd ? endUTC : yearEnd;
+
+                    const daysInPeriod = daysBetweenInclusive(effectiveStart, effectiveEnd);
+                    if (daysInPeriod <= 0) continue;
+
+                    const rawAmount = amount * (daysInPeriod / totalDays);
+                    const roundedAmount = parseFloat(rawAmount.toFixed(2));
+
+                    resultsData.push({
+                        label: year.toString(),
+                        days: daysInPeriod,
+                        amount: roundedAmount,
+                        effectiveStart,
+                        effectiveEnd
+                    });
+                    roundedTotal += roundedAmount;
+                }
+            } else if (periodType === 'monthly') {
+                let currentDate = new Date(startUTC);
+                while (currentDate <= endUTC) {
+                    const year = currentDate.getUTCFullYear();
+                    const month = currentDate.getUTCMonth();
+
+                    const monthStart = new Date(Date.UTC(year, month, 1));
+                    const monthEnd = new Date(Date.UTC(year, month + 1, 0));
+
+                    const effectiveStart = currentDate > monthStart ? currentDate : monthStart;
+                    const effectiveEnd = endUTC < monthEnd ? endUTC : monthEnd;
+
+                    const daysInPeriod = daysBetweenInclusive(effectiveStart, effectiveEnd);
+
+                    if (daysInPeriod > 0) {
+                        const rawAmount = amount * (daysInPeriod / totalDays);
+                        const roundedAmount = parseFloat(rawAmount.toFixed(2));
+
+                        resultsData.push({
+                            label: `${year}-${String(month + 1).padStart(2, '0')}`,
+                            days: daysInPeriod,
+                            amount: roundedAmount,
+                            effectiveStart,
+                            effectiveEnd
+                        });
+                        roundedTotal += roundedAmount;
+                    }
+
+                    currentDate = new Date(Date.UTC(year, month + 1, 1));
+                }
+            } else { // daily
+                let currentDate = new Date(startUTC);
+                while (currentDate <= endUTC) {
+                    const year = currentDate.getUTCFullYear();
+                    const month = currentDate.getUTCMonth();
+                    const day = currentDate.getUTCDate();
+
+                    const rawAmount = amount / totalDays;
+                    const roundedAmount = parseFloat(rawAmount.toFixed(2));
+
+                    const dateLabel = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                    resultsData.push({
+                        label: dateLabel,
+                        days: 1,
+                        amount: roundedAmount,
+                        effectiveStart: new Date(currentDate),
+                        effectiveEnd: new Date(currentDate)
+                    });
+                    roundedTotal += roundedAmount;
+
+                    // Move to next day
+                    currentDate = new Date(Date.UTC(year, month, day + 1));
+                }
+            }
+
+            if (resultsData.length > 0) {
+                const diff = parseFloat((amount - roundedTotal).toFixed(2));
+                resultsData[resultsData.length - 1].amount += diff;
+                resultsData[resultsData.length - 1].isAdjusted = true;
+            }
+
+            calculationResult = {
+                data: resultsData,
+                totalDays,
+                totalAmount: amount,
+                periodType: periodType,
+                startDate: startDate.toLocaleDateString('sv'),
+                endDate: endDate.toLocaleDateString('sv')
+            };
+            displayResults(calculationResult);
+        };
+
+        const displayResults = (result) => {
+            const { data, totalDays, periodType } = result;
+            const periodLabel = periodType === 'yearly' ? '年度' : (periodType === 'monthly' ? '月份' : '日期');
+
+            const prefix = summaryPrefixInput.value.trim();
+            const note = summaryNoteInput.value.trim();
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>${periodLabel}</th>
+                            <th>該單位天數</th>
+                            <th>占比 (%)</th>
+                            <th>分攤金額</th>
+                            <th>複製單筆摘要</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            let finalSum = 0;
+            data.forEach(item => {
+                finalSum += item.amount;
+                const percentage = (item.days / totalDays * 100).toFixed(2);
+
+                // --- Generate single-line summary string ---
+                const minguoStart = toMinguoDateString(item.effectiveStart);
+                const minguoEnd = toMinguoDateString(item.effectiveEnd);
+
+                let summaryParts = [];
+                if (prefix) summaryParts.push(prefix);
+                summaryParts.push(minguoStart);
+                summaryParts.push(minguoEnd);
+                summaryParts.push(`${item.days}/${totalDays}`);
+
+                let summaryString = summaryParts.join('-');
+                if (note) summaryString += ` ${note}`;
+
+                tableHTML += `
+                    <tr>
+                        <td>${item.label}</td>
+                        <td>${item.days}</td>
+                        <td>${percentage}%</td>
+                        <td>${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>
+                            <button class="copy-single-button" data-summary="${summaryString.replace(/"/g, '&quot;')}">複製</button>
+                        </td>
+                    </tr>`;
+            });
+            tableHTML += `</tbody></table>`;
+            tableContainer.innerHTML = tableHTML;
+
+            const totalAmount = result.totalAmount;
+            summaryContainer.innerHTML = `
+                <span>總天數：${totalDays} 天</span>
+                <span>金額合計：${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+
+            resultsDiv.style.display = 'block';
+            exportBtn.disabled = false;
+            updateBreakdown();
+        };
+
+        const updateBreakdown = () => {
+            // ... (this function remains the same, no changes needed)
+            if (!calculationResult || !showBreakdownToggle.checked) {
+                breakdownDiv.style.display = 'none';
+                return;
+            }
+            const { data, totalDays, totalAmount, startDate, endDate } = calculationResult;
+            let breakdownText = `總金額: ${totalAmount.toLocaleString()}\n期間: ${startDate} 至 ${endDate} (共 ${totalDays} 天)\n`;
+            breakdownText += '------------------------------------\n';
+            data.forEach(item => {
+                const rawAmount = totalAmount * (item.days / totalDays);
+                breakdownText += `${item.label}:\n`;
+                breakdownText += `  天數: ${item.days} 天\n`;
+                breakdownText += `  公式: ${totalAmount.toLocaleString()} × ${item.days} ÷ ${totalDays} = ${rawAmount.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}\n`;
+                breakdownText += `  金額: ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                if (item.isAdjusted) {
+                    breakdownText += ` (含尾差調整)\n\n`;
+                } else {
+                    breakdownText += `\n\n`;
+                }
+            });
+            breakdownDiv.textContent = breakdownText;
+            breakdownDiv.style.display = 'block';
+        };
+
+        const generateCopyText = (type) => {
+            if (!calculationResult) return '';
+            const { data, totalAmount, periodType } = calculationResult;
+            const prefix = summaryPrefixInput.value.trim();
+            const note = summaryNoteInput.value.trim();
+            const fullNote = [prefix, note].filter(Boolean).join(' - ');
+
+            if (type === 'summary') {
+                const summary = data.map(item => `${item.label}: ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`).join('；');
+                return `${summary} (總計 ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+            }
+
+            if (type === 'details') {
+                let details = `分攤計算明細 (${periodType === 'yearly' ? '年' : (periodType === 'monthly' ? '月' : '日')})\n`;
+                details += `總金額: ${totalAmount.toLocaleString()}\n`;
+                details += `期間: ${calculationResult.startDate} 至 ${calculationResult.endDate} (共 ${calculationResult.totalDays} 天)\n\n`;
+                details += `[分攤表]\n`;
+                data.forEach(item => {
+                    const percentage = (item.days / calculationResult.totalDays * 100).toFixed(2);
+                    details += `${item.label}\t天數:${item.days}\t占比:${percentage}%\t金額:${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+                });
+                if (fullNote) {
+                    details += `\n[摘要]\n${fullNote}`;
+                }
+                return details;
+            }
+            return '';
+        };
+
+        const copyToClipboard = async (text, targetButton) => {
+            try {
+                await navigator.clipboard.writeText(text);
+                if (targetButton) {
+                    const originalText = targetButton.textContent;
+                    targetButton.textContent = '已複製!';
+                    setTimeout(() => {
+                        targetButton.textContent = originalText;
+                    }, 2000);
+                } else {
+                    alert('已成功複製到剪貼簿！');
+                }
+            } catch (err) {
+                console.error('複製失敗:', err);
+                alert('複製失敗，請手動選取複製。');
+            }
+        };
+
+        const exportToCSV = () => {
+            if (!calculationResult) return;
+            const { data, periodType, totalDays, totalAmount, startDate, endDate } = calculationResult;
+            const prefix = summaryPrefixInput.value.trim();
+            const note = summaryNoteInput.value.trim();
+            const fullNote = [prefix, note].filter(Boolean).join(' - ').replace(/"/g, '""');
+
+            let csvContent = '\uFEFF';
+
+            csvContent += `總金額,"${totalAmount}"\n`;
+            csvContent += `期間,"${startDate} 至 ${endDate}"\n`;
+            csvContent += `總天數,"${totalDays}"\n`;
+            if (fullNote) {
+                csvContent += `摘要,"${fullNote}"\n`;
+            }
+            csvContent += '\n';
+
+            const periodLabel = periodType === 'yearly' ? '年度' : (periodType === 'monthly' ? '月份' : '日期');
+            csvContent += `${periodLabel},該單位天數,占比(%),分攤金額\n`;
+            data.forEach(item => {
+                const percentage = (item.days / totalDays * 100).toFixed(2);
+                const amount = item.amount.toFixed(2);
+                csvContent += `${item.label},${item.days},${percentage},${amount}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', '分攤計算結果.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // --- Event Listeners ---
+        const enableCalcButton = () => { calculateBtn.disabled = false; };
+        amountInput.addEventListener('input', enableCalcButton);
+        startDateInput.addEventListener('input', enableCalcButton);
+        endDateInput.addEventListener('input', enableCalcButton);
+        periodTypeSelect.addEventListener('change', () => {
+            if (resultsDiv.style.display === 'block') {
+                calculateAmortization();
+            }
+        });
+        // Re-calculate when summary fields change
+        summaryPrefixInput.addEventListener('input', () => {
+            if (resultsDiv.style.display === 'block') displayResults(calculationResult);
+        });
+        summaryNoteInput.addEventListener('input', () => {
+            if (resultsDiv.style.display === 'block') displayResults(calculationResult);
+        });
+
+
+        exportBtn.addEventListener('click', exportToCSV);
+        showBreakdownToggle.addEventListener('change', updateBreakdown);
+        copySummaryBtn.addEventListener('click', () => copyToClipboard(generateCopyText('summary')));
+        copyDetailsBtn.addEventListener('click', (e) => copyToClipboard(generateCopyText('details'), e.target));
+
+        // Event delegation for single copy buttons
+        tableContainer.addEventListener('click', (event) => {
+            if (event.target.classList.contains('copy-single-button')) {
+                const textToCopy = event.target.dataset.summary;
+                copyToClipboard(textToCopy, event.target);
+            }
+        });
+
+    </script>
+</body>
+
+</html>
