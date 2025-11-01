@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 
@@ -527,6 +528,8 @@
                 <li class="nav-item"><a href="#dashboard" class="nav-link active" data-page="dashboard">首頁</a></li>
                 <li class="nav-item"><a href="#products" class="nav-link" data-page="products">商品</a></li>
                 <li class="nav-item"><a href="#history" class="nav-link" data-page="history">進銷貨紀錄</a></li>
+                <li class="nav-item"><a href="#inventory-adjustment" class="nav-link"
+                        data-page="inventory-adjustment">庫存盤點</a></li>
             </ul>
         </aside>
 
@@ -550,14 +553,16 @@
                 </div>
                 <div class="card" style="margin-top: var(--spacing-lg);">
                     <h2 class="card-title">商品交易記錄查詢</h2>
-                    <div style="display: flex; gap: var(--spacing-md); align-items: end; margin-bottom: var(--spacing-md);">
+                    <div
+                        style="display: flex; gap: var(--spacing-md); align-items: end; margin-bottom: var(--spacing-md);">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label" for="transaction-query-date">截止日期</label>
                             <input type="date" id="transaction-query-date" class="form-control" style="width: 200px;">
                         </div>
                         <div class="form-group" style="margin-bottom: 0; flex: 1;">
                             <label class="form-label">選擇商品（可多選）</label>
-                            <div id="product-selector" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-sm);">
+                            <div id="product-selector"
+                                style="max-height: 150px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: var(--spacing-sm);">
                                 <!-- 動態生成商品選擇列表 -->
                             </div>
                         </div>
@@ -567,7 +572,7 @@
                         <!-- 動態生成查詢結果 -->
                     </div>
                 </div>
-                
+
                 <div class="card" style="margin-top: var(--spacing-lg);">
                     <h2 class="card-title">負庫存警告</h2>
                     <table id="negative-stock-table">
@@ -765,6 +770,106 @@
                 </div>
             </div>
 
+            <!-- PAGE: 庫存盤點 -->
+            <div id="inventory-adjustment" class="page">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="card-title">庫存盤點調整</h1>
+                    </div>
+                    <form id="adjustment-form">
+                        <div class="form-group">
+                            <label class="form-label" for="adjustment-date">盤點日期</label>
+                            <input type="date" id="adjustment-date" class="form-control" required style="width: 200px;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="adjustment-product">商品</label>
+                            <input type="text" id="adjustment-product" class="form-control" list="product-datalist"
+                                required placeholder="輸入商品名稱或代號">
+                            <div id="adjustment-stock-info" class="stock-info" style="display: none;">
+                                <small class="text-muted">系統庫存：<span id="adjustment-system-stock">0</span></small>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="adjustment-actual-stock">實際盤點數量</label>
+                            <input type="number" id="adjustment-actual-stock" class="form-control" min="0" step="any"
+                                required placeholder="輸入實際盤點的庫存數量">
+                        </div>
+                        <div id="adjustment-difference-info" class="stock-info" style="display: none;">
+                            <strong>差異：<span id="adjustment-difference">0</span></strong>
+                            <small class="text-muted">（正數表示盤盈，負數表示盤虧）</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="adjustment-reason">調整原因</label>
+                            <select id="adjustment-reason" class="form-control" required>
+                                <option value="">請選擇調整原因</option>
+                                <option value="盤點盤盈">盤點盤盈</option>
+                                <option value="盤點盤虧">盤點盤虧</option>
+                                <option value="損耗報廢">損耗報廢</option>
+                                <option value="系統錯誤">系統錯誤修正</option>
+                                <option value="其他">其他原因</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="adjustment-notes">備註說明</label>
+                            <textarea id="adjustment-notes" class="form-control" rows="3"
+                                placeholder="詳細說明調整原因（選填）"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">確認調整</button>
+                    </form>
+                </div>
+
+                <div class="card" style="margin-top: var(--spacing-lg);">
+                    <div class="card-header">
+                        <h2 class="card-title">庫存調整記錄</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" id="export-adjustments-btn">匯出調整記錄</button>
+                        </div>
+                    </div>
+                    <div class="filters" style="margin-bottom: var(--spacing-md);">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="filter-adjustment-start">開始日期</label>
+                            <input type="date" id="filter-adjustment-start" class="form-control" style="width: 150px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="filter-adjustment-end">結束日期</label>
+                            <input type="date" id="filter-adjustment-end" class="form-control" style="width: 150px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="filter-adjustment-product">商品</label>
+                            <input type="text" id="filter-adjustment-product" class="form-control" placeholder="商品名稱"
+                                style="width: 200px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="filter-adjustment-reason">調整原因</label>
+                            <select id="filter-adjustment-reason" class="form-control" style="width: 150px;">
+                                <option value="">全部</option>
+                                <option value="盤點盤盈">盤點盤盈</option>
+                                <option value="盤點盤虧">盤點盤虧</option>
+                                <option value="損耗報廢">損耗報廢</option>
+                                <option value="系統錯誤">系統錯誤修正</option>
+                                <option value="其他">其他原因</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary" id="reset-adjustment-filters-btn">重設</button>
+                    </div>
+                    <table id="adjustment-table">
+                        <thead>
+                            <tr>
+                                <th>調整日期</th>
+                                <th>商品</th>
+                                <th class="text-right">調整前庫存</th>
+                                <th class="text-right">實際盤點</th>
+                                <th class="text-right">差異數量</th>
+                                <th>調整原因</th>
+                                <th>備註</th>
+                                <th width="80px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody><!-- dynamic content --></tbody>
+                    </table>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -947,6 +1052,12 @@
                         // For now, reset to initial state if schema is old
                         return this.getInitialState();
                     }
+
+                    // Ensure adjustments array exists (for backward compatibility)
+                    if (!data.adjustments) {
+                        data.adjustments = [];
+                    }
+
                     return data;
                 } catch (e) {
                     UI.showToast('讀取本地資料失敗，將使用初始資料。', 'error');
@@ -970,6 +1081,7 @@
                     },
                     products: {}, // { 'uuid': { code, name, stock, avgPrice, updatedAt } }
                     transactions: [], // [ { id, productId, type, qty, price, date } ]
+                    adjustments: [], // [ { id, productId, date, beforeStock, actualStock, difference, reason, notes, createdAt } ]
                 };
             }
         };
@@ -1031,6 +1143,9 @@
             inboundForm: document.getElementById('inbound-form'),
             outboundForm: document.getElementById('outbound-form'),
 
+            // Adjustment elements (will be set when needed)
+            adjustmentTableBody: null,
+
             // Modal elements
             modal: document.getElementById('generic-modal'),
             modalTitle: document.getElementById('modal-title'),
@@ -1069,10 +1184,10 @@
 
                 // Initialize date fields with current date
                 this.initializeDateFields();
-                
+
                 // Initialize stock monitoring
                 this.initializeStockMonitoring();
-                
+
                 // Initialize product selector
                 this.initializeProductSelector();
 
@@ -1083,6 +1198,7 @@
                 // Form submissions
                 this.inboundForm.addEventListener('submit', (e) => { e.preventDefault(); App.handleTransactionSubmit('inbound'); });
                 this.outboundForm.addEventListener('submit', (e) => { e.preventDefault(); App.handleTransactionSubmit('outbound'); });
+                document.getElementById('adjustment-form').addEventListener('submit', (e) => { e.preventDefault(); App.handleAdjustmentSubmit(); });
 
                 // Filter listeners
                 const filters = ['filter-start-date', 'filter-end-date', 'filter-product', 'filter-type'];
@@ -1092,15 +1208,40 @@
                     this.renderHistory(store.state);
                 });
 
+                // Adjustment filter listeners
+                const adjustmentFilters = ['filter-adjustment-start', 'filter-adjustment-end', 'filter-adjustment-product', 'filter-adjustment-reason'];
+                adjustmentFilters.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('input', () => this.renderAdjustments(store.state));
+                    }
+                });
+                const resetAdjustmentBtn = document.getElementById('reset-adjustment-filters-btn');
+                if (resetAdjustmentBtn) {
+                    resetAdjustmentBtn.addEventListener('click', () => {
+                        adjustmentFilters.forEach(id => {
+                            const element = document.getElementById(id);
+                            if (element) element.value = '';
+                        });
+                        this.renderAdjustments(store.state);
+                    });
+                }
+
                 // Import/Export Listeners
                 document.getElementById('export-btn').addEventListener('click', ImportExport.exportData);
                 document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
                 document.getElementById('import-file-input').addEventListener('change', ImportExport.importData);
 
+                // Export adjustments listener
+                const exportAdjustmentsBtn = document.getElementById('export-adjustments-btn');
+                if (exportAdjustmentsBtn) {
+                    exportAdjustmentsBtn.addEventListener('click', () => ImportExport.exportAdjustments());
+                }
+
                 // Batch delete listeners
                 document.getElementById('batch-delete-product-btn').addEventListener('click', () => UI.batchDeleteProducts());
                 document.getElementById('batch-delete-history-btn').addEventListener('click', () => UI.batchDeleteTransactions());
-                
+
                 // Transaction query listener
                 document.getElementById('query-transactions-btn').addEventListener('click', () => UI.queryProductTransactions());
 
@@ -1146,6 +1287,10 @@
                         const transactionId = e.target.dataset.transactionId;
                         console.log('Delete transaction clicked:', transactionId);
                         UI.deleteTransaction(transactionId);
+                    } else if (e.target.classList.contains('delete-adjustment-btn')) {
+                        const adjustmentId = e.target.dataset.adjustmentId;
+                        console.log('Delete adjustment clicked:', adjustmentId);
+                        UI.deleteAdjustment(adjustmentId);
                     }
                 });
             },
@@ -1181,6 +1326,7 @@
                     case 'dashboard': this.renderDashboard(store.state); break;
                     case 'products': this.renderProducts(store.state); break;
                     case 'history': this.renderHistory(store.state); break;
+                    case 'inventory-adjustment': this.renderAdjustments(store.state); break;
                 }
             },
 
@@ -1190,10 +1336,17 @@
                 this.renderHistory(state);
                 this.updateProductDatalist(state);
                 this.renderProductSelector();
+
+                // Only render adjustments if the page elements exist
+                if (document.getElementById('adjustment-table')) {
+                    this.renderAdjustments(state);
+                }
             },
 
             renderDashboard(state) {
                 const products = Object.values(state.products);
+
+                // Now that product.stock is always synced, we can use it directly
                 const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
                 const totalCost = products.reduce((sum, p) => sum + (p.stock * p.avgPrice), 0);
 
@@ -1203,8 +1356,49 @@
 
                 const negativeStockProducts = products.filter(p => p.stock < 0);
                 this.negativeStockTableBody.innerHTML = negativeStockProducts.length > 0
-                    ? negativeStockProducts.map(p => `<tr><td>${this.escapeHTML(p.code)}</td><td>${this.escapeHTML(p.name)}</td><td class="text-right stock-negative">${p.stock}</td></tr>`).join('')
+                    ? negativeStockProducts.map(p => `<tr><td>${this.escapeHTML(p.code)}</td><td>${this.escapeHTML(p.name)}</td><td class="text-right stock-negative">${p.stock.toLocaleString()}</td></tr>`).join('')
                     : '<tr><td colspan="3">沒有負庫存商品。</td></tr>';
+            },
+
+            calculateRealTimeStock(productId, state) {
+                // Start with 0 and calculate from all transactions and adjustments
+                let stock = 0;
+
+                // Add all transactions
+                const transactions = (state.transactions || []).filter(t => t.productId === productId);
+                transactions.forEach(transaction => {
+                    if (transaction.type === 'inbound') {
+                        stock += transaction.qty;
+                    } else {
+                        stock -= transaction.qty;
+                    }
+                });
+
+                // Apply all adjustments (adjustments set absolute stock, not relative)
+                const adjustments = (state.adjustments || [])
+                    .filter(adj => adj.productId === productId)
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                if (adjustments.length > 0) {
+                    // Find the latest adjustment and use its actual stock as base
+                    const latestAdjustment = adjustments[adjustments.length - 1];
+
+                    // Calculate stock from transactions after the latest adjustment
+                    const transactionsAfterAdjustment = transactions.filter(t =>
+                        new Date(t.date) > new Date(latestAdjustment.date)
+                    );
+
+                    stock = latestAdjustment.actualStock;
+                    transactionsAfterAdjustment.forEach(transaction => {
+                        if (transaction.type === 'inbound') {
+                            stock += transaction.qty;
+                        } else {
+                            stock -= transaction.qty;
+                        }
+                    });
+                }
+
+                return stock;
             },
 
             renderProducts(state) {
@@ -1430,6 +1624,7 @@
                 document.getElementById('inbound-date').value = today;
                 document.getElementById('outbound-date').value = today;
                 document.getElementById('transaction-query-date').value = today;
+                document.getElementById('adjustment-date').value = today;
             },
 
             parseDate(dateStr) {
@@ -1482,6 +1677,22 @@
                         this.checkStockSufficiency();
                     });
                 }
+
+                // Monitor adjustment form inputs
+                const adjustmentProductInput = document.getElementById('adjustment-product');
+                const adjustmentActualStockInput = document.getElementById('adjustment-actual-stock');
+
+                if (adjustmentProductInput) {
+                    adjustmentProductInput.addEventListener('input', () => {
+                        this.updateAdjustmentStockDisplay();
+                    });
+                }
+
+                if (adjustmentActualStockInput) {
+                    adjustmentActualStockInput.addEventListener('input', () => {
+                        this.calculateAdjustmentDifference();
+                    });
+                }
             },
 
             updateStockDisplay(type) {
@@ -1501,7 +1712,7 @@
                 if (product) {
                     stockSpan.textContent = product.stock.toLocaleString();
                     stockInfo.style.display = 'block';
-                    
+
                     // Add color coding based on stock level
                     stockInfo.className = 'stock-info';
                     if (product.stock <= 0) {
@@ -1535,20 +1746,22 @@
             },
 
             showStockWarning(product, requestedQty) {
-                const shortage = requestedQty - product.stock;
-                const suggestedProducts = this.findSimilarProducts(product.name, product.stock);
-                
+                const realStock = this.calculateRealTimeStock(product.id, store.state);
+                const shortage = requestedQty - realStock;
+                const suggestedProducts = this.findSimilarProducts(product.name, realStock);
+
                 let suggestionHtml = '';
                 if (suggestedProducts.length > 0) {
                     suggestionHtml = '<p>建議替換商品：</p><ul>';
                     suggestedProducts.forEach(p => {
-                        suggestionHtml += `<li>${p.name} (庫存: ${p.stock.toLocaleString()})</li>`;
+                        const pRealStock = this.calculateRealTimeStock(p.id, store.state);
+                        suggestionHtml += `<li>${p.name} (庫存: ${pRealStock.toLocaleString()})</li>`;
                     });
                     suggestionHtml += '</ul>';
                 }
 
-                const message = `本次銷貨數量 (${requestedQty.toLocaleString()}) 超出 "${product.name}" 的當前庫存量 (${product.stock.toLocaleString()})，將導致負庫存。${suggestionHtml}<br><br>是否繼續操作？`;
-                
+                const message = `本次銷貨數量 (${requestedQty.toLocaleString()}) 超出 "${product.name}" 的當前庫存量 (${realStock.toLocaleString()})，將導致負庫存。${suggestionHtml}<br><br>是否繼續操作？`;
+
                 return this.showModal({
                     title: '庫存不足警告',
                     body: message,
@@ -1560,14 +1773,19 @@
             findSimilarProducts(productName, minStock = 0) {
                 const allProducts = Object.values(store.state.products);
                 const keywords = productName.toLowerCase().split(/\s+/);
-                
+
                 return allProducts
                     .filter(p => {
-                        if (p.name === productName || p.stock <= minStock) return false;
+                        const pRealStock = this.calculateRealTimeStock(p.id, store.state);
+                        if (p.name === productName || pRealStock <= minStock) return false;
                         const pName = p.name.toLowerCase();
                         return keywords.some(keyword => pName.includes(keyword));
                     })
-                    .sort((a, b) => b.stock - a.stock)
+                    .sort((a, b) => {
+                        const aRealStock = this.calculateRealTimeStock(a.id, store.state);
+                        const bRealStock = this.calculateRealTimeStock(b.id, store.state);
+                        return bRealStock - aRealStock;
+                    })
                     .slice(0, 3);
             },
 
@@ -1580,7 +1798,7 @@
                 if (!selector) return;
 
                 const products = Object.values(store.state.products).sort((a, b) => a.code.localeCompare(b.code));
-                
+
                 selector.innerHTML = products.map(product => `
                     <div class="product-selector-item">
                         <input type="checkbox" id="product-${product.id}" value="${product.id}" class="product-checkbox-selector">
@@ -1635,7 +1853,7 @@
                 const transactionRows = transactions.map(transaction => {
                     const changeAmount = transaction.type === 'inbound' ? transaction.qty : -transaction.qty;
                     cumulativeStock += changeAmount;
-                    
+
                     return `
                         <tr>
                             <td>${new Date(transaction.date).toLocaleDateString('zh-TW')}</td>
@@ -1705,7 +1923,7 @@
                         const targetId = header.dataset.target;
                         const content = document.getElementById(targetId);
                         const arrow = header.querySelector('.collapse-arrow');
-                        
+
                         if (content.classList.contains('active')) {
                             content.classList.remove('active');
                             header.classList.remove('active');
@@ -1717,6 +1935,115 @@
                         }
                     });
                 });
+            },
+
+            updateAdjustmentStockDisplay() {
+                const productInput = document.getElementById('adjustment-product');
+                const stockInfo = document.getElementById('adjustment-stock-info');
+                const stockSpan = document.getElementById('adjustment-system-stock');
+
+                if (!productInput || !stockInfo || !stockSpan) return;
+
+                const productName = productInput.value.trim();
+                if (!productName) {
+                    stockInfo.style.display = 'none';
+                    return;
+                }
+
+                const product = store.getProductByName(productName) || store.getProductByCode(productName);
+                if (product) {
+                    stockSpan.textContent = product.stock.toLocaleString();
+                    stockInfo.style.display = 'block';
+
+                    // Trigger difference calculation if actual stock is entered
+                    this.calculateAdjustmentDifference();
+                } else {
+                    stockInfo.style.display = 'none';
+                }
+            },
+
+            calculateAdjustmentDifference() {
+                const productInput = document.getElementById('adjustment-product');
+                const actualStockInput = document.getElementById('adjustment-actual-stock');
+                const differenceInfo = document.getElementById('adjustment-difference-info');
+                const differenceSpan = document.getElementById('adjustment-difference');
+
+                if (!productInput || !actualStockInput || !differenceInfo || !differenceSpan) return;
+
+                const productName = productInput.value.trim();
+                const actualStock = parseFloat(actualStockInput.value) || 0;
+
+                if (!productName || !actualStockInput.value) {
+                    differenceInfo.style.display = 'none';
+                    return;
+                }
+
+                const product = store.getProductByName(productName) || store.getProductByCode(productName);
+                if (!product) {
+                    differenceInfo.style.display = 'none';
+                    return;
+                }
+
+                const difference = actualStock - product.stock;
+                differenceSpan.textContent = difference.toLocaleString();
+                differenceSpan.style.color = difference >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+                differenceInfo.style.display = 'block';
+            },
+
+            renderAdjustments(state) {
+                // Safety check for adjustments array and get table body element
+                if (!state.adjustments) {
+                    return;
+                }
+
+                const adjustmentTableBody = document.querySelector('#adjustment-table tbody');
+                if (!adjustmentTableBody) {
+                    return;
+                }
+
+                const startDate = document.getElementById('filter-adjustment-start')?.value || '';
+                const endDate = document.getElementById('filter-adjustment-end')?.value || '';
+                const productName = document.getElementById('filter-adjustment-product')?.value?.toLowerCase() || '';
+                const reason = document.getElementById('filter-adjustment-reason')?.value || '';
+
+                const filtered = state.adjustments.filter(adj => {
+                    const adjustmentDate = new Date(adj.date);
+                    if (startDate && adjustmentDate < new Date(startDate)) return false;
+                    if (endDate) {
+                        const end = new Date(endDate);
+                        end.setHours(23, 59, 59, 999);
+                        if (adjustmentDate > end) return false;
+                    }
+                    if (reason && adj.reason !== reason) return false;
+                    if (productName) {
+                        const product = store.getProductById(adj.productId);
+                        if (!product || !product.name.toLowerCase().includes(productName)) return false;
+                    }
+                    return true;
+                });
+
+                const sorted = filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+                adjustmentTableBody.innerHTML = sorted.length > 0
+                    ? sorted.map(adj => {
+                        const product = store.getProductById(adj.productId);
+                        const differenceColor = adj.difference >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+                        const differenceText = adj.difference >= 0 ? `+${adj.difference.toLocaleString()}` : adj.difference.toLocaleString();
+
+                        return `
+                        <tr>
+                            <td>${new Date(adj.date).toLocaleDateString('zh-TW')}</td>
+                            <td>${this.escapeHTML(product?.name || '未知商品')}</td>
+                            <td class="text-right">${adj.beforeStock.toLocaleString()}</td>
+                            <td class="text-right">${adj.actualStock.toLocaleString()}</td>
+                            <td class="text-right" style="color: ${differenceColor}; font-weight: bold;">${differenceText}</td>
+                            <td>${this.escapeHTML(adj.reason)}</td>
+                            <td>${this.escapeHTML(adj.notes || '-')}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm delete-adjustment-btn" data-adjustment-id="${adj.id}">刪除</button>
+                            </td>
+                        </tr>`
+                    }).join('')
+                    : '<tr><td colspan="8">沒有符合條件的調整記錄。</td></tr>';
             },
 
             updateBatchDeleteVisibility(type) {
@@ -1837,6 +2164,15 @@
                     .then(confirmed => {
                         if (confirmed) {
                             Services.batchDeleteTransactions(transactionIds);
+                        }
+                    });
+            },
+
+            deleteAdjustment(adjustmentId) {
+                this.showConfirm('確認刪除', '確定要刪除此庫存調整記錄嗎？此操作將恢復調整前的庫存數量。')
+                    .then(confirmed => {
+                        if (confirmed) {
+                            Services.deleteAdjustment(adjustmentId);
                         }
                     });
             }
@@ -1997,6 +2333,9 @@
                     }
                 });
 
+                // Sync product stock to ensure consistency
+                this.syncProductStock(product.id);
+
                 return { success: true, message: `${type === 'inbound' ? '進貨' : '銷貨'}成功！` };
             },
 
@@ -2146,6 +2485,9 @@
                     product.updatedAt = new Date().toISOString();
                 }, { transactionId });
 
+                // Sync product stock to ensure consistency
+                this.syncProductStock(transaction.productId);
+
                 UI.showToast('交易記錄刪除成功', 'success');
                 return true;
             },
@@ -2199,6 +2541,127 @@
                 if (successCount > 0) {
                     UI.showToast(`成功刪除 ${successCount} 筆交易記錄`, 'success');
                 }
+            },
+
+            async processAdjustment(adjustmentData) {
+                // Step 1: Validation
+                const { productName, actualStock, reason, date } = adjustmentData;
+
+                if (!productName || actualStock === undefined || !reason || !date) {
+                    return { success: false, message: '請填寫所有必填欄位。' };
+                }
+
+                if (isNaN(actualStock) || actualStock < 0) {
+                    return { success: false, message: '實際庫存數量必須為非負數。' };
+                }
+
+                // Step 2: Find product
+                const product = store.getProductByName(productName) || store.getProductByCode(productName);
+                if (!product) {
+                    return { success: false, message: `找不到商品 "${productName}"。` };
+                }
+
+                // Use real-time stock as the baseline for adjustment
+                const beforeStock = UI.calculateRealTimeStock(product.id, store.state);
+                const difference = actualStock - beforeStock;
+
+                // Step 3: Confirmation for significant changes
+                if (Math.abs(difference) > 100) {
+                    const proceed = await UI.showConfirm(
+                        '大量庫存調整確認',
+                        `此次調整將改變庫存 ${Math.abs(difference).toLocaleString()} 個單位，請確認是否繼續？`
+                    );
+                    if (!proceed) {
+                        return { success: false, message: '操作已取消。' };
+                    }
+                }
+
+                // Step 4: Create adjustment record and update stock
+                const adjustmentId = self.crypto.randomUUID();
+                const adjustmentRecord = {
+                    id: adjustmentId,
+                    productId: product.id,
+                    date: date,
+                    beforeStock: beforeStock,
+                    actualStock: actualStock,
+                    difference: difference,
+                    reason: reason,
+                    notes: adjustmentData.notes || '',
+                    createdAt: new Date().toISOString()
+                };
+
+                store.commit((state, payload) => {
+                    const { productId, adjustment } = payload;
+
+                    // Add adjustment record
+                    state.adjustments.push(adjustment);
+
+                    // Update product stock
+                    const product = state.products[productId];
+                    product.stock = adjustment.actualStock;
+                    product.updatedAt = new Date().toISOString();
+                }, {
+                    productId: product.id,
+                    adjustment: adjustmentRecord
+                });
+
+                // Sync all product stocks to ensure consistency
+                this.syncAllProductStocks();
+
+                const changeType = difference > 0 ? '盤盈' : difference < 0 ? '盤虧' : '無變化';
+                return {
+                    success: true,
+                    message: `庫存調整完成！${changeType} ${Math.abs(difference).toLocaleString()} 個單位。`
+                };
+            },
+
+            syncAllProductStocks() {
+                // Sync all product stock fields with real-time calculations
+                store.commit((state) => {
+                    Object.keys(state.products).forEach(productId => {
+                        const realStock = UI.calculateRealTimeStock(productId, state);
+                        state.products[productId].stock = realStock;
+                        state.products[productId].updatedAt = new Date().toISOString();
+                    });
+                });
+            },
+
+            syncProductStock(productId) {
+                // Sync single product stock field with real-time calculation
+                store.commit((state, payload) => {
+                    const { productId } = payload;
+                    const realStock = UI.calculateRealTimeStock(productId, state);
+                    state.products[productId].stock = realStock;
+                    state.products[productId].updatedAt = new Date().toISOString();
+                }, { productId });
+            },
+
+            deleteAdjustment(adjustmentId) {
+                const adjustment = store.state.adjustments.find(adj => adj.id === adjustmentId);
+                if (!adjustment) {
+                    UI.showToast('調整記錄不存在', 'error');
+                    return false;
+                }
+
+                const product = store.getProductById(adjustment.productId);
+                if (!product) {
+                    UI.showToast('關聯商品不存在', 'error');
+                    return false;
+                }
+
+                store.commit((state, payload) => {
+                    const { adjustmentId } = payload;
+                    const adjustmentIndex = state.adjustments.findIndex(adj => adj.id === adjustmentId);
+
+                    // Remove adjustment record
+                    state.adjustments.splice(adjustmentIndex, 1);
+                }, { adjustmentId });
+
+                // Sync all product stocks after deletion
+                this.syncAllProductStocks();
+
+                UI.showToast('調整記錄已刪除', 'success');
+                return true;
             }
         };
 
@@ -2248,6 +2711,50 @@
                     }
                 };
                 reader.readAsText(file);
+            },
+
+            exportAdjustments() {
+                try {
+                    const adjustments = store.state.adjustments || [];
+                    if (adjustments.length === 0) {
+                        UI.showToast('沒有調整記錄可匯出', 'error');
+                        return;
+                    }
+
+                    // Create CSV content
+                    const headers = ['調整日期', '商品代號', '商品名稱', '調整前庫存', '實際盤點', '差異數量', '調整原因', '備註', '建立時間'];
+                    const csvContent = [
+                        headers.join(','),
+                        ...adjustments.map(adj => {
+                            const product = store.getProductById(adj.productId);
+                            return [
+                                new Date(adj.date).toLocaleDateString('zh-TW'),
+                                product?.code || '未知',
+                                `"${product?.name || '未知商品'}"`,
+                                adj.beforeStock,
+                                adj.actualStock,
+                                adj.difference,
+                                `"${adj.reason}"`,
+                                `"${adj.notes || ''}"`,
+                                new Date(adj.createdAt).toLocaleString('zh-TW')
+                            ].join(',');
+                        })
+                    ].join('\n');
+
+                    // Add BOM for proper UTF-8 encoding in Excel
+                    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `adjustment-records-${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    UI.showToast('調整記錄匯出成功', 'success');
+                } catch (e) {
+                    UI.showToast('調整記錄匯出失敗', 'error');
+                }
             }
         };
 
@@ -2262,13 +2769,21 @@
                             case 'dashboard': UI.renderDashboard(state); break;
                             case 'products': UI.renderProducts(state); break;
                             case 'history': UI.renderHistory(state); break;
+                            case 'inventory-adjustment': UI.renderAdjustments(state); break;
                         }
                     } else { // Fallback if no page is active
                         UI.render(state);
                     }
                     UI.updateProductDatalist(state);
                 });
-                UI.render(store.state);
+
+                // Sync all product stocks on startup to ensure consistency
+                Services.syncAllProductStocks();
+
+                // Delay initial render to ensure DOM is ready
+                setTimeout(() => {
+                    UI.render(store.state);
+                }, 0);
             },
 
             async handleTransactionSubmit(type) {
@@ -2333,6 +2848,27 @@
                         UI.initializeDateFields(); // Reset date to today
                         UI.navigateTo('products');
                     }
+                }
+            },
+
+            async handleAdjustmentSubmit() {
+                const adjustmentData = {
+                    date: UI.formatDateForStorage(document.getElementById('adjustment-date').value),
+                    productName: document.getElementById('adjustment-product').value.trim(),
+                    actualStock: parseFloat(document.getElementById('adjustment-actual-stock').value),
+                    reason: document.getElementById('adjustment-reason').value,
+                    notes: document.getElementById('adjustment-notes').value.trim()
+                };
+
+                const result = await Services.processAdjustment(adjustmentData);
+                UI.showToast(result.message, result.success ? 'success' : 'error');
+
+                if (result.success) {
+                    document.getElementById('adjustment-form').reset();
+                    UI.initializeDateFields();
+                    // Clear dynamic displays
+                    document.getElementById('adjustment-stock-info').style.display = 'none';
+                    document.getElementById('adjustment-difference-info').style.display = 'none';
                 }
             }
         };
