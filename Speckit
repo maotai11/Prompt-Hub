@@ -1,160 +1,143 @@
-/speckit.constitution 目標：交付一個完全離線、單一 HTML 檔即可使用的應用殼（含資料/版本/附件/回收桶/匯出匯入），嚴禁外部連結/CDN；所有資源內嵌或以系統字型堆疊替代。 設計原則：
+/speckit.constitution
 
-美學：冷靜奢華 × 光影留白 × 動態呼吸感。雜誌式網格（Magazine Grid） + 柔和交錯留白；Hero 採「靜態影像 + 輕動態文字（0.3s 字母延遲）」。
-互動節奏：滾動與進場動效以0.6–1.0s的呼吸節奏；Hover 文字102% 輕放大、霧灰→純黑。
-可攜與私有：無網路開啟即用；不蒐集、不外呼；資料完全本地。
+principles:
+Offline-First, Single-File:
+僅使用一個 index.html，內含所有 HTML/CSS/JS。
+不接任何網路資源與 CDN；僅允許本地檔案匯入／下載。
 
-相容與可用性：近兩年 Chrome/Edge/Firefox/Safari（file:// 首選）；IndexedDB 優先，localStorage 回退（附件停用）；鍵盤可達與可列印。
-可維護性：設計代碼化（Design Tokens） + 版型模組化（Editorial Blocks），同時約束排版、色彩、動效。 驗收：
+Zero-Console-Issue:
+禁止未處理例外、未定義變數、棄用 API 警告；嚴禁 console.error/console.warn，除非在開發旗標下且預設關閉。
+統一錯誤處理（UI toast/inline 提示），確保開啟 DevTools 時 0 錯誤/0警告。
 
-離線飛航模式下，自檔案系統雙擊開啟可完成 CRUD、版本、回收桶、附件（若 IndexedDB 可用）、匯出/匯入與列印。
-UI 符合本規範之色彩/字體/網格/動效；滾動節奏與 Hero 動態達標。
+Data Ownership:
+以 localStorage 為主要儲存（支援 file:// 開啟）；提供 JSON 匯出、JSON 匯入（覆蓋或合併兩種模式）。
+版本化資料結構（schemaVersion），向後相容遷移。
 
+UX 語氣與美學:
+低飽和度色盤、充足留白、清晰層級、對齊嚴謹網格。
+導向清楚、不做過度隱藏；顯著搜尋框、直覺的資訊架構。
+流暢流程：建立→瀏覽→搜尋/篩選→編輯→歷史→備份。
 
-/speckit.specify 功能範圍（應用殼保持通用，可日後套入特定領域）：
+可回復與歷史稽核:
+刪除採「可復原」：軟刪除（Trash）+ Undo/Redo 時光軸（可編輯歷史項目之備註）。
+每筆操作可逆（Command Pattern）並記錄操作者時間戳。
 
-模型：
-items: {id, title, content, tags[], createdAt, updatedAt, attachmentIds[]}
-versions: {versionId, itemId, title, content, tags[], createdAtTS, reason}
-attachments（IndexedDB 模式）: {attachmentId, itemId, name, type, size, blob}
+性能與健壯性:
+初始渲染 < 150ms（中等資料量，1000 筆活動）；互動無阻塞（避免長任務）。
+防重複寫入與資料損毀（批次寫入、節流、try/catch 回退）。
 
-trash: 軟刪除 items（可還原/永久刪）
+驗收標準（節選）:
+於離線、飛航模式、file:// 打開下功能完整。
+匯出檔可於重新開啟後正確匯入；歷史可用以復原刪除。
 
-能力：清單/搜尋、編輯器、附件上傳/下載（拖放）、版本時間軸（回滾/刪版）、回收桶（還原/清除）、JSON 匯出/匯入（可選內嵌附件 Base64）、列印友善。
+DevTools Console 無錯誤、無警告。
 
-非功能性：
-TTI ≤ 1s；互動 < 100ms；無 eval。
+/speckit.specify
 
-file:// 模式下運作；若降級 localStorage，提示附件不可用。
+actors:
+使用者（單人、單機）
+core_objects:
+活動（Activity）: id, title, description, tags[], category, status(active/archived/trashed), createdAt, updatedAt
+歷史（HistoryEntry）: id, type(create/update/delete/restore/import/export), targetId, diff(before/after), note(可編輯), timestamp
+設定（Preferences）: uiDensity, colorMode(auto/light/dark), sort, filters
+user_stories:
 
+建立/編輯/刪除/還原活動：作為使用者，我能新增活動、內文支援基本格式（純文字為主），刪除後可在垃圾桶或歷史中復原。
+清楚導向：首頁分區「全部、收藏、標籤、分類、垃圾桶、歷史」，不將關鍵操作藏於多層選單。
+顯著搜尋：頁首常駐搜尋框＋快捷鍵（⌘/Ctrl+K），可依標題、內容、標籤、分類模糊搜尋；可再加上狀態篩選。
+歷史稽核與可編輯：每次操作自動記錄；我能為任一歷史項加註解；可逐步 Undo/Redo。
 
-UI/UX 規格（方向三 Hybrid）：
-色彩（Design Tokens）：
---ink-black: #000000（Vogue 主字色）
---ivory: #F8F8F6（象牙白背景）
---rose-gold: #C7A27C（Bazaar 玫瑰金點綴）
---smoke: #1A1A1A（煙黑面）
---mist-silver: #C0C4C9（霧銀分隔/描邊）
---cream: #FAF7F2（奶油白過渡）
---soft-gray: #6B7280（正文次要）
+備份與還原：我能一鍵匯出 JSON（含版本、偏好、活動、歷史）；能選擇「合併匯入」或「覆蓋匯入」。
+離線可靠：在無網路、或以 file:// 開啟時，所有功能可用且不觸發資源載入錯誤。
+無障礙與鍵盤：完整鍵盤導航；可用快捷鍵快速新增/儲存/搜尋/切換視圖。
+極簡高奢視覺：留白、網格、對齊；不使用外部字體；系統字體堆疊；圖示用 inline SVG。
+non_functional_requirements:
 
+瀏覽器：Chromium/Firefox/Safari 最新兩版；行動端 Safari/Chrome。
+檔案大小：不限制，但建議控制在數 MB 內以維持啟動速度。
+安全：不使用 eval；不存敏感隱私（本地端單機）。
+相容性：不依賴 Service Worker（file:// 侷限），避免 IndexedDB 跨原點問題；以 localStorage 為主。
+acceptance_tests (high-level):
 
-字體堆疊（不嵌字型；以系統/常見字型回退）：
-標題："Playfair Display", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif
-正文：Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif
+T1 匯出→清空→匯入（合併/覆蓋）資料一致。
+T2 刪除後於垃圾桶還原成功；歷史可見該次操作並可 Undo。
+T3 搜尋「標題/內容/標籤」皆可命中；清除搜尋還原列表。
+T4 打開 DevTools，Console 0 error/0 warning。
 
+T5 行動裝置觸控新增、編輯、刪除、復原皆順暢。
+open_questions:
 
-排版與網格：
-Magazine Grid：容器寬 min(1200px, 92vw)；基線 8px；欄距 24–32px；Hero 全幅，內容模組採左右錯位交錯（圖左文右/文左圖右）。
-留白：段落上下 16–32px；模組上下 56–72px；關鍵模組周邊使用奶油白/象牙白過渡帶。
+/speckit.plan
+architecture:
+單檔結構：index.html（<style> 內嵌 CSS、<template> 元件片段、<script type="module"> 內嵌 JS）
+模組劃分（同檔內邏輯模組化）:
+storage.ts (inlined JS module): localStorage adapter + schema versioning + safe write/read + migration
+repo.ts: ActivityRepo / HistoryRepo，提供 CRUD 與查詢、批次操作
+history.ts: Command/UndoStack，支援 reversible ops（create/update/delete/restore/import）
+search.ts: 簡易模糊比對（標題優先），支援 tags/category/status 條件
+ui-core.ts: 事件匯流排、快捷鍵、錯誤處理（UI 呈現，不用 console）
+views/: Header（搜尋＋動作列）、Sidebar（導向）、Grid/List View、Editor、Trash、History、Settings
+export-import.ts: JSON 序列化/反序列化、驗證、合併與覆蓋策略
+data_schema (JSON):
 
+meta: { app: "vogue-notes", schemaVersion: 1, exportedAt }
+preferences: { colorMode, sort, filters }
+activities: [{ id, title, description, tags:[], category, status, createdAt, updatedAt, pinned?:bool }]
+history: [{ id, type, targetId, diff, note, timestamp }]
 
-組件/區塊：
-Header：固定透明；滾動 48px 後以柔黑漸層（smoke→透明）出現；下方細霧銀分隔線。
-Hero：靜態影像（可本地放置或用漸層光掃背景） + 字母階梯延遲 0.3s；副標 0.6s 漸顯。
-Editorial Blocks：交錯圖文、引言區（左側垂直分割線）、黑白/柔光過渡以塑造「翻頁」感。
-Footer：精簡、細分隔線、小字版權。
+寫入策略：debounce 300ms；大操作（匯入/批次刪除）使用 transaction-like（先快照、成功後覆蓋）
+安全讀寫：try/catch，失敗顯示 UI 錯誤卡片與「還原至上次快照」按鈕
+backup:
+Export：Blob → a[download] 觸發下載（不依賴任何線上來源）
+Import：<input type="file" accept="application/json">，解析後 schema 驗證
+Merge 規則：以 id 為主鍵；若衝突則 updatedAt 較新者優先；保留雙方歷史並標註來源
+Overwrite 規則：完整覆蓋 activities/preferences/history，並自動在歷史寫入「import-overwrite」紀錄
+undo_redo_strategy:
+Command Pattern：每個操作附帶 do() / undo()；維護兩個堆疊（undo/redo）
+刪除＝軟刪除（status=trashed）；復原＝status 回復；永久刪除提供警示（仍保留歷史記錄可還原內容）
+歷史可編輯 note，但不可更改 diff；可將某歷史「標記星號」以便追蹤
+ui_ux_spec:
+Layout：12-column CSS Grid；min 16px spacing；視圖切換（Grid / List）
+色彩：中性灰階＋單一重點色（不指定外部色彩系統）
+字體：系統字體堆疊（無外部連結）
+圖示：inline SVG（<symbol>/<use>）
+導向：Sidebar 清楚列出「全部｜標籤｜分類｜收藏｜垃圾桶｜歷史｜設定」
+空狀態：插圖以 SVG 線條（內嵌）；說明文字簡短
+動效：CSS transition（不依賴外部庫）；200ms 以內
+表單：可撤銷的內嵌編輯（Enter 儲存、Esc 取消）；錯誤顯示 inline
+無障礙：語意化標籤、landmark、適當 aria-*、焦點可見
+error_handling:
+全域 try/catch 包裝初始化；UI 錯誤卡面代替 console；記錄在 history（type="error" 不計入 Undo）
+quality_gates:
+啟動測試、搜尋測試、匯出匯入測試、Undo/Redo 測試、垃圾桶復原測試、行動裝置瀏覽測試、Console 檢查（0 警告/錯誤）
+constraints_alignment:
+不使用任何外部連結、CDN、Web 字體、第三方 JS
+確保在 file:// 下不觸發 Service Worker 或 CORS 問題
+open_points_to_decide:
 
+歷史上限與自動壓縮策略（建議 10k 筆，老舊 diff 壓縮為快照）
 
-動效：
-進場/滾動：duration 0.6–1.0s, easing: cubic-bezier(0.33, 1, 0.68, 1)；IntersectionObserver 驅動。
-Hover：文字 scale(1.02) + color 由霧灰→純黑，200ms。
-背景光影：Gradient Sweep 緩慢左右/對角掃動（Hero/章節過場）。
+/speckit.tasks
+設計資料結構與 migration（schemaVersion=1）
+建立 storage/repo 層：CRUD、快照、批次寫入
+實作 Command/UndoStack：create/update/delete/restore/import/export
+匯出/匯入：JSON schema 驗證、合併與覆蓋流程、錯誤提示
+搜尋模組：索引 {title, description, tags, category}，支援條件篩選
+UI 骨架：Header（搜尋＋動作）、Sidebar（導向）、Main（Grid/List/Editor/Trash/History/Settings）
+樣式系統：CSS 變數、Grid、焦點樣式、inline SVG 圖示集
+Editor：內嵌編輯、鍵盤快捷鍵、驗證
+歷史視圖：時間軸、可編輯 note、標星、Undo/Redo 控件
+垃圾桶：軟刪除列表、還原、永久刪除（帶確認）
+設定：偏好、匯出/匯入、資料重置（帶雙重確認與自動備份）
+全域錯誤處理：UI 提示、回退、避免 console 警告/錯誤
+相容性與效能測試：行動/桌機、1000+ 筆資料、啟動/互動指標
 
+/speckit.implement
+guardrails:
+僅建立單檔 index.html；不引入任何外部連結/字體/腳本。
+嚴格處理例外，禁止 console 輸出；所有訊息以 UI 呈現。
+deliverables:
+/index.html（內含 <style> 與 <script type="module">）
+範例資料與自我驗證捷徑（在設定頁一鍵生成 50 筆測試資料）
 
-可存取性：
-鍵盤序（Header→Hero→清單→編輯器）；焦點可見（霧銀外框 + 玫瑰金投影 1px）。
-對比 AA；語意標籤與 ARIA。
-
-
-列印：
-僅輸出詳情內容；隱藏 Header/清單/動效；文字黑色、紙白背景，分隔線改細灰。
-
-
-
-
-成功標準：
-視覺：符合色彩/字體/網格/動效規範；Hero 字母延遲明顯但不干擾。
-互動：滾動節奏流暢；Hover 102% 視覺反饋；交錯模組翻頁感成立。
-功能：資料留存/回滾/回收桶/歷史刪除可用；匯出/匯入成功；列印乾淨。
-
-
-/speckit.plan 技術與架構：
-執行模式：file:// 單檔為主；IndexedDB 優先、localStorage 回退（附件停用）。
-前端：原生 HTML/CSS/JS，無外部依賴。動效以 CSS + IntersectionObserver，避免大型庫。
-
-模組分層（單檔內邏輯分區）：
-1. Design Tokens（:root 變數）→ 色彩、字級、陰影、半徑、動效參數
-2. Layout（Header/Hero/Grid/Footer）
-3. Editorial Blocks（交錯圖文/引言）
-4. App Shell（清單、編輯器、版本抽屜、回收桶對話框）
-5. Data Layer（IDB/LS 抽象；版本與附件管理）
-6. Import/Export（JSON；可選 Base64 附件）
-7. Print Styles（@media print）
-
-
-
-動效規畫：
---easing-emphasized: cubic-bezier(0.33,1,0.68,1)
---dur-stagger: 300ms（Hero 字母）
---dur-breathe-min: 600ms / --dur-breathe-max: 1000ms（滾動進場）
-Gradient Sweep：background: conic-gradient(...) + background-position/opacity 漸變 或 CSS 動畫。
-
-
-資料策略：
-匯出：{meta, items, versions, trash, attachmentsMeta, attachments?}；可選 Base64 內嵌。
-
-匯入：覆蓋/合併雙模式 + 事前試算。
-相容與回退：
-檢測 IndexedDB；若不可用 → 顯示提示並降級（附件停用）。
-舊 Edge 可用性盡量；IE 不支援。
-
-
-測試與驗收：
-手動檢測單（離線 CRUD、版本回滾/刪版、回收桶還原/清除、附件上傳/下載、匯出/匯入、列印）。
-視覺驗收：Hero 字母延遲、Header 漸層出現、交錯模組翻頁過渡、Hover 102%。
-
-
-版面套件（不寫程式庫，僅版型約定）：
-block-hero, block-quote, block-split（圖文交錯）, block-divider（柔光過渡）——可在內容區重複使用，未來套入特定領域即可替換文案/影像。
-
-
-/speckit.analyze 一致性檢核：
-美學到程式落地：以 Tokens 控制色彩/字級/動效；Magazine Grid 與 Editorial Blocks 對應到具體 CSS 區塊；符合方向三敘述。
-Hero 與動效節奏：字母 0.3s 階梯、滾動 0.6–1.0s、Hover 102% 已明確化；以原生 API 可實作。
-離線與大容量：IndexedDB 支援大量資料與 Blob；localStorage 回退策略完整；附件回退停用並提示。
-列印友善：專用 @media print；輸出詳情視圖；黑白對比。 風險與對策：
-字型差異（未嵌）→ 以多重堆疊與字級/行高保守設定確保風格趨近一致。
-超大附件導致匯出檔膨脹 → Base64 選項預設關；提供警示。
-舊版瀏覽器 IndexedDB 兼容性 → 啟動檢測 + 清晰回退提示。 後續可定制點：
-
-
-/speckit.implement 產出物與任務（不含程式碼；待您下達 /speckit.implement code 我再生成單一 app.html）：
-檔案：app.html（單檔、內嵌 CSS/JS/SVG）
-
-區塊結構：
-1. <header>（透明→柔黑漸層 on scroll）
-2. block-hero（靜態影像位/或漸層光掃 + 標題字母延遲 0.3s）
-3. block-split × N（交錯圖文；黑白/柔光過渡）
-4. App Shell（清單/搜尋、編輯器、版本抽屜、回收桶對話框、匯入匯出）
-5. <footer>（細分隔線）
-6. @media print（僅詳情）
-
-
-
-Design Tokens（:root）：
-顏色：--ink-black #000 --ivory #F8F8F6 --rose-gold #C7A27C --smoke #1A1A1A --mist-silver #C0C4C9 --cream #FAF7F2 --soft-gray #6B7280
-字級：--fs-display 48/56 --fs-h1 32/40 --fs-body 16/28（以 / 表示字級/行高）
-陰影/半徑：--shadow-soft 0 6px 20px rgba(0,0,0,.07) --radius-2xl 16px
-動效：--easing-emphasized cubic-bezier(0.33,1,0.68,1) --dur-stagger 300ms --dur-breathe-min 600ms --dur-breathe-max 1000ms
-
-
-動效流程：
-IntersectionObserver 標記 .reveal；進場轉場 opacity/translateY 與 Gradient Sweep。
-Hero 標題以 JS 切字母 .char 並延遲（步進 30–40ms/字，總約 0.3s）。
-
-
-測試清單（最終驗收）：
-1. 視覺：Header 漸層、Hero 字母延遲、交錯模組、Hover 102%。
-2. 功能：CRUD、版本（回滾/刪版）、回收桶（還原/清除）、附件（IDB 模式）、匯出/匯入（含/不含附件）、列印。
-3. 相容：Chrome/Edge/Firefox/Safari 近兩年版本；file:// 模式。
+若您確認「匯入預設＝合併、歷史上限＝10,000」，我將直接產出最終單檔 HTML。
