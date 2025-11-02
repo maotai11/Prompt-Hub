@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分析儀表板 - 改進版</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --primary-color: #007bff;
+            --primary-color-light: #e6f2ff;
+            --border-color: #dee2e6;
+            --card-bg: #ffffff;
+            --header-bg: #e9ecef;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --spacing-unit: 16px;
+            --border-radius: 4px;
+            --warn-color: #dc3545;
+            --success-color: #28a745;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: var(--spacing-unit);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-unit);
+        }
+
+        header {
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: calc(var(--spacing-unit) / 2);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: calc(var(--spacing-unit) / 2);
+            margin-top: calc(var(--spacing-unit) * 2);
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: calc(var(--spacing-unit) * 1.5);
+        }
+
+        .tab-button {
+            padding: calc(var(--spacing-unit) / 2) var(--spacing-unit);
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px;
+        }
+
+        .tab-button.active {
+            border-bottom-color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: calc(var(--spacing-unit) * 2);
+        }
+
+        .input-section,
+        .output-section {
+            background: var(--card-bg);
+            padding: var(--spacing-unit);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-unit);
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: calc(var(--spacing-unit) / 4);
+        }
+
+        .input-hint {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: calc(var(--spacing-unit) / 2);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .button {
+            padding: calc(var(--spacing-unit) / 2) var(--spacing-unit);
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        .button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .button-secondary {
+            background-color: #6c757d;
+        }
+
+        .button-secondary:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: var(--spacing-unit);
+            flex-wrap: wrap;
+        }
+
+        .target-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .target-input {
+            flex: 1;
+            padding: calc(var(--spacing-unit) / 2);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .remove-target {
+            padding: calc(var(--spacing-unit) / 2) 12px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .progress-container {
+            margin: var(--spacing-unit) 0;
+            display: none;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: var(--border-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 24px;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: width 0.3s ease;
+        }
+
+        .result-group {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-unit);
+            margin-bottom: var(--spacing-unit);
+            background: var(--primary-color-light);
+        }
+
+        .result-item {
+            padding: 8px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            margin-top: 8px;
+            border-radius: var(--border-radius);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: var(--border-radius);
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .status-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .status-no-solution {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .status-multiple {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .warning-message {
+            color: var(--warn-color);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--warn-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        .error-toast.show {
+            opacity: 1;
+        }
+
+        .success-toast {
+            background-color: var(--success-color);
+        }
+
+        #history-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #history-list li {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: var(--spacing-unit);
+            margin-bottom: 8px;
+            border-radius: var(--border-radius);
+        }
+
+        .validation-error {
+            border-color: var(--warn-color) !important;
+            background-color: #fff5f5;
+        }
+
+        .validation-message {
+            color: var(--warn-color);
+            font-size: 0.85rem;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .metrics-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-unit);
+            margin-top: calc(var(--spacing-unit) * 2);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-unit);
+            margin-top: var(--spacing-unit);
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: calc(var(--spacing-unit) / 2);
+            background: var(--primary-color-light);
+            border-radius: var(--border-radius);
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .exact-match {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .approximate-match {
+            border-left: 4px solid #ffc107;
+        }
+
+        .closest-match {
+            background-color: #fff8e1;
+            border-left: 4px solid #ff9800 !important;
+        }
+
+        .suggestion-box {
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            font-size: 0.95rem;
+        }
+
+        .suggestion-box.exact-match {
+            background-color: #d4edda;
+            border-left: 4px solid var(--success-color);
+            color: #155724;
+        }
+
+        .suggestion-box.suggestion {
+            background-color: #e2f3ff;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+
+        .tolerance-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-tolerance {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            background: var(--primary-color-light);
+            border: 1px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-tolerance:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .quick-tolerance.active {
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        .mode-selection {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 8px 0;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            cursor: pointer;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            transition: all 0.2s;
+        }
+
+        .radio-label:hover {
+            background-color: var(--primary-color-light);
+            border-color: var(--primary-color);
+        }
+
+        .radio-label input[type="radio"] {
+            margin: 0;
+            width: auto;
+        }
+
+        .radio-label input[type="radio"]:checked+.radio-text {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .radio-label:has(input[type="radio"]:checked) {
+            background-color: var(--primary-color-light);
+            border-color: var(--primary-color);
+        }
+
+        .radio-text {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .mode-description {
+            display: block;
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .combination-result {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border: 2px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .combination-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .target-assignment {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .target-assignment.no-solution {
+            border-left-color: var(--warn-color);
+            background: #fff5f5;
+        }
+
+        .used-numbers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .number-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .number-tag.used {
+            background: #6c757d;
+            text-decoration: line-through;
+        }
+
+        /* 無障礙改進 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* 鍵盤導航改進 */
+        .button:focus,
+        input:focus,
+        textarea:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>分析儀表板 - 改進版</h1>
+            <p>基於技術需求說明書的本地化分析工具，包含輸入驗證、效能優化和安全性改進。</p>
+        </header>
+
+        <nav class="tabs" role="tablist">
+            <button class="tab-button active" data-tab="moduleA" role="tab" aria-selected="true"
+                aria-controls="moduleA">模組 A：數列數字加總</button>
+            <button class="tab-button" data-tab="moduleB" role="tab" aria-selected="false" aria-controls="moduleB">模組
+                B：數字池匹配</button>
+            <button class="tab-button" data-tab="history" role="tab" aria-selected="false"
+                aria-controls="history">歷史紀錄</button>
+            <button class="tab-button" data-tab="settings" role="tab" aria-selected="false"
+                aria-controls="settings">設定與資料</button>
+        </nav>
+
+        <main>
+            <!-- 模組 A 內容 -->
+            <div id="moduleA" class="tab-content active" role="tabpanel" aria-labelledby="moduleA-tab">
+                <div class="module-grid">
+                    <section class="input-section">
+                        <h2>輸入</h2>
+                        <div class="form-group">
+                            <label for="a1-limit">A1：加總上限金額</label>
+                            <input type="number" id="a1-limit" placeholder="例如：10000"
+                                aria-describedby="a1-limit-hint a1-limit-error" min="0" step="0.01">
+                            <p id="a1-limit-hint" class="input-hint">請輸入正數，最多兩位小數</p>
+                            <p id="a1-limit-error" class="validation-message"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="a2-data">A2：批量數據</label>
+                            <textarea id="a2-data"
+                                placeholder="每行一筆，格式：[日期],[金額]&#10;例如：&#10;2025-01-10,3000&#10;2025-01-11,5000&#10;2025-01-15,4000"
+                                aria-describedby="a2-data-hint a2-data-error"></textarea>
+                            <p id="a2-data-hint" class="input-hint">格式：YYYY-MM-DD,金額。資料將自動按日期排序。當累積超過上限時會自動分組重新計算。</p>
+                            <p id="a2-data-error" class="validation-message"></p>
+                        </div>
+                        <div class="button-group">
+                            <button id="calculate-a" class="button" aria-describedby="a-progress">開始計算</button>
+                            <button id="clear-a" class="button button-secondary">清除</button>
+                            <button id="sample-a" class="button button-secondary">載入範例</button>
+                        </div>
+                        <div id="a-progress" class="progress-container">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: 0%">0%</div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="output-section">
+                        <h2>輸出 (O-A1, O-A3)</h2>
+                        <div id="a-output" aria-live="polite">點擊「開始計算」後，結果將顯示於此。</div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 模組 B 內容 -->
+            <div id="moduleB" class="tab-content" role="tabpanel" aria-labelledby="moduleB-tab">
+                <div class="module-grid">
+                    <section class="input-section">
+                        <h2>輸入</h2>
+                        <div class="form-group">
+                            <label for="b1-targets">B1：目標數字</label>
+                            <div id="targets-container">
+                                <div class="target-input-group">
+                                    <input type="text" class="target-input" placeholder="例如：100"
+                                        aria-describedby="b1-targets-hint b1-targets-error">
+                                    <button type="button" class="button button-secondary remove-target"
+                                        style="display: none;">移除</button>
+                                </div>
+                            </div>
+                            <div class="button-group" style="margin-top: 8px;">
+                                <button type="button" id="add-target" class="button button-secondary">+ 新增目標</button>
+                            </div>
+                            <p id="b1-targets-hint" class="input-hint">每個目標數字一個輸入框，可新增多個目標進行同時匹配。</p>
+                            <p id="b1-targets-error" class="validation-message"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="b-tolerance">誤差設定</label>
+                            <div class="tolerance-input-group">
+                                <input type="number" id="b-tolerance" placeholder="0.01" step="0.001" min="0" max="100"
+                                    aria-describedby="b-tolerance-hint b-tolerance-error" style="flex: 1;">
+                                <button type="button" class="quick-tolerance" data-value="0">精確</button>
+                                <button type="button" class="quick-tolerance" data-value="0.01">0.01</button>
+                                <button type="button" class="quick-tolerance" data-value="0.1">0.1</button>
+                                <button type="button" class="quick-tolerance" data-value="1">1.0</button>
+                            </div>
+                            <p id="b-tolerance-hint" class="input-hint">允許的匹配誤差範圍，例如 0.01 表示 ±0.01 的誤差。設為 0 表示精確匹配。</p>
+                            <p id="b-tolerance-error" class="validation-message"></p>
+                        </div>
+                        <div class="form-group">
+                            <label>匹配模式</label>
+                            <div class="mode-selection">
+                                <label class="radio-label">
+                                    <input type="radio" name="matching-mode" value="independent" checked>
+                                    <span class="radio-text">獨立匹配</span>
+                                    <small class="mode-description">每個目標獨立使用完整數字池</small>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="matching-mode" value="exclusive" id="exclusive-mode">
+                                    <span class="radio-text">組合匹配</span>
+                                    <small class="mode-description">數字池中每個數字只能使用一次，不可重複</small>
+                                </label>
+                            </div>
+                            <p class="input-hint">組合匹配模式僅在有多個目標時生效，會確保數字池中的數字不會重複分配。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="b2-pool">B2：數字池</label>
+                            <textarea id="b2-pool" placeholder="每行一個數字&#10;例如：&#10;10&#10;20&#10;30.5&#10;50&#10;80"
+                                aria-describedby="b2-pool-hint b2-pool-error"></textarea>
+                            <p id="b2-pool-hint" class="input-hint">每行一個數字，支援小數。</p>
+                            <p id="b2-pool-error" class="validation-message"></p>
+                            <p id="b2-warning" class="warning-message">數字池數據量較大（超過 50 筆），計算可能需要一些時間。</p>
+                        </div>
+                        <div class="button-group">
+                            <button id="calculate-b" class="button" aria-describedby="b-progress">開始匹配</button>
+                            <button id="cancel-b" class="button button-secondary" style="display: none;">取消計算</button>
+                            <button id="clear-b" class="button button-secondary">清除</button>
+                            <button id="sample-b" class="button button-secondary">載入範例</button>
+                        </div>
+                        <div id="b-progress" class="progress-container">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: 0%">0%</div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="output-section">
+                        <h2>輸出 (O-B1)</h2>
+                        <div id="b-output" aria-live="polite">點擊「開始匹配」後，結果將顯示於此。</div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 歷史紀錄 -->
+            <div id="history" class="tab-content" role="tabpanel" aria-labelledby="history-tab">
+                <h2>操作歷史紀錄</h2>
+                <p>所有計算結果都會被記錄下來，以便追溯和稽核。</p>
+                <div class="button-group">
+                    <button id="clear-history" class="button button-secondary">清除歷史</button>
+                    <button id="export-history" class="button">匯出歷史</button>
+                </div>
+                <ul id="history-list" aria-live="polite"></ul>
+            </div>
+
+            <!-- 設定 -->
+            <div id="settings" class="tab-content" role="tabpanel" aria-labelledby="settings-tab">
+                <h2>資料管理</h2>
+                <div class="button-group">
+                    <button id="export-data" class="button">匯出 JSON</button>
+                    <button id="import-data-btn" class="button button-secondary"
+                        onclick="document.getElementById('import-file').click();">匯入 JSON</button>
+                    <input type="file" id="import-file" accept="application/json" style="display: none;"
+                        aria-label="選擇要匯入的 JSON 檔案">
+                    <button id="create-backup" class="button button-secondary">建立備份</button>
+                </div>
+                <p class="input-hint">匯出功能會將所有歷史紀錄打包成 JSON 檔案。匯入前會自動建立備份。</p>
+
+                <div class="metrics-panel">
+                    <h3>效能指標</h3>
+                    <div class="metrics-grid" id="metrics-display">
+                        <div class="metric-item">
+                            <div class="metric-value" id="total-calculations">0</div>
+                            <div class="metric-label">總計算次數</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value" id="avg-calc-time">0ms</div>
+                            <div class="metric-label">平均計算時間</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value" id="success-rate">100%</div>
+                            <div class="metric-label">成功率</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value" id="data-size">0KB</div>
+                            <div class="metric-label">資料大小</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="toast-container"></div>
+    </div>
+
+    <script type="module">
+        // 常數定義
+        const CONSTANTS = {
+            MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+            MAX_DECIMAL_PLACES: 2,
+            EPSILON: 1e-10,
+            LARGE_DATASET_THRESHOLD: 50,
+            CHUNK_SIZE: 10000,
+            SCHEMA_VERSION: '1.0'
+        };
+
+        // 錯誤處理與通知系統
+        const NotificationSystem = {
+            show(message, type = 'error', duration = 3000) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `error-toast ${type === 'success' ? 'success-toast' : ''} show`;
+                toast.textContent = message;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => container.removeChild(toast), 300);
+                }, duration);
+            },
+
+            success(message) {
+                this.show(message, 'success');
+            },
+
+            error(message) {
+                this.show(message, 'error');
+            }
+        };
+
+        // 輸入驗證系統
+        const ValidationSystem = {
+            validateDate(dateStr) {
+                const regex = /^\d{4}-\d{2}-\d{2}$/;
+                if (!regex.test(dateStr)) return false;
+
+                const date = new Date(dateStr);
+                return date instanceof Date && !isNaN(date) && date.toISOString().slice(0, 10) === dateStr;
+            },
+
+            validateAmount(amountStr) {
+                const num = parseFloat(amountStr);
+                if (isNaN(num) || !isFinite(num) || num < 0) return false;
+
+                const decimalPlaces = (amountStr.split('.')[1] || '').length;
+                return decimalPlaces <= CONSTANTS.MAX_DECIMAL_PLACES;
+            },
+
+            validateAndParseModuleA(limitStr, dataStr) {
+                const errors = [];
+
+                // 驗證上限金額
+                const limit = parseFloat(limitStr);
+                if (isNaN(limit) || !isFinite(limit) || limit <= 0) {
+                    errors.push('上限金額必須為正數');
+                }
+
+                // 解析和驗證批量數據
+                const lines = dataStr.trim().split('\n').filter(line => line.trim());
+                const entries = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    const parts = line.split(',');
+                    if (parts.length !== 2) {
+                        errors.push(`第 ${i + 1} 行格式錯誤：${line}`);
+                        continue;
+                    }
+
+                    const [dateStr, amountStr] = parts.map(p => p.trim());
+
+                    if (!this.validateDate(dateStr)) {
+                        errors.push(`第 ${i + 1} 行日期格式錯誤：${dateStr}`);
+                        continue;
+                    }
+
+                    if (!this.validateAmount(amountStr)) {
+                        errors.push(`第 ${i + 1} 行金額格式錯誤：${amountStr}`);
+                        continue;
+                    }
+
+                    entries.push({
+                        date: dateStr,
+                        amount: Math.round(parseFloat(amountStr) * 100) // 轉換為基點避免浮點誤差
+                    });
+                }
+
+                if (entries.length === 0 && errors.length === 0) {
+                    errors.push('請輸入至少一筆數據');
+                }
+
+                // 按日期排序
+                entries.sort((a, b) => a.date.localeCompare(b.date));
+
+                return {
+                    isValid: errors.length === 0,
+                    errors,
+                    limit: Math.round(limit * 100), // 轉換為基點
+                    entries
+                };
+            },
+
+            validateAndParseModuleB(targetInputs, poolStr, toleranceStr) {
+                const errors = [];
+
+                // 驗證目標數字
+                const targets = [];
+                targetInputs.forEach((input, index) => {
+                    const targetStr = input.value.trim();
+                    if (!targetStr) {
+                        errors.push(`目標 ${index + 1} 不能為空`);
+                        return;
+                    }
+
+                    if (!this.validateAmount(targetStr)) {
+                        errors.push(`目標 ${index + 1} 格式錯誤：${targetStr}`);
+                        return;
+                    }
+                    targets.push(Math.round(parseFloat(targetStr) * 100)); // 轉換為基點
+                });
+
+                if (targets.length === 0) {
+                    errors.push('請輸入至少一個目標數字');
+                }
+
+                // 驗證誤差設定
+                let tolerance = 0; // 預設精確匹配
+                if (toleranceStr && toleranceStr.trim()) {
+                    const toleranceNum = parseFloat(toleranceStr);
+                    if (isNaN(toleranceNum) || toleranceNum < 0 || toleranceNum > 100) {
+                        errors.push('誤差設定必須為 0-100 之間的數字');
+                    } else {
+                        tolerance = Math.round(toleranceNum * 100); // 轉換為基點
+                    }
+                }
+
+                // 驗證數字池
+                const poolLines = poolStr.trim().split('\n').filter(line => line.trim());
+                const pool = [];
+
+                for (let i = 0; i < poolLines.length; i++) {
+                    const line = poolLines[i].trim();
+                    if (!line) continue;
+
+                    if (!this.validateAmount(line)) {
+                        errors.push(`第 ${i + 1} 行數字格式錯誤：${line}`);
+                        continue;
+                    }
+
+                    pool.push(Math.round(parseFloat(line) * 100)); // 轉換為基點
+                }
+
+                if (pool.length === 0 && errors.length === 0) {
+                    errors.push('請輸入至少一個數字到數字池');
+                }
+
+                return {
+                    isValid: errors.length === 0,
+                    errors,
+                    targets,
+                    tolerance,
+                    pool: pool.sort((a, b) => a - b) // 排序以便優化搜索
+                };
+            },
+
+            showFieldError(fieldId, message) {
+                const field = document.getElementById(fieldId);
+                const errorElement = document.getElementById(fieldId + '-error');
+
+                if (field && errorElement) {
+                    field.classList.add('validation-error');
+                    errorElement.textContent = message;
+                    errorElement.style.display = 'block';
+                }
+            },
+
+            showTargetErrors(errors) {
+                const errorElement = document.getElementById('b1-targets-error');
+                if (errorElement) {
+                    errorElement.textContent = errors.join('; ');
+                    errorElement.style.display = 'block';
+                }
+
+                // 標記有錯誤的目標輸入框
+                const targetInputs = document.querySelectorAll('.target-input');
+                targetInputs.forEach((input, index) => {
+                    const hasError = errors.some(error => error.includes(`目標 ${index + 1}`));
+                    input.classList.toggle('validation-error', hasError);
+                });
+            },
+
+            clearFieldError(fieldId) {
+                const field = document.getElementById(fieldId);
+                const errorElement = document.getElementById(fieldId + '-error');
+
+                if (field && errorElement) {
+                    field.classList.remove('validation-error');
+                    errorElement.textContent = '';
+                    errorElement.style.display = 'none';
+                }
+            },
+
+            clearTargetErrors() {
+                const errorElement = document.getElementById('b1-targets-error');
+                if (errorElement) {
+                    errorElement.textContent = '';
+                    errorElement.style.display = 'none';
+                }
+
+                document.querySelectorAll('.target-input').forEach(input => {
+                    input.classList.remove('validation-error');
+                });
+            },
+
+            clearAllErrors() {
+                ['a1-limit', 'a2-data', 'b2-pool', 'b-tolerance'].forEach(id => {
+                    this.clearFieldError(id);
+                });
+                this.clearTargetErrors();
+            }
+        };
+        // 效能監控系統
+        const MetricsSystem = {
+            data: {
+                totalCalculations: 0,
+                totalTime: 0,
+                successCount: 0,
+                errorCount: 0,
+                dataSize: 0
+            },
+
+            init() {
+                const saved = localStorage.getItem('metrics_data');
+                if (saved) {
+                    this.data = { ...this.data, ...JSON.parse(saved) };
+                }
+                this.updateDisplay();
+            },
+
+            recordCalculation(duration, success, dataSize = 0) {
+                this.data.totalCalculations++;
+                this.data.totalTime += duration;
+                this.data.dataSize = Math.max(this.data.dataSize, dataSize);
+
+                if (success) {
+                    this.data.successCount++;
+                } else {
+                    this.data.errorCount++;
+                }
+
+                this.save();
+                this.updateDisplay();
+            },
+
+            save() {
+                localStorage.setItem('metrics_data', JSON.stringify(this.data));
+            },
+
+            updateDisplay() {
+                const avgTime = this.data.totalCalculations > 0
+                    ? Math.round(this.data.totalTime / this.data.totalCalculations)
+                    : 0;
+                const successRate = this.data.totalCalculations > 0
+                    ? Math.round((this.data.successCount / this.data.totalCalculations) * 100)
+                    : 100;
+
+                document.getElementById('total-calculations').textContent = this.data.totalCalculations;
+                document.getElementById('avg-calc-time').textContent = `${avgTime}ms`;
+                document.getElementById('success-rate').textContent = `${successRate}%`;
+                document.getElementById('data-size').textContent = `${Math.round(this.data.dataSize / 1024)}KB`;
+            },
+
+            reset() {
+                this.data = {
+                    totalCalculations: 0,
+                    totalTime: 0,
+                    successCount: 0,
+                    errorCount: 0,
+                    dataSize: 0
+                };
+                this.save();
+                this.updateDisplay();
+            }
+        };
+
+        // 本地儲存系統
+        const Storage = {
+            get(key) {
+                try {
+                    const data = localStorage.getItem(key);
+                    return data ? JSON.parse(data) : null;
+                } catch (e) {
+                    NotificationSystem.error(`讀取本地儲存失敗: ${e.message}`);
+                    return null;
+                }
+            },
+
+            set(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                    return true;
+                } catch (e) {
+                    NotificationSystem.error(`寫入本地儲存失敗: ${e.message}`);
+                    return false;
+                }
+            },
+
+            remove(key) {
+                try {
+                    localStorage.removeItem(key);
+                    return true;
+                } catch (e) {
+                    NotificationSystem.error(`刪除本地儲存失敗: ${e.message}`);
+                    return false;
+                }
+            }
+        };
+
+        // 歷史紀錄管理系統
+        const HistorySystem = {
+            HISTORY_KEY: 'analysis_history',
+            BACKUP_KEY: 'analysis_history_backup',
+            state: [],
+
+            init() {
+                this.state = Storage.get(this.HISTORY_KEY) || [];
+                this.render();
+            },
+
+            add(entry) {
+                const newEntry = {
+                    id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    timestamp: new Date().toISOString(),
+                    schemaVersion: CONSTANTS.SCHEMA_VERSION,
+                    ...entry
+                };
+
+                this.state.unshift(newEntry);
+
+                // 限制歷史紀錄數量以避免效能問題
+                if (this.state.length > 1000) {
+                    this.state = this.state.slice(0, 1000);
+                }
+
+                Storage.set(this.HISTORY_KEY, this.state);
+                this.render();
+
+                return newEntry.id;
+            },
+
+            createBackup() {
+                const backup = {
+                    timestamp: new Date().toISOString(),
+                    data: [...this.state],
+                    schemaVersion: CONSTANTS.SCHEMA_VERSION
+                };
+
+                Storage.set(this.BACKUP_KEY, backup);
+                NotificationSystem.success('備份已建立');
+                return backup;
+            },
+
+            restoreFromBackup() {
+                const backup = Storage.get(this.BACKUP_KEY);
+                if (backup && backup.data) {
+                    this.state = backup.data;
+                    Storage.set(this.HISTORY_KEY, this.state);
+                    this.render();
+                    NotificationSystem.success('已從備份還原');
+                    return true;
+                }
+                NotificationSystem.error('找不到備份資料');
+                return false;
+            },
+
+            load(data) {
+                if (!Array.isArray(data)) {
+                    NotificationSystem.error('匯入的資料格式不正確');
+                    return false;
+                }
+
+                // 建立自動備份
+                this.createBackup();
+
+                // 驗證資料格式
+                const validEntries = data.filter(entry =>
+                    entry && typeof entry === 'object' && entry.timestamp && entry.type
+                );
+
+                if (validEntries.length !== data.length) {
+                    NotificationSystem.error(`資料驗證失敗，僅匯入 ${validEntries.length}/${data.length} 筆有效紀錄`);
+                }
+
+                this.state = validEntries;
+                Storage.set(this.HISTORY_KEY, this.state);
+                this.render();
+
+                NotificationSystem.success(`成功匯入 ${validEntries.length} 筆歷史紀錄`);
+                return true;
+            },
+
+            clear() {
+                if (confirm('確定要清除所有歷史紀錄嗎？此操作無法復原。')) {
+                    this.createBackup();
+                    this.state = [];
+                    Storage.set(this.HISTORY_KEY, this.state);
+                    this.render();
+                    NotificationSystem.success('歷史紀錄已清除');
+                }
+            },
+
+            export() {
+                const exportData = {
+                    exportTime: new Date().toISOString(),
+                    schemaVersion: CONSTANTS.SCHEMA_VERSION,
+                    totalRecords: this.state.length,
+                    data: this.state
+                };
+
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                    type: 'application/json'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `analysis_history_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                NotificationSystem.success('歷史紀錄已匯出');
+            },
+
+            render() {
+                const list = document.getElementById('history-list');
+                if (!list) return;
+
+                if (this.state.length === 0) {
+                    list.innerHTML = '<li>尚無歷史紀錄。</li>';
+                    return;
+                }
+
+                // 使用 DocumentFragment 提升效能
+                const fragment = document.createDocumentFragment();
+
+                this.state.forEach(entry => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <strong>${entry.type === 'moduleA' ? '數列加總' : '數字池匹配'}</strong>
+                            <small>${new Date(entry.timestamp).toLocaleString()}</small>
+                        </div>
+                        <details>
+                            <summary style="cursor: pointer; color: var(--primary-color);">查看詳細資料</summary>
+                            <pre style="white-space: pre-wrap; word-break: break-all; background: #f0f0f0; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 0.9rem;">${JSON.stringify(entry.data, null, 2)}</pre>
+                        </details>
+                    `;
+                    fragment.appendChild(li);
+                });
+
+                list.innerHTML = '';
+                list.appendChild(fragment);
+            }
+        };
+
+        // Web Worker 支援的計算系統
+        class CalculationWorker {
+            constructor() {
+                this.worker = null;
+                this.currentCalculation = null;
+            }
+
+            createWorker(workerCode) {
+                const blob = new Blob([workerCode], { type: 'application/javascript' });
+                return new Worker(URL.createObjectURL(blob));
+            }
+
+            async calculateModuleB(targets, pool, tolerance, isExclusiveMode, onProgress) {
+                return new Promise((resolve, reject) => {
+                    if (this.worker) {
+                        this.worker.terminate();
+                    }
+
+                    const workerCode = `
+                        self.onmessage = function(e) {
+                            const { targets, pool, tolerance, isExclusiveMode } = e.data;
+                            let processed = 0;
+                            
+                            // 基本組合搜索函數
+                            function findAllCombinations(target, numbers, current = [], startIndex = 0, allCombos = []) {
+                                const currentSum = current.reduce((sum, num) => sum + num, 0);
+                                
+                                if (current.length > 0) {
+                                    allCombos.push({
+                                        combo: current.slice(),
+                                        sum: currentSum,
+                                        error: Math.abs(currentSum - target)
+                                    });
+                                }
+                                
+                                for (let i = startIndex; i < numbers.length; i++) {
+                                    if (currentSum + numbers[i] > target * 2) {
+                                        break;
+                                    }
+                                    
+                                    current.push(numbers[i]);
+                                    findAllCombinations(target, numbers, current, i + 1, allCombos);
+                                    current.pop();
+                                    
+                                    processed++;
+                                    if (processed % 1000 === 0) {
+                                        self.postMessage({
+                                            type: 'progress',
+                                            progress: Math.min((processed / 10000) * 100, 99)
+                                        });
+                                    }
+                                }
+                                
+                                return allCombos;
+                            }
+                            
+                            // 組合匹配：確保數字不重複使用
+                            function findExclusiveCombinations(targets, pool, tolerance) {
+                                const solutions = [];
+                                let solutionId = 0;
+                                
+                                function backtrack(targetIndex, usedIndices, currentSolutions) {
+                                    if (targetIndex >= targets.length) {
+                                        // 找到完整解決方案
+                                        solutionId++;
+                                        currentSolutions.forEach(sol => {
+                                            sol.solutionId = solutionId;
+                                            solutions.push(sol);
+                                        });
+                                        return;
+                                    }
+                                    
+                                    const target = targets[targetIndex];
+                                    const availableNumbers = pool.filter((_, index) => !usedIndices.has(index));
+                                    
+                                    if (availableNumbers.length === 0) {
+                                        return; // 沒有可用數字
+                                    }
+                                    
+                                    const allCombos = findAllCombinations(target, availableNumbers);
+                                    const validCombos = allCombos.filter(combo => combo.error <= tolerance);
+                                    
+                                    if (validCombos.length === 0) {
+                                        return; // 當前目標無解
+                                    }
+                                    
+                                    // 嘗試每個有效組合（限制數量避免爆炸）
+                                    for (const combo of validCombos.slice(0, 5)) {
+                                        const usedInThisCombo = new Set();
+                                        combo.combo.forEach(num => {
+                                            const originalIndex = pool.findIndex((poolNum, idx) => 
+                                                poolNum === num && !usedIndices.has(idx) && !usedInThisCombo.has(idx)
+                                            );
+                                            if (originalIndex !== -1) {
+                                                usedInThisCombo.add(originalIndex);
+                                            }
+                                        });
+                                        
+                                        const newUsedIndices = new Set([...usedIndices, ...usedInThisCombo]);
+                                        const solution = {
+                                            targetIndex: targetIndex,
+                                            target: target,
+                                            numbers: combo.combo,
+                                            sum: combo.sum,
+                                            error: combo.error,
+                                            usedIndices: Array.from(usedInThisCombo)
+                                        };
+                                        
+                                        backtrack(targetIndex + 1, newUsedIndices, [...currentSolutions, solution]);
+                                    }
+                                }
+                                
+                                backtrack(0, new Set(), []);
+                                return solutions;
+                            }
+                            
+                            function calculateSuggestedTolerance(allCombos) {
+                                if (allCombos.length === 0) return null;
+                                const minError = Math.min(...allCombos.map(combo => combo.error));
+                                if (minError === 0) return 0;
+                                return Math.ceil(minError * 1.1 * 1000) / 1000;
+                            }
+                            
+                            // 主要處理邏輯
+                            if (isExclusiveMode && targets.length > 1) {
+                                // 組合匹配模式
+                                self.postMessage({
+                                    type: 'progress',
+                                    progress: 10,
+                                    status: '正在計算組合匹配解決方案...'
+                                });
+                                
+                                const exclusiveSolutions = findExclusiveCombinations(targets, pool, tolerance);
+                                
+                                // 按目標分組解決方案
+                                const results = targets.map((target, index) => {
+                                    const targetSolutions = exclusiveSolutions.filter(sol => sol.targetIndex === index);
+                                    
+                                    // 計算單獨的建議誤差和最接近匹配
+                                    const allSingleCombos = findAllCombinations(target, pool);
+                                    const suggestedTolerance = calculateSuggestedTolerance(allSingleCombos);
+                                    
+                                    // 找出最接近的匹配（無論是否有有效解）
+                                    const closestMatches = allSingleCombos
+                                        .sort((a, b) => a.error - b.error)
+                                        .slice(0, 5)
+                                        .map(combo => ({
+                                            numbers: combo.combo.map(num => num / 100),
+                                            sum: combo.sum / 100,
+                                            error: combo.error / 100
+                                        }));
+                                    
+                                    return {
+                                        target: target / 100,
+                                        tolerance: tolerance / 100,
+                                        suggestedTolerance: suggestedTolerance,
+                                        hasExactMatch: targetSolutions.some(sol => sol.error === 0),
+                                        totalCombinationsFound: allSingleCombos.length,
+                                        isExclusiveMode: true,
+                                        totalSolutions: Math.max(...exclusiveSolutions.map(sol => sol.solutionId || 0), 0),
+                                        combinations: targetSolutions.map(sol => ({
+                                            numbers: sol.numbers.map(num => num / 100),
+                                            sum: sol.sum / 100,
+                                            error: sol.error / 100,
+                                            solutionId: sol.solutionId,
+                                            usedIndices: sol.usedIndices
+                                        })),
+                                        closestMatches: closestMatches
+                                    };
+                                });
+                                
+                                self.postMessage({ 
+                                    type: 'complete', 
+                                    results, 
+                                    isExclusiveMode: true,
+                                    exclusiveSolutions: exclusiveSolutions
+                                });
+                            } else {
+                                // 獨立匹配模式
+                                const results = [];
+                                
+                                for (let targetIndex = 0; targetIndex < targets.length; targetIndex++) {
+                                    const target = targets[targetIndex];
+                                    
+                                    self.postMessage({
+                                        type: 'progress',
+                                        progress: (targetIndex / targets.length) * 100,
+                                        currentTarget: targetIndex + 1,
+                                        totalTargets: targets.length,
+                                        status: \`正在處理目標 \${targetIndex + 1}: \${(target / 100).toFixed(2)}\`
+                                    });
+                                    
+                                    const allCombos = findAllCombinations(target, pool);
+                                    const validCombinations = allCombos.filter(combo => combo.error <= tolerance);
+                                    const closestCombinations = allCombos.sort((a, b) => a.error - b.error).slice(0, 5);
+                                    const suggestedTolerance = calculateSuggestedTolerance(allCombos);
+                                    
+                                    results.push({
+                                        target: target / 100,
+                                        tolerance: tolerance / 100,
+                                        suggestedTolerance: suggestedTolerance,
+                                        hasExactMatch: allCombos.some(combo => combo.error === 0),
+                                        totalCombinationsFound: allCombos.length,
+                                        isExclusiveMode: false,
+                                        combinations: validCombinations.map(combo => ({
+                                            numbers: combo.combo.map(num => num / 100),
+                                            sum: combo.sum / 100,
+                                            error: combo.error / 100
+                                        })),
+                                        closestMatches: closestCombinations.map(combo => ({
+                                            numbers: combo.combo.map(num => num / 100),
+                                            sum: combo.sum / 100,
+                                            error: combo.error / 100
+                                        }))
+                                    });
+                                }
+                                
+                                self.postMessage({ type: 'complete', results, isExclusiveMode: false });
+                            }
+                        };
+                    `;
+
+                    this.worker = this.createWorker(workerCode);
+                    this.currentCalculation = { resolve, reject };
+
+                    this.worker.onmessage = (e) => {
+                        const { type, progress, results } = e.data;
+
+                        if (type === 'progress') {
+                            onProgress(progress);
+                        } else if (type === 'complete') {
+                            this.worker.terminate();
+                            this.worker = null;
+                            this.currentCalculation = null;
+                            resolve(results);
+                        }
+                    };
+
+                    this.worker.onerror = (error) => {
+                        this.worker.terminate();
+                        this.worker = null;
+                        this.currentCalculation = null;
+                        reject(error);
+                    };
+
+                    this.worker.postMessage({ targets, pool, tolerance, isExclusiveMode });
+                });
+            }
+
+            cancel() {
+                if (this.worker) {
+                    this.worker.terminate();
+                    this.worker = null;
+
+                    if (this.currentCalculation) {
+                        this.currentCalculation.reject(new Error('計算已取消'));
+                        this.currentCalculation = null;
+                    }
+                }
+            }
+        }
+
+        // 模組 A：數列數字加總
+        const ModuleA = {
+            async calculate() {
+                const startTime = performance.now();
+                ValidationSystem.clearAllErrors();
+
+                try {
+                    const limitInput = document.getElementById('a1-limit').value.trim();
+                    const dataInput = document.getElementById('a2-data').value.trim();
+
+                    if (!limitInput || !dataInput) {
+                        ValidationSystem.showFieldError('a1-limit', limitInput ? '' : '請輸入上限金額');
+                        ValidationSystem.showFieldError('a2-data', dataInput ? '' : '請輸入批量數據');
+                        return;
+                    }
+
+                    const validation = ValidationSystem.validateAndParseModuleA(limitInput, dataInput);
+
+                    if (!validation.isValid) {
+                        validation.errors.forEach(error => {
+                            if (error.includes('上限金額')) {
+                                ValidationSystem.showFieldError('a1-limit', error);
+                            } else {
+                                ValidationSystem.showFieldError('a2-data', error);
+                            }
+                        });
+                        return;
+                    }
+
+                    const { limit, entries } = validation;
+
+                    // 顯示進度
+                    this.showProgress(true);
+                    this.updateProgress(10);
+
+                    // 計算分組累積加總
+                    const results = [];
+                    const groups = [];
+                    let currentSum = 0;
+                    let currentGroup = [];
+                    let groupIndex = 1;
+
+                    for (let i = 0; i < entries.length; i++) {
+                        const entry = entries[i];
+                        const newSum = currentSum + entry.amount;
+
+                        if (newSum <= limit) {
+                            // 在上限內，加入當前組
+                            currentSum = newSum;
+                            currentGroup.push({
+                                date: entry.date,
+                                amount: entry.amount / 100,
+                                cumulativeSum: currentSum / 100,
+                                withinLimit: true,
+                                groupIndex: groupIndex,
+                                indexInGroup: currentGroup.length + 1
+                            });
+                        } else {
+                            // 超過上限，結束當前組並開始新組
+                            if (currentGroup.length > 0) {
+                                groups.push({
+                                    groupIndex: groupIndex,
+                                    entries: [...currentGroup],
+                                    totalAmount: currentSum / 100,
+                                    count: currentGroup.length
+                                });
+                                results.push(...currentGroup);
+                            }
+
+                            // 開始新組
+                            groupIndex++;
+                            currentSum = entry.amount;
+                            currentGroup = [{
+                                date: entry.date,
+                                amount: entry.amount / 100,
+                                cumulativeSum: currentSum / 100,
+                                withinLimit: true,
+                                groupIndex: groupIndex,
+                                indexInGroup: 1,
+                                isNewGroupStart: true
+                            }];
+                        }
+
+                        // 更新進度
+                        this.updateProgress(10 + (i / entries.length) * 80);
+
+                        // 讓出控制權避免阻塞 UI
+                        if (i % 100 === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+                    }
+
+                    // 處理最後一組
+                    if (currentGroup.length > 0) {
+                        groups.push({
+                            groupIndex: groupIndex,
+                            entries: [...currentGroup],
+                            totalAmount: currentSum / 100,
+                            count: currentGroup.length
+                        });
+                        results.push(...currentGroup);
+                    }
+
+                    // 將分組資訊附加到結果中
+                    results.groups = groups;
+
+                    this.updateProgress(100);
+
+                    // 生成輸出
+                    const output = this.generateOutput(results, limit / 100);
+                    document.getElementById('a-output').innerHTML = output;
+
+                    // 記錄到歷史
+                    const historyEntry = {
+                        type: 'moduleA',
+                        input: { limit: limit / 100, entries: entries.map(e => ({ ...e, amount: e.amount / 100 })) },
+                        output: results,
+                        executionTime: performance.now() - startTime
+                    };
+
+                    HistorySystem.add({ data: historyEntry });
+
+                    const duration = performance.now() - startTime;
+                    MetricsSystem.recordCalculation(duration, true, JSON.stringify(historyEntry).length);
+
+                    NotificationSystem.success(`計算完成，處理了 ${entries.length} 筆資料`);
+
+                } catch (error) {
+                    console.error('ModuleA calculation error:', error);
+                    NotificationSystem.error(`計算失敗: ${error.message}`);
+                    MetricsSystem.recordCalculation(performance.now() - startTime, false);
+                } finally {
+                    this.showProgress(false);
+                }
+            },
+
+            generateOutput(results, limit) {
+                const totalAmount = results.reduce((sum, r) => sum + r.amount, 0);
+                const groups = results.groups || [];
+
+                let html = `
+                    <div class="result-group">
+                        <h3>分組累積摘要</h3>
+                        <p><strong>上限金額：</strong>${limit.toFixed(2)}</p>
+                        <p><strong>總筆數：</strong>${results.length}</p>
+                        <p><strong>分組數量：</strong>${groups.length}</p>
+                        <p><strong>總金額：</strong>${totalAmount.toFixed(2)}</p>
+                    </div>
+                `;
+
+                // 顯示分組摘要
+                if (groups.length > 0) {
+                    html += `
+                        <div class="result-group">
+                            <h3>📊 分組摘要</h3>
+                    `;
+
+                    groups.forEach((group, index) => {
+                        const percentage = ((group.totalAmount / limit) * 100).toFixed(1);
+                        html += `
+                            <div class="group-summary" style="margin-bottom: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid var(--primary-color);">
+                                <strong>第 ${group.groupIndex} 組：</strong>
+                                ${group.count} 筆資料，總額 ${group.totalAmount.toFixed(2)} (${percentage}% 使用率)
+                            </div>
+                        `;
+                    });
+
+                    html += '</div>';
+                }
+
+                // 顯示詳細結果
+                html += '<div class="result-group"><h3>📋 詳細結果</h3>';
+
+                let currentGroupIndex = 0;
+                results.forEach((result, index) => {
+                    // 檢查是否是新組的開始
+                    if (result.isNewGroupStart && index > 0) {
+                        html += `
+                            <div style="margin: 16px 0; padding: 8px; background: #e3f2fd; border-radius: 4px; text-align: center; font-weight: bold; color: var(--primary-color);">
+                                ⬇️ 超過上限，開始新組 ⬇️
+                            </div>
+                        `;
+                    }
+
+                    const groupBadge = `<span class="group-badge" style="background: var(--primary-color); color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.8rem; margin-right: 8px;">組${result.groupIndex}</span>`;
+
+                    html += `
+                        <div class="result-item" style="border-left: 4px solid var(--success-color);">
+                            ${groupBadge}
+                            <strong>第 ${index + 1} 筆 (組內第 ${result.indexInGroup} 筆)</strong><br>
+                            <small>
+                                日期: ${result.date} | 
+                                金額: ${result.amount.toFixed(2)} | 
+                                組內累積: ${result.cumulativeSum.toFixed(2)}
+                            </small>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+
+                // 顯示分組統計
+                if (groups.length > 1) {
+                    html += `
+                        <div class="result-group">
+                            <h3>📈 分組統計分析</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                    `;
+
+                    groups.forEach(group => {
+                        const efficiency = ((group.totalAmount / limit) * 100).toFixed(1);
+                        const avgAmount = (group.totalAmount / group.count).toFixed(2);
+
+                        html += `
+                            <div style="padding: 12px; background: white; border: 1px solid #ddd; border-radius: 8px;">
+                                <h4 style="margin: 0 0 8px 0; color: var(--primary-color);">第 ${group.groupIndex} 組</h4>
+                                <p style="margin: 4px 0; font-size: 0.9rem;">筆數: ${group.count}</p>
+                                <p style="margin: 4px 0; font-size: 0.9rem;">總額: ${group.totalAmount.toFixed(2)}</p>
+                                <p style="margin: 4px 0; font-size: 0.9rem;">平均: ${avgAmount}</p>
+                                <p style="margin: 4px 0; font-size: 0.9rem;">使用率: ${efficiency}%</p>
+                            </div>
+                        `;
+                    });
+
+                    html += '</div></div>';
+                }
+
+                return html;
+            },
+
+            showProgress(show) {
+                const container = document.querySelector('#moduleA .progress-container');
+                container.style.display = show ? 'block' : 'none';
+            },
+
+            updateProgress(percent) {
+                const bar = document.querySelector('#moduleA .progress-bar');
+                bar.style.width = `${percent}%`;
+                bar.textContent = `${Math.round(percent)}%`;
+            },
+
+            clear() {
+                document.getElementById('a1-limit').value = '';
+                document.getElementById('a2-data').value = '';
+                document.getElementById('a-output').innerHTML = '點擊「開始計算」後，結果將顯示於此。';
+                ValidationSystem.clearAllErrors();
+            },
+
+            loadSample() {
+                document.getElementById('a1-limit').value = '10000';
+                document.getElementById('a2-data').value = `2025-01-10,3000
+2025-01-11,2500
+2025-01-12,1800
+2025-01-15,4200
+2025-01-16,1500`;
+                ValidationSystem.clearAllErrors();
+                NotificationSystem.success('範例資料已載入 - 演示分組累積功能');
+            }
+        };
+
+        // 目標數字管理系統
+        const TargetManager = {
+            init() {
+                this.bindEvents();
+                this.updateRemoveButtons();
+            },
+
+            bindEvents() {
+                document.getElementById('add-target').addEventListener('click', () => this.addTarget());
+                document.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('remove-target')) {
+                        this.removeTarget(e.target);
+                    }
+                });
+
+                // 監聽輸入變化以清除錯誤
+                document.addEventListener('input', (e) => {
+                    if (e.target.classList.contains('target-input')) {
+                        ValidationSystem.clearTargetErrors();
+                    }
+                });
+            },
+
+            addTarget() {
+                const container = document.getElementById('targets-container');
+                const newGroup = document.createElement('div');
+                newGroup.className = 'target-input-group';
+                newGroup.innerHTML = `
+                    <input type="text" class="target-input" placeholder="例如：100" 
+                           aria-label="目標數字">
+                    <button type="button" class="button button-secondary remove-target">移除</button>
+                `;
+                container.appendChild(newGroup);
+                this.updateRemoveButtons();
+
+                // 聚焦到新輸入框
+                newGroup.querySelector('.target-input').focus();
+            },
+
+            removeTarget(button) {
+                const group = button.closest('.target-input-group');
+                group.remove();
+                this.updateRemoveButtons();
+                ValidationSystem.clearTargetErrors();
+            },
+
+            updateRemoveButtons() {
+                const groups = document.querySelectorAll('.target-input-group');
+                groups.forEach((group, index) => {
+                    const removeBtn = group.querySelector('.remove-target');
+                    removeBtn.style.display = groups.length > 1 ? 'inline-block' : 'none';
+                });
+            },
+
+            getTargetInputs() {
+                return Array.from(document.querySelectorAll('.target-input'));
+            },
+
+            clear() {
+                const container = document.getElementById('targets-container');
+                container.innerHTML = `
+                    <div class="target-input-group">
+                        <input type="text" class="target-input" placeholder="例如：100" 
+                               aria-label="目標數字">
+                        <button type="button" class="button button-secondary remove-target" style="display: none;">移除</button>
+                    </div>
+                `;
+                this.updateRemoveButtons();
+            },
+
+            loadSample() {
+                this.clear();
+                const sampleTargets = ['100', '50.5', '25'];
+
+                sampleTargets.forEach((target, index) => {
+                    if (index > 0) {
+                        this.addTarget();
+                    }
+                    const inputs = this.getTargetInputs();
+                    inputs[index].value = target;
+                });
+            }
+        };
+
+        // 模組 B：數字池匹配
+        const ModuleB = {
+            worker: new CalculationWorker(),
+
+            async calculate() {
+                const startTime = performance.now();
+                ValidationSystem.clearAllErrors();
+
+                try {
+                    const targetInputs = TargetManager.getTargetInputs();
+                    const poolInput = document.getElementById('b2-pool').value.trim();
+                    const toleranceInput = document.getElementById('b-tolerance').value.trim();
+
+                    if (!poolInput) {
+                        ValidationSystem.showFieldError('b2-pool', '請輸入數字池');
+                        return;
+                    }
+
+                    const validation = ValidationSystem.validateAndParseModuleB(targetInputs, poolInput, toleranceInput);
+
+                    if (!validation.isValid) {
+                        const targetErrors = validation.errors.filter(error => error.includes('目標'));
+                        const poolErrors = validation.errors.filter(error => error.includes('行數字') || error.includes('數字池'));
+                        const toleranceErrors = validation.errors.filter(error => error.includes('誤差'));
+
+                        if (targetErrors.length > 0) {
+                            ValidationSystem.showTargetErrors(targetErrors);
+                        }
+                        if (poolErrors.length > 0) {
+                            ValidationSystem.showFieldError('b2-pool', poolErrors.join('; '));
+                        }
+                        if (toleranceErrors.length > 0) {
+                            ValidationSystem.showFieldError('b-tolerance', toleranceErrors.join('; '));
+                        }
+                        return;
+                    }
+
+                    const { targets, pool, tolerance } = validation;
+
+                    // 檢查匹配模式
+                    const isExclusiveMode = document.querySelector('input[name="matching-mode"]:checked').value === 'exclusive';
+
+                    // 檢查數據量並顯示警告
+                    const warningElement = document.getElementById('b2-warning');
+                    if (pool.length > CONSTANTS.LARGE_DATASET_THRESHOLD) {
+                        warningElement.style.display = 'block';
+                    } else {
+                        warningElement.style.display = 'none';
+                    }
+
+                    // 顯示進度和取消按鈕
+                    this.showProgress(true);
+                    this.showCancelButton(true);
+                    this.updateProgress(0);
+
+                    // 使用 Web Worker 進行計算
+                    const results = await this.worker.calculateModuleB(
+                        targets,
+                        pool,
+                        tolerance,
+                        isExclusiveMode,
+                        (progressData) => {
+                            if (typeof progressData === 'number') {
+                                this.updateProgress(progressData);
+                            } else {
+                                this.updateProgress(progressData.progress, progressData.status);
+                            }
+                        }
+                    );
+
+                    this.updateProgress(100);
+
+                    // 生成輸出
+                    const output = this.generateOutput(results);
+                    document.getElementById('b-output').innerHTML = output;
+
+                    // 記錄到歷史
+                    const historyEntry = {
+                        type: 'moduleB',
+                        input: {
+                            targets: targets.map(t => t / 100),
+                            pool: pool.map(p => p / 100),
+                            tolerance: tolerance / 100,
+                            isExclusiveMode: isExclusiveMode
+                        },
+                        output: results,
+                        executionTime: performance.now() - startTime
+                    };
+
+                    HistorySystem.add({ data: historyEntry });
+
+                    const duration = performance.now() - startTime;
+                    MetricsSystem.recordCalculation(duration, true, JSON.stringify(historyEntry).length);
+
+                    NotificationSystem.success(`匹配完成，處理了 ${targets.length} 個目標`);
+
+                } catch (error) {
+                    if (error.message === '計算已取消') {
+                        NotificationSystem.show('計算已取消', 'success');
+                    } else {
+                        console.error('ModuleB calculation error:', error);
+                        NotificationSystem.error(`計算失敗: ${error.message}`);
+                        MetricsSystem.recordCalculation(performance.now() - startTime, false);
+                    }
+                } finally {
+                    this.showProgress(false);
+                    this.showCancelButton(false);
+                }
+            },
+
+            cancel() {
+                this.worker.cancel();
+            },
+
+            generateOutput(results) {
+                const totalCombinations = results.reduce((sum, r) => sum + r.combinations.length, 0);
+                const successfulTargets = results.filter(r => r.combinations.length > 0).length;
+                const totalSearched = results.reduce((sum, r) => sum + (r.totalCombinationsFound || 0), 0);
+                const isExclusiveMode = results.length > 0 && results[0].isExclusiveMode;
+                const totalSolutions = isExclusiveMode ? Math.max(...results.map(r => r.totalSolutions || 0)) : 0;
+
+                let html = `
+                    <div class="result-group">
+                        <h3>匹配摘要</h3>
+                        <p><strong>目標數量：</strong>${results.length}</p>
+                        <p><strong>匹配模式：</strong>${isExclusiveMode ? '組合匹配（數字不重複）' : '獨立匹配'}</p>
+                        <p><strong>成功匹配：</strong>${successfulTargets} / ${results.length}</p>
+                        <p><strong>符合條件解數：</strong>${totalCombinations}</p>
+                        ${isExclusiveMode ? `<p><strong>完整解決方案數：</strong>${totalSolutions}</p>` : ''}
+                        <p><strong>總搜索組合數：</strong>${totalSearched.toLocaleString()}</p>
+                    </div>
+                `;
+
+                // 組合模式的特殊顯示
+                if (isExclusiveMode) {
+                    if (totalSolutions > 0) {
+                        html += this.generateCombinationSolutions(results);
+                    } else {
+                        html += `
+                            <div class="combination-result">
+                                <div class="combination-header">
+                                    ⚠️ 組合匹配無完整解決方案
+                                </div>
+                                <div style="padding: 12px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                                    <p><strong>原因分析：</strong></p>
+                                    <ul style="margin: 8px 0; padding-left: 20px;">
+                                        <li>數字池中的數字無法在不重複使用的情況下滿足所有目標</li>
+                                        <li>可能需要調整誤差設定或增加數字池中的數字</li>
+                                        <li>可以嘗試使用「獨立匹配」模式獲得更多解決方案</li>
+                                    </ul>
+                                    <p><strong>建議：</strong>查看下方各目標的「最接近匹配」以了解可能的解決方案。</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                results.forEach((result, index) => {
+                    const combinationCount = result.combinations.length;
+                    const hasClosestMatches = result.closestMatches && result.closestMatches.length > 0;
+                    let statusClass, statusText;
+
+                    if (combinationCount === 0) {
+                        statusClass = hasClosestMatches ? 'status-no-solution' : 'status-no-solution';
+                        statusText = hasClosestMatches ? '無精確解' : '無解';
+                    } else if (combinationCount === 1) {
+                        statusClass = 'status-success';
+                        statusText = result.hasExactMatch ? '精確解' : '唯一近似解';
+                    } else {
+                        statusClass = 'status-multiple';
+                        statusText = `${combinationCount} 個解`;
+                    }
+
+                    const toleranceText = result.tolerance > 0 ? ` (誤差範圍: ±${result.tolerance.toFixed(3)})` : ' (精確匹配)';
+
+                    html += `
+                        <div class="result-group">
+                            <h4>目標 ${index + 1}: ${result.target.toFixed(2)}${toleranceText}</h4>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                    `;
+
+                    // 顯示建議誤差
+                    if (result.suggestedTolerance !== null && result.suggestedTolerance !== undefined) {
+                        const suggestionClass = result.suggestedTolerance === 0 ? 'exact-match' : 'suggestion';
+                        html += `
+                            <div class="suggestion-box ${suggestionClass}" style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                <strong>💡 建議誤差設定：</strong> ${result.suggestedTolerance.toFixed(3)}
+                                ${result.suggestedTolerance === 0 ? ' (已有精確匹配)' : ' (可找到最接近的解)'}
+                            </div>
+                        `;
+                    }
+
+                    // 顯示符合條件的解
+                    if (combinationCount > 0) {
+                        html += '<div style="margin-top: 8px;">';
+                        html += '<h5 style="color: var(--success-color); margin-bottom: 8px;">✅ 符合條件的解：</h5>';
+
+                        // 按誤差排序，誤差小的優先顯示
+                        const sortedCombinations = result.combinations
+                            .sort((a, b) => a.error - b.error)
+                            .slice(0, 10);
+
+                        sortedCombinations.forEach((combination, combIndex) => {
+                            const errorText = combination.error > 0 ? ` (誤差: ${combination.error.toFixed(3)})` : ' (精確)';
+                            const errorClass = combination.error === 0 ? 'exact-match' : 'approximate-match';
+
+                            html += `
+                                <div class="result-item ${errorClass}">
+                                    <strong>解 ${combIndex + 1}:</strong> [${combination.numbers.map(n => n.toFixed(2)).join(', ')}]<br>
+                                    <small>總和: ${combination.sum.toFixed(2)}${errorText}</small>
+                                </div>
+                            `;
+                        });
+
+                        if (combinationCount > 10) {
+                            html += `<p class="input-hint">還有 ${combinationCount - 10} 個解未顯示（按誤差大小排序）</p>`;
+                        }
+
+                        html += '</div>';
+                    }
+
+                    // 顯示最接近的匹配（當無符合條件的解時或組合匹配失敗時）
+                    if (hasClosestMatches && (combinationCount === 0 || (result.isExclusiveMode && combinationCount === 0))) {
+                        html += '<div style="margin-top: 8px;">';
+                        html += '<h5 style="color: #ffc107; margin-bottom: 8px;">🎯 最接近的匹配：</h5>';
+
+                        result.closestMatches.forEach((match, matchIndex) => {
+                            const errorPercent = ((match.error / result.target) * 100).toFixed(1);
+
+                            html += `
+                                <div class="result-item closest-match" style="border-left: 4px solid #ffc107;">
+                                    <strong>接近解 ${matchIndex + 1}:</strong> [${match.numbers.map(n => n.toFixed(2)).join(', ')}]<br>
+                                    <small>總和: ${match.sum.toFixed(2)} (誤差: ${match.error.toFixed(3)}, ${errorPercent}%)</small>
+                                </div>
+                            `;
+                        });
+
+                        if (result.closestMatches.length > 0) {
+                            html += `
+                                <div class="suggestion-box" style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107;">
+                                    <strong>💡 提示：</strong>將誤差設定調整為 <strong>${result.closestMatches[0].error.toFixed(3)}</strong> 或更大，即可找到匹配解。
+                                    ${result.isExclusiveMode ? '<br><small>注意：組合匹配模式下，數字不可重複使用可能限制了解的數量。</small>' : ''}
+                                </div>
+                            `;
+                        }
+
+                        html += '</div>';
+                    }
+
+                    // 在組合匹配模式下，即使有解也顯示最接近匹配作為參考
+                    if (result.isExclusiveMode && combinationCount > 0 && hasClosestMatches) {
+                        html += '<div style="margin-top: 8px;">';
+                        html += '<h5 style="color: #6c757d; margin-bottom: 8px;">📋 參考：獨立匹配下的最接近解</h5>';
+
+                        result.closestMatches.slice(0, 3).forEach((match, matchIndex) => {
+                            const errorPercent = ((match.error / result.target) * 100).toFixed(1);
+
+                            html += `
+                                <div class="result-item" style="border-left: 4px solid #6c757d; background: #f8f9fa;">
+                                    <strong>參考解 ${matchIndex + 1}:</strong> [${match.numbers.map(n => n.toFixed(2)).join(', ')}]<br>
+                                    <small>總和: ${match.sum.toFixed(2)} (誤差: ${match.error.toFixed(3)}, ${errorPercent}%)</small>
+                                </div>
+                            `;
+                        });
+
+                        html += '<p class="input-hint">以上為獨立匹配模式下的結果，僅供參考。</p>';
+                        html += '</div>';
+                    }
+
+                    // 顯示統計資訊
+                    if (result.totalCombinationsFound > 0) {
+                        html += `
+                            <div style="margin-top: 8px; font-size: 0.9rem; color: #6c757d;">
+                                <small>📊 搜索統計：共檢查 ${result.totalCombinationsFound.toLocaleString()} 種組合</small>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                });
+
+                return html;
+            },
+
+            generateCombinationSolutions(results) {
+                let html = `
+                    <div class="combination-result">
+                        <div class="combination-header">
+                            🎯 組合匹配解決方案
+                        </div>
+                `;
+
+                // 按解決方案 ID 分組
+                const solutionGroups = {};
+                results.forEach((result, targetIndex) => {
+                    result.combinations.forEach(combo => {
+                        const solutionId = combo.solutionId || 1;
+                        if (!solutionGroups[solutionId]) {
+                            solutionGroups[solutionId] = [];
+                        }
+                        solutionGroups[solutionId].push({
+                            targetIndex,
+                            target: result.target,
+                            ...combo
+                        });
+                    });
+                });
+
+                Object.keys(solutionGroups).forEach(solutionId => {
+                    const solution = solutionGroups[solutionId];
+                    const allUsedIndices = new Set();
+                    solution.forEach(s => s.usedIndices?.forEach(idx => allUsedIndices.add(idx)));
+
+                    html += `
+                        <div style="margin-bottom: 16px; padding: 12px; background: white; border-radius: 8px; border: 1px solid #ddd;">
+                            <h4 style="color: var(--primary-color); margin-bottom: 8px;">解決方案 ${solutionId}</h4>
+                    `;
+
+                    solution.forEach(s => {
+                        const errorText = s.error > 0 ? ` (誤差: ${s.error.toFixed(3)})` : ' (精確)';
+                        const errorClass = s.error === 0 ? 'exact-match' : 'approximate-match';
+
+                        html += `
+                            <div class="target-assignment ${errorClass}">
+                                <strong>目標 ${s.targetIndex + 1} (${s.target.toFixed(2)}):</strong>
+                                [${s.numbers.map(n => n.toFixed(2)).join(', ')}] = ${s.sum.toFixed(2)}${errorText}
+                            </div>
+                        `;
+                    });
+
+                    // 顯示使用的數字
+                    if (allUsedIndices.size > 0) {
+                        const poolNumbers = document.getElementById('b2-pool').value.trim().split('\n').filter(line => line.trim());
+                        html += `
+                            <div class="used-numbers">
+                                <small><strong>使用的數字：</strong></small>
+                                ${Array.from(allUsedIndices).map(idx =>
+                            `<span class="number-tag">${poolNumbers[idx] || 'N/A'}</span>`
+                        ).join('')}
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                });
+
+                html += '</div>';
+                return html;
+            },
+
+            showProgress(show) {
+                const container = document.querySelector('#moduleB .progress-container');
+                container.style.display = show ? 'block' : 'none';
+            },
+
+            updateProgress(percent, status = null) {
+                const bar = document.querySelector('#moduleB .progress-bar');
+                bar.style.width = `${percent}%`;
+
+                if (status) {
+                    bar.textContent = status;
+                } else {
+                    bar.textContent = `${Math.round(percent)}%`;
+                }
+            },
+
+            showCancelButton(show) {
+                const calculateBtn = document.getElementById('calculate-b');
+                const cancelBtn = document.getElementById('cancel-b');
+
+                calculateBtn.disabled = show;
+                cancelBtn.style.display = show ? 'inline-block' : 'none';
+            },
+
+            clear() {
+                TargetManager.clear();
+                document.getElementById('b2-pool').value = '';
+                document.getElementById('b-tolerance').value = '';
+                document.getElementById('b-output').innerHTML = '點擊「開始匹配」後，結果將顯示於此。';
+                document.getElementById('b2-warning').style.display = 'none';
+                ValidationSystem.clearAllErrors();
+            },
+
+            loadSample() {
+                TargetManager.loadSample();
+                document.getElementById('b2-pool').value = `10
+20
+30
+25
+50
+75
+25.5
+15
+35
+40`;
+                document.getElementById('b-tolerance').value = '1';
+
+                // 設定為組合匹配模式
+                document.getElementById('exclusive-mode').checked = true;
+
+                // 更新快速按鈕狀態
+                document.querySelectorAll('.quick-tolerance').forEach(btn => btn.classList.remove('active'));
+                document.querySelector('.quick-tolerance[data-value="1"]').classList.add('active');
+
+                ValidationSystem.clearAllErrors();
+                NotificationSystem.success('範例資料已載入（組合匹配模式 - 演示數字不重複使用）');
+            }
+        };
+
+        // 檔案處理系統
+        const FileSystem = {
+            validateFile(file) {
+                if (!file) {
+                    throw new Error('請選擇檔案');
+                }
+
+                if (file.size > CONSTANTS.MAX_FILE_SIZE) {
+                    throw new Error(`檔案大小超過限制 (${CONSTANTS.MAX_FILE_SIZE / 1024 / 1024}MB)`);
+                }
+
+                if (file.type !== 'application/json') {
+                    throw new Error('僅支援 JSON 格式檔案');
+                }
+
+                return true;
+            },
+
+            async readFile(file) {
+                this.validateFile(file);
+
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            resolve(data);
+                        } catch (error) {
+                            reject(new Error('JSON 格式錯誤'));
+                        }
+                    };
+                    reader.onerror = () => reject(new Error('檔案讀取失敗'));
+                    reader.readAsText(file);
+                });
+            },
+
+            exportData() {
+                const data = {
+                    exportTime: new Date().toISOString(),
+                    schemaVersion: CONSTANTS.SCHEMA_VERSION,
+                    history: HistorySystem.state,
+                    metrics: MetricsSystem.data
+                };
+
+                // 防止 CSV 注入
+                const sanitizedData = JSON.stringify(data, (key, value) => {
+                    if (typeof value === 'string' && /^[=+\-@]/.test(value)) {
+                        return "'" + value; // 前置單引號防止公式注入
+                    }
+                    return value;
+                }, 2);
+
+                const blob = new Blob([sanitizedData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `analysis_data_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                NotificationSystem.success('資料已匯出');
+            },
+
+            async importData(file) {
+                try {
+                    const data = await this.readFile(file);
+
+                    if (data.history && Array.isArray(data.history)) {
+                        HistorySystem.load(data.history);
+                    }
+
+                    if (data.metrics && typeof data.metrics === 'object') {
+                        MetricsSystem.data = { ...MetricsSystem.data, ...data.metrics };
+                        MetricsSystem.save();
+                        MetricsSystem.updateDisplay();
+                    }
+
+                    NotificationSystem.success('資料匯入成功');
+                } catch (error) {
+                    NotificationSystem.error(`匯入失敗: ${error.message}`);
+                }
+            }
+        };
+
+        // Tab 系統
+        const TabSystem = {
+            init() {
+                const savedTab = localStorage.getItem('activeTab') || 'moduleA';
+                this.switchTo(savedTab);
+
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const tabId = e.target.dataset.tab;
+                        this.switchTo(tabId);
+                    });
+                });
+            },
+
+            switchTo(tabId) {
+                // 更新按鈕狀態
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    const isActive = button.dataset.tab === tabId;
+                    button.classList.toggle('active', isActive);
+                    button.setAttribute('aria-selected', isActive);
+                });
+
+                // 更新內容顯示
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.toggle('active', content.id === tabId);
+                });
+
+                // 記住選擇的 tab
+                localStorage.setItem('activeTab', tabId);
+            }
+        };
+
+        // 鍵盤快捷鍵系統
+        const KeyboardShortcuts = {
+            init() {
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl/Cmd + Enter: 執行當前 tab 的計算
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        const activeTab = document.querySelector('.tab-content.active').id;
+
+                        if (activeTab === 'moduleA') {
+                            ModuleA.calculate();
+                        } else if (activeTab === 'moduleB') {
+                            ModuleB.calculate();
+                        }
+                    }
+
+                    // Ctrl/Cmd + K: 清除當前 tab 的輸入
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                        e.preventDefault();
+                        const activeTab = document.querySelector('.tab-content.active').id;
+
+                        if (activeTab === 'moduleA') {
+                            ModuleA.clear();
+                        } else if (activeTab === 'moduleB') {
+                            ModuleB.clear();
+                        }
+                    }
+
+                    // Escape: 取消計算
+                    if (e.key === 'Escape') {
+                        ModuleB.cancel();
+                    }
+                });
+            }
+        };
+
+        // 初始化應用程式
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化各個系統
+            MetricsSystem.init();
+            HistorySystem.init();
+            TabSystem.init();
+            KeyboardShortcuts.init();
+            TargetManager.init();
+
+            // 綁定事件處理器
+            document.getElementById('calculate-a').addEventListener('click', () => ModuleA.calculate());
+            document.getElementById('clear-a').addEventListener('click', () => ModuleA.clear());
+            document.getElementById('sample-a').addEventListener('click', () => ModuleA.loadSample());
+
+            document.getElementById('calculate-b').addEventListener('click', () => ModuleB.calculate());
+            document.getElementById('cancel-b').addEventListener('click', () => ModuleB.cancel());
+            document.getElementById('clear-b').addEventListener('click', () => ModuleB.clear());
+            document.getElementById('sample-b').addEventListener('click', () => ModuleB.loadSample());
+
+            document.getElementById('export-data').addEventListener('click', () => FileSystem.exportData());
+            document.getElementById('create-backup').addEventListener('click', () => HistorySystem.createBackup());
+            document.getElementById('clear-history').addEventListener('click', () => HistorySystem.clear());
+            document.getElementById('export-history').addEventListener('click', () => HistorySystem.export());
+
+            document.getElementById('import-file').addEventListener('change', async (e) => {
+                if (e.target.files[0]) {
+                    await FileSystem.importData(e.target.files[0]);
+                    e.target.value = ''; // 清除選擇
+                }
+            });
+
+            // 輸入驗證事件
+            ['a1-limit', 'a2-data', 'b2-pool'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', () => ValidationSystem.clearFieldError(id));
+                    element.addEventListener('blur', () => {
+                        // 即時驗證可以在這裡添加
+                    });
+                }
+            });
+
+            // 誤差輸入特殊處理
+            const toleranceInput = document.getElementById('b-tolerance');
+            if (toleranceInput) {
+                toleranceInput.addEventListener('input', () => {
+                    ValidationSystem.clearFieldError('b-tolerance');
+
+                    // 更新快速按鈕狀態
+                    const value = toleranceInput.value;
+                    document.querySelectorAll('.quick-tolerance').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.value === value ||
+                            (value === '' && btn.dataset.value === '0'));
+                    });
+                });
+            };
+
+            // 數字池大小警告
+            document.getElementById('b2-pool').addEventListener('input', (e) => {
+                const lines = e.target.value.trim().split('\n').filter(line => line.trim());
+                const warningElement = document.getElementById('b2-warning');
+                warningElement.style.display = lines.length > CONSTANTS.LARGE_DATASET_THRESHOLD ? 'block' : 'none';
+            });
+
+            // 快速誤差設定按鈕
+            document.querySelectorAll('.quick-tolerance').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const value = e.target.dataset.value;
+                    const toleranceInput = document.getElementById('b-tolerance');
+                    toleranceInput.value = value === '0' ? '' : value;
+                    ValidationSystem.clearFieldError('b-tolerance');
+
+                    // 視覺反饋
+                    document.querySelectorAll('.quick-tolerance').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                });
+            });
+
+            NotificationSystem.success('應用程式已載入完成');
+        });
+    </script>
+</body>
+
+</html>
