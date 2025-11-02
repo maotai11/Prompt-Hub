@@ -1,0 +1,3430 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>折讓紀錄 APP (V2.0) - 增強版</title>
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi5oqY6K2w57SA6YyE6KGoIiwidGhlbWVfY29sb3IiOiIjMGQ2ZWZkIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmOGY5ZmEiLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsInN0YXJ0X3VybCI6Ii8iLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCM2FXUjBhRDBpTWpRaUlHaGxhV2RvZEQwaU1qUWlJSFpwWlhkQ2IzZzlJakFnTUNBeU5DQXlOQ0lnWm1sc2JEMGlJekJrTm1WbVpDSStQSEJoZEdnZ1pEMGlUVGt1TnpVZ01UQXVNalVnTVRJdU1qVWdPUzQzTlNBeE1pNHlOU0E0TGpJMUlERXlMakkxSURZdU56VWdNVEl1TWpVZ05TNHlOU0F4TWk0eU5TQTBJREUwTGpjMUlEUWdNVFl1TWpVZ05DQXhOeTQzTlNBMElERTVMakkxSURZdU56VWdNVGt1TWpVZ09TNDNOaUF4T1M0eU5TQXhNaTR5TlNBeE9TNHlOU0F4TkM0M05TQXhPUzR5TlNBeE1pNHlOU0F4T1M0eU5TQXhNQzR5TlNBeE9TNHlOU0E0TGpJMUlERTVMakkxSURZdU56VWdNVGt1TWpVZ05TNHlOU0F4T1M0eU5TQTBJREUzTGpjMUlEUWdNVFl1TWpVZ05DQXhOQzQzTlNBMElERXlMakkxSURZdU56VWdNVEl1TWpVZ09TNDNOaUF4TWk0eU5TQXhNQzR5TlNBeE1pNHlOU0F4TUM0eU5TQXhNaTR5TlNBNUxqYzJJREV5TGpJMUlEZ3VNalVnTVRJdU1qVWdOaTQzTlNBeE1pNHlOU0ExTGpJMUlERXlMakkxSURRZ01UQXVNalVnTkNBNUxqYzJJRFFnT1M0M05pQTBJRGt1TnpZZ05pNDNOU0E1TGpjMklEZ3VNalVnT1M0M05pQXhNQzR5TlNBNUxqYzJJREV5TGpJMUlERXdMakkxSURFeUxqSTFJREV5TGpJMUlERXdMakkxSURFeUxqSTFJRGt1TnpZZ01USXVNalVnT0M0eU5TQXhNaTR5TlNBMkxqYzFJREV5TGpJMUlEVXVNalVnTVRJdU1qVWdOQ0F4TUM0eU5TQTBJRGt1TnpZZ05DQTVMamMySWk4K1BDOXpkbWMrIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+    
+    <!-- CSS 樣式內嵌 -->
+    <style>
+        :root {
+            --color-bg: #f8f9fa;
+            --color-bg-alt: #ffffff;
+            --color-border: #dee2e6;
+            --color-text: #212529;
+            --color-text-muted: #6c757d;
+            --color-primary: #0d6efd;
+            --color-primary-hover: #0b5ed7;
+            --color-danger: #dc3545;
+            --color-success: #198754;
+            --color-warning: #ffc107;
+            --color-info: #0dcaf0;
+            --color-focus-ring: rgba(13, 110, 253, 0.25);
+            --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --border-radius: 0.375rem;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --transition-speed: 200ms;
+        }
+
+        [data-theme="dark"] {
+            --color-bg: #121212;
+            --color-bg-alt: #1e1e1e;
+            --color-border: #444;
+            --color-text: #e0e0e0;
+            --color-text-muted: #888;
+            --color-primary: #3a86ff;
+            --color-primary-hover: #4d94ff;
+            --color-focus-ring: rgba(58, 134, 255, 0.3);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family-sans-serif);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            margin: 0;
+            padding: var(--spacing-md);
+            display: flex;
+            justify-content: center;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            grid-template-rows: auto 1fr;
+            gap: var(--spacing-lg);
+            height: calc(100vh - 2 * var(--spacing-md));
+        }
+
+        .app-header {
+            grid-column: 2 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .app-sidebar {
+            grid-column: 1 / 2;
+            grid-row: 1 / 3;
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .app-main {
+            grid-column: 2 / -1;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+            background-color: var(--color-bg-alt);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg-alt);
+            color: var(--color-text);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .btn.btn-primary {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: white;
+        }
+
+        .btn.btn-primary:hover {
+            background-color: var(--color-primary-hover);
+            border-color: var(--color-primary-hover);
+        }
+        
+        .btn-danger {
+            color: var(--color-danger);
+            border-color: var(--color-danger);
+        }
+        .btn-danger:hover {
+            background-color: var(--color-danger);
+            color: white;
+        }
+
+        .btn-success {
+            color: var(--color-success);
+            border-color: var(--color-success);
+        }
+        .btn-success:hover {
+            background-color: var(--color-success);
+            color: white;
+        }
+
+        .btn-warning {
+            color: var(--color-warning);
+            border-color: var(--color-warning);
+        }
+        .btn-warning:hover {
+            background-color: var(--color-warning);
+            color: white;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            background: none;
+            border: none;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .icon {
+            width: 1.2em;
+            height: 1.2em;
+            vertical-align: middle;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.75rem 1rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            color: var(--color-text);
+            transition: background-color var(--transition-speed) ease;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: var(--color-bg);
+            color: var(--color-primary);
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            font-size: 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 0.25rem var(--color-focus-ring);
+        }
+        
+        .form-control.is-invalid {
+            border-color: var(--color-danger);
+        }
+        .invalid-feedback {
+            display: none;
+            color: var(--color-danger);
+            font-size: 0.875rem;
+            margin-top: var(--spacing-xs);
+        }
+        .is-invalid + .invalid-feedback {
+            display: block;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .table th, .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .table th {
+            font-weight: 600;
+            background-color: var(--color-bg);
+        }
+        .table tbody tr:hover {
+            background-color: var(--color-bg);
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            z-index: 1050;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+        .toast {
+            min-width: 300px;
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            color: white;
+            box-shadow: var(--shadow-md);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast.success { background-color: var(--color-success); }
+        .toast.error { background-color: var(--color-danger); }
+        .toast.info { background-color: var(--color-primary); }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-xl);
+            border: 2px dashed var(--color-border);
+            border-radius: var(--border-radius);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--color-bg-alt);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            min-width: 400px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-lg);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid var(--color-border);
+        }
+        
+        .d-none { display: none !important; }
+        .d-flex { display: flex !important; }
+        .align-items-center { align-items: center; }
+        .justify-content-between { justify-content: space-between; }
+        .gap-2 { gap: var(--spacing-sm); }
+        .gap-3 { gap: var(--spacing-md); }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* 新增：分攤策略選擇器 */
+        .allocation-strategy {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .strategy-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .strategy-option {
+            padding: var(--spacing-sm);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .strategy-option:hover {
+            border-color: var(--color-primary);
+        }
+
+        .strategy-option.selected {
+            border-color: var(--color-primary);
+            background-color: var(--color-focus-ring);
+        }
+
+        /* 新增：分攤解釋器 */
+        .allocation-explainer {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .explainer-item {
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--color-border);
+            font-size: 0.875rem;
+        }
+
+        .explainer-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 新增：批量操作工具列 */
+        .bulk-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .bulk-actions.d-none {
+            display: none !important;
+        }
+
+        /* 新增：搜尋與篩選 */
+        .search-filters {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            align-items: end;
+        }
+
+        /* 新增：檔案上傳區域 */
+        .file-upload-area {
+            border: 2px dashed var(--color-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            text-align: center;
+            cursor: pointer;
+            transition: border-color var(--transition-speed) ease;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--color-primary);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--color-primary);
+            background-color: var(--color-focus-ring);
+        }
+
+        /* 新增：附件列表 */
+        .attachment-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-sm);
+        }
+
+        .attachment-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+        }
+
+        /* 新增：版本歷史 */
+        .version-history {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            margin-top: var(--spacing-sm);
+        }
+
+        .version-item {
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--color-border);
+            font-size: 0.875rem;
+        }
+
+        .version-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 新增：進度條 */
+        .progress {
+            width: 100%;
+            height: 8px;
+            background-color: var(--color-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--color-primary);
+            transition: width var(--transition-speed) ease;
+        }
+
+        /* 新增：標籤 */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 0.25rem;
+            color: white;
+        }
+
+        .badge-primary { background-color: var(--color-primary); }
+        .badge-success { background-color: var(--color-success); }
+        .badge-warning { background-color: var(--color-warning); }
+        .badge-danger { background-color: var(--color-danger); }
+        .badge-info { background-color: var(--color-info); }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr;
+            }
+            
+            .app-sidebar {
+                grid-column: 1 / -1;
+                grid-row: 2 / 3;
+            }
+            
+            .app-header {
+                grid-column: 1 / -1;
+                grid-row: 1 / 2;
+            }
+            
+            .app-main {
+                grid-column: 1 / -1;
+                grid-row: 3 / 4;
+            }
+            
+            .search-filters {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SVG 圖示集 -->
+    <svg width="0" height="0" style="position:absolute">
+      <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></symbol>
+      <symbol id="icon-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></symbol>
+      <symbol id="icon-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></symbol>
+      <symbol id="icon-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3l-3 2.7"></path></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></symbol>
+      <symbol id="icon-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></symbol>
+      <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></symbol>
+      <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
+      <symbol id="icon-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></symbol>
+      <symbol id="icon-paperclip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.64 16.2a2 2 0 0 1-2.83-2.83l8.49-8.49"></path></symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></symbol>
+    </svg>
+
+    <div class="app-container">
+        <!-- 側邊欄 -->
+        <aside class="app-sidebar">
+            <h2>折讓紀錄 APP <span class="badge badge-info">V2.0</span></h2>
+            <nav id="main-nav">
+                <a href="#/list" class="nav-link active" data-view="list">所有折讓單</a>
+                <a href="#/trash" class="nav-link" data-view="trash">垃圾桶</a>
+                <a href="#/history" class="nav-link" data-view="history">操作歷史</a>
+                <a href="#/allocation-center" class="nav-link" data-view="allocation-center">分攤策略中心</a>
+                <a href="#/settings" class="nav-link" data-view="settings">設定與備份</a>
+            </nav>
+            
+            <div style="margin-top: auto; padding-top: var(--spacing-lg); border-top: 1px solid var(--color-border);">
+                <div style="font-size: 0.875rem; color: var(--color-text-muted);">
+                    <div>離線可用 <span class="badge badge-success">PWA</span></div>
+                    <div id="storage-info">載入中...</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 頂部標頭 -->
+        <header class="app-header">
+            <h3 id="view-title">所有折讓單</h3>
+            <div id="header-actions" class="d-flex align-items-center gap-2">
+                <button id="undo-btn" class="btn btn-icon" title="復原 (Ctrl+Z)">
+                    <svg class="icon"><use href="#icon-undo"/></svg>
+                </button>
+                <button id="redo-btn" class="btn btn-icon" title="重做 (Ctrl+Y)">
+                    <svg class="icon"><use href="#icon-redo"/></svg>
+                </button>
+                <button id="btn-bulk-import" class="btn" title="批量匯入">
+                    <svg class="icon"><use href="#icon-upload"/></svg>
+                    <span>批量匯入</span>
+                </button>
+                <button id="btn-bulk-export" class="btn" title="批量匯出">
+                    <svg class="icon"><use href="#icon-download"/></svg>
+                    <span>批量匯出</span>
+                </button>
+                <button id="btn-new-rebate" class="btn btn-primary">
+                    <svg class="icon"><use href="#icon-plus"/></svg>
+                    <span>新增折讓單</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要內容區域 -->
+        <main class="app-main" id="main-content">
+            <!-- 內容會由 JS 動態載入 -->
+        </main>
+    </div>
+
+    <!-- UI 提示容器 -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Modal 容器 -->
+    <div id="modal-container"></div>
+
+    <!-- HTML 模板 -->
+    <template id="template-list-view">
+        <!-- 搜尋與篩選 -->
+        <div class="search-filters">
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" id="search-input" class="form-control" placeholder="搜尋折讓單號、標題、發票號碼...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="date" id="date-from" class="form-control" title="開始日期">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="date" id="date-to" class="form-control" title="結束日期">
+            </div>
+            <button id="btn-clear-filters" class="btn">
+                <svg class="icon"><use href="#icon-x"/></svg>
+                清除篩選
+            </button>
+        </div>
+
+        <!-- 批量操作工具列 -->
+        <div id="bulk-actions" class="bulk-actions d-none">
+            <div class="d-flex align-items-center gap-2">
+                <input type="checkbox" id="select-all-checkbox">
+                <label for="select-all-checkbox">全選</label>
+                <span id="selected-count">已選擇 0 項</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button id="btn-bulk-delete" class="btn btn-danger btn-sm">
+                    <svg class="icon"><use href="#icon-trash"/></svg>
+                    批量刪除
+                </button>
+                <button id="btn-bulk-export-selected" class="btn btn-sm">
+                    <svg class="icon"><use href="#icon-download"/></svg>
+                    匯出選中項目
+                </button>
+            </div>
+        </div>
+
+        <div id="rebate-list-container"></div>
+        <div id="empty-state-container" class="d-none">
+            <div class="empty-state">
+                <h3>系統中沒有任何折讓單記錄</h3>
+                <p>請依照以下步驟開始使用：</p>
+                <div style="display: flex; justify-content: center; gap: var(--spacing-lg); margin-top: var(--spacing-lg);">
+                    <div style="padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--border-radius); flex: 1; max-width: 200px;">
+                        <strong>步驟一</strong><p>點擊右上角的「新增折讓單」按鈕。</p>
+                    </div>
+                    <div style="padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--border-radius); flex: 1; max-width: 200px;">
+                        <strong>步驟二</strong><p>填寫折讓單主檔資訊與各筆明細的原始金額。</p>
+                    </div>
+                    <div style="padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--border-radius); flex: 1; max-width: 200px;">
+                        <strong>步驟三</strong><p>輸入總折讓金額，系統將自動為您精確分攤。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>    
+
+    <template id="template-editor-view">
+        <form id="rebate-form">
+            <input type="hidden" id="rebate-id">
+            <div class="editor-header">
+                <h2 id="editor-title">新增折讓單</h2>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn" id="btn-cancel-edit">取消</button>
+                    <button type="button" class="btn" id="btn-copy-rebate" style="display: none;">
+                        <svg class="icon"><use href="#icon-copy"/></svg>
+                        快速複製
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="icon"><use href="#icon-save"/></svg>
+                        <span>儲存折讓單</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 分攤策略選擇器 -->
+            <div class="allocation-strategy">
+                <h4>分攤策略設定</h4>
+                <div class="strategy-options">
+                    <div class="strategy-option selected" data-strategy="amount-ratio">
+                        <strong>金額占比</strong>
+                        <p>依原始金額比例分攤</p>
+                    </div>
+                    <div class="strategy-option" data-strategy="quantity-ratio">
+                        <strong>數量占比</strong>
+                        <p>依數量比例分攤</p>
+                    </div>
+                    <div class="strategy-option" data-strategy="weighted">
+                        <strong>加權分攤</strong>
+                        <p>單價×數量加權</p>
+                    </div>
+                    <div class="strategy-option" data-strategy="capped">
+                        <strong>封頂分攤</strong>
+                        <p>設定最大分攤金額</p>
+                    </div>
+                    <div class="strategy-option" data-strategy="minimum-unit">
+                        <strong>最小單位</strong>
+                        <p>以$1為最小分攤單位</p>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: var(--spacing-md);">
+                    <label class="form-label">餘額分配規則</label>
+                    <select id="remainder-rule" class="form-control" style="width: auto;">
+                        <option value="largest">分配給最大項</option>
+                        <option value="round-robin">四捨五入輪盤</option>
+                        <option value="sequential">序位輪播</option>
+                    </select>
+                </div>
+            </div>
+            
+            <fieldset>
+                <legend><h4>主表資訊</h4></legend>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                    <div class="form-group">
+                        <label for="rebate-no" class="form-label">折讓單號</label>
+                        <input type="text" id="rebate-no" class="form-control" readonly style="background-color: var(--color-bg);">
+                    </div>
+                    <div class="form-group">
+                        <label for="title" class="form-label">標題 (I1)</label>
+                        <input type="text" id="title" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                    <div class="form-group">
+                        <label for="rebate_date" class="form-label">折讓日期 (I2)</label>
+                        <input type="date" id="rebate_date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="invoice_no" class="form-label">相關發票號碼 (I4)</label>
+                        <input type="text" id="invoice_no" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="total_rebate_amount" class="form-label">總折讓金額 (I3)</label>
+                    <input type="number" id="total_rebate_amount" class="form-control" step="0.01" min="0" required>
+                    <div class="invalid-feedback">總折讓金額不得大於所有明細的原始總金額。</div>
+                </div>
+                
+                <!-- 附件上傳區域 -->
+                <div class="form-group">
+                    <label class="form-label">附件</label>
+                    <div class="file-upload-area" id="file-upload-area">
+                        <svg class="icon" style="width: 2em; height: 2em;"><use href="#icon-paperclip"/></svg>
+                        <p>拖拽檔案到此處或點擊上傳</p>
+                        <input type="file" id="file-input" multiple style="display: none;">
+                    </div>
+                    <div id="attachment-list" class="attachment-list"></div>
+                </div>
+                
+                <!-- 備註與版本控制 -->
+                <div class="form-group">
+                    <label for="notes" class="form-label">備註</label>
+                    <textarea id="notes" class="form-control" rows="3"></textarea>
+                    <button type="button" id="btn-view-note-history" class="btn btn-sm" style="margin-top: var(--spacing-sm);">
+                        <svg class="icon"><use href="#icon-eye"/></svg>
+                        查看修訂歷程
+                    </button>
+                </div>
+            </fieldset>
+            
+            <fieldset>
+                <legend><h4>折讓明細</h4></legend>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>產品ID (D1)</th>
+                            <th>原始金額 (D2)</th>
+                            <th>數量 (D3)</th>
+                            <th>備註 (D4)</th>
+                            <th>分攤後金額 (O1)</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rebate-details-body">
+                        <!-- 明細列將由 JS 動態加入 -->
+                    </tbody>
+                </table>
+                <button type="button" class="btn" id="btn-add-detail" style="margin-top: 1rem;">
+                    <svg class="icon"><use href="#icon-plus"/></svg>
+                    <span>新增明細</span>
+                </button>
+            </fieldset>
+            
+            <!-- 分攤解釋器 -->
+            <div class="allocation-explainer">
+                <h4>分攤計算說明 <button type="button" class="btn btn-sm" id="btn-refresh-explainer">
+                    <svg class="icon"><use href="#icon-info"/></svg>
+                    重新計算
+                </button></h4>
+                <div id="explainer-content">
+                    <div class="explainer-item">請輸入明細資料後查看分攤計算過程</div>
+                </div>
+            </div>
+        </form>
+    </template>
+
+    <template id="template-detail-row">
+        <tr>
+            <td><input type="text" class="form-control detail-product-id" placeholder="產品編號"></td>
+            <td><input type="number" class="form-control detail-original-amount" step="0.01" min="0" placeholder="例如: 1000"></td>
+            <td><input type="number" class="form-control detail-quantity" min="0" placeholder="例如: 10"></td>
+            <td><input type="text" class="form-control detail-note" placeholder="選填"></td>
+            <td><input type="text" class="form-control detail-cleared-amount" readonly style="background-color: var(--color-bg);"></td>
+            <td>
+                <button type="button" class="btn btn-danger btn-icon btn-remove-detail" title="移除此明細">
+                    <svg class="icon"><use href="#icon-trash"/></svg>
+                </button>
+            </td>
+        </tr>
+    </template>
+    
+    <template id="template-allocation-center-view">
+        <h3>分攤策略中心</h3>
+        <p>管理和配置不同的分攤策略，以及設定全域分攤規則。</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg);">
+            <div>
+                <h4>預設分攤策略</h4>
+                <div class="form-group">
+                    <label class="form-label">預設策略</label>
+                    <select id="default-strategy" class="form-control">
+                        <option value="amount-ratio">金額占比</option>
+                        <option value="quantity-ratio">數量占比</option>
+                        <option value="weighted">加權分攤</option>
+                        <option value="capped">封頂分攤</option>
+                        <option value="minimum-unit">最小單位</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">預設餘額分配規則</label>
+                    <select id="default-remainder-rule" class="form-control">
+                        <option value="largest">分配給最大項</option>
+                        <option value="round-robin">四捨五入輪盤</option>
+                        <option value="sequential">序位輪播</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-primary" id="btn-save-defaults">儲存預設值</button>
+            </div>
+            
+            <div>
+                <h4>策略說明</h4>
+                <div style="background-color: var(--color-bg); padding: var(--spacing-md); border-radius: var(--border-radius);">
+                    <h5>金額占比</h5>
+                    <p>依據各明細的原始金額比例進行分攤，適用於大部分情況。</p>
+                    
+                    <h5>數量占比</h5>
+                    <p>依據各明細的數量比例進行分攤，適用於相同單價的商品。</p>
+                    
+                    <h5>加權分攤</h5>
+                    <p>以單價×數量作為權重進行分攤，考慮商品價值差異。</p>
+                    
+                    <h5>封頂分攤</h5>
+                    <p>設定每筆明細的最大分攤金額，超出部分由其他明細承擔。</p>
+                    
+                    <h5>最小單位</h5>
+                    <p>以$1為最小分攤單位，確保分攤金額為整數。</p>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <template id="template-history-view">
+        <h3>操作歷史</h3>
+        <div class="search-filters">
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" id="history-search" class="form-control" placeholder="搜尋操作類型、對象...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <select id="history-type-filter" class="form-control">
+                    <option value="">所有操作</option>
+                    <option value="create">新增</option>
+                    <option value="update">修改</option>
+                    <option value="delete">刪除</option>
+                    <option value="restore">還原</option>
+                    <option value="export">匯出</option>
+                    <option value="import">匯入</option>
+                </select>
+            </div>
+            <button id="btn-clear-history-filters" class="btn">清除篩選</button>
+        </div>
+        
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>時間</th>
+                    <th>操作類型</th>
+                    <th>對象</th>
+                    <th>備註</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="history-table-body">
+            </tbody>
+        </table>
+    </template>
+
+    <template id="template-trash-view">
+        <h3>垃圾桶 <span class="badge badge-warning" id="trash-count">0</span></h3>
+        <p>此處的項目將在 30 天後永久刪除。</p>
+        
+        <div class="d-flex justify-content-between align-items-center" style="margin-bottom: var(--spacing-md);">
+            <div>
+                <button id="btn-empty-trash" class="btn btn-danger">
+                    <svg class="icon"><use href="#icon-trash"/></svg>
+                    清空垃圾桶
+                </button>
+                <button id="btn-restore-all" class="btn btn-success">
+                    <svg class="icon"><use href="#icon-undo"/></svg>
+                    全部還原
+                </button>
+            </div>
+            <div>
+                <span id="auto-cleanup-info" class="badge badge-info">自動清理：30天</span>
+            </div>
+        </div>
+        
+        <div id="trash-list-container"></div>
+    </template>  
+  
+    <template id="template-settings-view">
+        <h3>設定與資料管理</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl);">
+            <div>
+                <h4>外觀設定</h4>
+                <div class="form-group">
+                    <label for="theme-selector" class="form-label">色彩模式</label>
+                    <select id="theme-selector" class="form-control" style="width: auto;">
+                        <option value="auto">自動</option>
+                        <option value="light">亮色</option>
+                        <option value="dark">暗色</option>
+                    </select>
+                </div>
+
+                <h4>自動編號設定</h4>
+                <div class="form-group">
+                    <label for="numbering-prefix" class="form-label">編號前綴</label>
+                    <input type="text" id="numbering-prefix" class="form-control" placeholder="例如: RB" style="width: 200px;">
+                </div>
+                <div class="form-group">
+                    <label for="numbering-format" class="form-label">編號格式</label>
+                    <select id="numbering-format" class="form-control" style="width: auto;">
+                        <option value="YYYYMM">年月流水 (202411001)</option>
+                        <option value="YYYY">年度流水 (2024001)</option>
+                        <option value="sequential">純流水號 (001)</option>
+                    </select>
+                </div>
+                
+                <h4>垃圾桶設定</h4>
+                <div class="form-group">
+                    <label for="trash-ttl" class="form-label">自動清理天數</label>
+                    <input type="number" id="trash-ttl" class="form-control" min="1" max="365" value="30" style="width: 100px;">
+                </div>
+            </div>
+            
+            <div>
+                <h4>資料備份 (Data Ownership)</h4>
+                <p>您的所有資料都儲存在本機瀏覽器中，我們強烈建議您定期匯出備份。</p>
+                <div class="d-flex gap-2" style="margin-top: 1rem;">
+                    <button class="btn btn-primary" id="btn-export">
+                        <svg class="icon"><use href="#icon-download"/></svg>
+                        匯出 JSON 備份
+                    </button>
+                    <label class="btn">
+                        <svg class="icon"><use href="#icon-upload"/></svg>
+                        <span>匯入 JSON 備份</span>
+                        <input type="file" id="import-file" accept="application/json" style="display: none;">
+                    </label>
+                </div>
+                
+                <h4>批量匯入/匯出</h4>
+                <div class="d-flex gap-2">
+                    <button class="btn" id="btn-export-csv">
+                        <svg class="icon"><use href="#icon-file-text"/></svg>
+                        匯出 CSV
+                    </button>
+                    <button class="btn" id="btn-export-pdf">
+                        <svg class="icon"><use href="#icon-file-text"/></svg>
+                        匯出 PDF
+                    </button>
+                </div>
+                
+                <h4>測試資料</h4>
+                <p>用於開發與驗證功能。</p>
+                <button class="btn" id="btn-generate-test-data">一鍵生成 50 筆測試資料</button>
+
+                <h4>危險區域</h4>
+                <button class="btn btn-danger" id="btn-reset-data">清空所有資料</button>
+            </div>
+        </div>
+    </template>
+
+    <template id="template-modal">
+        <div class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"></h4>
+                    <button type="button" class="btn btn-icon modal-close">&times;</button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="template-bulk-import-modal">
+        <div>
+            <h4>批量匯入折讓單</h4>
+            <p>支援 CSV 和 XLSX 格式，請確保檔案包含必要欄位。</p>
+            
+            <div class="file-upload-area" id="bulk-import-area">
+                <svg class="icon" style="width: 2em; height: 2em;"><use href="#icon-upload"/></svg>
+                <p>拖拽 CSV/XLSX 檔案到此處或點擊選擇</p>
+                <input type="file" id="bulk-import-file" accept=".csv,.xlsx" style="display: none;">
+            </div>
+            
+            <div id="import-preview" class="d-none" style="margin-top: var(--spacing-md);">
+                <h5>預覽與欄位對映</h5>
+                <div id="field-mapping"></div>
+                <div id="preview-table"></div>
+                
+                <div style="margin-top: var(--spacing-md);">
+                    <div class="progress">
+                        <div class="progress-bar" id="import-progress" style="width: 0%;"></div>
+                    </div>
+                    <div id="import-status" style="margin-top: var(--spacing-sm);"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- JavaScript 邏輯內嵌 -->
+    <script type="module">
+        //============== PWA Service Worker Registration ==============//
+        if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+            // 只在 HTTPS 環境下註冊 Service Worker
+            navigator.serviceWorker.register('data:application/javascript;base64,Y29uc3QgQ0FDSEVfTkFNRSA9ICdyZWJhdGUtYXBwLXYyJzsKY29uc3QgdXJsc1RvQ2FjaGUgPSBbCiAgJy8nLAogICcvZmF2aWNvbi5pY28nCl07CgpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2luc3RhbGwnLCBldmVudCA9PiB7CiAgZXZlbnQud2FpdFVudGlsKAogICAgY2FjaGVzLm9wZW4oQ0FDSEVfTkFNRSkKICAgICAgLnRoZW4oY2FjaGUgPT4gY2FjaGUuYWRkQWxsKHVybHNUb0NhY2hlKSkKICApOwp9KTsKCnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignZmV0Y2gnLCBldmVudCA9PiB7CiAgZXZlbnQucmVzcG9uZFdpdGgoCiAgICBjYWNoZXMubWF0Y2goZXZlbnQucmVxdWVzdCkKICAgICAgLnRoZW4ocmVzcG9uc2UgPT4gewogICAgICAgIGlmIChyZXNwb25zZSkgewogICAgICAgICAgcmV0dXJuIHJlc3BvbnNlOwogICAgICAgIH0KICAgICAgICByZXR1cm4gZmV0Y2goZXZlbnQucmVxdWVzdCk7CiAgICAgIH0pCiAgKTsKfSk7')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed (需要 HTTPS 環境)'));
+        } else if ('serviceWorker' in navigator) {
+            console.log('Service Worker 需要 HTTPS 環境才能運作');
+        }
+
+        //============== Guardrails & Global Error Handling ==============//
+        const showError = (message) => {
+            Toast.show(message, 'error');
+            console.log(`UI Error Displayed: ${message}`);
+        };
+
+        window.addEventListener('error', (event) => {
+            showError(`發生未預期的錯誤: ${event.message}`);
+            event.preventDefault();
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            showError(`發生未處理的 Promise 拒絕: ${event.reason}`);
+            event.preventDefault();
+        });
+        
+        //=================== UI Core & Components ===================//
+        const UI = {
+            mainContent: document.getElementById('main-content'),
+            viewTitle: document.getElementById('view-title'),
+            headerActions: document.getElementById('header-actions'),
+            btnNewRebate: document.getElementById('btn-new-rebate'),
+            
+            renderView(viewName, ...args) {
+                console.log('renderView called with:', viewName, 'View object:', typeof View);
+                this.mainContent.innerHTML = '';
+                const template = document.getElementById(`template-${viewName}-view`);
+                if (!template) {
+                    showError(`找不到視圖模板: ${viewName}`);
+                    return;
+                }
+                this.mainContent.appendChild(template.content.cloneNode(true));
+                this.updateNav(viewName);
+                
+                switch(viewName) {
+                    case 'list': 
+                        this.viewTitle.textContent = '所有折讓單';
+                        this.btnNewRebate.classList.remove('d-none');
+                        if (typeof View !== 'undefined' && View.List) {
+                            View.List.init();
+                        } else {
+                            console.error('View.List is not defined');
+                            showError('View.List 未定義');
+                        }
+                        break;
+                    case 'editor':
+                        const isEditing = args[0] && args[0].id;
+                        this.viewTitle.textContent = isEditing ? '編輯折讓單' : '新增折讓單';
+                        this.btnNewRebate.classList.add('d-none');
+                        if (typeof View !== 'undefined' && View.Editor) {
+                            View.Editor.init(...args);
+                        } else {
+                            showError('View.Editor 未定義');
+                        }
+                        break;
+                    case 'history':
+                        this.viewTitle.textContent = '操作歷史';
+                        this.btnNewRebate.classList.add('d-none');
+                        if (typeof View !== 'undefined' && View.History) {
+                            View.History.init();
+                        } else {
+                            showError('View.History 未定義');
+                        }
+                        break;
+                    case 'trash':
+                        this.viewTitle.textContent = '垃圾桶';
+                        this.btnNewRebate.classList.add('d-none');
+                        if (typeof View !== 'undefined' && View.Trash) {
+                            View.Trash.init();
+                        } else {
+                            showError('View.Trash 未定義');
+                        }
+                        break;
+                    case 'allocation-center':
+                        this.viewTitle.textContent = '分攤策略中心';
+                        this.btnNewRebate.classList.add('d-none');
+                        if (typeof View !== 'undefined' && View.AllocationCenter) {
+                            View.AllocationCenter.init();
+                        } else {
+                            showError('View.AllocationCenter 未定義');
+                        }
+                        break;
+                    case 'settings':
+                        this.viewTitle.textContent = '設定與備份';
+                        this.btnNewRebate.classList.add('d-none');
+                        if (typeof View !== 'undefined' && View.Settings) {
+                            View.Settings.init();
+                        } else {
+                            showError('View.Settings 未定義');
+                        }
+                        break;
+                }
+            },
+            
+            updateNav(activeView) {
+                document.querySelectorAll('#main-nav .nav-link').forEach(link => {
+                    link.classList.toggle('active', link.dataset.view === activeView);
+                });
+            }
+        };
+
+        const Toast = {
+            container: document.getElementById('toast-container'),
+            show(message, type = 'info', duration = 3000) {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                this.container.appendChild(toast);
+
+                setTimeout(() => toast.classList.add('show'), 10);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, duration);
+            }
+        };
+
+        const Modal = {
+            container: document.getElementById('modal-container'),
+            show({ title, body, footerButtons, size = 'normal' }) {
+                const template = document.getElementById('template-modal');
+                const modalNode = template.content.cloneNode(true);
+                
+                modalNode.querySelector('.modal-title').textContent = title;
+                if (typeof body === 'string') {
+                    modalNode.querySelector('.modal-body').innerHTML = body;
+                } else {
+                    modalNode.querySelector('.modal-body').appendChild(body);
+                }
+                
+                if (size === 'large') {
+                    modalNode.querySelector('.modal-content').style.minWidth = '800px';
+                }
+                
+                const footer = modalNode.querySelector('.modal-footer');
+                footerButtons.forEach(btnConfig => {
+                    const button = document.createElement('button');
+                    button.textContent = btnConfig.text;
+                    button.className = `btn ${btnConfig.classes || ''}`;
+                    button.addEventListener('click', () => {
+                        if (btnConfig.onClick) btnConfig.onClick();
+                        if (btnConfig.closeModal !== false) this.hide();
+                    });
+                    footer.appendChild(button);
+                });
+
+                modalNode.querySelector('.modal-overlay').addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) this.hide();
+                });
+                modalNode.querySelector('.modal-close').addEventListener('click', () => this.hide());
+                
+                this.container.innerHTML = '';
+                this.container.appendChild(modalNode);
+            },
+            hide() {
+                this.container.innerHTML = '';
+            }
+        };
+
+        //====================== Enhanced RebateModule (Core Logic) ======================//
+        const RebateModule = {
+            /**
+             * 增強版分攤計算，支援多種策略
+             */
+            calculateAllocation(totalRebateAmount, details, strategy = 'amount-ratio', remainderRule = 'largest', options = {}) {
+                if (!details || details.length === 0) return [];
+                
+                const totalOriginalAmount = details.reduce((sum, d) => sum + (Number(d.original_amount) || 0), 0);
+                
+                if (totalOriginalAmount === 0) {
+                    return details.map(() => 0);
+                }
+
+                if (totalRebateAmount > totalOriginalAmount) {
+                    return details.map(() => 0);
+                }
+
+                let allocatedAmounts;
+                
+                switch (strategy) {
+                    case 'amount-ratio':
+                        allocatedAmounts = this._calculateByAmountRatio(totalRebateAmount, details);
+                        break;
+                    case 'quantity-ratio':
+                        allocatedAmounts = this._calculateByQuantityRatio(totalRebateAmount, details);
+                        break;
+                    case 'weighted':
+                        allocatedAmounts = this._calculateByWeighted(totalRebateAmount, details);
+                        break;
+                    case 'capped':
+                        allocatedAmounts = this._calculateByCapped(totalRebateAmount, details, options.cap || 1000);
+                        break;
+                    case 'minimum-unit':
+                        allocatedAmounts = this._calculateByMinimumUnit(totalRebateAmount, details);
+                        break;
+                    default:
+                        allocatedAmounts = this._calculateByAmountRatio(totalRebateAmount, details);
+                }
+                
+                // 餘額調整
+                const sumOfAllocated = allocatedAmounts.reduce((sum, amount) => sum + amount, 0);
+                let remainder = parseFloat((totalRebateAmount - sumOfAllocated).toFixed(2));
+                
+                if (Math.abs(remainder) > 0.001) {
+                    allocatedAmounts = this._adjustRemainder(allocatedAmounts, remainder, details, remainderRule);
+                }
+                
+                return allocatedAmounts;
+            },
+            
+            _calculateByAmountRatio(totalRebateAmount, details) {
+                const totalOriginalAmount = details.reduce((sum, d) => sum + (Number(d.original_amount) || 0), 0);
+                return details.map(d => {
+                    const originalAmount = Number(d.original_amount) || 0;
+                    const allocation = (originalAmount / totalOriginalAmount) * totalRebateAmount;
+                    return parseFloat(allocation.toFixed(2));
+                });
+            },
+            
+            _calculateByQuantityRatio(totalRebateAmount, details) {
+                const totalQuantity = details.reduce((sum, d) => sum + (Number(d.quantity) || 0), 0);
+                if (totalQuantity === 0) return this._calculateByAmountRatio(totalRebateAmount, details);
+                
+                return details.map(d => {
+                    const quantity = Number(d.quantity) || 0;
+                    const allocation = (quantity / totalQuantity) * totalRebateAmount;
+                    return parseFloat(allocation.toFixed(2));
+                });
+            },
+            
+            _calculateByWeighted(totalRebateAmount, details) {
+                const totalWeight = details.reduce((sum, d) => {
+                    const amount = Number(d.original_amount) || 0;
+                    const quantity = Number(d.quantity) || 1;
+                    return sum + (amount * quantity);
+                }, 0);
+                
+                if (totalWeight === 0) return this._calculateByAmountRatio(totalRebateAmount, details);
+                
+                return details.map(d => {
+                    const amount = Number(d.original_amount) || 0;
+                    const quantity = Number(d.quantity) || 1;
+                    const weight = amount * quantity;
+                    const allocation = (weight / totalWeight) * totalRebateAmount;
+                    return parseFloat(allocation.toFixed(2));
+                });
+            },
+            
+            _calculateByCapped(totalRebateAmount, details, cap) {
+                let allocatedAmounts = this._calculateByAmountRatio(totalRebateAmount, details);
+                let totalCapped = 0;
+                let uncappedIndices = [];
+                
+                // 第一輪：應用封頂限制
+                allocatedAmounts.forEach((amount, index) => {
+                    if (amount > cap) {
+                        allocatedAmounts[index] = cap;
+                        totalCapped += cap;
+                    } else {
+                        uncappedIndices.push(index);
+                        totalCapped += amount;
+                    }
+                });
+                
+                // 第二輪：重新分配超出封頂的金額
+                const remainingAmount = totalRebateAmount - totalCapped;
+                if (remainingAmount > 0 && uncappedIndices.length > 0) {
+                    const uncappedTotal = uncappedIndices.reduce((sum, index) => {
+                        return sum + (Number(details[index].original_amount) || 0);
+                    }, 0);
+                    
+                    uncappedIndices.forEach(index => {
+                        const originalAmount = Number(details[index].original_amount) || 0;
+                        const additionalAllocation = (originalAmount / uncappedTotal) * remainingAmount;
+                        allocatedAmounts[index] = Math.min(cap, allocatedAmounts[index] + additionalAllocation);
+                    });
+                }
+                
+                return allocatedAmounts.map(amount => parseFloat(amount.toFixed(2)));
+            },
+            
+            _calculateByMinimumUnit(totalRebateAmount, details) {
+                const totalRebateAmountCents = Math.round(totalRebateAmount * 100);
+                let allocatedAmounts = this._calculateByAmountRatio(totalRebateAmount, details);
+                
+                // 轉換為分並四捨五入
+                allocatedAmounts = allocatedAmounts.map(amount => Math.round(amount * 100));
+                
+                // 調整餘額
+                const sumCents = allocatedAmounts.reduce((sum, amount) => sum + amount, 0);
+                let remainderCents = totalRebateAmountCents - sumCents;
+                
+                // 分配餘額（以分為單位）
+                let index = 0;
+                while (remainderCents !== 0 && index < allocatedAmounts.length) {
+                    if (remainderCents > 0) {
+                        allocatedAmounts[index] += 1;
+                        remainderCents -= 1;
+                    } else {
+                        allocatedAmounts[index] -= 1;
+                        remainderCents += 1;
+                    }
+                    index = (index + 1) % allocatedAmounts.length;
+                }
+                
+                // 轉換回元
+                return allocatedAmounts.map(amount => parseFloat((amount / 100).toFixed(2)));
+            },
+            
+            _adjustRemainder(allocatedAmounts, remainder, details, remainderRule) {
+                const adjustedAmounts = [...allocatedAmounts];
+                
+                switch (remainderRule) {
+                    case 'largest':
+                        let maxAmount = -1;
+                        let maxIndex = -1;
+                        details.forEach((d, index) => {
+                            const originalAmount = Number(d.original_amount) || 0;
+                            if (originalAmount > maxAmount) {
+                                maxAmount = originalAmount;
+                                maxIndex = index;
+                            }
+                        });
+                        if (maxIndex !== -1) {
+                            adjustedAmounts[maxIndex] = parseFloat((adjustedAmounts[maxIndex] + remainder).toFixed(2));
+                        }
+                        break;
+                        
+                    case 'round-robin':
+                        const remainderCents = Math.round(remainder * 100);
+                        let index = 0;
+                        let remainingCents = remainderCents;
+                        while (remainingCents !== 0 && index < adjustedAmounts.length) {
+                            if (remainingCents > 0) {
+                                adjustedAmounts[index] = parseFloat((adjustedAmounts[index] + 0.01).toFixed(2));
+                                remainingCents -= 1;
+                            } else {
+                                adjustedAmounts[index] = parseFloat((adjustedAmounts[index] - 0.01).toFixed(2));
+                                remainingCents += 1;
+                            }
+                            index = (index + 1) % adjustedAmounts.length;
+                        }
+                        break;
+                        
+                    case 'sequential':
+                        const remainderCentsSeq = Math.round(remainder * 100);
+                        for (let i = 0; i < Math.abs(remainderCentsSeq) && i < adjustedAmounts.length; i++) {
+                            if (remainderCentsSeq > 0) {
+                                adjustedAmounts[i] = parseFloat((adjustedAmounts[i] + 0.01).toFixed(2));
+                            } else {
+                                adjustedAmounts[i] = parseFloat((adjustedAmounts[i] - 0.01).toFixed(2));
+                            }
+                        }
+                        break;
+                }
+                
+                return adjustedAmounts;
+            },
+            
+            /**
+             * 生成分攤解釋
+             */
+            generateExplanation(totalRebateAmount, details, strategy, remainderRule, allocatedAmounts) {
+                const explanations = [];
+                const totalOriginalAmount = details.reduce((sum, d) => sum + (Number(d.original_amount) || 0), 0);
+                
+                explanations.push(`總折讓金額：$${totalRebateAmount.toLocaleString()}`);
+                explanations.push(`總原始金額：$${totalOriginalAmount.toLocaleString()}`);
+                explanations.push(`分攤策略：${this._getStrategyName(strategy)}`);
+                explanations.push(`餘額分配：${this._getRemainderRuleName(remainderRule)}`);
+                explanations.push('');
+                
+                details.forEach((detail, index) => {
+                    const originalAmount = Number(detail.original_amount) || 0;
+                    const quantity = Number(detail.quantity) || 0;
+                    const allocatedAmount = allocatedAmounts[index] || 0;
+                    const ratio = totalOriginalAmount > 0 ? (originalAmount / totalOriginalAmount * 100).toFixed(2) : 0;
+                    
+                    explanations.push(`明細 ${index + 1}：${detail.product_id || '未命名'}`);
+                    explanations.push(`  原始金額：$${originalAmount.toLocaleString()} (${ratio}%)`);
+                    if (quantity > 0) {
+                        explanations.push(`  數量：${quantity}`);
+                        explanations.push(`  單價：$${(originalAmount / quantity).toFixed(2)}`);
+                    }
+                    explanations.push(`  分攤金額：$${allocatedAmount.toLocaleString()}`);
+                    explanations.push('');
+                });
+                
+                const totalAllocated = allocatedAmounts.reduce((sum, amount) => sum + amount, 0);
+                const difference = totalRebateAmount - totalAllocated;
+                if (Math.abs(difference) > 0.001) {
+                    explanations.push(`⚠️ 分攤總和與目標金額差異：$${difference.toFixed(2)}`);
+                } else {
+                    explanations.push('✅ 分攤計算完成，總和一致');
+                }
+                
+                return explanations;
+            },
+            
+            _getStrategyName(strategy) {
+                const names = {
+                    'amount-ratio': '金額占比',
+                    'quantity-ratio': '數量占比',
+                    'weighted': '加權分攤',
+                    'capped': '封頂分攤',
+                    'minimum-unit': '最小單位'
+                };
+                return names[strategy] || strategy;
+            },
+            
+            _getRemainderRuleName(rule) {
+                const names = {
+                    'largest': '分配給最大項',
+                    'round-robin': '四捨五入輪盤',
+                    'sequential': '序位輪播'
+                };
+                return names[rule] || rule;
+            }
+        };
+
+        //====================== Enhanced Storage Module ======================//
+        const Storage = {
+            KEY: 'rebate_app_data_v2',
+            SCHEMA_VERSION: 2,
+
+            _getDefaultData() {
+                return {
+                    meta: {
+                        app: "rebate-app",
+                        schemaVersion: this.SCHEMA_VERSION,
+                        exportedAt: new Date().toISOString()
+                    },
+                    preferences: {
+                        theme: 'auto',
+                        defaultStrategy: 'amount-ratio',
+                        defaultRemainderRule: 'largest',
+                        numberingPrefix: 'RB',
+                        numberingFormat: 'YYYYMM',
+                        trashTTL: 30
+                    },
+                    rebates: [],
+                    trash: [],
+                    history: [],
+                    attachments: {},
+                    noteHistory: {}
+                };
+            },
+
+            read() {
+                try {
+                    const rawData = localStorage.getItem(this.KEY);
+                    if (!rawData) {
+                        const defaultData = this._getDefaultData();
+                        this.write(defaultData);
+                        return defaultData;
+                    }
+                    const data = JSON.parse(rawData);
+                    
+                    // 版本遷移
+                    if (data.meta.schemaVersion < this.SCHEMA_VERSION) {
+                        data = this._migrateData(data);
+                    }
+                    
+                    return data;
+                } catch (e) {
+                    showError("讀取本地資料失敗，可能資料已損毀。");
+                    return this._getDefaultData();
+                }
+            },
+
+            write(data) {
+                try {
+                    data.meta.schemaVersion = this.SCHEMA_VERSION;
+                    data.meta.lastModified = new Date().toISOString();
+                    localStorage.setItem(this.KEY, JSON.stringify(data));
+                    this._updateStorageInfo();
+                } catch (e) {
+                    showError("儲存資料失敗，可能儲存空間不足。");
+                }
+            },
+            
+            _migrateData(data) {
+                // V1 to V2 migration
+                if (data.meta.schemaVersion === 1) {
+                    data.trash = data.trash || [];
+                    data.attachments = data.attachments || {};
+                    data.noteHistory = data.noteHistory || {};
+                    data.preferences = {
+                        ...this._getDefaultData().preferences,
+                        ...data.preferences
+                    };
+                    
+                    // 為現有折讓單生成編號
+                    data.rebates.forEach((rebate, index) => {
+                        if (!rebate.rebate_no) {
+                            rebate.rebate_no = this._generateRebateNumber(data.preferences, index + 1);
+                        }
+                    });
+                }
+                
+                data.meta.schemaVersion = this.SCHEMA_VERSION;
+                Toast.show('資料已自動升級到新版本', 'info');
+                return data;
+            },
+            
+            _generateRebateNumber(preferences, sequence) {
+                const now = new Date();
+                const prefix = preferences.numberingPrefix || 'RB';
+                
+                switch (preferences.numberingFormat) {
+                    case 'YYYYMM':
+                        const yearMonth = now.getFullYear().toString() + (now.getMonth() + 1).toString().padStart(2, '0');
+                        return `${prefix}${yearMonth}${sequence.toString().padStart(3, '0')}`;
+                    case 'YYYY':
+                        const year = now.getFullYear().toString();
+                        return `${prefix}${year}${sequence.toString().padStart(3, '0')}`;
+                    case 'sequential':
+                        return `${prefix}${sequence.toString().padStart(3, '0')}`;
+                    default:
+                        return `${prefix}${sequence.toString().padStart(3, '0')}`;
+                }
+            },
+            
+            _updateStorageInfo() {
+                try {
+                    const storageInfo = document.getElementById('storage-info');
+                    if (storageInfo) {
+                        const data = this.read();
+                        const rebateCount = data.rebates ? data.rebates.length : 0;
+                        const trashCount = data.trash ? data.trash.length : 0;
+                        storageInfo.innerHTML = `
+                            <div>折讓單：${rebateCount} 筆</div>
+                            <div>垃圾桶：${trashCount} 筆</div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('更新儲存資訊失敗:', error);
+                }
+            }
+        };
+
+        //====================== Enhanced View Controllers ======================//
+        console.log('開始定義 View 對象');
+        const View = {
+            List: {
+                init() {
+                    this.bindEvents();
+                    this.loadRebates();
+                    this.initSearch();
+                },
+                
+                bindEvents() {
+                    // 搜尋和篩選
+                    document.getElementById('search-input').addEventListener('input', () => this.applyFilters());
+                    document.getElementById('date-from').addEventListener('change', () => this.applyFilters());
+                    document.getElementById('date-to').addEventListener('change', () => this.applyFilters());
+                    document.getElementById('btn-clear-filters').addEventListener('click', () => this.clearFilters());
+                    
+                    // 批量操作
+                    document.getElementById('select-all-checkbox').addEventListener('change', (e) => {
+                        this.toggleSelectAll(e.target.checked);
+                    });
+                    document.getElementById('btn-bulk-delete').addEventListener('click', () => this.bulkDelete());
+                    document.getElementById('btn-bulk-export-selected').addEventListener('click', () => this.bulkExportSelected());
+                },
+                
+                loadRebates() {
+                    const data = Storage.read();
+                    this.allRebates = data.rebates;
+                    this.filteredRebates = [...this.allRebates];
+                    this.renderRebates();
+                },
+                
+                renderRebates() {
+                    const container = document.getElementById('rebate-list-container');
+                    const emptyState = document.getElementById('empty-state-container');
+                    
+                    if (this.filteredRebates.length === 0) {
+                        container.innerHTML = '';
+                        emptyState.classList.remove('d-none');
+                        return;
+                    }
+                    
+                    emptyState.classList.add('d-none');
+                    
+                    const table = document.createElement('table');
+                    table.className = 'table';
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="header-checkbox"></th>
+                                <th>折讓單號</th>
+                                <th>標題</th>
+                                <th>折讓日期</th>
+                                <th>總金額</th>
+                                <th>發票號碼</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    `;
+                    
+                    const tbody = table.querySelector('tbody');
+                    this.filteredRebates.forEach(rebate => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><input type="checkbox" class="rebate-checkbox" data-id="${rebate.id}"></td>
+                            <td><strong>${rebate.rebate_no || '未編號'}</strong></td>
+                            <td>${rebate.title}</td>
+                            <td>${rebate.rebate_date}</td>
+                            <td>$${rebate.total_rebate_amount.toLocaleString()}</td>
+                            <td>${rebate.invoice_no || '-'}</td>
+                            <td><span class="badge badge-success">正常</span></td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-view" data-id="${rebate.id}" title="查看">
+                                        <svg class="icon"><use href="#icon-eye"/></svg>
+                                    </button>
+                                    <button class="btn btn-sm btn-edit" data-id="${rebate.id}" title="編輯">
+                                        <svg class="icon"><use href="#icon-edit"/></svg>
+                                    </button>
+                                    <button class="btn btn-sm btn-copy" data-id="${rebate.id}" title="複製">
+                                        <svg class="icon"><use href="#icon-copy"/></svg>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger btn-delete" data-id="${rebate.id}" title="刪除">
+                                        <svg class="icon"><use href="#icon-trash"/></svg>
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    container.innerHTML = '';
+                    container.appendChild(table);
+                    
+                    // 綁定複選框事件
+                    document.querySelectorAll('.rebate-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', () => this.updateBulkActions());
+                    });
+                    
+                    document.getElementById('header-checkbox').addEventListener('change', (e) => {
+                        this.toggleSelectAll(e.target.checked);
+                    });
+                    
+                    // 綁定操作按鈕事件
+                    document.querySelectorAll('.btn-view').forEach(btn => {
+                        btn.addEventListener('click', () => this.viewRebate(btn.dataset.id));
+                    });
+                    
+                    document.querySelectorAll('.btn-edit').forEach(btn => {
+                        btn.addEventListener('click', () => this.editRebate(btn.dataset.id));
+                    });
+                    
+                    document.querySelectorAll('.btn-copy').forEach(btn => {
+                        btn.addEventListener('click', () => this.copyRebate(btn.dataset.id));
+                    });
+                    
+                    document.querySelectorAll('.btn-delete').forEach(btn => {
+                        btn.addEventListener('click', () => this.deleteRebate(btn.dataset.id));
+                    });
+                },
+                
+                applyFilters() {
+                    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+                    const dateFrom = document.getElementById('date-from').value;
+                    const dateTo = document.getElementById('date-to').value;
+                    
+                    this.filteredRebates = this.allRebates.filter(rebate => {
+                        const matchesSearch = !searchTerm || 
+                            rebate.title.toLowerCase().includes(searchTerm) ||
+                            (rebate.rebate_no && rebate.rebate_no.toLowerCase().includes(searchTerm)) ||
+                            (rebate.invoice_no && rebate.invoice_no.toLowerCase().includes(searchTerm));
+                        
+                        const matchesDateFrom = !dateFrom || rebate.rebate_date >= dateFrom;
+                        const matchesDateTo = !dateTo || rebate.rebate_date <= dateTo;
+                        
+                        return matchesSearch && matchesDateFrom && matchesDateTo;
+                    });
+                    
+                    this.renderRebates();
+                },
+                
+                clearFilters() {
+                    document.getElementById('search-input').value = '';
+                    document.getElementById('date-from').value = '';
+                    document.getElementById('date-to').value = '';
+                    this.applyFilters();
+                },
+                
+                toggleSelectAll(checked) {
+                    document.querySelectorAll('.rebate-checkbox').forEach(checkbox => {
+                        checkbox.checked = checked;
+                    });
+                    this.updateBulkActions();
+                },
+                
+                updateBulkActions() {
+                    const selectedCheckboxes = document.querySelectorAll('.rebate-checkbox:checked');
+                    const bulkActions = document.getElementById('bulk-actions');
+                    const selectedCount = document.getElementById('selected-count');
+                    
+                    if (selectedCheckboxes.length > 0) {
+                        bulkActions.classList.remove('d-none');
+                        selectedCount.textContent = `已選擇 ${selectedCheckboxes.length} 項`;
+                    } else {
+                        bulkActions.classList.add('d-none');
+                    }
+                },
+                
+                bulkDelete() {
+                    const selectedIds = Array.from(document.querySelectorAll('.rebate-checkbox:checked'))
+                        .map(checkbox => checkbox.dataset.id);
+                    
+                    if (selectedIds.length === 0) return;
+                    
+                    Modal.show({
+                        title: '批量刪除確認',
+                        body: `確定要刪除選中的 ${selectedIds.length} 筆折讓單嗎？刪除後將移至垃圾桶。`,
+                        footerButtons: [
+                            { text: '取消', classes: '' },
+                            { 
+                                text: '確定刪除', 
+                                classes: 'btn-danger',
+                                onClick: () => {
+                                    const data = Storage.read();
+                                    const now = new Date().toISOString();
+                                    
+                                    selectedIds.forEach(id => {
+                                        const rebateIndex = data.rebates.findIndex(r => r.id === id);
+                                        if (rebateIndex !== -1) {
+                                            const rebate = data.rebates.splice(rebateIndex, 1)[0];
+                                            rebate.deletedAt = now;
+                                            data.trash.push(rebate);
+                                            
+                                            data.history.push({
+                                                id: Date.now() + Math.random(),
+                                                timestamp: now,
+                                                action: 'delete',
+                                                target: rebate.title,
+                                                note: '批量刪除'
+                                            });
+                                        }
+                                    });
+                                    
+                                    Storage.write(data);
+                                    Toast.show(`已刪除 ${selectedIds.length} 筆折讓單`, 'success');
+                                    this.loadRebates();
+                                }
+                            }
+                        ]
+                    });
+                },
+                
+                bulkExportSelected() {
+                    const selectedIds = Array.from(document.querySelectorAll('.rebate-checkbox:checked'))
+                        .map(checkbox => checkbox.dataset.id);
+                    
+                    if (selectedIds.length === 0) return;
+                    
+                    const data = Storage.read();
+                    const selectedRebates = data.rebates.filter(r => selectedIds.includes(r.id));
+                    
+                    ExportModule.exportToCSV(selectedRebates, `折讓單_批量匯出_${new Date().toISOString().split('T')[0]}.csv`);
+                },
+                
+                viewRebate(id) {
+                    const data = Storage.read();
+                    const rebate = data.rebates.find(r => r.id === id);
+                    if (rebate) {
+                        UI.renderView('editor', rebate, true); // 第三個參數表示只讀模式
+                    }
+                },
+                
+                editRebate(id) {
+                    const data = Storage.read();
+                    const rebate = data.rebates.find(r => r.id === id);
+                    if (rebate) {
+                        UI.renderView('editor', rebate);
+                    }
+                },
+                
+                copyRebate(id) {
+                    const data = Storage.read();
+                    const originalRebate = data.rebates.find(r => r.id === id);
+                    if (originalRebate) {
+                        const copiedRebate = {
+                            ...originalRebate,
+                            id: Date.now().toString(),
+                            title: `${originalRebate.title} (副本)`,
+                            rebate_date: new Date().toISOString().split('T')[0],
+                            rebate_no: '' // 將在儲存時重新生成
+                        };
+                        UI.renderView('editor', copiedRebate);
+                        Toast.show('已複製折讓單，請修改後儲存', 'info');
+                    }
+                },
+                
+                deleteRebate(id) {
+                    Modal.show({
+                        title: '刪除確認',
+                        body: '確定要刪除此折讓單嗎？刪除後將移至垃圾桶。',
+                        footerButtons: [
+                            { text: '取消', classes: '' },
+                            { 
+                                text: '確定刪除', 
+                                classes: 'btn-danger',
+                                onClick: () => {
+                                    const data = Storage.read();
+                                    const rebateIndex = data.rebates.findIndex(r => r.id === id);
+                                    if (rebateIndex !== -1) {
+                                        const rebate = data.rebates.splice(rebateIndex, 1)[0];
+                                        rebate.deletedAt = new Date().toISOString();
+                                        data.trash.push(rebate);
+                                        
+                                        data.history.push({
+                                            id: Date.now() + Math.random(),
+                                            timestamp: new Date().toISOString(),
+                                            action: 'delete',
+                                            target: rebate.title,
+                                            note: '單筆刪除'
+                                        });
+                                        
+                                        Storage.write(data);
+                                        Toast.show('折讓單已移至垃圾桶', 'success');
+                                        this.loadRebates();
+                                    }
+                                }
+                            }
+                        ]
+                    });
+                },
+                
+                initSearch() {
+                    // 實現即時搜尋
+                    let searchTimeout;
+                    document.getElementById('search-input').addEventListener('input', () => {
+                        clearTimeout(searchTimeout);
+                        searchTimeout = setTimeout(() => this.applyFilters(), 300);
+                    });
+                }
+            },
+            
+            Editor: {
+                init(rebate = null, readOnly = false) {
+                    this.currentRebate = rebate;
+                    this.readOnly = readOnly;
+                    this.bindEvents();
+                    this.initStrategySelector();
+                    this.initFileUpload();
+                    
+                    if (rebate) {
+                        this.loadRebateData(rebate);
+                    } else {
+                        this.initNewRebate();
+                    }
+                    
+                    if (readOnly) {
+                        this.makeReadOnly();
+                    }
+                },
+                
+                bindEvents() {
+                    document.getElementById('rebate-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        if (!this.readOnly) this.saveRebate();
+                    });
+                    
+                    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+                        UI.renderView('list');
+                    });
+                    
+                    document.getElementById('btn-add-detail').addEventListener('click', () => {
+                        this.addDetailRow();
+                    });
+                    
+                    document.getElementById('total_rebate_amount').addEventListener('input', () => {
+                        this.calculateAllocation();
+                    });
+                    
+                    document.getElementById('btn-refresh-explainer').addEventListener('click', () => {
+                        this.updateExplainer();
+                    });
+                    
+                    document.getElementById('btn-view-note-history').addEventListener('click', () => {
+                        this.showNoteHistory();
+                    });
+                    
+                    const copyBtn = document.getElementById('btn-copy-rebate');
+                    if (copyBtn && this.currentRebate) {
+                        copyBtn.style.display = 'inline-flex';
+                        copyBtn.addEventListener('click', () => {
+                            View.List.copyRebate(this.currentRebate.id);
+                        });
+                    }
+                },
+                
+                initStrategySelector() {
+                    document.querySelectorAll('.strategy-option').forEach(option => {
+                        option.addEventListener('click', () => {
+                            document.querySelectorAll('.strategy-option').forEach(o => o.classList.remove('selected'));
+                            option.classList.add('selected');
+                            this.calculateAllocation();
+                        });
+                    });
+                    
+                    document.getElementById('remainder-rule').addEventListener('change', () => {
+                        this.calculateAllocation();
+                    });
+                },
+                
+                initFileUpload() {
+                    const uploadArea = document.getElementById('file-upload-area');
+                    const fileInput = document.getElementById('file-input');
+                    
+                    uploadArea.addEventListener('click', () => fileInput.click());
+                    uploadArea.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        uploadArea.classList.add('dragover');
+                    });
+                    uploadArea.addEventListener('dragleave', () => {
+                        uploadArea.classList.remove('dragover');
+                    });
+                    uploadArea.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        uploadArea.classList.remove('dragover');
+                        this.handleFiles(e.dataTransfer.files);
+                    });
+                    
+                    fileInput.addEventListener('change', (e) => {
+                        this.handleFiles(e.target.files);
+                    });
+                },
+                
+                handleFiles(files) {
+                    Array.from(files).forEach(file => {
+                        const fileId = Date.now() + Math.random();
+                        const attachment = {
+                            id: fileId,
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            uploadedAt: new Date().toISOString()
+                        };
+                        
+                        this.addAttachment(attachment);
+                        Toast.show(`已上傳檔案：${file.name}`, 'success');
+                    });
+                },
+                
+                addAttachment(attachment) {
+                    const attachmentList = document.getElementById('attachment-list');
+                    const attachmentItem = document.createElement('div');
+                    attachmentItem.className = 'attachment-item';
+                    attachmentItem.innerHTML = `
+                        <svg class="icon"><use href="#icon-paperclip"/></svg>
+                        <span>${attachment.name}</span>
+                        <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">
+                            <svg class="icon"><use href="#icon-x"/></svg>
+                        </button>
+                    `;
+                    attachmentList.appendChild(attachmentItem);
+                },
+                
+                initNewRebate() {
+                    const data = Storage.read();
+                    const nextSequence = data.rebates.length + 1;
+                    const rebateNo = this.generateRebateNumber(data.preferences, nextSequence);
+                    
+                    document.getElementById('rebate-no').value = rebateNo;
+                    document.getElementById('rebate_date').value = new Date().toISOString().split('T')[0];
+                    
+                    // 添加一行預設明細
+                    this.addDetailRow();
+                },
+                
+                generateRebateNumber(preferences, sequence) {
+                    const now = new Date();
+                    const prefix = preferences.numberingPrefix || 'RB';
+                    
+                    switch (preferences.numberingFormat) {
+                        case 'YYYYMM':
+                            const yearMonth = now.getFullYear().toString() + (now.getMonth() + 1).toString().padStart(2, '0');
+                            return `${prefix}${yearMonth}${sequence.toString().padStart(3, '0')}`;
+                        case 'YYYY':
+                            const year = now.getFullYear().toString();
+                            return `${prefix}${year}${sequence.toString().padStart(3, '0')}`;
+                        case 'sequential':
+                            return `${prefix}${sequence.toString().padStart(3, '0')}`;
+                        default:
+                            return `${prefix}${sequence.toString().padStart(3, '0')}`;
+                    }
+                },
+                
+                loadRebateData(rebate) {
+                    document.getElementById('rebate-id').value = rebate.id;
+                    document.getElementById('rebate-no').value = rebate.rebate_no || '';
+                    document.getElementById('title').value = rebate.title;
+                    document.getElementById('rebate_date').value = rebate.rebate_date;
+                    document.getElementById('invoice_no').value = rebate.invoice_no || '';
+                    document.getElementById('total_rebate_amount').value = rebate.total_rebate_amount;
+                    document.getElementById('notes').value = rebate.notes || '';
+                    
+                    // 載入分攤策略
+                    if (rebate.allocationStrategy) {
+                        document.querySelector(`[data-strategy="${rebate.allocationStrategy}"]`)?.classList.add('selected');
+                        document.querySelectorAll('.strategy-option').forEach(o => {
+                            if (o.dataset.strategy !== rebate.allocationStrategy) {
+                                o.classList.remove('selected');
+                            }
+                        });
+                    }
+                    
+                    if (rebate.remainderRule) {
+                        document.getElementById('remainder-rule').value = rebate.remainderRule;
+                    }
+                    
+                    // 載入明細
+                    rebate.details.forEach(detail => {
+                        this.addDetailRow(detail);
+                    });
+                    
+                    // 載入附件
+                    if (rebate.attachments) {
+                        rebate.attachments.forEach(attachment => {
+                            this.addAttachment(attachment);
+                        });
+                    }
+                    
+                    this.calculateAllocation();
+                },
+                
+                addDetailRow(detail = null) {
+                    const template = document.getElementById('template-detail-row');
+                    const row = template.content.cloneNode(true);
+                    const tbody = document.getElementById('rebate-details-body');
+                    
+                    if (detail) {
+                        row.querySelector('.detail-product-id').value = detail.product_id || '';
+                        row.querySelector('.detail-original-amount').value = detail.original_amount || '';
+                        row.querySelector('.detail-quantity').value = detail.quantity || '';
+                        row.querySelector('.detail-note').value = detail.note || '';
+                        row.querySelector('.detail-cleared-amount').value = detail.cleared_rebate_amount || '';
+                    }
+                    
+                    tbody.appendChild(row);
+                    
+                    // 綁定事件
+                    const newRow = tbody.lastElementChild;
+                    newRow.querySelector('.btn-remove-detail').addEventListener('click', () => {
+                        newRow.remove();
+                        this.calculateAllocation();
+                    });
+                    
+                    newRow.querySelectorAll('.detail-original-amount, .detail-quantity').forEach(input => {
+                        input.addEventListener('input', () => this.calculateAllocation());
+                    });
+                },
+                
+                calculateAllocation() {
+                    const totalRebateAmount = parseFloat(document.getElementById('total_rebate_amount').value) || 0;
+                    const strategy = document.querySelector('.strategy-option.selected')?.dataset.strategy || 'amount-ratio';
+                    const remainderRule = document.getElementById('remainder-rule').value;
+                    
+                    const detailsData = this.getDetailsData();
+                    
+                    if (detailsData.length === 0 || totalRebateAmount === 0) {
+                        this.updateExplainer();
+                        return;
+                    }
+                    
+                    const allocatedAmounts = RebateModule.calculateAllocation(
+                        totalRebateAmount, 
+                        detailsData, 
+                        strategy, 
+                        remainderRule
+                    );
+                    
+                    // 更新分攤後金額
+                    const rows = document.querySelectorAll('#rebate-details-body tr');
+                    rows.forEach((row, index) => {
+                        const clearedAmountInput = row.querySelector('.detail-cleared-amount');
+                        clearedAmountInput.value = allocatedAmounts[index]?.toFixed(2) || '0.00';
+                    });
+                    
+                    this.updateExplainer();
+                    this.validateTotalAmount();
+                },
+                
+                getDetailsData() {
+                    const rows = document.querySelectorAll('#rebate-details-body tr');
+                    return Array.from(rows).map(row => ({
+                        product_id: row.querySelector('.detail-product-id').value,
+                        original_amount: parseFloat(row.querySelector('.detail-original-amount').value) || 0,
+                        quantity: parseFloat(row.querySelector('.detail-quantity').value) || 0,
+                        note: row.querySelector('.detail-note').value,
+                        cleared_rebate_amount: parseFloat(row.querySelector('.detail-cleared-amount').value) || 0
+                    }));
+                },
+                
+                updateExplainer() {
+                    const totalRebateAmount = parseFloat(document.getElementById('total_rebate_amount').value) || 0;
+                    const strategy = document.querySelector('.strategy-option.selected')?.dataset.strategy || 'amount-ratio';
+                    const remainderRule = document.getElementById('remainder-rule').value;
+                    const detailsData = this.getDetailsData();
+                    const allocatedAmounts = detailsData.map(d => d.cleared_rebate_amount);
+                    
+                    const explanations = RebateModule.generateExplanation(
+                        totalRebateAmount, 
+                        detailsData, 
+                        strategy, 
+                        remainderRule, 
+                        allocatedAmounts
+                    );
+                    
+                    const explainerContent = document.getElementById('explainer-content');
+                    explainerContent.innerHTML = explanations.map(line => 
+                        `<div class="explainer-item">${line}</div>`
+                    ).join('');
+                },
+                
+                validateTotalAmount() {
+                    const totalRebateAmount = parseFloat(document.getElementById('total_rebate_amount').value) || 0;
+                    const detailsData = this.getDetailsData();
+                    const totalOriginalAmount = detailsData.reduce((sum, d) => sum + d.original_amount, 0);
+                    
+                    const totalRebateInput = document.getElementById('total_rebate_amount');
+                    const feedback = totalRebateInput.nextElementSibling;
+                    
+                    if (totalRebateAmount > totalOriginalAmount) {
+                        totalRebateInput.classList.add('is-invalid');
+                        feedback.style.display = 'block';
+                    } else {
+                        totalRebateInput.classList.remove('is-invalid');
+                        feedback.style.display = 'none';
+                    }
+                },
+                
+                saveRebate() {
+                    const formData = new FormData(document.getElementById('rebate-form'));
+                    const detailsData = this.getDetailsData();
+                    
+                    if (detailsData.length === 0) {
+                        showError('請至少新增一筆明細');
+                        return;
+                    }
+                    
+                    const totalRebateAmount = parseFloat(formData.get('total_rebate_amount')) || 0;
+                    const totalOriginalAmount = detailsData.reduce((sum, d) => sum + d.original_amount, 0);
+                    
+                    if (totalRebateAmount > totalOriginalAmount) {
+                        showError('總折讓金額不得大於所有明細的原始總金額');
+                        return;
+                    }
+                    
+                    const data = Storage.read();
+                    const rebateId = document.getElementById('rebate-id').value || Date.now().toString();
+                    const isEditing = !!document.getElementById('rebate-id').value;
+                    
+                    const rebate = {
+                        id: rebateId,
+                        rebate_no: document.getElementById('rebate-no').value,
+                        title: document.getElementById('title').value,
+                        rebate_date: document.getElementById('rebate_date').value,
+                        invoice_no: document.getElementById('invoice_no').value,
+                        total_rebate_amount: totalRebateAmount,
+                        notes: document.getElementById('notes').value,
+                        details: detailsData,
+                        allocationStrategy: document.querySelector('.strategy-option.selected')?.dataset.strategy || 'amount-ratio',
+                        remainderRule: document.getElementById('remainder-rule').value,
+                        attachments: this.getAttachments(),
+                        createdAt: isEditing ? this.currentRebate?.createdAt : new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+                    
+                    if (isEditing) {
+                        const index = data.rebates.findIndex(r => r.id === rebateId);
+                        if (index !== -1) {
+                            data.rebates[index] = rebate;
+                        }
+                    } else {
+                        // 生成編號
+                        if (!rebate.rebate_no) {
+                            const nextSequence = data.rebates.length + 1;
+                            rebate.rebate_no = this.generateRebateNumber(data.preferences, nextSequence);
+                        }
+                        data.rebates.push(rebate);
+                    }
+                    
+                    // 記錄操作歷史
+                    data.history.push({
+                        id: Date.now() + Math.random(),
+                        timestamp: new Date().toISOString(),
+                        action: isEditing ? 'update' : 'create',
+                        target: rebate.title,
+                        note: isEditing ? '修改折讓單' : '新增折讓單'
+                    });
+                    
+                    // 記錄備註歷史
+                    if (rebate.notes && rebate.notes !== (this.currentRebate?.notes || '')) {
+                        if (!data.noteHistory[rebateId]) {
+                            data.noteHistory[rebateId] = [];
+                        }
+                        data.noteHistory[rebateId].push({
+                            timestamp: new Date().toISOString(),
+                            content: rebate.notes,
+                            action: isEditing ? 'update' : 'create'
+                        });
+                    }
+                    
+                    Storage.write(data);
+                    Toast.show(isEditing ? '折讓單已更新' : '折讓單已儲存', 'success');
+                    UI.renderView('list');
+                },
+                
+                getAttachments() {
+                    const attachmentItems = document.querySelectorAll('.attachment-item');
+                    return Array.from(attachmentItems).map(item => ({
+                        name: item.querySelector('span').textContent,
+                        uploadedAt: new Date().toISOString()
+                    }));
+                },
+                
+                showNoteHistory() {
+                    const rebateId = document.getElementById('rebate-id').value;
+                    if (!rebateId) {
+                        Toast.show('請先儲存折讓單後再查看備註歷史', 'info');
+                        return;
+                    }
+                    
+                    const data = Storage.read();
+                    const history = data.noteHistory[rebateId] || [];
+                    
+                    const historyHtml = history.length > 0 
+                        ? history.map(entry => `
+                            <div class="version-item">
+                                <strong>${entry.timestamp}</strong> - ${entry.action === 'create' ? '新增' : '修改'}
+                                <div style="margin-top: 4px; font-style: italic;">${entry.content}</div>
+                            </div>
+                        `).join('')
+                        : '<div class="version-item">尚無備註歷史</div>';
+                    
+                    Modal.show({
+                        title: '備註修訂歷程',
+                        body: `<div class="version-history">${historyHtml}</div>`,
+                        footerButtons: [
+                            { text: '關閉', classes: '' }
+                        ]
+                    });
+                },
+                
+                makeReadOnly() {
+                    document.querySelectorAll('input, textarea, select, button').forEach(element => {
+                        if (!element.classList.contains('btn') || element.id === 'btn-cancel-edit') {
+                            element.disabled = true;
+                        }
+                    });
+                    
+                    document.querySelector('button[type="submit"]').style.display = 'none';
+                    document.getElementById('btn-add-detail').style.display = 'none';
+                    document.querySelectorAll('.btn-remove-detail').forEach(btn => btn.style.display = 'none');
+                    
+                    document.getElementById('editor-title').textContent = '查看折讓單';
+                }
+            }
+        };
+        console.log('View 對象定義完成:', typeof View, Object.keys(View));
+        
+        // 確保 View 對象在全局作用域中可用
+        window.View = View;
+
+        //====================== Additional View Controllers ======================//
+        View.AllocationCenter = {
+            init() {
+                this.loadSettings();
+                this.bindEvents();
+            },
+            
+            loadSettings() {
+                const data = Storage.read();
+                const preferences = data.preferences;
+                
+                document.getElementById('default-strategy').value = preferences.defaultStrategy || 'amount-ratio';
+                document.getElementById('default-remainder-rule').value = preferences.defaultRemainderRule || 'largest';
+            },
+            
+            bindEvents() {
+                document.getElementById('btn-save-defaults').addEventListener('click', () => {
+                    const data = Storage.read();
+                    data.preferences.defaultStrategy = document.getElementById('default-strategy').value;
+                    data.preferences.defaultRemainderRule = document.getElementById('default-remainder-rule').value;
+                    
+                    Storage.write(data);
+                    Toast.show('預設分攤策略已儲存', 'success');
+                });
+            }
+        };
+
+        View.History = {
+            init() {
+                this.loadHistory();
+                this.bindEvents();
+            },
+            
+            loadHistory() {
+                const data = Storage.read();
+                this.allHistory = data.history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                this.filteredHistory = [...this.allHistory];
+                this.renderHistory();
+            },
+            
+            bindEvents() {
+                document.getElementById('history-search').addEventListener('input', () => this.applyFilters());
+                document.getElementById('history-type-filter').addEventListener('change', () => this.applyFilters());
+                document.getElementById('btn-clear-history-filters').addEventListener('click', () => this.clearFilters());
+            },
+            
+            renderHistory() {
+                const tbody = document.getElementById('history-table-body');
+                tbody.innerHTML = '';
+                
+                this.filteredHistory.forEach(entry => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(entry.timestamp).toLocaleString()}</td>
+                        <td><span class="badge badge-${this.getActionBadgeClass(entry.action)}">${this.getActionName(entry.action)}</span></td>
+                        <td>${entry.target}</td>
+                        <td>${entry.note || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-view-details" data-id="${entry.id}" title="查看詳情">
+                                <svg class="icon"><use href="#icon-eye"/></svg>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                // 綁定查看詳情按鈕事件
+                document.querySelectorAll('.btn-view-details').forEach(btn => {
+                    btn.addEventListener('click', () => this.viewDetails(btn.dataset.id));
+                });
+            },
+            
+            applyFilters() {
+                const searchTerm = document.getElementById('history-search').value.toLowerCase();
+                const typeFilter = document.getElementById('history-type-filter').value;
+                
+                this.filteredHistory = this.allHistory.filter(entry => {
+                    const matchesSearch = !searchTerm || 
+                        entry.target.toLowerCase().includes(searchTerm) ||
+                        entry.note.toLowerCase().includes(searchTerm);
+                    
+                    const matchesType = !typeFilter || entry.action === typeFilter;
+                    
+                    return matchesSearch && matchesType;
+                });
+                
+                this.renderHistory();
+            },
+            
+            clearFilters() {
+                document.getElementById('history-search').value = '';
+                document.getElementById('history-type-filter').value = '';
+                this.applyFilters();
+            },
+            
+            getActionName(action) {
+                const names = {
+                    'create': '新增',
+                    'update': '修改',
+                    'delete': '刪除',
+                    'restore': '還原',
+                    'export': '匯出',
+                    'import': '匯入'
+                };
+                return names[action] || action;
+            },
+            
+            getActionBadgeClass(action) {
+                const classes = {
+                    'create': 'success',
+                    'update': 'info',
+                    'delete': 'danger',
+                    'restore': 'warning',
+                    'export': 'primary',
+                    'import': 'primary'
+                };
+                return classes[action] || 'secondary';
+            },
+            
+            viewDetails(id) {
+                const entry = this.allHistory.find(h => h.id == id);
+                if (entry) {
+                    Modal.show({
+                        title: '操作詳情',
+                        body: `
+                            <div><strong>時間：</strong>${new Date(entry.timestamp).toLocaleString()}</div>
+                            <div><strong>操作：</strong>${this.getActionName(entry.action)}</div>
+                            <div><strong>對象：</strong>${entry.target}</div>
+                            <div><strong>備註：</strong>${entry.note || '無'}</div>
+                        `,
+                        footerButtons: [
+                            { text: '關閉', classes: '' }
+                        ]
+                    });
+                }
+            }
+        };
+
+        View.Trash = {
+            init() {
+                this.loadTrash();
+                this.bindEvents();
+                this.updateTrashInfo();
+            },
+            
+            loadTrash() {
+                const data = Storage.read();
+                this.trashItems = data.trash;
+                this.renderTrash();
+            },
+            
+            bindEvents() {
+                document.getElementById('btn-empty-trash').addEventListener('click', () => this.emptyTrash());
+                document.getElementById('btn-restore-all').addEventListener('click', () => this.restoreAll());
+            },
+            
+            renderTrash() {
+                const container = document.getElementById('trash-list-container');
+                
+                if (this.trashItems.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>垃圾桶是空的</h3><p>沒有已刪除的項目。</p></div>';
+                    return;
+                }
+                
+                const table = document.createElement('table');
+                table.className = 'table';
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>折讓單號</th>
+                            <th>標題</th>
+                            <th>刪除時間</th>
+                            <th>剩餘天數</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+                
+                const tbody = table.querySelector('tbody');
+                this.trashItems.forEach(item => {
+                    const deletedAt = new Date(item.deletedAt);
+                    const now = new Date();
+                    const daysPassed = Math.floor((now - deletedAt) / (1000 * 60 * 60 * 24));
+                    const daysRemaining = 30 - daysPassed;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.rebate_no || '未編號'}</td>
+                        <td>${item.title}</td>
+                        <td>${deletedAt.toLocaleString()}</td>
+                        <td>
+                            <span class="badge ${daysRemaining <= 7 ? 'badge-danger' : daysRemaining <= 14 ? 'badge-warning' : 'badge-info'}">
+                                ${daysRemaining} 天
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-success btn-restore" data-id="${item.id}" title="還原">
+                                    <svg class="icon"><use href="#icon-undo"/></svg>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-permanent-delete" data-id="${item.id}" title="永久刪除">
+                                    <svg class="icon"><use href="#icon-trash"/></svg>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                container.innerHTML = '';
+                container.appendChild(table);
+                
+                // 綁定操作按鈕事件
+                document.querySelectorAll('.btn-restore').forEach(btn => {
+                    btn.addEventListener('click', () => this.restoreItem(btn.dataset.id));
+                });
+                
+                document.querySelectorAll('.btn-permanent-delete').forEach(btn => {
+                    btn.addEventListener('click', () => this.permanentDelete(btn.dataset.id));
+                });
+            },
+            
+            updateTrashInfo() {
+                const trashCount = document.getElementById('trash-count');
+                trashCount.textContent = this.trashItems.length;
+            },
+            
+            restoreItem(id) {
+                const data = Storage.read();
+                const itemIndex = data.trash.findIndex(item => item.id === id);
+                
+                if (itemIndex !== -1) {
+                    const item = data.trash.splice(itemIndex, 1)[0];
+                    delete item.deletedAt;
+                    data.rebates.push(item);
+                    
+                    data.history.push({
+                        id: Date.now() + Math.random(),
+                        timestamp: new Date().toISOString(),
+                        action: 'restore',
+                        target: item.title,
+                        note: '從垃圾桶還原'
+                    });
+                    
+                    Storage.write(data);
+                    Toast.show('項目已還原', 'success');
+                    this.loadTrash();
+                    this.updateTrashInfo();
+                }
+            },
+            
+            permanentDelete(id) {
+                Modal.show({
+                    title: '永久刪除確認',
+                    body: '此操作無法復原，確定要永久刪除此項目嗎？',
+                    footerButtons: [
+                        { text: '取消', classes: '' },
+                        { 
+                            text: '永久刪除', 
+                            classes: 'btn-danger',
+                            onClick: () => {
+                                const data = Storage.read();
+                                const itemIndex = data.trash.findIndex(item => item.id === id);
+                                
+                                if (itemIndex !== -1) {
+                                    const item = data.trash.splice(itemIndex, 1)[0];
+                                    
+                                    data.history.push({
+                                        id: Date.now() + Math.random(),
+                                        timestamp: new Date().toISOString(),
+                                        action: 'delete',
+                                        target: item.title,
+                                        note: '永久刪除'
+                                    });
+                                    
+                                    Storage.write(data);
+                                    Toast.show('項目已永久刪除', 'success');
+                                    this.loadTrash();
+                                    this.updateTrashInfo();
+                                }
+                            }
+                        }
+                    ]
+                });
+            },
+            
+            emptyTrash() {
+                if (this.trashItems.length === 0) return;
+                
+                Modal.show({
+                    title: '清空垃圾桶確認',
+                    body: `確定要永久刪除垃圾桶中的所有 ${this.trashItems.length} 個項目嗎？此操作無法復原。`,
+                    footerButtons: [
+                        { text: '取消', classes: '' },
+                        { 
+                            text: '清空垃圾桶', 
+                            classes: 'btn-danger',
+                            onClick: () => {
+                                const data = Storage.read();
+                                data.trash = [];
+                                
+                                data.history.push({
+                                    id: Date.now() + Math.random(),
+                                    timestamp: new Date().toISOString(),
+                                    action: 'delete',
+                                    target: '垃圾桶',
+                                    note: '清空垃圾桶'
+                                });
+                                
+                                Storage.write(data);
+                                Toast.show('垃圾桶已清空', 'success');
+                                this.loadTrash();
+                                this.updateTrashInfo();
+                            }
+                        }
+                    ]
+                });
+            },
+            
+            restoreAll() {
+                if (this.trashItems.length === 0) return;
+                
+                Modal.show({
+                    title: '全部還原確認',
+                    body: `確定要還原垃圾桶中的所有 ${this.trashItems.length} 個項目嗎？`,
+                    footerButtons: [
+                        { text: '取消', classes: '' },
+                        { 
+                            text: '全部還原', 
+                            classes: 'btn-success',
+                            onClick: () => {
+                                const data = Storage.read();
+                                
+                                data.trash.forEach(item => {
+                                    delete item.deletedAt;
+                                    data.rebates.push(item);
+                                });
+                                
+                                data.trash = [];
+                                
+                                data.history.push({
+                                    id: Date.now() + Math.random(),
+                                    timestamp: new Date().toISOString(),
+                                    action: 'restore',
+                                    target: '垃圾桶',
+                                    note: '全部還原'
+                                });
+                                
+                                Storage.write(data);
+                                Toast.show('所有項目已還原', 'success');
+                                this.loadTrash();
+                                this.updateTrashInfo();
+                            }
+                        }
+                    ]
+                });
+            }
+        };
+
+        View.Settings = {
+            init() {
+                this.loadSettings();
+                this.bindEvents();
+            },
+            
+            loadSettings() {
+                const data = Storage.read();
+                const preferences = data.preferences;
+                
+                document.getElementById('theme-selector').value = preferences.theme || 'auto';
+                document.getElementById('numbering-prefix').value = preferences.numberingPrefix || 'RB';
+                document.getElementById('numbering-format').value = preferences.numberingFormat || 'YYYYMM';
+                document.getElementById('trash-ttl').value = preferences.trashTTL || 30;
+            },
+            
+            bindEvents() {
+                document.getElementById('theme-selector').addEventListener('change', (e) => {
+                    this.applyTheme(e.target.value);
+                    this.savePreference('theme', e.target.value);
+                });
+                
+                document.getElementById('numbering-prefix').addEventListener('change', (e) => {
+                    this.savePreference('numberingPrefix', e.target.value);
+                });
+                
+                document.getElementById('numbering-format').addEventListener('change', (e) => {
+                    this.savePreference('numberingFormat', e.target.value);
+                });
+                
+                document.getElementById('trash-ttl').addEventListener('change', (e) => {
+                    this.savePreference('trashTTL', parseInt(e.target.value));
+                });
+                
+                document.getElementById('btn-export').addEventListener('click', () => this.exportData());
+                document.getElementById('import-file').addEventListener('change', (e) => this.importData(e));
+                document.getElementById('btn-export-csv').addEventListener('click', () => this.exportCSV());
+                document.getElementById('btn-export-pdf').addEventListener('click', () => this.exportPDF());
+                document.getElementById('btn-generate-test-data').addEventListener('click', () => this.generateTestData());
+                document.getElementById('btn-reset-data').addEventListener('click', () => this.resetData());
+            },
+            
+            savePreference(key, value) {
+                const data = Storage.read();
+                data.preferences[key] = value;
+                Storage.write(data);
+                Toast.show('設定已儲存', 'success');
+            },
+            
+            applyTheme(theme) {
+                const body = document.body;
+                body.removeAttribute('data-theme');
+                
+                if (theme === 'dark') {
+                    body.setAttribute('data-theme', 'dark');
+                } else if (theme === 'auto') {
+                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        body.setAttribute('data-theme', 'dark');
+                    }
+                }
+            },
+            
+            exportData() {
+                const data = Storage.read();
+                const exportData = {
+                    ...data,
+                    meta: {
+                        ...data.meta,
+                        exportedAt: new Date().toISOString()
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `折讓紀錄_備份_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                Toast.show('資料已匯出', 'success');
+            },
+            
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        
+                        Modal.show({
+                            title: '匯入資料確認',
+                            body: `
+                                <p>即將匯入資料，這將覆蓋現有的所有資料。</p>
+                                <p><strong>匯入資料包含：</strong></p>
+                                <ul>
+                                    <li>折讓單：${importedData.rebates?.length || 0} 筆</li>
+                                    <li>垃圾桶：${importedData.trash?.length || 0} 筆</li>
+                                    <li>操作歷史：${importedData.history?.length || 0} 筆</li>
+                                </ul>
+                                <p style="color: var(--color-danger);">⚠️ 此操作無法復原，建議先匯出現有資料作為備份。</p>
+                            `,
+                            footerButtons: [
+                                { text: '取消', classes: '' },
+                                { 
+                                    text: '確定匯入', 
+                                    classes: 'btn-danger',
+                                    onClick: () => {
+                                        Storage.write(importedData);
+                                        Toast.show('資料匯入成功', 'success');
+                                        setTimeout(() => location.reload(), 1000);
+                                    }
+                                }
+                            ]
+                        });
+                    } catch (error) {
+                        showError('匯入檔案格式錯誤');
+                    }
+                };
+                reader.readAsText(file);
+            },
+            
+            exportCSV() {
+                const data = Storage.read();
+                ExportModule.exportToCSV(data.rebates, `折讓單_${new Date().toISOString().split('T')[0]}.csv`);
+            },
+            
+            exportPDF() {
+                Toast.show('PDF 匯出功能開發中', 'info');
+            },
+            
+            generateTestData() {
+                Modal.show({
+                    title: '生成測試資料',
+                    body: '確定要生成 50 筆測試折讓單嗎？',
+                    footerButtons: [
+                        { text: '取消', classes: '' },
+                        { 
+                            text: '生成', 
+                            classes: 'btn-primary',
+                            onClick: () => {
+                                const data = Storage.read();
+                                const testRebates = TestDataGenerator.generateRebates(50);
+                                data.rebates.push(...testRebates);
+                                
+                                data.history.push({
+                                    id: Date.now() + Math.random(),
+                                    timestamp: new Date().toISOString(),
+                                    action: 'import',
+                                    target: '測試資料',
+                                    note: '生成 50 筆測試折讓單'
+                                });
+                                
+                                Storage.write(data);
+                                Toast.show('測試資料已生成', 'success');
+                            }
+                        }
+                    ]
+                });
+            },
+            
+            resetData() {
+                Modal.show({
+                    title: '清空所有資料',
+                    body: '⚠️ 此操作將永久刪除所有資料，包括折讓單、垃圾桶和操作歷史。此操作無法復原！',
+                    footerButtons: [
+                        { text: '取消', classes: '' },
+                        { 
+                            text: '確定清空', 
+                            classes: 'btn-danger',
+                            onClick: () => {
+                                localStorage.removeItem(Storage.KEY);
+                                Toast.show('所有資料已清空', 'success');
+                                setTimeout(() => location.reload(), 1000);
+                            }
+                        }
+                    ]
+                });
+            }
+        };
+
+        //====================== Export & Import Modules ======================//
+        const ExportModule = {
+            exportToCSV(rebates, filename) {
+                const headers = [
+                    '折讓單號', '標題', '折讓日期', '總折讓金額', '發票號碼', '分攤策略', '餘額規則',
+                    '產品ID', '原始金額', '數量', '備註', '分攤後金額'
+                ];
+                
+                const rows = [];
+                rows.push(headers.join(','));
+                
+                rebates.forEach(rebate => {
+                    rebate.details.forEach((detail, index) => {
+                        const row = [
+                            rebate.rebate_no || '',
+                            rebate.title,
+                            rebate.rebate_date,
+                            rebate.total_rebate_amount,
+                            rebate.invoice_no || '',
+                            rebate.allocationStrategy || 'amount-ratio',
+                            rebate.remainderRule || 'largest',
+                            detail.product_id || '',
+                            detail.original_amount || 0,
+                            detail.quantity || 0,
+                            detail.note || '',
+                            detail.cleared_rebate_amount || 0
+                        ];
+                        rows.push(row.map(field => `"${field}"`).join(','));
+                    });
+                });
+                
+                const csvContent = rows.join('\n');
+                const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                Toast.show('CSV 檔案已匯出', 'success');
+            }
+        };
+
+        const ImportModule = {
+            showBulkImportModal() {
+                const template = document.getElementById('template-bulk-import-modal');
+                const modalBody = template.content.cloneNode(true);
+                
+                Modal.show({
+                    title: '批量匯入折讓單',
+                    body: modalBody,
+                    size: 'large',
+                    footerButtons: [
+                        { text: '取消', classes: '' },
+                        { 
+                            text: '開始匯入', 
+                            classes: 'btn-primary',
+                            onClick: () => this.processImport(),
+                            closeModal: false
+                        }
+                    ]
+                });
+                
+                this.bindImportEvents();
+            },
+            
+            bindImportEvents() {
+                const uploadArea = document.getElementById('bulk-import-area');
+                const fileInput = document.getElementById('bulk-import-file');
+                
+                uploadArea.addEventListener('click', () => fileInput.click());
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    this.handleImportFile(e.dataTransfer.files[0]);
+                });
+                
+                fileInput.addEventListener('change', (e) => {
+                    this.handleImportFile(e.target.files[0]);
+                });
+            },
+            
+            handleImportFile(file) {
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        const data = this.parseCSV(content);
+                        this.showPreview(data);
+                    } catch (error) {
+                        showError('檔案解析失敗：' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            },
+            
+            parseCSV(content) {
+                const lines = content.split('\n').filter(line => line.trim());
+                const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+                const rows = lines.slice(1).map(line => {
+                    const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    return row;
+                });
+                
+                return { headers, rows };
+            },
+            
+            showPreview(data) {
+                const previewDiv = document.getElementById('import-preview');
+                previewDiv.classList.remove('d-none');
+                
+                // 欄位對映
+                const fieldMapping = document.getElementById('field-mapping');
+                const requiredFields = ['標題', '折讓日期', '總折讓金額', '產品ID', '原始金額'];
+                
+                fieldMapping.innerHTML = requiredFields.map(field => `
+                    <div class="form-group">
+                        <label>${field}</label>
+                        <select class="form-control field-select" data-field="${field}">
+                            <option value="">請選擇欄位</option>
+                            ${data.headers.map(header => `<option value="${header}">${header}</option>`).join('')}
+                        </select>
+                    </div>
+                `).join('');
+                
+                // 預覽表格
+                const previewTable = document.getElementById('preview-table');
+                const maxPreviewRows = 5;
+                const previewRows = data.rows.slice(0, maxPreviewRows);
+                
+                previewTable.innerHTML = `
+                    <h5>資料預覽 (前 ${maxPreviewRows} 筆)</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>${data.headers.map(h => `<th>${h}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>
+                            ${previewRows.map(row => `
+                                <tr>${data.headers.map(h => `<td>${row[h]}</td>`).join('')}</tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <p>總計 ${data.rows.length} 筆資料</p>
+                `;
+                
+                this.importData = data;
+            },
+            
+            processImport() {
+                if (!this.importData) {
+                    showError('請先選擇要匯入的檔案');
+                    return;
+                }
+                
+                const fieldMapping = {};
+                document.querySelectorAll('.field-select').forEach(select => {
+                    if (select.value) {
+                        fieldMapping[select.dataset.field] = select.value;
+                    }
+                });
+                
+                // 驗證必要欄位
+                const requiredFields = ['標題', '折讓日期', '總折讓金額'];
+                const missingFields = requiredFields.filter(field => !fieldMapping[field]);
+                
+                if (missingFields.length > 0) {
+                    showError(`請對映必要欄位：${missingFields.join(', ')}`);
+                    return;
+                }
+                
+                this.performImport(fieldMapping);
+            },
+            
+            performImport(fieldMapping) {
+                const progressBar = document.getElementById('import-progress');
+                const statusDiv = document.getElementById('import-status');
+                
+                const data = Storage.read();
+                const importedRebates = [];
+                const errors = [];
+                
+                this.importData.rows.forEach((row, index) => {
+                    try {
+                        const rebate = {
+                            id: Date.now() + index,
+                            rebate_no: '', // 將自動生成
+                            title: row[fieldMapping['標題']] || '',
+                            rebate_date: row[fieldMapping['折讓日期']] || '',
+                            total_rebate_amount: parseFloat(row[fieldMapping['總折讓金額']]) || 0,
+                            invoice_no: row[fieldMapping['發票號碼']] || '',
+                            notes: row[fieldMapping['備註']] || '',
+                            details: [{
+                                product_id: row[fieldMapping['產品ID']] || '',
+                                original_amount: parseFloat(row[fieldMapping['原始金額']]) || 0,
+                                quantity: parseFloat(row[fieldMapping['數量']]) || 1,
+                                note: row[fieldMapping['明細備註']] || '',
+                                cleared_rebate_amount: 0
+                            }],
+                            allocationStrategy: 'amount-ratio',
+                            remainderRule: 'largest',
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        };
+                        
+                        // 生成編號
+                        const nextSequence = data.rebates.length + importedRebates.length + 1;
+                        rebate.rebate_no = this.generateRebateNumber(data.preferences, nextSequence);
+                        
+                        // 計算分攤
+                        const allocatedAmounts = RebateModule.calculateAllocation(
+                            rebate.total_rebate_amount,
+                            rebate.details,
+                            rebate.allocationStrategy,
+                            rebate.remainderRule
+                        );
+                        rebate.details[0].cleared_rebate_amount = allocatedAmounts[0] || 0;
+                        
+                        importedRebates.push(rebate);
+                        
+                        // 更新進度
+                        const progress = ((index + 1) / this.importData.rows.length) * 100;
+                        progressBar.style.width = `${progress}%`;
+                        statusDiv.textContent = `處理中... ${index + 1}/${this.importData.rows.length}`;
+                        
+                    } catch (error) {
+                        errors.push(`第 ${index + 1} 行：${error.message}`);
+                    }
+                });
+                
+                // 儲存匯入的資料
+                data.rebates.push(...importedRebates);
+                
+                data.history.push({
+                    id: Date.now() + Math.random(),
+                    timestamp: new Date().toISOString(),
+                    action: 'import',
+                    target: '批量匯入',
+                    note: `匯入 ${importedRebates.length} 筆折讓單${errors.length > 0 ? `，${errors.length} 筆失敗` : ''}`
+                });
+                
+                Storage.write(data);
+                
+                statusDiv.innerHTML = `
+                    <div style="color: var(--color-success);">✅ 匯入完成</div>
+                    <div>成功：${importedRebates.length} 筆</div>
+                    ${errors.length > 0 ? `<div style="color: var(--color-danger);">失敗：${errors.length} 筆</div>` : ''}
+                `;
+                
+                if (errors.length > 0) {
+                    console.log('匯入錯誤：', errors);
+                }
+                
+                Toast.show(`批量匯入完成，成功 ${importedRebates.length} 筆`, 'success');
+                
+                setTimeout(() => {
+                    Modal.hide();
+                    UI.renderView('list');
+                }, 2000);
+            },
+            
+            generateRebateNumber(preferences, sequence) {
+                const now = new Date();
+                const prefix = preferences.numberingPrefix || 'RB';
+                
+                switch (preferences.numberingFormat) {
+                    case 'YYYYMM':
+                        const yearMonth = now.getFullYear().toString() + (now.getMonth() + 1).toString().padStart(2, '0');
+                        return `${prefix}${yearMonth}${sequence.toString().padStart(3, '0')}`;
+                    case 'YYYY':
+                        const year = now.getFullYear().toString();
+                        return `${prefix}${year}${sequence.toString().padStart(3, '0')}`;
+                    case 'sequential':
+                        return `${prefix}${sequence.toString().padStart(3, '0')}`;
+                    default:
+                        return `${prefix}${sequence.toString().padStart(3, '0')}`;
+                }
+            }
+        };
+
+        //====================== Test Data Generator ======================//
+        const TestDataGenerator = {
+            generateRebates(count) {
+                const rebates = [];
+                const products = ['A001', 'B002', 'C003', 'D004', 'E005', 'F006', 'G007', 'H008'];
+                const strategies = ['amount-ratio', 'quantity-ratio', 'weighted'];
+                const remainderRules = ['largest', 'round-robin', 'sequential'];
+                
+                for (let i = 0; i < count; i++) {
+                    const detailCount = Math.floor(Math.random() * 3) + 1; // 1-3 筆明細
+                    const details = [];
+                    
+                    for (let j = 0; j < detailCount; j++) {
+                        const originalAmount = Math.floor(Math.random() * 10000) + 100;
+                        const quantity = Math.floor(Math.random() * 10) + 1;
+                        
+                        details.push({
+                            product_id: products[Math.floor(Math.random() * products.length)],
+                            original_amount: originalAmount,
+                            quantity: quantity,
+                            note: `測試明細 ${j + 1}`,
+                            cleared_rebate_amount: 0
+                        });
+                    }
+                    
+                    const totalOriginalAmount = details.reduce((sum, d) => sum + d.original_amount, 0);
+                    const totalRebateAmount = Math.floor(totalOriginalAmount * (0.1 + Math.random() * 0.4)); // 10%-50% 折讓
+                    
+                    const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+                    const remainderRule = remainderRules[Math.floor(Math.random() * remainderRules.length)];
+                    
+                    // 計算分攤
+                    const allocatedAmounts = RebateModule.calculateAllocation(
+                        totalRebateAmount,
+                        details,
+                        strategy,
+                        remainderRule
+                    );
+                    
+                    details.forEach((detail, index) => {
+                        detail.cleared_rebate_amount = allocatedAmounts[index] || 0;
+                    });
+                    
+                    const date = new Date();
+                    date.setDate(date.getDate() - Math.floor(Math.random() * 365)); // 過去一年內的隨機日期
+                    
+                    rebates.push({
+                        id: Date.now() + i + Math.random(),
+                        rebate_no: `TEST${(i + 1).toString().padStart(3, '0')}`,
+                        title: `測試折讓單 ${i + 1}`,
+                        rebate_date: date.toISOString().split('T')[0],
+                        total_rebate_amount: totalRebateAmount,
+                        invoice_no: `INV${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`,
+                        notes: `這是第 ${i + 1} 筆測試資料`,
+                        details: details,
+                        allocationStrategy: strategy,
+                        remainderRule: remainderRule,
+                        createdAt: date.toISOString(),
+                        updatedAt: date.toISOString()
+                    });
+                }
+                
+                return rebates;
+            }
+        };
+
+        //====================== Auto Cleanup Service ======================//
+        const AutoCleanupService = {
+            init() {
+                this.scheduleCleanup();
+            },
+            
+            scheduleCleanup() {
+                // 每天檢查一次過期項目
+                setInterval(() => {
+                    this.cleanupExpiredItems();
+                }, 24 * 60 * 60 * 1000);
+                
+                // 啟動時立即檢查一次
+                this.cleanupExpiredItems();
+            },
+            
+            cleanupExpiredItems() {
+                const data = Storage.read();
+                const ttlDays = data.preferences.trashTTL || 30;
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - ttlDays);
+                
+                const originalTrashCount = data.trash.length;
+                data.trash = data.trash.filter(item => {
+                    const deletedAt = new Date(item.deletedAt);
+                    return deletedAt > cutoffDate;
+                });
+                
+                const cleanedCount = originalTrashCount - data.trash.length;
+                
+                if (cleanedCount > 0) {
+                    data.history.push({
+                        id: Date.now() + Math.random(),
+                        timestamp: new Date().toISOString(),
+                        action: 'delete',
+                        target: '自動清理',
+                        note: `自動清理 ${cleanedCount} 筆過期項目`
+                    });
+                    
+                    Storage.write(data);
+                    console.log(`自動清理了 ${cleanedCount} 筆過期項目`);
+                }
+            }
+        };
+
+        //====================== App Initialization ======================//
+        const App = {
+            init() {
+                try {
+                    console.log('App 初始化開始');
+                    
+                    this.bindGlobalEvents();
+                    this.initTheme();
+                    this.initRouter();
+                    this.initKeyboardShortcuts();
+                    
+                    // 初始化服務
+                    AutoCleanupService.init();
+                    Storage._updateStorageInfo();
+                    
+                    // 載入初始視圖
+                    UI.renderView('list');
+                    
+                    Toast.show('折讓紀錄 APP V2.0 已載入', 'info', 2000);
+                    console.log('App 初始化完成');
+                } catch (error) {
+                    console.error('App 初始化失敗:', error);
+                    showError('應用程式初始化失敗: ' + error.message);
+                }
+            },
+            
+            bindGlobalEvents() {
+                // 導航事件
+                document.querySelectorAll('#main-nav .nav-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const view = link.dataset.view;
+                        UI.renderView(view);
+                    });
+                });
+                
+                // 頂部按鈕事件
+                document.getElementById('btn-new-rebate').addEventListener('click', () => {
+                    UI.renderView('editor');
+                });
+                
+                document.getElementById('btn-bulk-import').addEventListener('click', () => {
+                    ImportModule.showBulkImportModal();
+                });
+                
+                document.getElementById('btn-bulk-export').addEventListener('click', () => {
+                    const data = Storage.read();
+                    ExportModule.exportToCSV(data.rebates, `所有折讓單_${new Date().toISOString().split('T')[0]}.csv`);
+                });
+                
+                // Undo/Redo 按鈕（預留功能）
+                document.getElementById('undo-btn').addEventListener('click', () => {
+                    Toast.show('復原功能開發中', 'info');
+                });
+                
+                document.getElementById('redo-btn').addEventListener('click', () => {
+                    Toast.show('重做功能開發中', 'info');
+                });
+            },
+            
+            initTheme() {
+                const data = Storage.read();
+                const theme = data.preferences.theme || 'auto';
+                this.applyTheme(theme);
+            },
+            
+            applyTheme(theme) {
+                try {
+                    const body = document.body;
+                    body.removeAttribute('data-theme');
+                    
+                    if (theme === 'dark') {
+                        body.setAttribute('data-theme', 'dark');
+                    } else if (theme === 'auto') {
+                        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                            body.setAttribute('data-theme', 'dark');
+                        }
+                    }
+                } catch (error) {
+                    console.error('主題應用失敗:', error);
+                }
+            },
+            
+            initRouter() {
+                // 簡單的路由處理
+                window.addEventListener('hashchange', () => {
+                    const hash = window.location.hash.slice(1);
+                    const [path, ...params] = hash.split('/');
+                    
+                    switch (path) {
+                        case 'list':
+                            UI.renderView('list');
+                            break;
+                        case 'editor':
+                            UI.renderView('editor');
+                            break;
+                        case 'history':
+                            UI.renderView('history');
+                            break;
+                        case 'trash':
+                            UI.renderView('trash');
+                            break;
+                        case 'allocation-center':
+                            UI.renderView('allocation-center');
+                            break;
+                        case 'settings':
+                            UI.renderView('settings');
+                            break;
+                        default:
+                            UI.renderView('list');
+                    }
+                });
+            },
+            
+            initKeyboardShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+N: 新增折讓單
+                    if (e.ctrlKey && e.key === 'n') {
+                        e.preventDefault();
+                        UI.renderView('editor');
+                    }
+                    
+                    // Ctrl+S: 儲存（在編輯模式下）
+                    if (e.ctrlKey && e.key === 's') {
+                        e.preventDefault();
+                        const form = document.getElementById('rebate-form');
+                        if (form) {
+                            form.dispatchEvent(new Event('submit'));
+                        }
+                    }
+                    
+                    // Escape: 取消/返回
+                    if (e.key === 'Escape') {
+                        const modal = document.querySelector('.modal-overlay');
+                        if (modal) {
+                            Modal.hide();
+                        } else {
+                            UI.renderView('list');
+                        }
+                    }
+                });
+            }
+        };
+
+        // 啟動應用程式
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+
+    </script>
+</body>
+</html>
