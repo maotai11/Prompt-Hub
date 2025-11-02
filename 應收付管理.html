@@ -1,0 +1,2860 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>應收應付沖帳管理系統 (V1.0)</title>
+
+    <!-- CSS Styles: 內嵌所有樣式，符合離線優先原則 -->
+    <style>
+        :root {
+            --color-bg: #f8f9fa;
+            --color-surface: #ffffff;
+            --color-primary: #0d6efd;
+            --color-secondary: #6c757d;
+            --color-success: #198754;
+            --color-danger: #dc3545;
+            --color-warning: #ffc107;
+            --color-text: #212529;
+            --color-text-muted: #6c757d;
+            --color-border: #dee2e6;
+            --border-radius: 0.375rem;
+            --font-family-system: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --spacing-1: 0.25rem;
+            --spacing-2: 0.5rem;
+            --spacing-3: 1rem;
+            --spacing-4: 1.5rem;
+            --spacing-5: 3rem;
+            --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        /* Dark Mode (based on user preference) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg: #121212;
+                --color-surface: #1e1e1e;
+                --color-primary: #3b82f6;
+                --color-secondary: #9ca3af;
+                --color-success: #22c55e;
+                --color-danger: #ef4444;
+                --color-warning: #f59e0b;
+                --color-text: #e5e7eb;
+                --color-text-muted: #9ca3af;
+                --color-border: #374151;
+            }
+        }
+
+        /* Basic Reset & Global Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-family-system);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        #app {
+            display: flex;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            padding: var(--spacing-3);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: var(--spacing-4);
+            overflow-y: auto;
+        }
+
+        header {
+            padding-bottom: var(--spacing-3);
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: var(--spacing-4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Components */
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-radius: var(--border-radius);
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: var(--color-secondary);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--color-danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-3);
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: var(--spacing-2);
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control.error {
+            border-color: var(--color-danger);
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+
+        .form-control.success {
+            border-color: var(--color-success);
+        }
+
+        .field-error {
+            color: var(--color-danger);
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .field-error.show {
+            display: block;
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 16px 12px;
+        }
+
+        .card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: var(--spacing-4);
+            margin-bottom: var(--spacing-3);
+        }
+
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-3);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 60vh;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+            white-space: nowrap;
+        }
+
+        th {
+            font-weight: 600;
+            background-color: var(--color-bg);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr:hover {
+            background-color: var(--color-bg);
+        }
+
+        .text-right,
+        .amount-cell {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .negative-amount {
+            color: var(--color-danger);
+        }
+
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 300px;
+            background-color: var(--color-surface);
+            color: var(--color-text);
+            text-align: left;
+            border-radius: var(--border-radius);
+            padding: 8px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow);
+            font-size: 0.8rem;
+            white-space: normal;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+        }
+
+        /* Pagination Styles */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding: 1rem 0;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 0.25rem;
+            align-items: center;
+        }
+
+        .pagination button {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .pagination-info {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            padding: var(--spacing-1) var(--spacing-2);
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-unpaid {
+            background-color: #ffc10720;
+            color: #ffc107;
+        }
+
+        .status-partial {
+            background-color: #0d6efd20;
+            color: #0d6efd;
+        }
+
+        .status-paid {
+            background-color: #19875420;
+            color: #198754;
+        }
+
+        /* Dark mode status badge improvements */
+        @media (prefers-color-scheme: dark) {
+            .status-unpaid {
+                background-color: #ffc10740;
+                color: #ffd43b;
+            }
+
+            .status-partial {
+                background-color: #3b82f640;
+                color: #60a5fa;
+            }
+
+            .status-paid {
+                background-color: #22c55e40;
+                color: #4ade80;
+            }
+        }
+
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+
+        .toast {
+            background-color: var(--color-surface);
+            padding: var(--spacing-3);
+            border-radius: var(--border-radius);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            margin-bottom: var(--spacing-2);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: translateY(-20px);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--color-success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--color-danger);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: flex-start;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem 0;
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            padding: var(--spacing-4);
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 600px;
+            max-height: calc(100vh - 4rem);
+            overflow-y: auto;
+            margin: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 確保模態框在小螢幕上也能正常顯示 */
+        @media (max-height: 600px) {
+            .modal-overlay {
+                padding: 1rem 0;
+            }
+            
+            .modal-content {
+                max-height: calc(100vh - 2rem);
+                padding: var(--spacing-3);
+            }
+        }
+
+        /* 針對表單內容較多的模態框優化 */
+        .modal-content .form-group {
+            margin-bottom: var(--spacing-3);
+        }
+
+        .modal-content .form-group:last-of-type {
+            margin-bottom: var(--spacing-4);
+        }
+
+        /* 改善滾動條樣式 */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: var(--color-bg);
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: var(--color-secondary);
+        }
+
+        /* 模態框標題固定在頂部 */
+        .modal-content h3 {
+            position: sticky;
+            top: 0;
+            background: var(--color-surface);
+            padding-bottom: var(--spacing-3);
+            margin-bottom: var(--spacing-3);
+            border-bottom: 1px solid var(--color-border);
+            z-index: 1;
+        }
+
+        /* 模態框按鈕區域固定在底部 */
+        .modal-content > div:last-child {
+            position: sticky;
+            bottom: 0;
+            background: var(--color-surface);
+            padding-top: var(--spacing-3);
+            margin-top: var(--spacing-3);
+            border-top: 1px solid var(--color-border);
+        }
+
+        /* 確保表單內容有足夠的滾動空間 */
+        .modal-content form {
+            padding: var(--spacing-2) 0;
+        }
+
+        /* 響應式設計 - 手機和平板優化 */
+        @media (max-width: 768px) {
+            .modal-overlay {
+                padding: 1rem;
+            }
+            
+            .modal-content {
+                width: 95%;
+                max-width: none;
+                padding: var(--spacing-3);
+                max-height: calc(100vh - 2rem);
+            }
+            
+            .modal-content .form-group {
+                margin-bottom: var(--spacing-2);
+            }
+        }
+
+        /* 超小螢幕優化 */
+        @media (max-width: 480px) {
+            .modal-overlay {
+                padding: 0.5rem;
+            }
+            
+            .modal-content {
+                width: 98%;
+                padding: var(--spacing-2);
+                max-height: calc(100vh - 1rem);
+            }
+            
+            .modal-content h3 {
+                font-size: 1.1rem;
+                padding-bottom: var(--spacing-2);
+                margin-bottom: var(--spacing-2);
+            }
+        }
+
+        /* 高解析度螢幕優化 */
+        @media (min-width: 1200px) {
+            .modal-content {
+                max-width: 700px;
+            }
+        }
+
+        /* 確保在縮放狀態下模態框仍然可用 */
+        @media (min-resolution: 150dpi) {
+            .modal-overlay {
+                padding: 1.5rem 0;
+            }
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-5);
+            border: 2px dashed var(--color-border);
+            border-radius: var(--border-radius);
+        }
+
+        .empty-state h3 {
+            margin-bottom: var(--spacing-2);
+        }
+
+        .empty-state p {
+            color: var(--color-text-muted);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+        <!-- Sidebar for Client Selection and Navigation -->
+        <aside class="sidebar">
+            <h2>客戶列表</h2>
+            <div class="form-group" style="margin-top: 1rem;">
+                <input type="text" id="new-client-name" class="form-control" placeholder="輸入新客戶名稱...">
+                <button id="add-client-btn" class="btn btn-primary"
+                    style="width: 100%; margin-top: 0.5rem;">新增客戶</button>
+            </div>
+            <ul id="client-list" class="client-list"
+                style="list-style: none; margin-top: 1rem; flex-grow: 1; overflow-y: auto;"></ul>
+            <div class="sidebar-footer"
+                style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                <button id="export-data-btn" class="btn btn-secondary"
+                    style="width: 100%; margin-bottom: 0.5rem;">匯出資料</button>
+                <input type="file" id="import-data-input" accept=".json" style="display: none;">
+                <button id="import-data-btn" class="btn btn-secondary" style="width: 100%;">匯入資料</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="main-content-area">
+            <!-- Initial Empty State / Welcome Screen -->
+            <div id="page-welcome" class="page">
+                <div class="card empty-state">
+                    <h3>歡迎使用應收應付管理系統</h3>
+                    <p>請依照以下步驟開始：</p>
+                    <ol style="text-align: left; display: inline-block; margin-top: 1rem;">
+                        <li>在左側面板新增您的第一個客戶。</li>
+                        <li>點擊客戶名稱以進入該客戶的管理頁面。</li>
+                        <li>開始新增應收、應付單據，並記錄您的收付款。</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Dashboard / Client Detail View -->
+            <div id="page-dashboard" class="page" style="display: none;">
+                <header>
+                    <h1 id="dashboard-client-name"></h1>
+                    <div class="print-header" style="display: none;">應收應付管理系統報表</div>
+                    <div>
+                        <button id="print-btn" class="btn btn-secondary btn-sm" onclick="window.print()">列印報表</button>
+                        <button id="undo-btn" class="btn btn-secondary btn-sm" disabled>復原 (Undo)</button>
+                        <button id="redo-btn" class="btn btn-secondary btn-sm" disabled>重做 (Redo)</button>
+                    </div>
+                </header>
+
+                <!-- Summary Cards -->
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div class="card">
+                        <div class="card-header">總應收款</div>
+                        <h2 id="summary-ar">0</h2>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">總應付款</div>
+                        <h2 id="summary-ap">0</h2>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">總預收款</div>
+                        <h2 id="summary-pre-ar">0</h2>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">總預付款</div>
+                        <h2 id="summary-pre-ap">0</h2>
+                    </div>
+                </div>
+
+                <!-- Search and Filter Controls -->
+                <div class="card" style="margin-bottom: 1rem;">
+                    <div class="card-header">搜尋與篩選</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>關鍵字搜尋</label>
+                            <input type="text" id="search-keyword" class="form-control" placeholder="發票號碼、備註...">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>幣別</label>
+                            <select id="filter-currency" class="form-control">
+                                <option value="">全部幣別</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>狀態</label>
+                            <select id="filter-status" class="form-control">
+                                <option value="">全部狀態</option>
+                                <option value="unpaid">未清</option>
+                                <option value="partial">部分沖帳</option>
+                                <option value="paid">已清</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>日期區間 (起)</label>
+                            <input type="date" id="filter-date-from" class="form-control">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>日期區間 (迄)</label>
+                            <input type="date" id="filter-date-to" class="form-control">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>金額範圍 (最小)</label>
+                            <input type="number" id="filter-amount-min" class="form-control" step="0.01">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>金額範圍 (最大)</label>
+                            <input type="number" id="filter-amount-max" class="form-control" step="0.01">
+                        </div>
+                        <div style="display: flex; align-items: end; gap: 0.5rem;">
+                            <button id="apply-filters-btn" class="btn btn-primary">套用篩選</button>
+                            <button id="clear-filters-btn" class="btn btn-secondary">清除</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AR/AP Sections -->
+                <div id="ar-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>應收帳款 (Accounts Receivable)</h3>
+                        <div>
+                            <button id="batch-ar-btn" class="btn btn-secondary btn-sm" disabled>批次操作</button>
+                            <button id="add-ar-btn" class="btn btn-primary">新增應收單</button>
+                        </div>
+                    </div>
+                    <table id="ar-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all-ar"></th>
+                                <th>廠商</th>
+                                <th>單據日期</th>
+                                <th>發票號碼</th>
+                                <th>原幣金額</th>
+                                <th>未沖帳餘額</th>
+                                <th>狀態</th>
+                                <th>到期日</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr>
+                                <td></td>
+                                <td colspan="4" class="text-right"><strong>合計：</strong></td>
+                                <td id="ar-total-balance"></td>
+                                <td colspan="4"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div id="ar-pagination" class="pagination-container">
+                        <div class="pagination-info"></div>
+                        <div class="pagination"></div>
+                    </div>
+                </div>
+
+                <div id="ap-section" style="margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>應付帳款 (Accounts Payable)</h3>
+                        <div>
+                            <button id="batch-ap-btn" class="btn btn-secondary btn-sm" disabled>批次操作</button>
+                            <button id="add-ap-btn" class="btn btn-primary">新增應付單</button>
+                        </div>
+                    </div>
+                    <table id="ap-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all-ap"></th>
+                                <th>廠商</th>
+                                <th>單據日期</th>
+                                <th>發票號碼</th>
+                                <th>原幣金額</th>
+                                <th>未沖帳餘額</th>
+                                <th>狀態</th>
+                                <th>到期日</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr>
+                                <td></td>
+                                <td colspan="4" class="text-right"><strong>合計：</strong></td>
+                                <td id="ap-total-balance"></td>
+                                <td colspan="5"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div id="ap-pagination" class="pagination-container">
+                        <div class="pagination-info"></div>
+                        <div class="pagination"></div>
+                    </div>
+                </div>
+
+                <!-- Payment Section -->
+                <div id="payment-section" style="margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>收付款明細</h3>
+                        <div>
+                            <button id="batch-payment-btn" class="btn btn-secondary btn-sm" disabled>批次操作</button>
+                            <button id="add-payment-btn" class="btn btn-success">新增收付款紀錄</button>
+                        </div>
+                    </div>
+                    <table id="payment-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all-payment"></th>
+                                <th>廠商</th>
+                                <th>收付日期</th>
+                                <th>收/付</th>
+                                <th>原幣金額</th>
+                                <th>匯率</th>
+                                <th>TWD 匯差</th>
+                                <th>備註</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div id="payment-pagination" class="pagination-container">
+                        <div class="pagination-info"></div>
+                        <div class="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Modals -->
+    <div id="modal-ar-ap" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-ar-ap-title">新增單據</h3>
+            <form id="form-ar-ap">
+                <div class="form-group">
+                    <label for="doc-type">單據類型</label>
+                    <select id="doc-type" name="type" class="form-control" required>
+                        <option value="ar">應收帳款</option>
+                        <option value="ap">應付帳款</option>
+                        <option value="pre-ar">預收款</option>
+                        <option value="pre-ap">預付款</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="doc-vendor">廠商名稱</label>
+                    <input type="text" id="doc-vendor" name="vendor" class="form-control" placeholder="輸入廠商名稱" required>
+                </div>
+                <div class="form-group">
+                    <label for="doc-date">單據日期</label>
+                    <input type="date" id="doc-date" name="date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="doc-amount">應收付金額 (原幣)</label>
+                    <input type="number" step="0.01" id="doc-amount" name="amount" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="doc-currency">幣別</label>
+                    <input type="text" id="doc-currency" name="currency" class="form-control" value="TWD" required>
+                </div>
+                <div class="form-group">
+                    <label for="doc-exchange-rate">交易匯率 (對 TWD)</label>
+                    <input type="number" step="0.0001" id="doc-exchange-rate" name="exchangeRate" class="form-control"
+                        value="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="doc-invoice-number">水單/發票號碼</label>
+                    <input type="text" id="doc-invoice-number" name="invoiceNumber" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="doc-due-date">到期日</label>
+                    <input type="date" id="doc-due-date" name="dueDate" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="doc-notes">備註</label>
+                    <textarea id="doc-notes" name="notes" class="form-control" rows="2"></textarea>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" class="btn btn-secondary" id="modal-ar-ap-close">取消</button>
+                    <button type="submit" class="btn btn-primary">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-payment" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-payment-title">新增收付款</h3>
+            <form id="form-payment">
+                <div class="form-group">
+                    <label for="payment-type">類型</label>
+                    <select id="payment-type" name="type" class="form-control">
+                        <option value="receipt">收款 (沖應收)</option>
+                        <option value="disbursement">付款 (沖應付)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="payment-vendor">廠商名稱</label>
+                    <select id="payment-vendor" name="vendor" class="form-control" required>
+                        <option value="">請選擇廠商</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="payment-date">收付款日期</label>
+                    <input type="date" id="payment-date" name="date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="payment-amount">收付款金額 (原幣)</label>
+                    <input type="number" step="0.01" id="payment-amount" name="amount" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="payment-currency">幣別</label>
+                    <input type="text" id="payment-currency" name="currency" class="form-control" value="TWD" required>
+                </div>
+                <div class="form-group">
+                    <label for="payment-exchange-rate">實際收付匯率 (對 TWD)</label>
+                    <input type="number" step="0.0001" id="payment-exchange-rate" name="exchangeRate"
+                        class="form-control" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>選擇要沖帳的單據</label>
+                    <div id="payment-summary"
+                        style="margin-bottom: 0.5rem; padding: 0.5rem; background: var(--color-bg); border-radius: var(--border-radius); display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>目前合計: <strong id="current-total">0</strong></span>
+                            <span>目標金額: <strong id="target-amount">0</strong></span>
+                            <span id="difference-display" style="font-weight: bold;"></span>
+                        </div>
+                    </div>
+                    <div id="payment-doc-selection"
+                        style="max-height: 200px; overflow-y: auto; border: 1px solid var(--color-border); padding: 0.5rem; border-radius: var(--border-radius);">
+                        <!-- Checkboxes will be populated here -->
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" class="btn btn-secondary" id="modal-payment-close">取消</button>
+                    <button type="submit" class="btn btn-primary">執行沖帳</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Batch Operations Modal -->
+    <div id="modal-batch-ops" class="modal-overlay">
+        <div class="modal-content">
+            <h3>批次操作</h3>
+            <div class="form-group">
+                <label>操作類型</label>
+                <select id="batch-operation-type" class="form-control">
+                    <option value="due-date">變更到期日</option>
+                    <option value="vendor">變更廠商</option>
+                    <option value="notes">變更備註</option>
+                    <option value="tags">變更標籤</option>
+                    <option value="delete">刪除單據</option>
+                </select>
+            </div>
+            <div id="batch-operation-fields">
+                <!-- Dynamic fields based on operation type -->
+            </div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="btn btn-secondary" id="modal-batch-close">取消</button>
+                <button type="button" class="btn btn-primary" id="batch-execute-btn">執行批次操作</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Edit Modal -->
+    <div id="modal-payment-edit" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-payment-edit-title">編輯收付款</h3>
+            <form id="form-payment-edit">
+                <div class="form-group">
+                    <label for="edit-payment-vendor">廠商名稱</label>
+                    <input type="text" id="edit-payment-vendor" name="vendor" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-payment-type">類型</label>
+                    <select id="edit-payment-type" name="type" class="form-control">
+                        <option value="receipt">收款</option>
+                        <option value="disbursement">付款</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-payment-date">收付款日期</label>
+                    <input type="date" id="edit-payment-date" name="date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-payment-amount">收付款金額 (原幣)</label>
+                    <input type="number" step="0.01" id="edit-payment-amount" name="amount" class="form-control"
+                        required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-payment-currency">幣別</label>
+                    <input type="text" id="edit-payment-currency" name="currency" class="form-control" value="TWD"
+                        required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-payment-exchange-rate">實際收付匯率 (對 TWD)</label>
+                    <input type="number" step="0.0001" id="edit-payment-exchange-rate" name="exchangeRate"
+                        class="form-control" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-payment-notes">備註</label>
+                    <textarea id="edit-payment-notes" name="notes" class="form-control" rows="3"></textarea>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" class="btn btn-secondary" id="modal-payment-edit-close">取消</button>
+                    <button type="submit" class="btn btn-primary">更新</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payment Batch Operations Modal -->
+    <div id="modal-payment-batch" class="modal-overlay">
+        <div class="modal-content">
+            <h3>收付款批次操作</h3>
+            <div class="form-group">
+                <label>操作類型</label>
+                <select id="payment-batch-operation-type" class="form-control">
+                    <option value="vendor">變更廠商</option>
+                    <option value="notes">變更備註</option>
+                    <option value="delete">刪除記錄</option>
+                </select>
+            </div>
+            <div id="payment-batch-operation-fields">
+                <!-- Dynamic fields based on operation type -->
+            </div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button type="button" class="btn btn-secondary" id="modal-payment-batch-close">取消</button>
+                <button type="button" class="btn btn-primary" id="payment-batch-execute-btn">執行批次操作</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Styles -->
+    <style media="print">
+        .sidebar,
+        .btn,
+        #toast-container,
+        .modal-overlay,
+        input[type="checkbox"],
+        th:first-child,
+        td:first-child,
+        th:last-child,
+        td:last-child {
+            display: none !important;
+        }
+
+        body {
+            font-size: 12px;
+            background: white !important;
+            color: black !important;
+        }
+
+        .main-content {
+            padding: 0;
+            overflow: visible;
+        }
+
+        .card {
+            border: none;
+            box-shadow: none;
+            page-break-inside: avoid;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 4px;
+        }
+
+        @page {
+            margin: 1cm;
+
+            @top-center {
+                content: "應收應付管理系統報表";
+            }
+
+            @bottom-right {
+                content: "第 " counter(page) " 頁";
+            }
+        }
+
+        .print-header {
+            display: block !important;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+
+    <!-- JavaScript Logic: 內嵌所有腳本，符合單檔原則 -->
+    <script type="module">
+        // --- 1. UTILITIES & HELPERS ---
+        const Utils = {
+            uuid: () => crypto.randomUUID(),
+            today: () => new Date().toISOString().split('T')[0],
+
+            getCurrencyDecimals: (currency) => {
+                const decimals = {
+                    'JPY': 0, 'KRW': 0, 'VND': 0, 'IDR': 0,
+                    'BHD': 3, 'KWD': 3, 'OMR': 3,
+                    'TWD': 2, 'USD': 2, 'EUR': 2, 'GBP': 2, 'CNY': 2, 'HKD': 2, 'SGD': 2
+                };
+                return decimals[currency?.toUpperCase()] ?? 2;
+            },
+
+            round: (n, dp = null, currency = null) => {
+                const decimals = dp ?? (currency ? Utils.getCurrencyDecimals(currency) : 2);
+                return Math.round(Number(n) * 10 ** decimals) / 10 ** decimals;
+            },
+
+            formatCurrency: (num, currency = '') => {
+                const n = Number(num);
+                if (!isFinite(n)) return `${currency} 0${'0'.repeat(Utils.getCurrencyDecimals(currency) || 2)}`.trim();
+
+                const decimals = Utils.getCurrencyDecimals(currency);
+                const parts = n.toFixed(decimals).split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                return `${currency} ${parts.join('.')}`.trim();
+            },
+            showToast: (message, type = 'success', showUndo = false) => {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+
+                if (showUndo && MemoryHistory.undo.length > 0) {
+                    toast.innerHTML = `
+                        <span>${message}</span>
+                        <button class="btn btn-sm btn-secondary" onclick="HistoryStack.undo(); this.parentElement.remove();" style="margin-left: 1rem;">復原</button>
+                    `;
+                } else {
+                    toast.textContent = message;
+                }
+
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentElement) container.removeChild(toast);
+                    }, 300);
+                }, showUndo ? 5000 : 3000);
+            },
+            showModal: (id) => {
+                const modal = document.getElementById(id);
+                modal.classList.add('active');
+                
+                // 重置滾動位置到頂部
+                const modalContent = modal.querySelector('.modal-content');
+                if (modalContent) {
+                    modalContent.scrollTop = 0;
+                }
+                
+                // 重置模態框overlay的滾動位置
+                modal.scrollTop = 0;
+                
+                // 防止背景滾動
+                document.body.style.overflow = 'hidden';
+            },
+            hideModal: (id) => {
+                document.getElementById(id).classList.remove('active');
+                
+                // 恢復背景滾動
+                document.body.style.overflow = '';
+            },
+        };
+
+        // --- 2. STORAGE MODULE ---
+        // Handles all interactions with localStorage.
+        const StorageService = {
+            SCHEMA_VERSION: 1,
+            DB_KEY: 'AR_AP_SYSTEM_DATA',
+
+            getData() {
+                try {
+                    const rawData = localStorage.getItem(this.DB_KEY);
+                    if (!rawData) {
+                        return this.getInitialState();
+                    }
+                    const data = JSON.parse(rawData);
+                    // Migration logic could be added here if schemaVersion changes
+                    return data;
+                } catch (e) {
+                    // Zero-Console principle: Show UI error instead
+                    Utils.showToast('讀取資料失敗，將使用初始資料。', 'error');
+                    console.log(`Error reading from localStorage: ${e.message}`); // Keep for dev, but would be removed
+                    return this.getInitialState();
+                }
+            },
+
+            saveData(data) {
+                try {
+                    localStorage.setItem(this.DB_KEY, JSON.stringify(data));
+                } catch (e) {
+                    Utils.showToast('儲存資料失敗！您的儲存空間可能已滿。', 'error');
+                    console.log(`Error writing to localStorage: ${e.message}`);
+                }
+            },
+
+            getInitialState() {
+                return {
+                    meta: { schemaVersion: this.SCHEMA_VERSION, updatedAt: new Date().toISOString() },
+                    clients: {}, // { [id]: { id, name } }
+                    documents: {}, // { [id]: { id, clientId, type, ... } }
+                    payments: {}, // { [id]: { id, clientId, ... } }
+                };
+            }
+        };
+
+        // --- 3. COMMAND (HISTORY) MODULE ---
+        // Memory-only history stack (not persisted to localStorage)
+        const MemoryHistory = { undo: [], redo: [] };
+
+        // Implements Command Pattern for Undo/Redo functionality.
+        class Command {
+            constructor() {
+                if (this.constructor === Command) {
+                    throw new Error("Abstract classes can't be instantiated.");
+                }
+            }
+            execute() { throw new Error("Method 'execute()' must be implemented."); }
+            undo() { throw new Error("Method 'undo()' must be implemented."); }
+        }
+
+        class CrudCommand extends Command {
+            constructor(repo, data) {
+                super();
+                this.repo = repo;
+                this.data = data;
+                this.id = data.id || Utils.uuid();
+            }
+            execute() {
+                this.originalData = this.repo.findById(this.id);
+                this.repo.save({ ...this.data, id: this.id });
+                return this.id;
+            }
+            undo() {
+                if (this.originalData) {
+                    this.repo.save(this.originalData);
+                } else {
+                    this.repo.delete(this.id);
+                }
+            }
+        }
+
+        class WriteOffCommand extends Command {
+            constructor(paymentData, docRepo, paymentRepo) {
+                super();
+                this.paymentData = { ...paymentData, id: paymentData.id || Utils.uuid() };
+                this.docRepo = docRepo;
+                this.paymentRepo = paymentRepo;
+                this.originalDocs = [];
+                this.createdPrepaymentIds = [];
+            }
+
+            execute() {
+                // Store original state of docs for undo
+                this.paymentData.docIds.forEach(docId => {
+                    this.originalDocs.push(this.docRepo.findById(docId));
+                });
+
+                const { payment, updatedDocs } = this.docRepo.performWriteOff(this.paymentData);
+
+                // Track any newly created prepayment documents
+                updatedDocs.forEach(doc => {
+                    if ((doc.type === 'pre-ar' || doc.type === 'pre-ap') &&
+                        !this.originalDocs.find(orig => orig && orig.id === doc.id)) {
+                        this.createdPrepaymentIds.push(doc.id);
+                    }
+                });
+
+                this.paymentRepo.save(payment);
+                updatedDocs.forEach(doc => this.docRepo.save(doc));
+
+                return { payment, updatedDocs };
+            }
+
+            undo() {
+                // Restore original documents
+                this.originalDocs.forEach(doc => {
+                    if (doc) this.docRepo.save(doc);
+                });
+
+                // Delete any created prepayment documents
+                this.createdPrepaymentIds.forEach(id => {
+                    this.docRepo.delete(id);
+                });
+
+                // Delete the payment record
+                this.paymentRepo.delete(this.paymentData.id);
+            }
+        }
+
+        class DeletePaymentCommand extends Command {
+            constructor(paymentId, paymentRepo, docRepo) {
+                super();
+                this.paymentId = paymentId;
+                this.paymentRepo = paymentRepo;
+                this.docRepo = docRepo;
+                this.deletedPayment = null;
+                this.restoredDocs = [];
+                this.deletedPrepaymentIds = [];
+            }
+
+            execute() {
+                // Get the payment record before deletion
+                this.deletedPayment = this.paymentRepo.findById(this.paymentId);
+                if (!this.deletedPayment) return;
+
+                // Restore write-off details if they exist
+                if (this.deletedPayment.writeOffDetails) {
+                    this.deletedPayment.writeOffDetails.forEach(detail => {
+                        const doc = this.docRepo.findById(detail.docId);
+                        if (doc) {
+                            // Store current state for undo
+                            this.restoredDocs.push({
+                                id: doc.id,
+                                balance: doc.balance,
+                                status: doc.status
+                            });
+
+                            // Restore original balance and status
+                            doc.balance = detail.originalBalance;
+                            doc.status = detail.originalStatus;
+                            this.docRepo.save(doc);
+                        }
+                    });
+                }
+
+                // Check if this payment created any prepayment documents and delete them
+                if (this.deletedPayment.notes &&
+                    (this.deletedPayment.notes.includes('預收款') || this.deletedPayment.notes.includes('預付款'))) {
+
+                    const allDocs = this.docRepo.findAll();
+                    allDocs.forEach(doc => {
+                        if ((doc.type === 'pre-ar' || doc.type === 'pre-ap') &&
+                            doc.notes && doc.notes.includes(`來自 ${this.deletedPayment.date}`)) {
+                            this.deletedPrepaymentIds.push(doc.id);
+                            this.docRepo.delete(doc.id);
+                        }
+                    });
+                }
+
+                // Delete the payment record
+                this.paymentRepo.delete(this.paymentId);
+            }
+
+            undo() {
+                // Restore the payment record
+                if (this.deletedPayment) {
+                    this.paymentRepo.save(this.deletedPayment);
+                }
+
+                // Restore document states
+                this.restoredDocs.forEach(docState => {
+                    const doc = this.docRepo.findById(docState.id);
+                    if (doc) {
+                        doc.balance = docState.balance;
+                        doc.status = docState.status;
+                        this.docRepo.save(doc);
+                    }
+                });
+
+                // Restore any deleted prepayment documents
+                // Note: This would require storing the full prepayment document data
+                // For now, we'll just note that this is a limitation
+            }
+        }
+
+        const HistoryStack = {
+            execute(command) {
+                command.execute();
+                MemoryHistory.undo.push(command);
+                MemoryHistory.redo = []; // Clear redo stack on new action
+                App.saveAndRender();
+            },
+            undo() {
+                const command = MemoryHistory.undo.pop();
+                if (command) {
+                    command.undo();
+                    MemoryHistory.redo.push(command);
+                    App.saveAndRender();
+                }
+            },
+            redo() {
+                const command = MemoryHistory.redo.pop();
+                if (command) {
+                    command.execute();
+                    MemoryHistory.undo.push(command);
+                    App.saveAndRender();
+                }
+            }
+        };
+
+        // --- 4. REPOSITORY (DATA LOGIC) MODULES ---
+        class BaseRepo {
+            constructor(state, key) {
+                this.state = state;
+                this.key = key;
+                this.collection = state[key];
+            }
+            findAll() { return Object.values(this.collection); }
+            findById(id) { return this.collection[id] ? { ...this.collection[id] } : null; }
+            save(item) { this.collection[item.id] = item; }
+            delete(id) { delete this.collection[id]; }
+        }
+
+        class ClientRepo extends BaseRepo {
+            constructor(state) { super(state, 'clients'); }
+        }
+
+        class PaymentRepo extends BaseRepo {
+            constructor(state) { super(state, 'payments'); }
+            findByClientId(clientId) {
+                return this.findAll().filter(p => p.clientId === clientId);
+            }
+        }
+
+        class DocumentRepo extends BaseRepo {
+            constructor(state) { super(state, 'documents'); }
+
+            findByClientId(clientId, type = null) {
+                let docs = this.findAll().filter(d => d.clientId === clientId);
+                if (type) {
+                    docs = docs.filter(d => d.type === type);
+                }
+                return docs;
+            }
+
+            performWriteOff(paymentData) {
+                const { clientId, amount, exchangeRate, docIds, date, type } = paymentData;
+                let remainingAmount = parseFloat(amount);
+                const updatedDocs = [];
+                let totalExchangeDiff = 0;
+                let isPrepayment = false;
+
+                // Sort docs by date, oldest first
+                const docsToWriteOff = docIds
+                    .map(id => this.findById(id))
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                for (const doc of docsToWriteOff) {
+                    if (remainingAmount <= 0) break;
+
+                    if (new Date(date) < new Date(doc.date)) {
+                        isPrepayment = true;
+                    }
+
+                    const writeOffAmount = Math.min(remainingAmount, doc.balance);
+                    doc.balance = Utils.round(doc.balance - writeOffAmount, null, doc.currency);
+                    remainingAmount = Utils.round(remainingAmount - writeOffAmount, null, paymentData.currency);
+
+                    // Update status
+                    const tolerance = Math.pow(10, -(Utils.getCurrencyDecimals(doc.currency) + 1));
+                    if (doc.balance <= tolerance) {
+                        doc.balance = 0;
+                        doc.status = 'paid';
+                    } else {
+                        doc.status = 'partial';
+                    }
+
+                    // B3: Calculate exchange rate difference
+                    const docExchangeRate = parseFloat(doc.exchangeRate);
+                    const paymentExchangeRate = parseFloat(exchangeRate);
+                    if (Math.abs(docExchangeRate - paymentExchangeRate) > 0.0001 && (docExchangeRate !== 1 || paymentExchangeRate !== 1)) {
+                        const diff = writeOffAmount * (paymentExchangeRate - docExchangeRate);
+                        totalExchangeDiff += diff;
+                    }
+                    updatedDocs.push(doc);
+                }
+
+                // Store write-off details for reversal
+                const writeOffDetails = [];
+                let tempRemainingAmount = parseFloat(amount);
+
+                for (const doc of docsToWriteOff) {
+                    if (tempRemainingAmount <= 0) break;
+
+                    const originalDoc = this.findById(doc.id);
+                    const writeOffAmount = Math.min(tempRemainingAmount, originalDoc.balance);
+
+                    writeOffDetails.push({
+                        docId: doc.id,
+                        originalBalance: originalDoc.balance,
+                        originalStatus: originalDoc.status,
+                        writeOffAmount: writeOffAmount
+                    });
+
+                    tempRemainingAmount -= writeOffAmount;
+                }
+
+                const payment = {
+                    ...paymentData,
+                    exchangeDiff: totalExchangeDiff,
+                    notes: '',
+                    isPrepayment,
+                    writeOffDetails: writeOffDetails // Store for reversal
+                };
+
+                // Handle overpayment - create actual prepayment document
+                const tolerance = Math.pow(10, -(Utils.getCurrencyDecimals(paymentData.currency) + 1));
+                if (remainingAmount > tolerance) {
+                    const overageType = type === 'receipt' ? '預收款' : '預付款';
+                    payment.notes = `沖帳後產生${overageType}餘額: ${Utils.formatCurrency(remainingAmount, paymentData.currency)}`;
+
+                    // Create actual prepayment document
+                    const prepaymentDoc = {
+                        id: Utils.uuid(),
+                        clientId,
+                        type: type === 'receipt' ? 'pre-ar' : 'pre-ap',
+                        date: date,
+                        amount: Utils.round(remainingAmount, null, paymentData.currency),
+                        currency: paymentData.currency,
+                        exchangeRate: exchangeRate,
+                        balance: Utils.round(remainingAmount, null, paymentData.currency),
+                        invoiceNumber: `預${type === 'receipt' ? '收' : '付'}-${date}`,
+                        notes: `來自 ${date} 的${overageType}`,
+                        status: 'unpaid'
+                    };
+
+                    // Save the prepayment document
+                    this.save(prepaymentDoc);
+                    updatedDocs.push(prepaymentDoc);
+                }
+
+                return { payment, updatedDocs };
+            }
+        }
+
+        // --- 5. MAIN APPLICATION CONTROLLER ---
+        const App = {
+            state: null,
+            activeClientId: null,
+            clientRepo: null,
+            docRepo: null,
+            paymentRepo: null,
+            currentFilters: {
+                keyword: '',
+                currency: '',
+                status: '',
+                dateFrom: '',
+                dateTo: '',
+                amountMin: 0,
+                amountMax: Infinity
+            },
+            pagination: {
+                ar: { currentPage: 1, pageSize: 10 },
+                ap: { currentPage: 1, pageSize: 10 },
+                payment: { currentPage: 1, pageSize: 10 }
+            },
+
+            init() {
+                this.state = StorageService.getData();
+                this.clientRepo = new ClientRepo(this.state);
+                this.docRepo = new DocumentRepo(this.state);
+                this.paymentRepo = new PaymentRepo(this.state);
+
+                this.bindEvents();
+                this.render();
+            },
+
+            getState() { return this.state; },
+
+            saveAndRender() {
+                StorageService.saveData(this.state);
+                this.render();
+            },
+
+            bindEvents() {
+                // Client management
+                document.getElementById('add-client-btn').addEventListener('click', this.handleAddNewClient.bind(this));
+                document.getElementById('client-list').addEventListener('click', this.handleSelectClient.bind(this));
+
+                // Add Document buttons
+                document.getElementById('add-ar-btn').addEventListener('click', () => this.openArApModal('ar'));
+                document.getElementById('add-ap-btn').addEventListener('click', () => this.openArApModal('ap'));
+
+                // Add Payment button
+                document.getElementById('add-payment-btn').addEventListener('click', this.openPaymentModal.bind(this));
+
+                // Modal forms and close buttons
+                document.getElementById('form-ar-ap').addEventListener('submit', this.handleSaveArAp.bind(this));
+                document.getElementById('modal-ar-ap-close').addEventListener('click', () => Utils.hideModal('modal-ar-ap'));
+                document.getElementById('form-payment').addEventListener('submit', this.handleSavePayment.bind(this));
+                document.getElementById('modal-payment-close').addEventListener('click', () => Utils.hideModal('modal-payment'));
+                document.getElementById('payment-type').addEventListener('change', this.populatePaymentDocSelection.bind(this));
+                document.getElementById('payment-vendor').addEventListener('change', this.populatePaymentDocSelection.bind(this));
+                document.getElementById('payment-amount').addEventListener('input', this.debouncePaymentSuggestion.bind(this));
+                document.getElementById('payment-amount').addEventListener('input', this.updatePaymentSummary.bind(this));
+                document.getElementById('payment-currency').addEventListener('change', this.updatePaymentSummary.bind(this));
+
+                // History
+                document.getElementById('undo-btn').addEventListener('click', () => HistoryStack.undo());
+                document.getElementById('redo-btn').addEventListener('click', () => HistoryStack.redo());
+
+                // Search and Filter
+                document.getElementById('apply-filters-btn').addEventListener('click', this.applyFilters.bind(this));
+                document.getElementById('clear-filters-btn').addEventListener('click', this.clearFilters.bind(this));
+                document.getElementById('search-keyword').addEventListener('input', this.debounceFilter.bind(this));
+
+                // Batch operations
+                document.getElementById('batch-ar-btn').addEventListener('click', () => this.openBatchModal('ar'));
+                document.getElementById('batch-ap-btn').addEventListener('click', () => this.openBatchModal('ap'));
+                document.getElementById('modal-batch-close').addEventListener('click', () => Utils.hideModal('modal-batch-ops'));
+                document.getElementById('batch-execute-btn').addEventListener('click', this.executeBatchOperation.bind(this));
+                document.getElementById('batch-operation-type').addEventListener('change', this.updateBatchFields.bind(this));
+
+                // Select all checkboxes
+                document.getElementById('select-all-ar').addEventListener('change', (e) => this.toggleSelectAll('ar', e.target.checked));
+                document.getElementById('select-all-ap').addEventListener('change', (e) => this.toggleSelectAll('ap', e.target.checked));
+                document.getElementById('select-all-payment').addEventListener('change', (e) => this.toggleSelectAll('payment', e.target.checked));
+
+                // Payment batch operations
+                document.getElementById('batch-payment-btn').addEventListener('click', () => this.openPaymentBatchModal());
+                document.getElementById('modal-payment-batch-close').addEventListener('click', () => Utils.hideModal('modal-payment-batch'));
+                document.getElementById('payment-batch-execute-btn').addEventListener('click', this.executePaymentBatchOperation.bind(this));
+                document.getElementById('payment-batch-operation-type').addEventListener('change', this.updatePaymentBatchFields.bind(this));
+
+                // Payment edit modal
+                document.getElementById('modal-payment-edit-close').addEventListener('click', () => Utils.hideModal('modal-payment-edit'));
+                document.getElementById('form-payment-edit').addEventListener('submit', this.handleSavePaymentEdit.bind(this));
+
+                // Real-time validation
+                this.setupRealTimeValidation();
+
+                // Import / Export
+                document.getElementById('export-data-btn').addEventListener('click', this.exportData.bind(this));
+                document.getElementById('import-data-btn').addEventListener('click', () => document.getElementById('import-data-input').click());
+                document.getElementById('import-data-input').addEventListener('change', this.importData.bind(this));
+            },
+
+            render() {
+                this.renderClientList();
+                if (this.activeClientId) {
+                    document.getElementById('page-welcome').style.display = 'none';
+                    document.getElementById('page-dashboard').style.display = 'block';
+                    this.renderDashboard();
+                } else {
+                    document.getElementById('page-welcome').style.display = 'block';
+                    document.getElementById('page-dashboard').style.display = 'none';
+                }
+                this.updateHistoryButtons();
+            },
+
+            renderClientList() {
+                const clients = this.clientRepo.findAll();
+                const listEl = document.getElementById('client-list');
+                listEl.innerHTML = '';
+                if (clients.length === 0) {
+                    listEl.innerHTML = `<li style="color: var(--color-text-muted); padding: 1rem;">尚無客戶</li>`;
+                } else {
+                    clients.forEach(client => {
+                        const li = document.createElement('li');
+                        li.textContent = client.name;
+                        li.dataset.clientId = client.id;
+                        li.style.cssText = `padding: 0.75rem; cursor: pointer; border-radius: var(--border-radius);`;
+                        if (client.id === this.activeClientId) {
+                            li.style.backgroundColor = 'var(--color-primary)';
+                            li.style.color = 'white';
+                        }
+                        listEl.appendChild(li);
+                    });
+                }
+            },
+
+            renderDashboard() {
+                const client = this.clientRepo.findById(this.activeClientId);
+                if (!client) return;
+
+                document.getElementById('dashboard-client-name').textContent = `客戶: ${client.name}`;
+
+                let arDocs = [...this.docRepo.findByClientId(this.activeClientId, 'ar'), ...this.docRepo.findByClientId(this.activeClientId, 'pre-ar')];
+                let apDocs = [...this.docRepo.findByClientId(this.activeClientId, 'ap'), ...this.docRepo.findByClientId(this.activeClientId, 'pre-ap')];
+                const payments = this.paymentRepo.findByClientId(this.activeClientId);
+
+                // Apply filters
+                arDocs = this.filterDocuments(arDocs);
+                apDocs = this.filterDocuments(apDocs);
+
+                // Render tables with pagination
+                const paginatedArDocs = this.paginateData(arDocs, 'ar');
+                const paginatedApDocs = this.paginateData(apDocs, 'ap');
+                const paginatedPayments = this.paginateData(payments, 'payment');
+
+                this.renderDocumentTable('ar-table', paginatedArDocs);
+                this.renderDocumentTable('ap-table', paginatedApDocs);
+                this.renderPaymentTable('payment-table', paginatedPayments);
+
+                // Render pagination controls
+                this.renderPagination('ar', arDocs.length);
+                this.renderPagination('ap', apDocs.length);
+                this.renderPagination('payment', payments.length);
+
+                this.populateFilterOptions();
+                this.renderSummary(arDocs, apDocs, payments);
+            },
+
+            renderDocumentTable(tableId, docs) {
+                const table = document.getElementById(tableId);
+                if (!table.parentElement.classList.contains('table-container')) {
+                    const container = document.createElement('div');
+                    container.className = 'table-container';
+                    table.parentElement.insertBefore(container, table);
+                    container.appendChild(table);
+                }
+
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = '';
+                let totalBalance = {}; // { [currency]: amount }
+
+                docs.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(doc => {
+                    const row = tbody.insertRow();
+                    const typeLabel = doc.type === 'pre-ar' ? '預收' : doc.type === 'pre-ap' ? '預付' : '';
+                    const amountClass = doc.balance < 0 ? 'negative-amount' : '';
+
+                    row.innerHTML = `
+                        <td><input type="checkbox" name="selected-docs" value="${doc.id}" onchange="App.updateBatchButtons()"></td>
+                        <td>${doc.vendor || '-'}</td>
+                        <td>${doc.date}</td>
+                        <td>${doc.invoiceNumber || '-'} ${typeLabel ? `<span style="color: var(--color-primary); font-size: 0.8em;">[${typeLabel}]</span>` : ''}</td>
+                        <td class="amount-cell ${amountClass}">${Utils.formatCurrency(doc.amount, doc.currency)}</td>
+                        <td class="amount-cell ${amountClass}">${Utils.formatCurrency(doc.balance, doc.currency)}</td>
+                        <td><span class="status-badge status-${doc.status}">${{ unpaid: '未清', partial: '部分沖帳', paid: '已清' }[doc.status]}</span></td>
+                        <td>${doc.dueDate || '-'}</td>
+                        <td class="tooltip">${(doc.notes || '-').substring(0, 30)}${doc.notes && doc.notes.length > 30 ? '...' : ''}
+                            ${doc.notes && doc.notes.length > 30 ? `<span class="tooltiptext">${doc.notes}</span>` : ''}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" onclick="App.editDocument('${doc.id}')">編輯</button>
+                            <button class="btn btn-sm btn-danger" onclick="App.deleteDocument('${doc.id}')" style="margin-left: 0.25rem;">刪除</button>
+                        </td>
+                    `;
+                    // Calculate totals
+                    if (!totalBalance[doc.currency]) totalBalance[doc.currency] = 0;
+                    totalBalance[doc.currency] += doc.balance;
+                });
+
+                const totalBalanceText = Object.entries(totalBalance)
+                    .map(([curr, amt]) => Utils.formatCurrency(amt, curr))
+                    .join(' / ');
+
+                // Calculate TWD equivalent
+                let twdEquivalent = 0;
+                docs.forEach(doc => {
+                    twdEquivalent += Utils.round(doc.balance * (doc.exchangeRate || 1), null, 'TWD');
+                });
+
+                const displayText = totalBalanceText +
+                    (Object.keys(totalBalance).length > 1 || !totalBalance.TWD ?
+                        ` (約 ${Utils.formatCurrency(twdEquivalent, 'TWD')})` : '');
+
+                document.getElementById(`${tableId.split('-')[0]}-total-balance`).innerHTML = displayText || '0';
+            },
+
+            renderPaymentTable(tableId, payments) {
+                const tbody = document.querySelector(`#${tableId} tbody`);
+                tbody.innerHTML = '';
+                payments.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(p => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td><input type="checkbox" name="selected-payments" value="${p.id}" onchange="App.updatePaymentBatchButtons()"></td>
+                        <td>${p.vendor || '-'}</td>
+                        <td>${p.date}</td>
+                        <td>${p.type === 'receipt' ? '收款' : '付款'}</td>
+                        <td class="text-right">${Utils.formatCurrency(p.amount, p.currency)}</td>
+                        <td class="text-right">${p.exchangeRate}</td>
+                        <td class="text-right">${p.exchangeDiff ? Utils.formatCurrency(p.exchangeDiff, 'TWD') : '-'}</td>
+                        <td>${p.notes || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" onclick="App.editPayment('${p.id}')">編輯</button>
+                            <button class="btn btn-sm btn-danger" onclick="App.deletePayment('${p.id}')" style="margin-left: 0.25rem;">刪除</button>
+                        </td>
+                    `;
+                });
+            },
+
+            renderSummary(arDocs, apDocs, payments) {
+                const sumByCurrency = (docs) => docs.reduce((acc, doc) => {
+                    if (!acc[doc.currency]) acc[doc.currency] = 0;
+                    acc[doc.currency] += doc.balance;
+                    return acc;
+                }, {});
+
+                const formatSummary = (summary) => Object.entries(summary).map(([curr, amt]) => Utils.formatCurrency(amt, curr)).join('<br>') || '0';
+
+                document.getElementById('summary-ar').innerHTML = formatSummary(sumByCurrency(arDocs));
+                document.getElementById('summary-ap').innerHTML = formatSummary(sumByCurrency(apDocs));
+
+                // Calculate prepayment summary from actual documents
+                const preArDocs = this.docRepo.findByClientId(this.activeClientId, 'pre-ar');
+                const preApDocs = this.docRepo.findByClientId(this.activeClientId, 'pre-ap');
+
+                const preArSummary = preArDocs.reduce((acc, doc) => {
+                    acc[doc.currency] = (acc[doc.currency] || 0) + doc.balance;
+                    return acc;
+                }, {});
+
+                const preApSummary = preApDocs.reduce((acc, doc) => {
+                    acc[doc.currency] = (acc[doc.currency] || 0) + doc.balance;
+                    return acc;
+                }, {});
+
+                document.getElementById('summary-pre-ar').innerHTML = formatSummary(preArSummary);
+                document.getElementById('summary-pre-ap').innerHTML = formatSummary(preApSummary);
+            },
+
+            updateHistoryButtons() {
+                document.getElementById('undo-btn').disabled = MemoryHistory.undo.length === 0;
+                document.getElementById('redo-btn').disabled = MemoryHistory.redo.length === 0;
+            },
+
+            debounceFilter: (() => {
+                let timeout;
+                return function () {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => this.applyFilters(), 300);
+                };
+            })(),
+
+            debouncePaymentSuggestion: (() => {
+                let timeout;
+                return function () {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => this.populatePaymentDocSelection(), 500);
+                };
+            })(),
+
+            applyFilters() {
+                this.currentFilters = {
+                    keyword: document.getElementById('search-keyword').value.toLowerCase(),
+                    currency: document.getElementById('filter-currency').value,
+                    status: document.getElementById('filter-status').value,
+                    dateFrom: document.getElementById('filter-date-from').value,
+                    dateTo: document.getElementById('filter-date-to').value,
+                    amountMin: parseFloat(document.getElementById('filter-amount-min').value) || 0,
+                    amountMax: parseFloat(document.getElementById('filter-amount-max').value) || Infinity
+                };
+                this.renderDashboard();
+            },
+
+            clearFilters() {
+                document.getElementById('search-keyword').value = '';
+                document.getElementById('filter-currency').value = '';
+                document.getElementById('filter-status').value = '';
+                document.getElementById('filter-date-from').value = '';
+                document.getElementById('filter-date-to').value = '';
+                document.getElementById('filter-amount-min').value = '';
+                document.getElementById('filter-amount-max').value = '';
+                this.currentFilters = {
+                    keyword: '', currency: '', status: '', dateFrom: '', dateTo: '', amountMin: 0, amountMax: Infinity
+                };
+                this.renderDashboard();
+            },
+
+            filterDocuments(docs) {
+                return docs.filter(doc => {
+                    // Keyword search
+                    if (this.currentFilters.keyword) {
+                        const searchText = `${doc.vendor || ''} ${doc.invoiceNumber || ''} ${doc.notes || ''}`.toLowerCase();
+                        if (!searchText.includes(this.currentFilters.keyword)) return false;
+                    }
+
+                    // Currency filter
+                    if (this.currentFilters.currency && doc.currency !== this.currentFilters.currency) return false;
+
+                    // Status filter
+                    if (this.currentFilters.status && doc.status !== this.currentFilters.status) return false;
+
+                    // Date range filter
+                    if (this.currentFilters.dateFrom && doc.date < this.currentFilters.dateFrom) return false;
+                    if (this.currentFilters.dateTo && doc.date > this.currentFilters.dateTo) return false;
+
+                    // Amount range filter
+                    const minAmount = this.currentFilters.amountMin || 0;
+                    const maxAmount = this.currentFilters.amountMax || Infinity;
+                    if (doc.balance < minAmount || doc.balance > maxAmount) return false;
+
+                    return true;
+                });
+            },
+
+            populateFilterOptions() {
+                if (!this.activeClientId) return;
+
+                const allDocs = [
+                    ...this.docRepo.findByClientId(this.activeClientId, 'ar'),
+                    ...this.docRepo.findByClientId(this.activeClientId, 'ap'),
+                    ...this.docRepo.findByClientId(this.activeClientId, 'pre-ar'),
+                    ...this.docRepo.findByClientId(this.activeClientId, 'pre-ap')
+                ];
+
+                const currencies = [...new Set(allDocs.map(doc => doc.currency))].sort();
+                const currencySelect = document.getElementById('filter-currency');
+                currencySelect.innerHTML = '<option value="">全部幣別</option>';
+                currencies.forEach(curr => {
+                    currencySelect.innerHTML += `<option value="${curr}">${curr}</option>`;
+                });
+            },
+
+            updateBatchButtons() {
+                const selectedAr = document.querySelectorAll('#ar-table input[name="selected-docs"]:checked').length;
+                const selectedAp = document.querySelectorAll('#ap-table input[name="selected-docs"]:checked').length;
+
+                document.getElementById('batch-ar-btn').disabled = selectedAr === 0;
+                document.getElementById('batch-ap-btn').disabled = selectedAp === 0;
+            },
+
+            updatePaymentBatchButtons() {
+                const selectedPayments = document.querySelectorAll('#payment-table input[name="selected-payments"]:checked').length;
+                document.getElementById('batch-payment-btn').disabled = selectedPayments === 0;
+            },
+
+            toggleSelectAll(type, checked) {
+                if (type === 'payment') {
+                    const checkboxes = document.querySelectorAll(`#${type}-table input[name="selected-payments"]`);
+                    checkboxes.forEach(cb => cb.checked = checked);
+                    this.updatePaymentBatchButtons();
+                } else {
+                    const checkboxes = document.querySelectorAll(`#${type}-table input[name="selected-docs"]`);
+                    checkboxes.forEach(cb => cb.checked = checked);
+                    this.updateBatchButtons();
+                }
+            },
+
+            openBatchModal(type) {
+                const selectedDocs = Array.from(document.querySelectorAll(`#${type}-table input[name="selected-docs"]:checked`));
+                if (selectedDocs.length === 0) return;
+
+                this.currentBatchType = type;
+                this.currentBatchDocs = selectedDocs.map(cb => cb.value);
+
+                document.getElementById('batch-operation-type').value = 'due-date';
+                this.updateBatchFields();
+                Utils.showModal('modal-batch-ops');
+            },
+
+            updateBatchFields() {
+                const operationType = document.getElementById('batch-operation-type').value;
+                const fieldsContainer = document.getElementById('batch-operation-fields');
+
+                switch (operationType) {
+                    case 'due-date':
+                        fieldsContainer.innerHTML = `
+                            <div class="form-group">
+                                <label>新到期日</label>
+                                <input type="date" id="batch-due-date" class="form-control" required>
+                            </div>
+                        `;
+                        break;
+                    case 'vendor':
+                        fieldsContainer.innerHTML = `
+                            <div class="form-group">
+                                <label>新廠商名稱</label>
+                                <input type="text" id="batch-vendor" class="form-control" placeholder="輸入新的廠商名稱" required>
+                            </div>
+                        `;
+                        break;
+                    case 'notes':
+                        fieldsContainer.innerHTML = `
+                            <div class="form-group">
+                                <label>新備註</label>
+                                <textarea id="batch-notes" class="form-control" rows="3"></textarea>
+                            </div>
+                        `;
+                        break;
+                    case 'tags':
+                        fieldsContainer.innerHTML = `
+                            <div class="form-group">
+                                <label>標籤</label>
+                                <input type="text" id="batch-tags" class="form-control" placeholder="用逗號分隔多個標籤">
+                            </div>
+                        `;
+                        break;
+                    case 'delete':
+                        fieldsContainer.innerHTML = `
+                            <div class="form-group">
+                                <div style="padding: 1rem; background: var(--color-danger)20; border-radius: var(--border-radius); color: var(--color-danger);">
+                                    <strong>⚠️ 警告：此操作將永久刪除選中的單據</strong>
+                                    <p style="margin: 0.5rem 0 0 0;">只有未沖帳的單據可以被刪除。已沖帳的單據將被跳過。</p>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                }
+            },
+
+            executeBatchOperation() {
+                const operationType = document.getElementById('batch-operation-type').value;
+
+                if (operationType === 'delete') {
+                    // Handle batch delete
+                    if (!confirm(`確定要刪除選中的 ${this.currentBatchDocs.length} 筆單據嗎？此操作無法復原。`)) {
+                        return;
+                    }
+
+                    let deletedCount = 0;
+                    let skippedCount = 0;
+
+                    this.currentBatchDocs.forEach(docId => {
+                        const doc = this.docRepo.findById(docId);
+                        if (doc && doc.status === 'unpaid') {
+                            this.docRepo.delete(docId);
+                            deletedCount++;
+                        } else {
+                            skippedCount++;
+                        }
+                    });
+
+                    this.saveAndRender();
+                    Utils.hideModal('modal-batch-ops');
+
+                    let message = `已刪除 ${deletedCount} 筆單據`;
+                    if (skippedCount > 0) {
+                        message += `，跳過 ${skippedCount} 筆已沖帳單據`;
+                    }
+                    Utils.showToast(message, 'success');
+                    return;
+                }
+
+                // Handle other batch operations
+                const updates = {};
+                switch (operationType) {
+                    case 'due-date':
+                        updates.dueDate = document.getElementById('batch-due-date').value;
+                        break;
+                    case 'vendor':
+                        updates.vendor = document.getElementById('batch-vendor').value.trim();
+                        if (!updates.vendor) {
+                            Utils.showToast('請輸入廠商名稱', 'error');
+                            return;
+                        }
+                        break;
+                    case 'notes':
+                        updates.notes = document.getElementById('batch-notes').value;
+                        break;
+                    case 'tags':
+                        updates.tags = document.getElementById('batch-tags').value;
+                        break;
+                }
+
+                // Create batch command
+                const commands = this.currentBatchDocs.map(docId => {
+                    const doc = this.docRepo.findById(docId);
+                    return new CrudCommand(this.docRepo, { ...doc, ...updates });
+                });
+
+                // Execute all commands
+                commands.forEach(cmd => HistoryStack.execute(cmd));
+
+                Utils.hideModal('modal-batch-ops');
+                Utils.showToast(`已批次更新 ${this.currentBatchDocs.length} 筆單據`, 'success', true);
+                this.renderDashboard();
+            },
+
+            setupRealTimeValidation() {
+                // Add validation to form fields
+                const validateField = (field, validator, errorMsg) => {
+                    const errorDiv = field.parentElement.querySelector('.field-error') ||
+                        (() => {
+                            const div = document.createElement('div');
+                            div.className = 'field-error';
+                            field.parentElement.appendChild(div);
+                            return div;
+                        })();
+
+                    const validate = () => {
+                        const isValid = validator(field.value);
+                        field.classList.toggle('error', !isValid);
+                        field.classList.toggle('success', isValid && field.value);
+                        errorDiv.textContent = isValid ? '' : errorMsg;
+                        errorDiv.classList.toggle('show', !isValid);
+                        return isValid;
+                    };
+
+                    field.addEventListener('input', validate);
+                    field.addEventListener('blur', validate);
+                    return validate;
+                };
+
+                // Invoice number uniqueness
+                const invoiceField = document.getElementById('doc-invoice-number');
+                if (invoiceField) {
+                    validateField(invoiceField, (value) => {
+                        if (!value.trim()) return true; // Empty is OK
+                        const docType = document.getElementById('doc-type').value;
+                        const existingDocs = this.docRepo.findByClientId(this.activeClientId, docType)
+                            .filter(d => d.type === 'ar' || d.type === 'ap');
+                        return !existingDocs.find(d =>
+                            d.invoiceNumber &&
+                            d.invoiceNumber.toLowerCase().trim() === value.toLowerCase().trim()
+                        );
+                    }, '此發票號碼已存在');
+                }
+
+                // Amount validation
+                const amountField = document.getElementById('doc-amount');
+                if (amountField) {
+                    validateField(amountField, (value) => {
+                        const num = parseFloat(value);
+                        return !isNaN(num) && num > 0;
+                    }, '金額必須大於 0');
+                }
+
+                // Exchange rate validation
+                const rateField = document.getElementById('doc-exchange-rate');
+                if (rateField) {
+                    validateField(rateField, (value) => {
+                        const num = parseFloat(value);
+                        return !isNaN(num) && num > 0;
+                    }, '匯率必須大於 0');
+                }
+
+                // Currency format validation
+                const currencyField = document.getElementById('doc-currency');
+                if (currencyField) {
+                    validateField(currencyField, (value) => {
+                        return /^[A-Z]{3}$/.test(value.toUpperCase());
+                    }, '幣別格式應為 3 個大寫字母 (如 TWD, USD)');
+                }
+
+                // Vendor name validation
+                const vendorField = document.getElementById('doc-vendor');
+                if (vendorField) {
+                    validateField(vendorField, (value) => {
+                        return value.trim().length >= 2;
+                    }, '廠商名稱至少需要 2 個字元');
+                }
+            },
+
+            editDocument(docId) {
+                const doc = this.docRepo.findById(docId);
+                if (!doc) return;
+
+                // Populate form with existing data
+                document.getElementById('doc-type').value = doc.type;
+                document.getElementById('doc-vendor').value = doc.vendor || '';
+                document.getElementById('doc-date').value = doc.date;
+                document.getElementById('doc-amount').value = doc.amount;
+                document.getElementById('doc-currency').value = doc.currency;
+                document.getElementById('doc-exchange-rate').value = doc.exchangeRate;
+                document.getElementById('doc-invoice-number').value = doc.invoiceNumber || '';
+                document.getElementById('doc-due-date').value = doc.dueDate || '';
+                document.getElementById('doc-notes').value = doc.notes || '';
+
+                // Store the ID for update
+                document.getElementById('form-ar-ap').dataset.editingId = docId;
+
+                const titles = {
+                    'ar': '編輯應收單據',
+                    'ap': '編輯應付單據',
+                    'pre-ar': '編輯預收款',
+                    'pre-ap': '編輯預付款'
+                };
+                document.getElementById('modal-ar-ap-title').textContent = titles[doc.type] || '編輯單據';
+
+                Utils.showModal('modal-ar-ap');
+            },
+
+            deleteDocument(docId) {
+                if (!confirm('確定要刪除此單據嗎？此操作無法復原。')) return;
+
+                const doc = this.docRepo.findById(docId);
+                if (doc && doc.status !== 'unpaid') {
+                    Utils.showToast('此單據已被沖帳，請先刪除對應的收/付款紀錄（沖帳）後再刪除單據', 'error');
+                    return;
+                }
+
+                this.docRepo.delete(docId);
+                this.saveAndRender();
+                Utils.showToast('單據已刪除');
+            },
+
+            addAutoMatchingSuggestion(container, docs, paymentType) {
+                const paymentAmount = parseFloat(document.getElementById('payment-amount').value);
+                if (!paymentAmount || docs.length === 0) return;
+
+                const suggestions = this.findOptimalMatching(docs, paymentAmount);
+                if (suggestions.length > 0) {
+                    const suggestionDiv = document.createElement('div');
+                    suggestionDiv.style.cssText = 'background: var(--color-primary)20; padding: 0.5rem; border-radius: var(--border-radius); margin-bottom: 0.5rem;';
+                    suggestionDiv.innerHTML = `
+                        <strong>智能配對建議：</strong>
+                        <button class="btn btn-sm btn-primary" onclick="App.applyAutoMatching(${JSON.stringify(suggestions.map(s => s.id)).replace(/"/g, '&quot;')})">
+                            選擇 ${suggestions.length} 筆單據 (合計: ${Utils.formatCurrency(suggestions.reduce((sum, s) => sum + s.balance, 0), suggestions[0]?.currency)})
+                        </button>
+                    `;
+                    container.insertBefore(suggestionDiv, container.firstChild);
+                }
+            },
+
+            toleranceFor(target) {
+                const absTol = 5;                 // 5 元
+                const pctTol = Math.abs(target) * 0.005; // 0.5%
+                return Math.max(absTol, pctTol);
+            },
+
+            findOptimalMatching(docs, targetAmount, tolerance = null) {
+                const tol = tolerance ?? this.toleranceFor(targetAmount);
+
+                // Greedy approach for small sets
+                if (docs.length <= 10) {
+                    return this.greedyMatching(docs, targetAmount, tol);
+                }
+
+                // Meet-in-the-middle for larger sets
+                return this.meetInTheMiddleMatching(docs, targetAmount, tol);
+            },
+
+            greedyMatching(docs, targetAmount, tolerance) {
+                const sortedDocs = [...docs].sort((a, b) => Math.abs(a.balance - targetAmount) - Math.abs(b.balance - targetAmount));
+                const result = [];
+                let currentSum = 0;
+
+                for (const doc of sortedDocs) {
+                    if (currentSum + doc.balance <= targetAmount * (1 + tolerance)) {
+                        result.push(doc);
+                        currentSum += doc.balance;
+
+                        if (Math.abs(currentSum - targetAmount) <= targetAmount * tolerance) {
+                            break;
+                        }
+                    }
+                }
+
+                return Math.abs(currentSum - targetAmount) <= targetAmount * tolerance ? result : [];
+            },
+
+            meetInTheMiddleMatching(docs, targetAmount, tolerance) {
+                if (docs.length > 28) {
+                    return this.greedyMatching(docs.slice(0, 20), targetAmount, tolerance);
+                }
+
+                const mid = Math.floor(docs.length / 2);
+                const left = docs.slice(0, mid);
+                const right = docs.slice(mid);
+
+                // Generate all possible sums for left half
+                const leftSums = this.generateSubsetSums(left);
+                const rightSums = this.generateSubsetSums(right);
+
+                let bestMatch = null;
+                let bestDiff = Infinity;
+
+                for (const [leftSum, leftDocs] of leftSums) {
+                    for (const [rightSum, rightDocs] of rightSums) {
+                        const totalSum = leftSum + rightSum;
+                        const diff = Math.abs(totalSum - targetAmount);
+
+                        if (diff <= targetAmount * tolerance && diff < bestDiff) {
+                            bestDiff = diff;
+                            bestMatch = [...leftDocs, ...rightDocs];
+                        }
+                    }
+                }
+
+                return bestMatch || [];
+            },
+
+            generateSubsetSums(docs) {
+                const results = new Map();
+                results.set(0, []);
+
+                for (const doc of docs) {
+                    const newResults = new Map();
+                    for (const [sum, docList] of results) {
+                        const newSum = sum + doc.balance;
+                        const newDocList = [...docList, doc];
+
+                        if (!newResults.has(newSum) || newResults.get(newSum).length > newDocList.length) {
+                            newResults.set(newSum, newDocList);
+                        }
+                    }
+
+                    for (const [sum, docList] of newResults) {
+                        results.set(sum, docList);
+                    }
+                }
+
+                return results;
+            },
+
+            applyAutoMatching(docIds) {
+                // Clear all checkboxes first
+                document.querySelectorAll('#payment-doc-selection input[type=checkbox]').forEach(cb => cb.checked = false);
+
+                // Check suggested documents
+                docIds.forEach(id => {
+                    const checkbox = document.querySelector(`#payment-doc-selection input[value="${id}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+
+                Utils.showToast('已套用智能配對建議');
+            },
+
+            updatePaymentSummary() {
+                const selectedCheckboxes = document.querySelectorAll('#payment-doc-selection input[name="docIds"]:checked');
+                const targetAmount = parseFloat(document.getElementById('payment-amount').value) || 0;
+                const targetCurrency = document.getElementById('payment-currency').value || 'TWD';
+
+                let currentTotal = 0;
+                let hasMixedCurrency = false;
+                let primaryCurrency = '';
+
+                selectedCheckboxes.forEach(cb => {
+                    const balance = parseFloat(cb.dataset.balance) || 0;
+                    const currency = cb.dataset.currency || 'TWD';
+
+                    if (!primaryCurrency) primaryCurrency = currency;
+                    if (currency !== primaryCurrency) hasMixedCurrency = true;
+
+                    // For simplicity, assume same currency or convert via exchange rate
+                    currentTotal += balance;
+                });
+
+                const summaryDiv = document.getElementById('payment-summary');
+                if (selectedCheckboxes.length > 0) {
+                    summaryDiv.style.display = 'block';
+
+                    document.getElementById('current-total').textContent = Utils.formatCurrency(currentTotal, primaryCurrency);
+                    document.getElementById('target-amount').textContent = Utils.formatCurrency(targetAmount, targetCurrency);
+
+                    const difference = currentTotal - targetAmount;
+                    const tolerance = this.toleranceFor(targetAmount);
+                    const diffDisplay = document.getElementById('difference-display');
+
+                    if (Math.abs(difference) <= tolerance) {
+                        diffDisplay.textContent = '✓ 完美配對';
+                        diffDisplay.style.color = 'var(--color-success)';
+                    } else if (difference > 0) {
+                        diffDisplay.textContent = `超收 ${Utils.formatCurrency(difference, primaryCurrency)}`;
+                        diffDisplay.style.color = 'var(--color-warning)';
+                    } else {
+                        diffDisplay.textContent = `不足 ${Utils.formatCurrency(-difference, primaryCurrency)}`;
+                        diffDisplay.style.color = 'var(--color-danger)';
+                    }
+
+                    if (hasMixedCurrency) {
+                        diffDisplay.textContent += ' (混合幣別)';
+                    }
+                } else {
+                    summaryDiv.style.display = 'none';
+                }
+            },
+
+            // --- Pagination Methods ---
+            paginateData(data, tableType) {
+                const pagination = this.pagination[tableType];
+                const startIndex = (pagination.currentPage - 1) * pagination.pageSize;
+                const endIndex = startIndex + pagination.pageSize;
+                return data.slice(startIndex, endIndex);
+            },
+
+            renderPagination(tableType, totalItems) {
+                const pagination = this.pagination[tableType];
+                const totalPages = Math.ceil(totalItems / pagination.pageSize);
+                const container = document.querySelector(`#${tableType}-pagination .pagination`);
+                const infoContainer = document.querySelector(`#${tableType}-pagination .pagination-info`);
+
+                if (!container || !infoContainer) return;
+
+                // Update info
+                const startItem = (pagination.currentPage - 1) * pagination.pageSize + 1;
+                const endItem = Math.min(pagination.currentPage * pagination.pageSize, totalItems);
+                infoContainer.textContent = totalItems > 0 ?
+                    `顯示 ${startItem}-${endItem} 筆，共 ${totalItems} 筆` :
+                    '無資料';
+
+                // Clear pagination
+                container.innerHTML = '';
+
+                if (totalPages <= 1) return;
+
+                // Previous button
+                const prevBtn = document.createElement('button');
+                prevBtn.textContent = '‹';
+                prevBtn.disabled = pagination.currentPage === 1;
+                prevBtn.onclick = () => this.changePage(tableType, pagination.currentPage - 1);
+                container.appendChild(prevBtn);
+
+                // Page numbers
+                const startPage = Math.max(1, pagination.currentPage - 2);
+                const endPage = Math.min(totalPages, pagination.currentPage + 2);
+
+                if (startPage > 1) {
+                    const firstBtn = document.createElement('button');
+                    firstBtn.textContent = '1';
+                    firstBtn.onclick = () => this.changePage(tableType, 1);
+                    container.appendChild(firstBtn);
+
+                    if (startPage > 2) {
+                        const ellipsis = document.createElement('span');
+                        ellipsis.textContent = '...';
+                        ellipsis.style.padding = '0.5rem';
+                        container.appendChild(ellipsis);
+                    }
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.textContent = i;
+                    pageBtn.className = i === pagination.currentPage ? 'active' : '';
+                    pageBtn.onclick = () => this.changePage(tableType, i);
+                    container.appendChild(pageBtn);
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                        const ellipsis = document.createElement('span');
+                        ellipsis.textContent = '...';
+                        ellipsis.style.padding = '0.5rem';
+                        container.appendChild(ellipsis);
+                    }
+
+                    const lastBtn = document.createElement('button');
+                    lastBtn.textContent = totalPages;
+                    lastBtn.onclick = () => this.changePage(tableType, totalPages);
+                    container.appendChild(lastBtn);
+                }
+
+                // Next button
+                const nextBtn = document.createElement('button');
+                nextBtn.textContent = '›';
+                nextBtn.disabled = pagination.currentPage === totalPages;
+                nextBtn.onclick = () => this.changePage(tableType, pagination.currentPage + 1);
+                container.appendChild(nextBtn);
+            },
+
+            changePage(tableType, newPage) {
+                this.pagination[tableType].currentPage = newPage;
+                this.renderDashboard();
+            },
+
+            // --- Payment Batch Operations ---
+            openPaymentBatchModal() {
+                const selectedPayments = Array.from(document.querySelectorAll('#payment-table input[name="selected-payments"]:checked'));
+                if (selectedPayments.length === 0) return;
+
+                this.currentBatchPayments = selectedPayments.map(cb => cb.value);
+
+                document.getElementById('payment-batch-operation-type').value = 'vendor';
+                this.updatePaymentBatchFields();
+                Utils.showModal('modal-payment-batch');
+            },
+
+            updatePaymentBatchFields() {
+                const operationType = document.getElementById('payment-batch-operation-type').value;
+                const fieldsContainer = document.getElementById('payment-batch-operation-fields');
+
+                switch (operationType) {
+                    case 'vendor':
+                        fieldsContainer.innerHTML = `
+                            <div class="form-group">
+                                <label>新廠商名稱</label>
+                                <input type="text" id="payment-batch-vendor" class="form-control" placeholder="輸入新的廠商名稱" required>
+                            </div>
+                        `;
+                        break;
+                    case 'notes':
+                        fieldsContainer.innerHTML = `
+                            <div class="form-group">
+                                <label>新備註</label>
+                                <textarea id="payment-batch-notes" class="form-control" rows="3"></textarea>
+                            </div>
+                        `;
+                        break;
+                    case 'delete':
+                        fieldsContainer.innerHTML = `
+                            <div class="form-group">
+                                <div style="padding: 1rem; background: var(--color-danger)20; border-radius: var(--border-radius); color: var(--color-danger);">
+                                    <strong>⚠️ 警告：此操作將永久刪除選中的收付款記錄</strong>
+                                    <p style="margin: 0.5rem 0 0 0;">此操作無法復原，請謹慎操作。</p>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                }
+            },
+
+            executePaymentBatchOperation() {
+                const operationType = document.getElementById('payment-batch-operation-type').value;
+
+                if (operationType === 'delete') {
+                    if (!confirm(`確定要刪除選中的 ${this.currentBatchPayments.length} 筆收付款記錄嗎？相關的沖銷將會被恢復。`)) {
+                        return;
+                    }
+
+                    // Use DeletePaymentCommand for each payment to properly restore write-offs
+                    const commands = this.currentBatchPayments.map(paymentId =>
+                        new DeletePaymentCommand(paymentId, this.paymentRepo, this.docRepo)
+                    );
+
+                    commands.forEach(cmd => HistoryStack.execute(cmd));
+
+                    Utils.hideModal('modal-payment-batch');
+                    Utils.showToast(`已刪除 ${this.currentBatchPayments.length} 筆收付款記錄，相關沖銷已恢復`, 'success', true);
+                    return;
+                }
+
+                // Handle other batch operations
+                const updates = {};
+                switch (operationType) {
+                    case 'vendor':
+                        updates.vendor = document.getElementById('payment-batch-vendor').value.trim();
+                        if (!updates.vendor) {
+                            Utils.showToast('請輸入廠商名稱', 'error');
+                            return;
+                        }
+                        break;
+                    case 'notes':
+                        updates.notes = document.getElementById('payment-batch-notes').value;
+                        break;
+                }
+
+                // Update payments
+                this.currentBatchPayments.forEach(paymentId => {
+                    const payment = this.paymentRepo.findById(paymentId);
+                    if (payment) {
+                        this.paymentRepo.save({ ...payment, ...updates });
+                    }
+                });
+
+                this.saveAndRender();
+                Utils.hideModal('modal-payment-batch');
+                Utils.showToast(`已批次更新 ${this.currentBatchPayments.length} 筆收付款記錄`, 'success');
+            },
+
+            // --- Payment Edit/Delete ---
+            editPayment(paymentId) {
+                const payment = this.paymentRepo.findById(paymentId);
+                if (!payment) return;
+
+                // Populate form with existing data
+                document.getElementById('edit-payment-vendor').value = payment.vendor || '';
+                document.getElementById('edit-payment-type').value = payment.type;
+                document.getElementById('edit-payment-date').value = payment.date;
+                document.getElementById('edit-payment-amount').value = payment.amount;
+                document.getElementById('edit-payment-currency').value = payment.currency;
+                document.getElementById('edit-payment-exchange-rate').value = payment.exchangeRate;
+                document.getElementById('edit-payment-notes').value = payment.notes || '';
+
+                // Store the ID for update
+                document.getElementById('form-payment-edit').dataset.editingId = paymentId;
+
+                Utils.showModal('modal-payment-edit');
+            },
+
+            handleSavePaymentEdit(e) {
+                e.preventDefault();
+                const form = e.target;
+                const formData = new FormData(form);
+                const editingId = form.dataset.editingId;
+
+                if (!editingId) return;
+
+                const payment = this.paymentRepo.findById(editingId);
+                if (!payment) return;
+
+                const updatedPayment = {
+                    ...payment,
+                    vendor: formData.get('vendor').trim(),
+                    type: formData.get('type'),
+                    date: formData.get('date'),
+                    amount: Utils.round(parseFloat(formData.get('amount'))),
+                    currency: formData.get('currency').toUpperCase(),
+                    exchangeRate: Utils.round(parseFloat(formData.get('exchangeRate')), 4),
+                    notes: formData.get('notes')
+                };
+
+                this.paymentRepo.save(updatedPayment);
+                this.saveAndRender();
+
+                // Clear editing state
+                delete form.dataset.editingId;
+
+                Utils.hideModal('modal-payment-edit');
+                Utils.showToast('收付款記錄更新成功', 'success');
+            },
+
+            deletePayment(paymentId) {
+                if (!confirm('確定要刪除此收付款記錄嗎？相關的沖銷將會被恢復。')) return;
+
+                const command = new DeletePaymentCommand(paymentId, this.paymentRepo, this.docRepo);
+                HistoryStack.execute(command);
+
+                Utils.showToast('收付款記錄已刪除，相關沖銷已恢復', 'success', true);
+            },
+
+            // --- Event Handlers ---
+            handleAddNewClient(e) {
+                e.preventDefault();
+                const input = document.getElementById('new-client-name');
+                const name = input.value.trim();
+                if (name) {
+                    const client = { id: Utils.uuid(), name };
+                    const command = new CrudCommand(this.clientRepo, client);
+                    HistoryStack.execute(command);
+                    this.activeClientId = client.id; // Auto-select the new client
+                    input.value = '';
+                    Utils.showToast(`客戶 "${name}" 已新增`);
+                    // HistoryStack.execute already calls saveAndRender, but we need to render again for client selection
+                    this.render();
+                } else {
+                    Utils.showToast('客戶名稱不能為空', 'error');
+                }
+            },
+
+            handleSelectClient(e) {
+                if (e.target.tagName === 'LI') {
+                    this.activeClientId = e.target.dataset.clientId;
+                    this.render();
+                }
+            },
+
+            openArApModal(type) {
+                if (!this.activeClientId) {
+                    Utils.showToast('請先選擇一個客戶', 'error');
+                    return;
+                }
+
+                const form = document.getElementById('form-ar-ap');
+                form.reset();
+
+                // Set title and default type based on parameter
+                const titles = {
+                    'ar': '新增應收單據',
+                    'ap': '新增應付單據',
+                    'pre-ar': '新增預收款',
+                    'pre-ap': '新增預付款'
+                };
+                document.getElementById('modal-ar-ap-title').textContent = titles[type] || '新增單據';
+                document.getElementById('doc-type').value = type;
+                document.getElementById('doc-date').value = Utils.today();
+                Utils.showModal('modal-ar-ap');
+            },
+
+            handleSaveArAp(e) {
+                e.preventDefault();
+
+                // Ensure a client is selected
+                if (!this.activeClientId) {
+                    Utils.showToast('請先選擇一個客戶', 'error');
+                    return;
+                }
+
+                const form = e.target;
+                const formData = new FormData(form);
+                const invoiceNumber = formData.get('invoiceNumber');
+                const docType = formData.get('type');
+                const editingId = form.dataset.editingId;
+
+                // Check for duplicate invoice number (skip if editing same document)
+                if (invoiceNumber && invoiceNumber.trim()) {
+                    const existingDocs = this.docRepo.findByClientId(this.activeClientId, docType)
+                        .filter(d => d.type === 'ar' || d.type === 'ap');
+                    const duplicate = existingDocs.find(d =>
+                        d.id !== editingId &&
+                        d.invoiceNumber &&
+                        d.invoiceNumber.toLowerCase().trim() === invoiceNumber.toLowerCase().trim()
+                    );
+
+                    if (duplicate) {
+                        Utils.showToast(`發票號碼 "${invoiceNumber}" 已存在，請使用不同的號碼`, 'error');
+                        return;
+                    }
+                }
+
+                const existingDoc = editingId ? this.docRepo.findById(editingId) : null;
+                const amount = Utils.round(parseFloat(formData.get('amount')));
+
+                const currency = formData.get('currency').toUpperCase();
+                const roundedAmount = Utils.round(amount, null, currency);
+
+                const newBalance = existingDoc ? Utils.round(existingDoc.balance + (roundedAmount - existingDoc.amount), null, currency) : roundedAmount;
+
+                const doc = {
+                    id: editingId || Utils.uuid(),
+                    clientId: this.activeClientId,
+                    vendor: formData.get('vendor').trim(),
+                    type: docType,
+                    date: formData.get('date') || Utils.today(),
+                    amount: roundedAmount,
+                    balance: newBalance,
+                    currency: currency,
+                    exchangeRate: Utils.round(parseFloat(formData.get('exchangeRate')) || 1, 4),
+                    invoiceNumber: invoiceNumber,
+                    dueDate: formData.get('dueDate'),
+                    notes: formData.get('notes'),
+                    status: (() => {
+                        const tol = Math.pow(10, -(Utils.getCurrencyDecimals(currency) + 1));
+                        if (existingDoc) {
+                            return newBalance <= tol ? 'paid' : (newBalance < roundedAmount ? 'partial' : 'unpaid');
+                        }
+                        return 'unpaid';
+                    })()
+                };
+
+                const command = new CrudCommand(this.docRepo, doc);
+                HistoryStack.execute(command);
+
+                // Clear editing state
+                delete form.dataset.editingId;
+
+                Utils.hideModal('modal-ar-ap');
+                Utils.showToast(editingId ? '單據更新成功' : '單據新增成功', 'success', true);
+            },
+
+            openPaymentModal() {
+                if (!this.activeClientId) {
+                    Utils.showToast('請先選擇一個客戶', 'error');
+                    return;
+                }
+
+                const form = document.getElementById('form-payment');
+                form.reset();
+                document.getElementById('payment-date').value = Utils.today();
+                this.populateVendorOptions();
+                this.populatePaymentDocSelection();
+                Utils.showModal('modal-payment');
+            },
+
+            populateVendorOptions() {
+                const vendorSelect = document.getElementById('payment-vendor');
+                const allDocs = [
+                    ...this.docRepo.findByClientId(this.activeClientId, 'ar'),
+                    ...this.docRepo.findByClientId(this.activeClientId, 'ap'),
+                    ...this.docRepo.findByClientId(this.activeClientId, 'pre-ar'),
+                    ...this.docRepo.findByClientId(this.activeClientId, 'pre-ap')
+                ];
+
+                const vendors = [...new Set(allDocs.map(doc => doc.vendor).filter(v => v))].sort();
+
+                vendorSelect.innerHTML = '<option value="">請選擇廠商</option>';
+                vendors.forEach(vendor => {
+                    vendorSelect.innerHTML += `<option value="${vendor}">${vendor}</option>`;
+                });
+            },
+
+            populatePaymentDocSelection() {
+                const type = document.getElementById('payment-type').value;
+                const selectedVendor = document.getElementById('payment-vendor').value;
+                const docTypeToFetch = type === 'receipt' ? 'ar' : 'ap';
+
+                let docs = this.docRepo.findByClientId(this.activeClientId, docTypeToFetch)
+                    .filter(d => d.status !== 'paid');
+
+                // Filter by selected vendor
+                if (selectedVendor) {
+                    docs = docs.filter(d => d.vendor === selectedVendor);
+                }
+
+                // Sort by: due date (earliest first), then date (earliest first), then amount (smallest first)
+                docs.sort((a, b) => {
+                    const dueDateA = a.dueDate ? new Date(a.dueDate) : new Date('9999-12-31');
+                    const dueDateB = b.dueDate ? new Date(b.dueDate) : new Date('9999-12-31');
+
+                    if (dueDateA.getTime() !== dueDateB.getTime()) {
+                        return dueDateA - dueDateB;
+                    }
+
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    if (dateA.getTime() !== dateB.getTime()) {
+                        return dateA - dateB;
+                    }
+
+                    return a.balance - b.balance;
+                });
+
+                const container = document.getElementById('payment-doc-selection');
+                container.innerHTML = '';
+
+                // Add smart auto-matching suggestion
+                this.addAutoMatchingSuggestion(container, docs, type);
+
+                if (docs.length === 0) {
+                    const docTypeName = docTypeToFetch === 'ar' ? '應收' : '應付';
+                    const vendorMsg = selectedVendor ? `廠商 "${selectedVendor}" 的` : '';
+                    container.innerHTML += `
+                        <div class="empty-state" style="padding: 1rem; text-align: center;">
+                            <p style="color: var(--color-text-muted);">無${vendorMsg}未結清的${docTypeName}單據可供沖帳</p>
+                            <button class="btn btn-primary btn-sm" onclick="App.openArApModal('${docTypeToFetch}')" style="margin-top: 0.5rem;">
+                                新增${docTypeName}單據
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Add select all/clear buttons
+                    const controlsDiv = document.createElement('div');
+                    controlsDiv.style.marginBottom = '0.5rem';
+                    controlsDiv.innerHTML = `
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#payment-doc-selection input[type=checkbox]').forEach(cb => cb.checked = true); App.updatePaymentSummary();">全選</button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#payment-doc-selection input[type=checkbox]').forEach(cb => cb.checked = false); App.updatePaymentSummary();" style="margin-left: 0.5rem;">清除</button>
+                    `;
+                    container.appendChild(controlsDiv);
+
+                    docs.forEach(doc => {
+                        const label = document.createElement('label');
+                        label.style.display = 'block';
+                        label.style.marginBottom = '0.25rem';
+                        const dueInfo = doc.dueDate ? ` (到期: ${doc.dueDate})` : '';
+                        const vendorInfo = doc.vendor ? `[${doc.vendor}] ` : '';
+                        label.innerHTML = `
+                            <input type="checkbox" name="docIds" value="${doc.id}" data-balance="${doc.balance}" data-currency="${doc.currency}" onchange="App.updatePaymentSummary()">
+                            ${vendorInfo}${doc.date} - ${doc.invoiceNumber || '無號碼'} - 餘額: ${Utils.formatCurrency(doc.balance, doc.currency)}${dueInfo}
+                        `;
+                        container.appendChild(label);
+                    });
+                }
+            },
+
+            handleSavePayment(e) {
+                e.preventDefault();
+                const selectedDocs = Array.from(document.querySelectorAll('#payment-doc-selection input:checked'));
+                if (selectedDocs.length === 0) {
+                    Utils.showToast('請至少選擇一筆要沖帳的單據', 'error');
+                    return;
+                }
+
+                const formData = new FormData(e.target);
+                const paymentData = {
+                    clientId: this.activeClientId,
+                    vendor: formData.get('vendor'),
+                    type: formData.get('type'),
+                    date: formData.get('date'),
+                    amount: Utils.round(parseFloat(formData.get('amount'))),
+                    currency: formData.get('currency').toUpperCase(),
+                    exchangeRate: Utils.round(parseFloat(formData.get('exchangeRate')), 4),
+                    docIds: selectedDocs.map(input => input.value),
+                };
+
+                const command = new WriteOffCommand(paymentData, this.docRepo, this.paymentRepo);
+                HistoryStack.execute(command);
+
+                Utils.hideModal('modal-payment');
+                Utils.showToast('沖帳操作成功', 'success', true);
+            },
+
+            exportData() {
+                const dataStr = JSON.stringify(this.state, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ar-ap-data-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                Utils.showToast('資料已成功匯出');
+            },
+
+            importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (!importedData.meta || !importedData.clients) {
+                            throw new Error('Invalid file format.');
+                        }
+                        // Simple overwrite strategy as per spec
+                        this.state = importedData;
+                        // Re-initialize repos with new state
+                        this.clientRepo = new ClientRepo(this.state);
+                        this.docRepo = new DocumentRepo(this.state);
+                        this.paymentRepo = new PaymentRepo(this.state);
+                        this.activeClientId = null; // Reset active client
+                        this.saveAndRender();
+                        Utils.showToast('資料已成功匯入並覆蓋');
+                    } catch (err) {
+                        Utils.showToast(`匯入失敗: ${err.message}`, 'error');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = ''; // Reset file input
+            }
+
+        };
+
+        // --- APPLICATION INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+
+        // Expose App and HistoryStack to global scope for HTML event handlers
+        window.App = App;
+        window.HistoryStack = HistoryStack;
+
+    </script>
+</body>
+
+</html>
