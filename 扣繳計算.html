@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【台灣所得稅扣繳計算機】V1.0 - 114年度基準</title>
+    <style>
+        /* speckit.ux: 低飽和度色盤、充足留白、清晰層級 */
+        :root {
+            --color-bg: #f8f9fa;
+            --color-surface: #ffffff;
+            --color-border: #dee2e6;
+            --color-text-primary: #212529;
+            --color-text-secondary: #6c757d;
+            --color-primary: #0d6efd;
+            --color-primary-hover: #0b5ed7;
+            --color-warning: #dc3545;
+            --color-info: #0dcaf0;
+            --font-family-system: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            --spacing-unit: 8px;
+            --border-radius: 4px;
+        }
+
+        /* Reset and Base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-family-system);
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: calc(var(--spacing-unit) * 4);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .calculator-wrapper {
+            width: 100%;
+            max-width: 700px;
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: calc(var(--spacing-unit) * 4);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .history-sidebar {
+            width: 320px;
+            min-width: 300px;
+            background-color: var(--color-surface);
+            border-left: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: width 0.3s ease;
+        }
+
+        .history-sidebar.collapsed {
+            width: 0;
+            min-width: 0;
+        }
+
+        /* Header */
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: calc(var(--spacing-unit) * 1);
+            color: var(--color-text-primary);
+        }
+
+        .header-meta {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-bottom: calc(var(--spacing-unit) * 3);
+        }
+
+        /* Form Elements */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: calc(var(--spacing-unit) * 3);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: var(--spacing-unit);
+            font-size: 0.9rem;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: calc(var(--spacing-unit) * 1.5);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        }
+
+        input.error,
+        select.error {
+            border-color: var(--color-warning);
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+        }
+
+        /* Button */
+        .btn {
+            padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 2);
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+            width: 100%;
+            margin-top: var(--spacing-unit);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5c636a;
+        }
+
+        /* Output Section */
+        #output-section {
+            margin-top: calc(var(--spacing-unit) * 4);
+            border-top: 1px solid var(--color-border);
+            padding-top: calc(var(--spacing-unit) * 3);
+        }
+
+        .output-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: calc(var(--spacing-unit) * 2);
+        }
+
+        .output-item {
+            background-color: var(--color-bg);
+            padding: calc(var(--spacing-unit) * 2);
+            border-radius: var(--border-radius);
+        }
+
+        .output-item h3 {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-unit);
+        }
+
+        .output-item p {
+            font-size: 1.25rem;
+            font-weight: 600;
+            word-wrap: break-word;
+        }
+
+        #output-status {
+            grid-column: 1 / -1;
+            margin-top: var(--spacing-unit);
+            padding: calc(var(--spacing-unit) * 2);
+            border-radius: var(--border-radius);
+            display: none;
+            border: 1px solid transparent;
+        }
+
+        #output-status.info {
+            background-color: #e6f7ff;
+            border-color: #91d5ff;
+            color: #0056b3;
+        }
+
+        #output-status.warning {
+            background-color: #fffbe6;
+            border-color: #ffe58f;
+            color: #d46b08;
+        }
+
+        #output-status.error {
+            background-color: #fff1f0;
+            border-color: #ffccc7;
+            color: var(--color-warning);
+        }
+
+        /* History Sidebar */
+        .history-header {
+            padding: calc(var(--spacing-unit) * 2);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-header h2 {
+            font-size: 1.1rem;
+        }
+
+        .history-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: var(--spacing-unit);
+        }
+
+        .history-item {
+            padding: calc(var(--spacing-unit) * 1.5);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-unit);
+            border: 1px solid var(--color-border);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .history-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .history-item-body {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            margin-top: var(--spacing-unit);
+        }
+
+        .history-footer {
+            padding: calc(var(--spacing-unit) * 2);
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            gap: var(--spacing-unit);
+        }
+
+        #empty-history-state,
+        #empty-main-state {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4);
+            color: var(--color-text-secondary);
+        }
+
+        /* Toast Notifications (for Zero-Console-Issue) */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background-color: var(--color-text-primary);
+            color: white;
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Tooltip 樣式 */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--color-text-secondary);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 6px;
+            user-select: none;
+        }
+
+        .tooltip-content {
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--color-text-primary);
+            color: white;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .tooltip-content::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--color-text-primary);
+        }
+
+        .tooltip-container:hover .tooltip-content {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 薪資扣繳方式區塊 */
+        .salary-method-section {
+            background-color: var(--color-bg);
+            padding: calc(var(--spacing-unit) * 2);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+            margin-top: calc(var(--spacing-unit) * 2);
+        }
+
+        .salary-method-section h4 {
+            font-size: 0.9rem;
+            margin-bottom: calc(var(--spacing-unit) * 1.5);
+            color: var(--color-text-primary);
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-unit);
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-unit);
+        }
+
+        .radio-option input[type="radio"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .dependents-input {
+            margin-top: calc(var(--spacing-unit) * 1.5);
+            padding-left: calc(var(--spacing-unit) * 3);
+        }
+
+        .dependents-input label {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-unit);
+            margin-bottom: var(--spacing-unit);
+        }
+
+        .dependents-input input[type="number"] {
+            width: 80px;
+        }
+
+        /* 批量計算樣式 */
+        .batch-calculator {
+            margin-top: calc(var(--spacing-unit) * 4);
+            border-top: 1px solid var(--color-border);
+            padding-top: calc(var(--spacing-unit) * 3);
+        }
+
+        .batch-input-area {
+            background-color: var(--color-bg);
+            padding: calc(var(--spacing-unit) * 2);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--color-border);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+
+        .batch-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: calc(var(--spacing-unit) * 1.5);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            font-family: monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        .batch-results {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .batch-results-header {
+            background-color: var(--color-bg);
+            padding: calc(var(--spacing-unit) * 1.5);
+            border-bottom: 1px solid var(--color-border);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .batch-results-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .batch-results-table th,
+        .batch-results-table td {
+            padding: calc(var(--spacing-unit) * 1);
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+            font-size: 0.85rem;
+        }
+
+        .batch-results-table th {
+            background-color: var(--color-bg);
+            font-weight: 600;
+        }
+
+        .batch-results-table tr:hover {
+            background-color: var(--color-bg);
+        }
+
+        .batch-error {
+            color: var(--color-warning);
+            font-style: italic;
+        }
+
+        .batch-summary {
+            background-color: var(--color-info);
+            color: white;
+            padding: calc(var(--spacing-unit) * 1.5);
+            font-size: 0.9rem;
+        }
+
+        .batch-content.collapsed {
+            display: none;
+        }
+
+        /* 歷史紀錄刪除按鈕 */
+        .history-item-actions {
+            display: flex;
+            gap: calc(var(--spacing-unit) / 2);
+            margin-top: var(--spacing-unit);
+        }
+
+        .btn-delete {
+            background-color: var(--color-warning);
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: var(--border-radius);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            body {
+                flex-direction: column;
+            }
+
+            .history-sidebar {
+                width: 100%;
+                height: 40vh;
+                border-left: none;
+                border-top: 1px solid var(--color-border);
+            }
+
+            .main-content {
+                height: 60vh;
+                padding: calc(var(--spacing-unit) * 2);
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <main class="main-content">
+            <div id="empty-main-state" style="display: none;">
+                <h3>歡迎使用扣繳計算機</h3>
+                <p>1. 填寫左側表單 &rarr; 2. 點擊計算 &rarr; 3. 查看結果與歷史紀錄</p>
+            </div>
+            <div class="calculator-wrapper">
+                <header>
+                    <h1>所得稅扣繳計算機</h1>
+                    <p class="header-meta">V1.0 - 114 年度 (西元 2025) 基準</p>
+                </header>
+                <form id="tax-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="YEAR">適用年度</label>
+                            <select id="YEAR">
+                                <option value="2025" selected>114 年度（2025）</option>
+                                <option value="2024">113 年度（2024）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="I1">所得人身份</label>
+                            <select id="I1" required>
+                                <option value="R">居住者 (全年居留滿183天)</option>
+                                <option value="NR">非居住者 (全年居留未滿183天)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="I2">所得類別</label>
+                            <select id="I2" required>
+                                <option value="salary">薪資所得</option>
+                                <option value="professional">執行業務報酬</option>
+                                <option value="rent">租賃所得</option>
+                                <option value="interest">利息所得</option>
+                                <option value="dividend">股利所得</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="I3">給付金額 (TWD)</label>
+                            <input type="number" id="I3" placeholder="例如: 50000" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="I4">給付日期 (扣繳日)</label>
+                            <input type="date" id="I4" required>
+                        </div>
+                        <div class="form-group full-width" id="professional-options" style="display: none;">
+                            <label>
+                                <input type="checkbox" id="deduct-expense" style="width: auto; margin-right: 8px;">
+                                已扣除 10% 必要費用
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">此為大部分情況，特定行業有不同費用率，請參考官方規定</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="form-group full-width" id="salary-method-section" style="display: none;">
+                            <div class="salary-method-section">
+                                <h4>薪資扣繳方式</h4>
+                                <div class="radio-group">
+                                    <div class="radio-option">
+                                        <input type="radio" id="method-fixed" name="salary-method" value="fixed"
+                                            checked>
+                                        <label for="method-fixed">固定扣繳 5%</label>
+                                    </div>
+                                    <div class="radio-option">
+                                        <input type="radio" id="method-table" name="salary-method" value="table">
+                                        <label for="method-table">依薪資所得扣繳稅額表</label>
+                                    </div>
+                                </div>
+                                <div class="dependents-input" id="dependents-section">
+                                    <label>
+                                        扶養親屬人數（含本人，選填）
+                                        <input type="number" id="dependents-count" min="0" max="11" value="0"
+                                            placeholder="預設 0 人">
+                                        <div class="tooltip-container">
+                                            <span class="tooltip-icon">?</span>
+                                            <div class="tooltip-content">選填：填入含本人、配偶、及符合稅法規定之受扶養親屬總人數，用於精確計算免扣繳區間</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <button type="submit" class="btn btn-primary">計算扣繳稅額與時程</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- 批量計算區塊 -->
+                <div class="batch-calculator">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: calc(var(--spacing-unit) * 2);">
+                        <h2>批量計算</h2>
+                        <button id="toggle-batch" class="btn btn-secondary" style="padding: 4px 8px;">收合</button>
+                    </div>
+                    <div id="batch-content">
+                        <p style="color: var(--color-text-secondary); margin-bottom: calc(var(--spacing-unit) * 2);">
+                            一次計算多筆薪資扣繳，每行一筆資料，格式：金額,扶養人數,給付日期（可選）
+                        </p>
+
+                        <div class="batch-input-area">
+                            <label for="batch-input" style="display: block; margin-bottom: var(--spacing-unit);">
+                                批量輸入資料
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">範例：50000,2,2025-01-15 或 50000,2（日期可省略，預設今天）</div>
+                                </div>
+                            </label>
+                            <textarea id="batch-input" class="batch-textarea"
+                                placeholder="範例：&#10;50000,2,2025-01-15&#10;80000,1&#10;120000,3,2025-02-01"></textarea>
+                            <div style="margin-top: var(--spacing-unit); display: flex; gap: var(--spacing-unit);">
+                                <button id="batch-calculate-btn" class="btn btn-primary"
+                                    style="width: auto;">批量計算</button>
+                                <button id="batch-export-btn" class="btn btn-secondary" style="width: auto;">匯出結果
+                                    (CSV)</button>
+                            </div>
+                        </div>
+
+                        <div id="batch-results-section" style="display: none;">
+                            <div class="batch-results">
+                                <div class="batch-results-header">
+                                    <span>批量計算結果</span>
+                                    <span id="batch-summary"></span>
+                                </div>
+                                <div style="overflow-x: auto;">
+                                    <table class="batch-results-table">
+                                        <thead>
+                                            <tr>
+                                                <th>序號</th>
+                                                <th>薪資金額</th>
+                                                <th>扶養人數</th>
+                                                <th>給付日期</th>
+                                                <th>是否扣繳</th>
+                                                <th>扣繳率</th>
+                                                <th>扣繳稅額</th>
+                                                <th>備註</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="batch-results-tbody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="output-section" style="display:none;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h2>單筆計算結果</h2>
+                        <button id="export-single-btn" class="btn btn-secondary" style="padding: 6px 12px;">匯出此筆
+                            (PDF)</button>
+                    </div>
+                    <div class="output-grid">
+                        <div class="output-item">
+                            <h3>O1. 是否需扣繳</h3>
+                            <p id="O1"></p>
+                        </div>
+                        <div class="output-item">
+                            <h3>O2. 適用扣繳率</h3>
+                            <p id="O2"></p>
+                        </div>
+                        <div class="output-item">
+                            <h3>O3. 應扣繳稅額</h3>
+                            <p id="O3"></p>
+                        </div>
+                        <div class="output-item">
+                            <h3>O4. 繳納截止日</h3>
+                            <p id="O4"></p>
+                        </div>
+                        <div class="output-item">
+                            <h3>O5. 申報截止日</h3>
+                            <p id="O5"></p>
+                        </div>
+                    </div>
+                    <div class="output-item" style="grid-column:1/-1">
+                        <details>
+                            <summary>計算明細</summary>
+                            <pre id="O_DETAIL"
+                                style="white-space:pre-wrap; font-family: inherit; margin-top: 8px;"></pre>
+                        </details>
+                    </div>
+                    <div id="output-status"></div>
+                </div>
+
+            </div>
+        </main>
+
+        <aside class="history-sidebar">
+            <div class="history-header">
+                <h2>計算歷史</h2>
+                <button id="toggle-history" class="btn btn-secondary" style="padding: 4px 8px;">收合</button>
+            </div>
+            <div class="history-list" id="history-list">
+                <div id="empty-history-state">
+                    <p>尚無計算歷史紀錄。</p>
+                </div>
+            </div>
+            <div class="history-footer">
+                <input type="file" id="import-file" accept="application/json" style="display: none;">
+                <button id="import-btn" class="btn btn-secondary">匯入</button>
+                <button id="export-btn" class="btn btn-secondary">匯出</button>
+            </div>
+        </aside>
+
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module">
+        // speckit.constitution: 單檔 JS 模組化
+
+        // --- I. UI Module ---
+        // 負責所有 DOM 操作與事件監聽，實現 Zero-Console-Issue
+        const UI = {
+            init() {
+                // Form elements
+                this.form = document.getElementById('tax-form');
+                this.year = document.getElementById('YEAR');
+                this.i1 = document.getElementById('I1');
+                this.i2 = document.getElementById('I2');
+                this.i3 = document.getElementById('I3');
+                this.i4 = document.getElementById('I4');
+                this.i4.valueAsDate = new Date(); // Default to today
+                this.deductExpense = document.getElementById('deduct-expense');
+                this.professionalOptions = document.getElementById('professional-options');
+                this.salaryMethodSection = document.getElementById('salary-method-section');
+                this.methodFixed = document.getElementById('method-fixed');
+                this.methodTable = document.getElementById('method-table');
+                this.dependentsSection = document.getElementById('dependents-section');
+                this.dependentsCount = document.getElementById('dependents-count');
+
+                // Batch calculation elements
+                this.batchInput = document.getElementById('batch-input');
+                this.batchCalculateBtn = document.getElementById('batch-calculate-btn');
+                this.batchExportBtn = document.getElementById('batch-export-btn');
+                this.batchResultsSection = document.getElementById('batch-results-section');
+                this.batchResultsTbody = document.getElementById('batch-results-tbody');
+                this.batchSummary = document.getElementById('batch-summary');
+                this.toggleBatchBtn = document.getElementById('toggle-batch');
+                this.batchContent = document.getElementById('batch-content');
+
+                // Output elements
+                this.outputSection = document.getElementById('output-section');
+                this.o1 = document.getElementById('O1');
+                this.o2 = document.getElementById('O2');
+                this.o3 = document.getElementById('O3');
+                this.o4 = document.getElementById('O4');
+                this.o5 = document.getElementById('O5');
+                this.outputStatus = document.getElementById('output-status');
+
+                // History elements
+                this.historyList = document.getElementById('history-list');
+                this.emptyHistoryState = document.getElementById('empty-history-state');
+
+                // Buttons & file inputs
+                this.importBtn = document.getElementById('import-btn');
+                this.importFile = document.getElementById('import-file');
+                this.exportBtn = document.getElementById('export-btn');
+                this.exportSingleBtn = document.getElementById('export-single-btn');
+                this.toggleHistoryBtn = document.getElementById('toggle-history');
+
+                this.bindEvents();
+            },
+
+            bindEvents() {
+                this.form.addEventListener('submit', App.handleFormSubmit);
+                this.importBtn.addEventListener('click', () => this.importFile.click());
+                this.importFile.addEventListener('change', App.handleImport);
+                this.exportBtn.addEventListener('click', App.handleExport);
+                this.exportSingleBtn.addEventListener('click', App.handleSingleExport);
+                this.historyList.addEventListener('click', this.handleHistoryClick);
+                this.toggleHistoryBtn.addEventListener('click', this.toggleHistorySidebar);
+                this.i2.addEventListener('change', this.handleIncomeTypeChange.bind(this));
+                this.i1.addEventListener('change', this.handleIdentityChange.bind(this));
+                this.methodTable.addEventListener('change', this.handleSalaryMethodChange.bind(this));
+                this.batchCalculateBtn.addEventListener('click', App.handleBatchCalculate);
+                this.batchExportBtn.addEventListener('click', App.handleBatchExport);
+                this.toggleBatchBtn.addEventListener('click', this.toggleBatchSection.bind(this));
+            },
+
+            getInput() {
+                return {
+                    year: parseInt(this.year.value, 10),
+                    identity: this.i1.value,
+                    incomeType: this.i2.value,
+                    amount: parseFloat(this.i3.value || 0),
+                    paymentDate: this.i4.value,
+                    deductExpense: this.deductExpense.checked,
+                    salaryMethod: this.methodTable.checked ? 'table' : 'fixed',
+                    dependentsCount: parseInt(this.dependentsCount.value, 10) || 1,
+                };
+            },
+
+            handleIncomeTypeChange() {
+                if (this.i2.value === 'professional') {
+                    this.professionalOptions.style.display = 'block';
+                } else {
+                    this.professionalOptions.style.display = 'none';
+                    this.deductExpense.checked = false;
+                }
+                this.updateSalaryMethodVisibility();
+            },
+
+            handleIdentityChange() {
+                this.updateSalaryMethodVisibility();
+            },
+
+            handleSalaryMethodChange() {
+                // 扶養人數欄位現在總是顯示，不需要隱藏
+            },
+
+            updateSalaryMethodVisibility() {
+                if (this.i1.value === 'R' && this.i2.value === 'salary') {
+                    this.salaryMethodSection.style.display = 'block';
+                } else {
+                    this.salaryMethodSection.style.display = 'none';
+                    this.methodFixed.checked = true;
+                }
+            },
+
+            clearFieldErrors() {
+                // 清除所有欄位的錯誤樣式
+                [this.i3, this.i4].forEach(field => {
+                    field.classList.remove('error');
+                });
+            },
+
+            showFieldError(field) {
+                field.classList.add('error');
+                setTimeout(() => field.classList.remove('error'), 3000);
+            },
+
+            renderBatchResults(results) {
+                this.batchResultsSection.style.display = 'block';
+
+                // 統計資訊
+                const totalItems = results.length;
+                const successItems = results.filter(r => !r.error).length;
+                const errorItems = totalItems - successItems;
+                const totalTax = results.filter(r => !r.error).reduce((sum, r) => sum + r.output.taxAmount, 0);
+
+                this.batchSummary.textContent = `共 ${totalItems} 筆，成功 ${successItems} 筆，錯誤 ${errorItems} 筆，總扣繳稅額 NT$ ${totalTax.toLocaleString()}`;
+
+                // 渲染表格
+                this.batchResultsTbody.innerHTML = results.map((result, index) => {
+                    if (result.error) {
+                        return `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td colspan="7" class="batch-error">${result.error}</td>
+                            </tr>
+                        `;
+                    }
+
+                    const { input, output } = result;
+                    return `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>NT$ ${input.amount.toLocaleString()}</td>
+                            <td>${input.dependentsCount} 人</td>
+                            <td>${input.paymentDate}</td>
+                            <td>${output.shouldWithhold ? '是' : '否'}</td>
+                            <td>${(output.rate * 100).toFixed(2)}%</td>
+                            <td>NT$ ${output.taxAmount.toLocaleString()}</td>
+                            <td style="max-width: 200px; word-wrap: break-word;">${output.ruleNote || ''}</td>
+                        </tr>
+                    `;
+                }).join('');
+            },
+
+            toggleBatchSection() {
+                this.batchContent.classList.toggle('collapsed');
+                this.toggleBatchBtn.textContent = this.batchContent.classList.contains('collapsed') ? '展開' : '收合';
+            },
+
+            renderOutput(output) {
+                this.outputSection.style.display = 'block';
+                this.o1.textContent = output.shouldWithhold ? '是' : '否';
+                this.o2.textContent = `${(output.rate * 100).toFixed(2)}%`;
+                this.o3.textContent = `NT$ ${output.taxAmount.toLocaleString()}`;
+                this.o4.textContent = output.paymentDueDate;
+                this.o5.textContent = output.declarationDueDate;
+
+                // 計算明細
+                const lines = [
+                    `計算基礎：NT$ ${output.base?.toLocaleString?.() ?? '—'}`,
+                    `稅率：${(output.rate * 100).toFixed(2)}%`,
+                    `稅額：NT$ ${output.taxAmount.toLocaleString()}`,
+                    `繳納截止：${output.paymentDueDate}；申報截止：${output.declarationDueDate}`,
+                    output.ruleNote ? `規則：${output.ruleNote}` : ''
+                ].filter(Boolean);
+                document.getElementById('O_DETAIL').textContent = lines.join('\n');
+
+                this.outputStatus.textContent = output.statusMessage;
+                this.outputStatus.className = '';
+                if (output.statusMessage) {
+                    this.outputStatus.style.display = 'block';
+                    if (output.statusType === 'error') this.outputStatus.classList.add('error');
+                    else if (output.statusType === 'warning') this.outputStatus.classList.add('warning');
+                    else this.outputStatus.classList.add('info');
+                } else {
+                    this.outputStatus.style.display = 'none';
+                }
+            },
+
+            renderHistory(history) {
+                if (history.length === 0) {
+                    this.emptyHistoryState.style.display = 'block';
+                    this.historyList.innerHTML = '';
+                    this.historyList.appendChild(this.emptyHistoryState);
+                } else {
+                    this.emptyHistoryState.style.display = 'none';
+                    this.historyList.innerHTML = history.map((item, index) => `
+                        <div class="history-item" data-index="${index}">
+                            <div class="history-item-header">
+                                <span>${item.input.paymentDate}</span>
+                                <span>NT$ ${item.input.amount.toLocaleString()}</span>
+                            </div>
+                            <div class="history-item-body">
+                                ${item.input.identity === 'R' ? '居住者' : '非居住者'} - 稅額: NT$ ${item.output.taxAmount.toLocaleString()}
+                                ${item.input.dependentsCount !== undefined ? ` (扶養 ${item.input.dependentsCount} 人)` : ''}
+                            </div>
+                            <div class="history-item-actions">
+                                <button class="btn-delete" data-action="delete" data-index="${index}">刪除</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            },
+
+            handleHistoryClick(e) {
+                // 檢查是否點擊了刪除按鈕
+                if (e.target.dataset.action === 'delete') {
+                    e.stopPropagation();
+                    const index = parseInt(e.target.dataset.index, 10);
+                    App.deleteHistoryItem(index);
+                    return;
+                }
+
+                const item = e.target.closest('.history-item');
+                if (item) {
+                    const index = parseInt(item.dataset.index, 10);
+                    const historyEntry = App.history[index];
+                    if (historyEntry) {
+                        // Rollback form to this state
+                        UI.year.value = historyEntry.input.year || 2025;
+                        UI.i1.value = historyEntry.input.identity;
+                        UI.i2.value = historyEntry.input.incomeType;
+                        UI.i3.value = historyEntry.input.amount;
+                        UI.i4.value = historyEntry.input.paymentDate;
+                        UI.deductExpense.checked = historyEntry.input.deductExpense || false;
+
+                        // 還原薪資扣繳方式和扶養人數
+                        if (historyEntry.input.salaryMethod === 'table') {
+                            UI.methodTable.checked = true;
+                        } else {
+                            UI.methodFixed.checked = true;
+                        }
+                        UI.dependentsCount.value = historyEntry.input.dependentsCount || 0;
+
+                        UI.handleIncomeTypeChange(); // 更新相關欄位顯示
+                        UI.handleIdentityChange();
+                        UI.renderOutput(historyEntry.output);
+                        UI.showToast(`已還原歷史紀錄 #${index + 1}`);
+                    }
+                }
+            },
+
+            toggleHistorySidebar() {
+                document.querySelector('.history-sidebar').classList.toggle('collapsed');
+            },
+
+            showToast(message, duration = 3000) {
+                const toastContainer = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = message;
+                toastContainer.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+        };
+
+        // --- II. TaxStorageModule ---
+        // 安全儲存並載入參數及計算歷史 (localStorage)
+        const TaxStorageModule = {
+            getTaxParameters(year) {
+                const presets = {
+                    2025: {
+                        year: 2025,
+                        P4_BaseSalary: 28590,
+                        P5_R_WithholdingPoint: 20001,
+                        P1_Holidays: [
+                            '2025-01-01', // 元旦
+                            '2025-01-28', '2025-01-29', '2025-01-30', '2025-01-31', // 農曆春節
+                            '2025-02-28', // 和平紀念日
+                            '2025-04-04', // 兒童節
+                            '2025-04-05', // 清明節
+                            '2025-05-01', // 勞動節
+                            '2025-05-31', // 端午節
+                            '2025-10-06', // 中秋節
+                            '2025-10-10', // 國慶日
+                        ],
+                        withholdingTable: [
+                            // 薪資級距表 (114年度) - 根據扶養親屬免扣繳區間
+                            { min: 0, max: 88500, rates: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, // 0人扶養
+                            { min: 0, max: 96500, rates: [null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, // 1人扶養
+                            { min: 0, max: 104500, rates: [null, null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, // 2人扶養
+                            { min: 0, max: 113000, rates: [null, null, null, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, // 3人扶養
+                            { min: 0, max: 121000, rates: [null, null, null, null, 0, 0, 0, 0, 0, 0, 0, 0] }, // 4人扶養
+                            { min: 0, max: 129000, rates: [null, null, null, null, null, 0, 0, 0, 0, 0, 0, 0] }, // 5人扶養
+                            { min: 0, max: 137000, rates: [null, null, null, null, null, null, 0, 0, 0, 0, 0, 0] }, // 6人扶養
+                            { min: 0, max: 145000, rates: [null, null, null, null, null, null, null, 0, 0, 0, 0, 0] }, // 7人扶養
+                            { min: 0, max: 153000, rates: [null, null, null, null, null, null, null, null, 0, 0, 0, 0] }, // 8人扶養
+                            { min: 0, max: 161500, rates: [null, null, null, null, null, null, null, null, null, 0, 0, 0] }, // 9人扶養
+                            { min: 0, max: 169500, rates: [null, null, null, null, null, null, null, null, null, null, 0, 0] }, // 10人扶養
+                            { min: 0, max: 177500, rates: [null, null, null, null, null, null, null, null, null, null, null, 0] }, // 11人扶養
+                            // 超過免扣繳區間的級距
+                            { min: 88501, max: 89000, rates: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 96501, max: 97000, rates: [null, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 104501, max: 105000, rates: [null, null, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 113001, max: 113500, rates: [null, null, null, 1, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 121001, max: 121500, rates: [null, null, null, null, 1, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 129001, max: 129500, rates: [null, null, null, null, null, 1, 0, 0, 0, 0, 0, 0] },
+                            { min: 137001, max: 137500, rates: [null, null, null, null, null, null, 1, 0, 0, 0, 0, 0] },
+                            { min: 145001, max: 145500, rates: [null, null, null, null, null, null, null, 1, 0, 0, 0, 0] },
+                            { min: 153001, max: 153500, rates: [null, null, null, null, null, null, null, null, 1, 0, 0, 0] },
+                            { min: 161501, max: 162000, rates: [null, null, null, null, null, null, null, null, null, 1, 0, 0] },
+                            { min: 169501, max: 170000, rates: [null, null, null, null, null, null, null, null, null, null, 1, 0] },
+                            { min: 177501, max: 178000, rates: [null, null, null, null, null, null, null, null, null, null, null, 1] },
+                            // 一般級距使用5%
+                            { min: 89001, max: 999999999, rates: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05] }
+                        ],
+                        exemptionRanges: [
+                            { dependents: 0, min: 0, max: 88500 },
+                            { dependents: 1, min: 0, max: 96500 },
+                            { dependents: 2, min: 0, max: 104500 },
+                            { dependents: 3, min: 0, max: 113000 },
+                            { dependents: 4, min: 0, max: 121000 },
+                            { dependents: 5, min: 0, max: 129000 },
+                            { dependents: 6, min: 0, max: 137000 },
+                            { dependents: 7, min: 0, max: 145000 },
+                            { dependents: 8, min: 0, max: 153000 },
+                            { dependents: 9, min: 0, max: 161500 },
+                            { dependents: 10, min: 0, max: 169500 },
+                            { dependents: 11, min: 0, max: 177500 }
+                        ]
+                    },
+                    2024: {
+                        year: 2024,
+                        P4_BaseSalary: 27470,
+                        P5_R_WithholdingPoint: 20001,
+                        P1_Holidays: [
+                            '2024-01-01', // 元旦
+                            '2024-02-08', '2024-02-09', '2024-02-10', '2024-02-11', '2024-02-12', '2024-02-13', '2024-02-14', // 農曆春節
+                            '2024-02-28', // 和平紀念日
+                            '2024-04-04', // 兒童節
+                            '2024-04-05', // 清明節
+                            '2024-05-01', // 勞動節
+                            '2024-06-10', // 端午節
+                            '2024-09-17', // 中秋節
+                            '2024-10-10', // 國慶日
+                        ],
+                        withholdingTable: [
+                            // 薪資級距表 (113年度) - 根據扶養親屬免扣繳區間
+                            { min: 0, max: 88500, rates: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 0, max: 96500, rates: [null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 0, max: 104500, rates: [null, null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 0, max: 113000, rates: [null, null, null, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 0, max: 121000, rates: [null, null, null, null, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 0, max: 129000, rates: [null, null, null, null, null, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 0, max: 137000, rates: [null, null, null, null, null, null, 0, 0, 0, 0, 0, 0] },
+                            { min: 0, max: 145000, rates: [null, null, null, null, null, null, null, 0, 0, 0, 0, 0] },
+                            { min: 0, max: 153000, rates: [null, null, null, null, null, null, null, null, 0, 0, 0, 0] },
+                            { min: 0, max: 161500, rates: [null, null, null, null, null, null, null, null, null, 0, 0, 0] },
+                            { min: 0, max: 169500, rates: [null, null, null, null, null, null, null, null, null, null, 0, 0] },
+                            { min: 0, max: 177500, rates: [null, null, null, null, null, null, null, null, null, null, null, 0] },
+                            { min: 88501, max: 89000, rates: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 96501, max: 97000, rates: [null, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 104501, max: 105000, rates: [null, null, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 113001, max: 113500, rates: [null, null, null, 1, 0, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 121001, max: 121500, rates: [null, null, null, null, 1, 0, 0, 0, 0, 0, 0, 0] },
+                            { min: 129001, max: 129500, rates: [null, null, null, null, null, 1, 0, 0, 0, 0, 0, 0] },
+                            { min: 137001, max: 137500, rates: [null, null, null, null, null, null, 1, 0, 0, 0, 0, 0] },
+                            { min: 145001, max: 145500, rates: [null, null, null, null, null, null, null, 1, 0, 0, 0, 0] },
+                            { min: 153001, max: 153500, rates: [null, null, null, null, null, null, null, null, 1, 0, 0, 0] },
+                            { min: 161501, max: 162000, rates: [null, null, null, null, null, null, null, null, null, 1, 0, 0] },
+                            { min: 169501, max: 170000, rates: [null, null, null, null, null, null, null, null, null, null, 1, 0] },
+                            { min: 177501, max: 178000, rates: [null, null, null, null, null, null, null, null, null, null, null, 1] },
+                            { min: 89001, max: 999999999, rates: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05] }
+                        ],
+                        exemptionRanges: [
+                            { dependents: 0, min: 0, max: 88500 },
+                            { dependents: 1, min: 0, max: 96500 },
+                            { dependents: 2, min: 0, max: 104500 },
+                            { dependents: 3, min: 0, max: 113000 },
+                            { dependents: 4, min: 0, max: 121000 },
+                            { dependents: 5, min: 0, max: 129000 },
+                            { dependents: 6, min: 0, max: 137000 },
+                            { dependents: 7, min: 0, max: 145000 },
+                            { dependents: 8, min: 0, max: 153000 },
+                            { dependents: 9, min: 0, max: 161500 },
+                            { dependents: 10, min: 0, max: 169500 },
+                            { dependents: 11, min: 0, max: 177500 }
+                        ]
+                    }
+                };
+                return presets[year] || presets[2025];
+            },
+
+            getHistory() {
+                return this.safeRead('taxHistory') || [];
+            },
+
+            recordCalculation(entry) {
+                const history = this.getHistory();
+                history.unshift(entry); // Add to the top
+                if (history.length > 100) history.pop(); // Limit history size
+                this.safeWrite('taxHistory', history);
+                return history;
+            },
+
+            importData(jsonString) {
+                try {
+                    const data = JSON.parse(jsonString);
+                    if (!data.app || data.app !== 'tax-calculator-v1' || !Array.isArray(data.history)) {
+                        throw new Error("無效的檔案格式或版本。");
+                    }
+                    this.safeWrite('taxHistory', data.history);
+                    return data.history;
+                } catch (e) {
+                    throw new Error("檔案解析失敗，請確認檔案為正確的 JSON 匯出檔。");
+                }
+            },
+
+            exportData(history) {
+                const data = {
+                    app: 'tax-calculator-v1',
+                    schemaVersion: 1,
+                    exportedAt: new Date().toISOString(),
+                    history: history
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tax_history_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            },
+
+            safeWrite(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                } catch (e) {
+                    UI.showToast(`寫入儲存空間失敗: ${e.message}`);
+                }
+            },
+
+            safeRead(key) {
+                try {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : null;
+                } catch (e) {
+                    UI.showToast(`讀取儲存空間失敗: ${e.message}`);
+                    return null;
+                }
+            }
+        };
+
+        // --- III. TaxCalculatorModule ---
+        // 執行所有業務和時程邏輯
+        const TaxCalculatorModule = {
+            calculateTax(input) {
+                try {
+                    const P = TaxStorageModule.getTaxParameters(input.year || 2025);
+                    const output = {};
+                    let extraNote = '';
+
+                    // 邏輯 A：身份與稅率判定
+                    let rate = 0;
+                    let shouldWithhold = true;
+
+                    if (input.identity === 'NR') { // 非居住者
+                        if (input.incomeType === 'salary') {
+                            const threshold = this.getNRSalaryThreshold(P.P4_BaseSalary); // P4 * 1.5
+                            rate = input.amount <= threshold ? 0.06 : 0.18;
+                        } else if (input.incomeType === 'dividend') {
+                            rate = 0.21;
+                        } else {
+                            rate = 0.20; // 執行業務、租金、利息等
+                        }
+                    } else { // 居住者 (R)
+                        if (input.incomeType === 'salary') {
+                            if (input.salaryMethod === 'table') {
+                                // 使用薪資扣繳稅額表
+                                const tableResult = this.calculateSalaryByTable(input.amount, input.dependentsCount, P);
+                                rate = tableResult.rate;
+                                shouldWithhold = tableResult.shouldWithhold;
+                                extraNote = tableResult.note;
+                            } else {
+                                // 固定扣繳 5%，但考慮扶養人數的免扣繳區間
+                                if (input.dependentsCount !== undefined && input.dependentsCount >= 0) {
+                                    const tableResult = this.calculateSalaryByTable(input.amount, input.dependentsCount, P);
+                                    if (!tableResult.shouldWithhold) {
+                                        // 在免扣繳區間內
+                                        rate = 0;
+                                        shouldWithhold = false;
+                                        extraNote = `固定扣繳方式：薪資在免扣繳區間內（扶養 ${input.dependentsCount} 人）。`;
+                                    } else {
+                                        rate = 0.05;
+                                        extraNote = `固定扣繳方式：採用 5% 扣繳率（扶養 ${input.dependentsCount} 人）。`;
+                                    }
+                                } else {
+                                    // 傳統簡化邏輯
+                                    if (input.amount >= 88501) {
+                                        rate = 0.05;
+                                        extraNote = '（採簡化 5% 規則；建議填寫扶養人數以精確計算免扣繳區間）';
+                                    } else {
+                                        shouldWithhold = false;
+                                        rate = 0;
+                                    }
+                                }
+                            }
+                        } else if (input.incomeType === 'dividend') {
+                            shouldWithhold = false;
+                            rate = 0;
+                            extraNote = '境內居住者股利：不就源扣繳，於年度申報選擇合併或分開課稅。';
+                        }
+                        else {
+                            if (input.amount >= P.P5_R_WithholdingPoint) {
+                                rate = 0.10; // 執行業務、租金、利息等
+                            } else {
+                                shouldWithhold = false;
+                            }
+                        }
+                    }
+                    if (!shouldWithhold) rate = 0;
+
+                    // 計算基礎金額（考慮執行業務費用扣除）
+                    let baseAmount = input.amount;
+                    if (input.incomeType === 'professional' && input.deductExpense) {
+                        baseAmount = input.amount * 0.9; // 扣除 10% 必要費用
+                        extraNote += (extraNote ? ' ' : '') + '已扣除 10% 必要費用。';
+                    }
+
+                    output.shouldWithhold = shouldWithhold;
+                    output.rate = rate;
+                    output.taxAmount = Math.round(baseAmount * rate);
+                    output.base = baseAmount;
+                    output.ruleNote = extraNote || '';
+
+                    // 邏輯 B：時程合規計算
+                    const paymentDate = new Date(input.paymentDate + 'T00:00:00');
+                    const { paymentDueDate, declarationDueDate, statusMessage, statusType } = this.getDeadlines(paymentDate, input.identity, P);
+                    output.paymentDueDate = paymentDueDate.toISOString().split('T')[0];
+                    output.declarationDueDate = declarationDueDate.toISOString().split('T')[0];
+
+                    // IV. 合規警告
+                    let finalStatusMessage = statusMessage || '';
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    if (paymentDueDate < today) {
+                        finalStatusMessage += " [繳納已逾期] 請注意申報期限，違章裁處範圍為 NT$1,500 - NT$20,000。";
+                        output.statusType = 'error';
+                    } else if (!output.statusType) {
+                        output.statusType = statusType || 'info';
+                    }
+
+                    if (new Date().getFullYear() > P.year) {
+                        finalStatusMessage += " [參數可能過期] 基本工資或假日資料可能過期，請手動校對。";
+                        output.statusType = 'warning';
+                    }
+
+                    output.statusMessage = finalStatusMessage.trim();
+
+                    return output;
+                } catch (e) {
+                    // Speckit Zero-Console-Issue
+                    UI.showToast(`計算錯誤: ${e.message}`);
+                    return null;
+                }
+            },
+
+            getNRSalaryThreshold(baseSalary, factor = 1.5) {
+                return baseSalary * factor;
+            },
+
+            calculateSalaryByTable(amount, dependentsCount, params) {
+                const exemptionRanges = params.exemptionRanges;
+                if (!exemptionRanges) {
+                    return {
+                        rate: 0.05,
+                        shouldWithhold: amount >= 88501,
+                        note: '無免扣繳區間資料，採用簡化 5% 規則。'
+                    };
+                }
+
+                // 限制扶養人數範圍
+                const actualDependents = Math.min(Math.max(dependentsCount, 0), 11);
+
+                // 找到對應的免扣繳區間
+                const exemptionRange = exemptionRanges.find(range => range.dependents === actualDependents);
+
+                let note = `依薪資扣繳稅額表計算（扶養 ${actualDependents} 人）。此計算未考慮『無配偶之單身者』或『配偶薪資分開計算』等特殊稅表規則，結果僅供參考。`;
+
+                if (exemptionRange && amount <= exemptionRange.max) {
+                    // 在免扣繳區間內
+                    return {
+                        rate: 0,
+                        shouldWithhold: false,
+                        note: note + ` 薪資 NT$ ${amount.toLocaleString()} 在免扣繳區間內（NT$ 0 ~ ${exemptionRange.max.toLocaleString()}）。`
+                    };
+                }
+
+                // 檢查是否在應扣繳非0元的過渡區間
+                const transitionRanges = [
+                    { dependents: 0, min: 88501, max: 89000 },
+                    { dependents: 1, min: 96501, max: 97000 },
+                    { dependents: 2, min: 104501, max: 105000 },
+                    { dependents: 3, min: 113001, max: 113500 },
+                    { dependents: 4, min: 121001, max: 121500 },
+                    { dependents: 5, min: 129001, max: 129500 },
+                    { dependents: 6, min: 137001, max: 137500 },
+                    { dependents: 7, min: 145001, max: 145500 },
+                    { dependents: 8, min: 153001, max: 153500 },
+                    { dependents: 9, min: 161501, max: 162000 },
+                    { dependents: 10, min: 169501, max: 170000 },
+                    { dependents: 11, min: 177501, max: 178000 }
+                ];
+
+                const transitionRange = transitionRanges.find(range =>
+                    range.dependents === actualDependents &&
+                    amount >= range.min &&
+                    amount <= range.max
+                );
+
+                if (transitionRange) {
+                    // 在過渡區間，應扣繳非0元（最低扣繳額）
+                    return {
+                        rate: 1 / amount, // 固定扣繳 1 元
+                        shouldWithhold: true,
+                        note: note + ` 薪資在過渡區間（NT$ ${transitionRange.min.toLocaleString()} ~ ${transitionRange.max.toLocaleString()}），應扣繳非 0 元。`
+                    };
+                }
+
+                // 超過免扣繳區間，使用 5% 扣繳率
+                return {
+                    rate: 0.05,
+                    shouldWithhold: true,
+                    note: note + ` 薪資超過免扣繳區間，採用 5% 扣繳率。`
+                };
+            },
+
+            getDeadlines(paymentDate, identity, params) {
+                let statusMessage = '';
+                let statusType = '';
+
+                // 假日展延規則參數
+                const DEADLINE_RULE = {
+                    holsWindowDays: 10,
+                    consecutiveHols: 3,
+                    extendDays: 5
+                };
+
+                if (identity === 'NR') {
+                    const baseDeadline = new Date(paymentDate);
+                    baseDeadline.setDate(paymentDate.getDate() + 10);
+
+                    // 連續假日判斷
+                    let consecutiveHolidays = 0;
+                    let maxConsecutive = 0;
+                    for (let i = 1; i <= DEADLINE_RULE.holsWindowDays; i++) {
+                        const checkDate = new Date(paymentDate);
+                        checkDate.setDate(paymentDate.getDate() + i);
+                        const isHoliday = params.P1_Holidays.includes(checkDate.toISOString().split('T')[0]) || [0, 6].includes(checkDate.getDay());
+                        if (isHoliday) {
+                            consecutiveHolidays++;
+                        } else {
+                            maxConsecutive = Math.max(maxConsecutive, consecutiveHolidays);
+                            consecutiveHolidays = 0;
+                        }
+                    }
+                    maxConsecutive = Math.max(maxConsecutive, consecutiveHolidays);
+
+                    let finalDeadline = baseDeadline;
+                    if (maxConsecutive >= DEADLINE_RULE.consecutiveHols) {
+                        finalDeadline.setDate(baseDeadline.getDate() + DEADLINE_RULE.extendDays);
+                        statusMessage = `已觸發系統設定：連續 ${DEADLINE_RULE.consecutiveHols} 日以上假日，期限延長 ${DEADLINE_RULE.extendDays} 日。`;
+                        statusType = 'info';
+                    }
+
+                    const adjustedDeadline = this.applyNextWorkingDay(finalDeadline, params.P1_Holidays);
+
+                    return {
+                        paymentDueDate: adjustedDeadline,
+                        declarationDueDate: adjustedDeadline,
+                        statusMessage,
+                        statusType
+                    };
+
+                } else { // 居住者 R
+                    const paymentDueDate = this.applyNextWorkingDay(new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate() + 10), params.P1_Holidays);
+
+                    // 次年1月31日
+                    let declarationDueDate = new Date(paymentDate.getFullYear() + 1, 0, 31);
+                    // 114年春節在1月底，適用延長規則
+                    if (paymentDate.getFullYear() === 2024) { // 這是 113年度的資料
+                        declarationDueDate = new Date(2025, 1, 5); // 延長至 2/5
+                        statusMessage = '113年度憑單申報因春節延長至114/02/05。';
+                        statusType = 'info';
+                    } else {
+                        declarationDueDate = this.applyNextWorkingDay(declarationDueDate, params.P1_Holidays);
+                    }
+
+
+                    return { paymentDueDate, declarationDueDate, statusMessage, statusType };
+                }
+            },
+
+            applyNextWorkingDay(date, holidays) {
+                let d = new Date(date);
+                while (holidays.includes(d.toISOString().split('T')[0]) || [0, 6].includes(d.getDay())) {
+                    d.setDate(d.getDate() + 1);
+                }
+                return d;
+            }
+        };
+
+        // --- IV. Main App Controller ---
+        const App = {
+            history: [],
+            batchResults: [],
+
+            init() {
+                try {
+                    UI.init();
+                    this.history = TaxStorageModule.getHistory();
+                    UI.renderHistory(this.history);
+
+                    // 一律顯示計算器，不因歷史紀錄為空而隱藏
+                    document.getElementById('empty-main-state').style.display = 'none';
+                    document.querySelector('.calculator-wrapper').style.display = 'block';
+
+                } catch (e) {
+                    // 全域 try/catch, 避免白畫面
+                    document.body.innerHTML = `<div style="padding:20px; color:red;">應用程式初始化失敗: ${e.message}</div>`;
+                    console.error(e); // 在此情境下，初始化失敗才 log，以便開發者除錯
+                }
+            },
+
+            handleFormSubmit(e) {
+                e.preventDefault();
+                const input = UI.getInput();
+
+                // 清除之前的錯誤樣式
+                UI.clearFieldErrors();
+
+                // 表單驗證
+                let hasError = false;
+
+                if (input.amount <= 0) {
+                    UI.showFieldError(UI.i3);
+                    UI.showToast("請輸入有效的給付金額。");
+                    hasError = true;
+                }
+
+                if (!input.paymentDate) {
+                    UI.showFieldError(UI.i4);
+                    UI.showToast("請選擇給付日期。");
+                    hasError = true;
+                }
+
+                const paymentDate = new Date(input.paymentDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                if (paymentDate > today) {
+                    UI.showFieldError(UI.i4);
+                    UI.showToast("給付日期不能是未來日期。");
+                    hasError = true;
+                }
+
+                if (hasError) return;
+
+                const output = TaxCalculatorModule.calculateTax(input);
+
+                if (output) {
+                    UI.renderOutput(output);
+
+                    const newEntry = { input, output };
+                    this.history = TaxStorageModule.recordCalculation(newEntry);
+                    UI.renderHistory(this.history);
+
+                    // 首次計算後，隱藏教學卡，顯示計算器
+                    document.getElementById('empty-main-state').style.display = 'none';
+                    document.querySelector('.calculator-wrapper').style.display = 'block';
+                }
+            },
+
+            handleImport(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const newHistory = TaxStorageModule.importData(e.target.result);
+                        this.history = newHistory;
+                        UI.renderHistory(this.history);
+                        UI.showToast("資料匯入成功！");
+                    } catch (error) {
+                        UI.showToast(error.message);
+                    }
+                };
+                reader.onerror = () => {
+                    UI.showToast("讀取檔案失敗。");
+                };
+                reader.readAsText(file);
+                // Reset input to allow re-importing the same file
+                event.target.value = '';
+            },
+
+            handleExport() {
+                if (this.history.length === 0) {
+                    UI.showToast("沒有歷史紀錄可供匯出。");
+                    return;
+                }
+                TaxStorageModule.exportData(this.history);
+                UI.showToast("歷史紀錄已開始下載。");
+            },
+
+            handleSingleExport() {
+                if (this.history.length === 0) {
+                    UI.showToast("尚無計算結果可供匯出。");
+                    return;
+                }
+
+                // 使用最新的計算結果
+                const latestEntry = this.history[0];
+                const printContent = this.generatePrintContent(latestEntry);
+
+                // 創建新視窗進行列印
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                printWindow.focus();
+                printWindow.print();
+                printWindow.close();
+
+                UI.showToast("PDF 匯出已開始（請在列印對話框選擇儲存為 PDF）。");
+            },
+
+            generatePrintContent(entry) {
+                const { input, output } = entry;
+                const currentDate = new Date().toLocaleDateString('zh-TW');
+
+                return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>扣繳計算結果</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .section { margin-bottom: 20px; }
+                        .label { font-weight: bold; }
+                        .footer { margin-top: 40px; font-size: 12px; color: #666; }
+                        table { width: 100%; border-collapse: collapse; }
+                        td { padding: 8px; border-bottom: 1px solid #ddd; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>所得稅扣繳計算結果</h1>
+                        <p>計算日期：${currentDate}</p>
+                    </div>
+                    
+                    <div class="section">
+                        <h3>輸入條件</h3>
+                        <table>
+                            <tr><td class="label">適用年度</td><td>${input.year || 2025} 年度</td></tr>
+                            <tr><td class="label">所得人身份</td><td>${input.identity === 'R' ? '居住者' : '非居住者'}</td></tr>
+                            <tr><td class="label">所得類別</td><td>${this.getIncomeTypeText(input.incomeType)}</td></tr>
+                            <tr><td class="label">給付金額</td><td>NT$ ${input.amount.toLocaleString()}</td></tr>
+                            <tr><td class="label">給付日期</td><td>${input.paymentDate}</td></tr>
+                            ${input.incomeType === 'professional' && input.deductExpense ?
+                        '<tr><td class="label">費用扣除</td><td>已扣除 10% 必要費用</td></tr>' : ''}
+                            ${input.identity === 'R' && input.incomeType === 'salary' && input.salaryMethod === 'table' ?
+                        `<tr><td class="label">扣繳方式</td><td>依薪資扣繳稅額表（扶養 ${input.dependentsCount} 人）</td></tr>` : ''}
+                        </table>
+                    </div>
+                    
+                    <div class="section">
+                        <h3>計算結果</h3>
+                        <table>
+                            <tr><td class="label">計算基礎</td><td>NT$ ${output.base.toLocaleString()}</td></tr>
+                            <tr><td class="label">是否需扣繳</td><td>${output.shouldWithhold ? '是' : '否'}</td></tr>
+                            <tr><td class="label">適用扣繳率</td><td>${(output.rate * 100).toFixed(2)}%</td></tr>
+                            <tr><td class="label">應扣繳稅額</td><td>NT$ ${output.taxAmount.toLocaleString()}</td></tr>
+                            <tr><td class="label">繳納截止日</td><td>${output.paymentDueDate}</td></tr>
+                            <tr><td class="label">申報截止日</td><td>${output.declarationDueDate}</td></tr>
+                        </table>
+                    </div>
+                    
+                    ${output.statusMessage ? `
+                    <div class="section">
+                        <h3>備註說明</h3>
+                        <p>${output.statusMessage}</p>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="footer">
+                        <p>本文件由扣繳計算機產生，僅供參考，不具法律效力。</p>
+                        <p>實際扣繳作業請依財政部相關法規辦理。</p>
+                    </div>
+                </body>
+                </html>
+                `;
+            },
+
+            getIncomeTypeText(type) {
+                const types = {
+                    'salary': '薪資所得',
+                    'professional': '執行業務報酬',
+                    'rent': '租賃所得',
+                    'interest': '利息所得',
+                    'dividend': '股利所得'
+                };
+                return types[type] || type;
+            },
+
+            handleBatchCalculate() {
+                const inputText = UI.batchInput.value.trim();
+                if (!inputText) {
+                    UI.showToast("請輸入批量計算資料。");
+                    return;
+                }
+
+                const lines = inputText.split('\n').filter(line => line.trim());
+                const results = [];
+
+                lines.forEach((line, index) => {
+                    try {
+                        const parts = line.trim().split(',');
+                        if (parts.length < 2) {
+                            throw new Error(`第 ${index + 1} 行格式錯誤：至少需要金額和扶養人數`);
+                        }
+
+                        const amount = parseFloat(parts[0].trim());
+                        const dependentsCount = parseInt(parts[1].trim(), 10);
+                        const paymentDate = parts[2] ? parts[2].trim() : new Date().toISOString().split('T')[0];
+
+                        if (isNaN(amount) || amount <= 0) {
+                            throw new Error(`第 ${index + 1} 行：無效的金額 "${parts[0]}"`);
+                        }
+
+                        if (isNaN(dependentsCount) || dependentsCount < 0 || dependentsCount > 11) {
+                            throw new Error(`第 ${index + 1} 行：扶養人數必須在 0-11 之間`);
+                        }
+
+                        // 驗證日期格式
+                        if (parts[2] && !/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) {
+                            throw new Error(`第 ${index + 1} 行：日期格式錯誤，應為 YYYY-MM-DD`);
+                        }
+
+                        const input = {
+                            year: parseInt(UI.year.value, 10),
+                            identity: 'R', // 批量計算預設為居住者
+                            incomeType: 'salary', // 批量計算預設為薪資所得
+                            amount: amount,
+                            paymentDate: paymentDate,
+                            salaryMethod: 'table', // 批量計算使用稅額表
+                            dependentsCount: dependentsCount
+                        };
+
+                        const output = TaxCalculatorModule.calculateTax(input);
+                        if (output) {
+                            results.push({ input, output });
+                        } else {
+                            throw new Error(`第 ${index + 1} 行：計算失敗`);
+                        }
+
+                    } catch (error) {
+                        results.push({ error: error.message });
+                    }
+                });
+
+                UI.renderBatchResults(results);
+                App.batchResults = results; // 儲存結果供匯出使用
+                UI.showToast(`批量計算完成，共處理 ${results.length} 筆資料。`);
+            },
+
+            handleBatchExport() {
+                if (!App.batchResults || App.batchResults.length === 0) {
+                    UI.showToast("沒有批量計算結果可供匯出。");
+                    return;
+                }
+
+                const csvContent = this.generateBatchCSV(App.batchResults);
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `batch_tax_calculation_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                UI.showToast("批量計算結果已開始下載。");
+            },
+
+            generateBatchCSV(results) {
+                const headers = ['序號', '薪資金額', '扶養人數', '給付日期', '是否扣繳', '扣繳率', '扣繳稅額', '備註'];
+                const csvRows = [headers.join(',')];
+
+                results.forEach((result, index) => {
+                    if (result.error) {
+                        csvRows.push(`${index + 1},"錯誤","","","","","","${result.error}"`);
+                    } else {
+                        const { input, output } = result;
+                        const row = [
+                            index + 1,
+                            input.amount,
+                            input.dependentsCount,
+                            input.paymentDate,
+                            output.shouldWithhold ? '是' : '否',
+                            (output.rate * 100).toFixed(2) + '%',
+                            output.taxAmount,
+                            `"${(output.ruleNote || '').replace(/"/g, '""')}"`
+                        ];
+                        csvRows.push(row.join(','));
+                    }
+                });
+
+                return '\uFEFF' + csvRows.join('\n'); // 添加 BOM 以支援中文
+            },
+
+            deleteHistoryItem(index) {
+                if (confirm(`確定要刪除第 ${index + 1} 筆歷史紀錄嗎？`)) {
+                    this.history.splice(index, 1);
+                    TaxStorageModule.safeWrite('taxHistory', this.history);
+                    UI.renderHistory(this.history);
+                    UI.showToast(`已刪除第 ${index + 1} 筆歷史紀錄。`);
+                }
+            }
+        };
+
+        // --- Application Start ---
+        document.addEventListener('DOMContentLoaded', () => App.init());
+
+    </script>
+</body>
+
+</html>
