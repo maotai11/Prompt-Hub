@@ -425,7 +425,7 @@
             border-radius: var(--radius-soft);
             background-color: #FFFFFF;
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23C0C4C9'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='http://www.w3.org/2000/svg' fill='%23C0C4C9'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
             background-size: 1.25em 1.25em;
@@ -570,8 +570,8 @@
 
         <section class="app-shell container">
             <div id="dropzone">
-                <input type="file" id="file-input" accept=".xlsx, .xls, .csv" />
-                <p>拖曳 Excel 檔案至此，或<label for="file-input" class="file-label">點此選取檔案</label></p>
+                <input type="file" id="file-input" accept=".xlsx, .xls, .csv" multiple />
+                <p>拖曳 Excel 檔案至此 (可多選)，或<label for="file-input" class="file-label">點此選取檔案</label></p>
                 <span id="file-name" style="color: var(--soft-gray); font-size: var(--fs-small);"></span>
             </div>
 
@@ -607,6 +607,14 @@
                 <label for="map-tax">營業稅 (Tax)</label>
                 <select id="map-tax" class="form-select"></select>
             </div>
+            <div class="form-group">
+                <label for="map-formatCode">格式代號 (Format Code)</label>
+                <select id="map-formatCode" class="form-select"></select>
+            </div>
+            <div class="form-group">
+                <label for="map-status">發票狀態 (Status)</label>
+                <select id="map-status" class="form-select"></select>
+            </div>
             
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="map-cancel">取消</button>
@@ -622,7 +630,7 @@
             </div>
             <p>您選取了非預設的欄位名稱，請務必確認您的選擇符合分析邏輯。</p>
             <p style="font-size: var(--fs-small); color: var(--soft-gray);">
-                邏輯：(1) ID 為 8 位數時，累加應稅額與營業稅；(2) ID 非 8 位數時，僅累加應稅額並回推稅金。
+                邏輯：(1) ID 為 8 位數時，累加應稅額與營業稅；(2) ID 非 8 位數時，僅累加應稅額並回推稅金；(3) 狀態為「作廢已確認」則忽略；(4) 格式代號為「33」則視為減項。
             </p>
             
             <div class="modal-actions">
@@ -632,7 +640,6 @@
         </div>
     </div>
 
-    <!-- ✅ 改為本地離線引用的 Xlsx.js -->
     <script src="./xlsx.full.min.js"></script>
     
     <script>
@@ -655,6 +662,9 @@
                 mapTax: document.getElementById('map-tax'),
                 mapConfirm: document.getElementById('map-confirm'),
                 mapCancel: document.getElementById('map-cancel'),
+                // 新增: 新的 mapping select
+                mapFormatCode: document.getElementById('map-formatCode'),
+                mapStatus: document.getElementById('map-status'),
                 // Warning Modal
                 warningModal: document.getElementById('warning-modal'),
                 warnConfirm: document.getElementById('warn-confirm'),
@@ -666,12 +676,16 @@
                 workbookData: null,
                 headers: [],
                 jsonData: [],
-                mappedFields: { id: null, taxable: null, tax: null },
+                // 修改: 增加新欄位
+                mappedFields: { id: null, taxable: null, tax: null, formatCode: null, status: null },
                 isWarningConfirmed: false,
+                // 修改: 增加新欄位的預設名稱
                 defaultFields: {
                     id: '買方統一編號',
                     taxable: '應稅銷售額',
-                    tax: '營業稅'
+                    tax: '營業稅',
+                    formatCode: '格式代號',
+                    status: '發票狀態'
                 }
             };
 
@@ -746,7 +760,7 @@
                 dom.warnCancel.addEventListener('click', handleWarnCancel);
             };
 
-            // --- 6. 檔案處理 ---
+            // --- 6. 檔案處理 (修改為批次) ---
 
             const preventDefaults = (e) => {
                 e.preventDefault();
@@ -757,65 +771,115 @@
                 const dt = e.dataTransfer;
                 const files = dt.files;
                 if (files.length > 0) {
-                    processFile(files[0]);
+                    processMultipleFiles(files); // 修改
                 }
             };
             
             const handleFileSelect = (e) => {
                 const files = e.target.files;
                 if (files.length > 0) {
-                    processFile(files[0]);
+                    processMultipleFiles(files); // 修改
                 }
             };
 
-            const processFile = (file) => {
-                resetUI();
-                dom.fileName.textContent = file.name;
-                showStatus('loading', '正在讀取與分析檔案...');
+            // 新增: 讀取單一檔案並返回 Promise
+            const readAndParseFile = (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = e.target.result;
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            
+                            const dataAsArray = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            
+                            if (dataAsArray.length < 2) {
+                                // 檔案為空，但不是一個錯誤，只是沒有資料
+                                resolve({ headers: [], jsonData: [], fileName: file.name });
+                                return;
+                            }
+                            
+                            const headers = dataAsArray[0].map(String);
+                            const jsonData = dataAsArray.slice(1);
+                            resolve({ headers, jsonData, fileName: file.name });
 
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = e.target.result;
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
-                        
-                        // 讀取 Header 和 JSON
-                        // 使用 header: 1 來取得陣列的陣列，以確保第一行是標頭
-                        const dataAsArray = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                        
-                        if (dataAsArray.length < 2) {
-                            showStatus('error', '錯誤：Excel 檔案為空或沒有資料列。');
+                        } catch (err) {
+                            console.error(`Error processing file ${file.name}:`, err);
+                            reject(new Error(`檔案 ${file.name} 處理失敗：${err.message}`));
+                        }
+                    };
+                    reader.onerror = () => {
+                        reject(new Error(`讀取檔案 ${file.name} 時發生錯誤。`));
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            };
+
+            // 新增: 處理多個檔案的
+            const processMultipleFiles = (files) => {
+                resetUI();
+                dom.fileName.textContent = `${files.length} 個檔案`;
+                showStatus('loading', `正在讀取 ${files.length} 個檔案...`);
+
+                const fileReadPromises = Array.from(files).map(readAndParseFile);
+
+                Promise.all(fileReadPromises)
+                    .then(allFileData => {
+                        // 過濾掉沒有資料的檔案
+                        const validFilesData = allFileData.filter(d => d.headers.length > 0 && d.jsonData.length > 0);
+
+                        if (validFilesData.length === 0) {
+                            showStatus('error', '錯誤：所有檔案均為空或沒有資料列。');
                             return;
                         }
+
+                        // 檢查標頭一致性 (使用第一個有效檔案作為基準)
+                        const firstHeaders = validFilesData[0].headers;
+                        const firstHeaderString = JSON.stringify(firstHeaders);
+
+                        for (let i = 1; i < validFilesData.length; i++) {
+                            const currentHeaderString = JSON.stringify(validFilesData[i].headers);
+                            if (currentHeaderString !== firstHeaderString) {
+                                showStatus('error', `錯誤：檔案 ${validFilesData[i].fileName} 的欄位與第一個檔案不一致。請確保所有檔案格式相同。`);
+                                return;
+                            }
+                        }
+
+                        // 合併所有檔案的資料
+                        state.headers = firstHeaders;
+                        state.jsonData = validFilesData.flatMap(d => d.jsonData);
                         
-                        state.headers = dataAsArray[0].map(String); // 確保標頭是字串
-                        state.jsonData = dataAsArray.slice(1); // 取得資料
-                        
+                        if (state.jsonData.length === 0) {
+                            showStatus('error', '錯誤：所有檔案合計沒有資料列。');
+                            return;
+                        }
+
+                        showStatus('loading', `讀取完畢，共 ${state.jsonData.length} 筆資料。正在準備分析...`);
                         autoMapHeaders();
 
-                    } catch (err) {
+                    })
+                    .catch(err => {
                         console.error(err);
-                        showStatus('error', `檔案處理失敗：${err.message}。請確認檔案格式正確。`);
-                    }
-                };
-                reader.onerror = () => {
-                    showStatus('error', '讀取檔案時發生錯誤。');
-                };
-                reader.readAsArrayBuffer(file);
+                        showStatus('error', err.message);
+                    });
             };
             
             // --- 7. 欄位對應邏輯 ---
 
             const autoMapHeaders = () => {
+                // 修改: 尋找所有五個欄位
                 const foundFields = {
                     id: state.headers.find(h => h === state.defaultFields.id),
                     taxable: state.headers.find(h => h === state.defaultFields.taxable),
-                    tax: state.headers.find(h => h === state.defaultFields.tax)
+                    tax: state.headers.find(h => h === state.defaultFields.tax),
+                    formatCode: state.headers.find(h => h === state.defaultFields.formatCode),
+                    status: state.headers.find(h => h === state.defaultFields.status)
                 };
 
-                if (foundFields.id && foundFields.taxable && foundFields.tax) {
+                // 修改: 檢查所有五個欄位
+                if (foundFields.id && foundFields.taxable && foundFields.tax && foundFields.formatCode && foundFields.status) {
                     // 情境 A: 全部找到
                     state.mappedFields = foundFields;
                     state.isWarningConfirmed = true; // 自動對應 = 無需警告
@@ -827,8 +891,10 @@
             };
 
             const showMappingModal = () => {
-                // 填充下拉選單
-                [dom.mapId, dom.mapTaxable, dom.mapTax].forEach(select => {
+                // 修改: 填充所有五個下拉選單
+                const allSelects = [dom.mapId, dom.mapTaxable, dom.mapTax, dom.mapFormatCode, dom.mapStatus];
+                
+                allSelects.forEach(select => {
                     select.innerHTML = ''; // 清空
                     const defaultOption = document.createElement('option');
                     defaultOption.value = '';
@@ -843,10 +909,12 @@
                     });
                 });
                 
-                // 嘗試預選
+                // 修改: 嘗試預選所有五個
                 dom.mapId.value = state.headers.find(h => h === state.defaultFields.id) || '';
                 dom.mapTaxable.value = state.headers.find(h => h === state.defaultFields.taxable) || '';
                 dom.mapTax.value = state.headers.find(h => h === state.defaultFields.tax) || '';
+                dom.mapFormatCode.value = state.headers.find(h => h === state.defaultFields.formatCode) || '';
+                dom.mapStatus.value = state.headers.find(h => h === state.defaultFields.status) || '';
 
                 hideStatus();
                 dom.mappingModal.classList.add('is-visible');
@@ -858,28 +926,37 @@
             };
 
             const handleMapConfirm = () => {
+                // 修改: 獲取所有五個值
                 const selectedId = dom.mapId.value;
                 const selectedTaxable = dom.mapTaxable.value;
                 const selectedTax = dom.mapTax.value;
+                const selectedFormatCode = dom.mapFormatCode.value;
+                const selectedStatus = dom.mapStatus.value;
 
-                if (!selectedId || !selectedTaxable || !selectedTax) {
+                // 修改: 驗證所有五個值
+                if (!selectedId || !selectedTaxable || !selectedTax || !selectedFormatCode || !selectedStatus) {
                     showStatus('error', '錯誤：所有欄位都必須指定。');
                     // 在 Modal 內顯示錯誤 (未來可優化)
                     alert('所有欄位都必須指定。');
                     return;
                 }
 
+                // 修改: 儲存所有五個值
                 state.mappedFields = {
                     id: selectedId,
                     taxable: selectedTaxable,
-                    tax: selectedTax
+                    tax: selectedTax,
+                    formatCode: selectedFormatCode,
+                    status: selectedStatus
                 };
 
-                // 檢查是否使用非預設值
+                // 修改: 檢查是否使用非預設值 (所有五個)
                 const isDefault = (
                     selectedId === state.defaultFields.id &&
                     selectedTaxable === state.defaultFields.taxable &&
-                    selectedTax === state.defaultFields.tax
+                    selectedTax === state.defaultFields.tax &&
+                    selectedFormatCode === state.defaultFields.formatCode &&
+                    selectedStatus === state.defaultFields.status
                 );
 
                 if (isDefault) {
@@ -927,20 +1004,27 @@
                 
                 showStatus('loading', '正在計算...');
                 
-                // 找到欄位索引
+                // 修改: 找到所有五個欄位索引
                 const indices = {
                     id: state.headers.indexOf(state.mappedFields.id),
                     taxable: state.headers.indexOf(state.mappedFields.taxable),
-                    tax: state.headers.indexOf(state.mappedFields.tax)
+                    tax: state.headers.indexOf(state.mappedFields.tax),
+                    formatCode: state.headers.indexOf(state.mappedFields.formatCode),
+                    status: state.headers.indexOf(state.mappedFields.status)
                 };
 
-                if (indices.id < 0 || indices.taxable < 0 || indices.tax < 0) {
+                // 修改: 檢查所有五個索引
+                if (indices.id < 0 || indices.taxable < 0 || indices.tax < 0 || indices.formatCode < 0 || indices.status < 0) {
                     showStatus('error', '致命錯誤：找不到欄位索引。');
                     return;
                 }
                 
                 // 規範：ID 為 8 位數字
                 const ID_REGEX = /^[0-9]{8}$/;
+                
+                // 新增: 新規則的常數
+                const VOID_STATUS = '作廢已確認';
+                const REDUCTION_CODE = '33';
 
                 // 初始化計算器
                 let block1_Taxable = 0;
@@ -949,6 +1033,18 @@
 
                 // 遍歷資料
                 state.jsonData.forEach((row, rowIndex) => {
+                    
+                    // --- 新增規則 1: 檢查發票狀態 ---
+                    const status = String(row[indices.status] || '').trim();
+                    if (status === VOID_STATUS) {
+                        return; // 忽略此行
+                    }
+
+                    // --- 新增規則 2: 檢查格式代號 ---
+                    const formatCode = String(row[indices.formatCode] || '').trim();
+                    const multiplier = (formatCode === REDUCTION_CODE) ? -1 : 1;
+                    
+                    // --- 原有邏輯 ---
                     const id = String(row[indices.id] || '').trim();
                     // 確保數值正確轉換，無效值視為 0
                     const taxableAmount = parseFloat(row[indices.taxable]) || 0;
@@ -956,12 +1052,17 @@
                     if (ID_REGEX.test(id)) {
                         // 區塊 1：標準應稅 (8位數)
                         const taxAmount = parseFloat(row[indices.tax]) || 0;
-                        block1_Taxable += taxableAmount;
-                        block1_Tax += taxAmount;
+                        
+                        // 修改: 應用 multiplier
+                        block1_Taxable += (taxableAmount * multiplier);
+                        block1_Tax += (taxAmount * multiplier);
+                        
                     } else {
                         // 區塊 2：零稅率/彙總 (非8位數)
                         // 僅累加「應稅銷售額」欄位的值
-                        block2_RawTotal += taxableAmount;
+                        
+                        // 修改: 應用 multiplier
+                        block2_RawTotal += (taxableAmount * multiplier);
                     }
                 });
                 
@@ -975,10 +1076,12 @@
                 };
                 
                 // 區塊 2 (回推)
-                const block2_Taxable = block2_RawTotal / 1.05;
+                // 檢查 block2_RawTotal 是否為 0，避免 0/1.05 的情況
+                const block2_Taxable = (block2_RawTotal === 0) ? 0 : (block2_RawTotal / 1.05);
+                const block2_Tax = (block2_RawTotal === 0) ? 0 : (block2_RawTotal - block2_Taxable);
                 const block2 = {
                     taxable: block2_Taxable,
-                    tax: block2_RawTotal - block2_Taxable,
+                    tax: block2_Tax,
                     total: block2_RawTotal
                 };
                 
