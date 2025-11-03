@@ -23,19 +23,19 @@
             --font-body: Inter, "Helvetica Neue", Arial, system-ui, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
 
             /* 排版 */
-            --fs-display: clamp(2.5rem, 5vw, 3rem);
-            --fs-h1: 2rem;
-            --fs-h2: 1.5rem;
-            --fs-body: 1rem;
-            --fs-small: 0.875rem;
+            --fs-display: clamp(2.5rem, 5vw, 3rem); /* 48px */
+            --fs-h1: 2rem;      /* 32px */
+            --fs-h2: 1.5rem;    /* 24px */
+            --fs-body: 1rem;    /* 16px */
+            --fs-small: 0.875rem; /* 14px */
             --lh-display: 1.2;
-            --lh-body: 1.75;
+            --lh-body: 1.75;  /* 28px */
             
             /* 網格與間距 */
             --baseline: 8px;
-            --gutter: calc(var(--baseline) * 3);
+            --gutter: calc(var(--baseline) * 3); /* 24px */
             --container-width: min(1200px, 92vw);
-            --section-padding: calc(var(--baseline) * 7);
+            --section-padding: calc(var(--baseline) * 7); /* 56px */
 
             /* 動效 */
             --easing-emphasized: cubic-bezier(0.33, 1, 0.68, 1);
@@ -51,8 +51,16 @@
         }
 
         /* --- 2. Base Styles & Resets --- */
-        *, *::before, *::after { box-sizing: border-box; padding: 0; margin: 0; }
-        html { scroll-behavior: smooth; }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             background-color: var(--ivory);
             color: var(--ink-black);
@@ -62,6 +70,7 @@
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
+
         h1, h2, h3, h4, h5, h6 {
             font-family: var(--font-display);
             font-weight: 500;
@@ -69,158 +78,477 @@
             margin-bottom: calc(var(--baseline) * 2);
             letter-spacing: 0.5px;
         }
+        
         h1 { font-size: var(--fs-h1); }
         h2 { font-size: var(--fs-h2); }
         p { margin-bottom: calc(var(--baseline) * 2); }
         a { color: var(--rose-gold); text-decoration: none; }
 
         /* --- 3. Layout (Header, Grid, Footer) --- */
-        .container { width: var(--container-width); margin-left: auto; margin-right: auto; }
+        .container {
+            width: var(--container-width);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         .site-header {
-            position: fixed; top: 0; left: 0; right: 0;
-            padding: calc(var(--baseline) * 2) 0; z-index: 100;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: calc(var(--baseline) * 2) 0;
+            z-index: 100;
             background: linear-gradient(180deg, var(--smoke) 0%, rgba(26, 26, 26, 0) 100%);
-            opacity: 0; transform: translateY(-100%);
+            opacity: 0;
+            transform: translateY(-100%);
             transition: opacity var(--dur-medium) ease, transform var(--dur-medium) ease;
         }
+        
         .site-header.is-scrolled {
-            opacity: 1; transform: translateY(0);
+            opacity: 1;
+            transform: translateY(0);
             background: linear-gradient(180deg, rgba(26, 26, 26, 0.7) 0%, rgba(26, 26, 26, 0) 100%);
-            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
         }
-        .site-header .container { display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-family: var(--font-display); font-size: 1.25rem; color: var(--ivory); font-weight: 700; }
-        main { display: block; min-height: 80vh; }
+
+        .site-header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--ivory);
+            font-weight: 700;
+        }
+        
+        main {
+            display: block;
+            min-height: 80vh;
+        }
+
         .site-footer {
-            padding: calc(var(--baseline) * 3) 0; text-align: center; font-size: var(--fs-small);
-            color: var(--soft-gray); border-top: 1px solid var(--mist-silver); margin-top: var(--section-padding);
+            padding: calc(var(--baseline) * 3) 0;
+            text-align: center;
+            font-size: var(--fs-small);
+            color: var(--soft-gray);
+            border-top: 1px solid var(--mist-silver);
+            margin-top: var(--section-padding);
         }
 
         /* --- 4. Hero Block --- */
         .block-hero {
-            display: flex; align-items: center; justify-content: center; text-align: center;
-            min-height: 40vh; padding: calc(var(--section-padding) * 2) var(--gutter);
-            background-color: var(--cream); border-bottom: 1px solid var(--mist-silver); overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 40vh;
+            padding: calc(var(--section-padding) * 2) var(--gutter);
+            background-color: var(--cream);
+            border-bottom: 1px solid var(--mist-silver);
+            overflow: hidden;
         }
-        .hero-title { font-size: var(--fs-display); font-weight: 700; color: var(--ink-black); margin: 0; }
-        .hero-title .char { display: inline-block; opacity: 0; transform: translateY(20px); animation: stagger-in 0.6s var(--easing-emphasized) forwards; }
+        
+        .hero-title {
+            font-size: var(--fs-display);
+            font-weight: 700;
+            color: var(--ink-black);
+            margin: 0;
+        }
+        
+        .hero-title .char {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: stagger-in 0.6s var(--easing-emphasized) forwards;
+        }
+        
         .hero-subtitle {
-            font-size: 1.125rem; color: var(--soft-gray); font-family: var(--font-body);
-            margin-top: var(--baseline); opacity: 0; transform: translateY(10px);
+            font-size: 1.125rem;
+            color: var(--soft-gray);
+            font-family: var(--font-body);
+            margin-top: var(--baseline);
+            opacity: 0;
+            transform: translateY(10px);
             animation: fade-in 0.8s ease 0.6s forwards;
         }
-        @keyframes stagger-in { to { opacity: 1; transform: translateY(0); } }
-        @keyframes fade-in { to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes stagger-in {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fade-in {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
         /* --- 5. App Shell & Components --- */
-        .app-shell { padding-top: var(--section-padding); }
+        
+        /* 檔案上傳區 */
+        .app-shell {
+            padding-top: var(--section-padding);
+        }
+
         #dropzone {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 200px; border: 2px dashed var(--mist-silver); border-radius: var(--radius-medium);
-            background-color: var(--cream); padding: var(--gutter); text-align: center; cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            border: 2px dashed var(--mist-silver);
+            border-radius: var(--radius-medium);
+            background-color: var(--cream);
+            padding: var(--gutter);
+            text-align: center;
+            cursor: pointer;
             transition: background-color var(--dur-short) ease, border-color var(--dur-short) ease;
         }
-        #dropzone.is-hovering { background-color: var(--ivory); border-color: var(--rose-gold); }
-        #dropzone p { font-size: 1.125rem; color: var(--soft-gray); margin-bottom: var(--baseline); }
-        .file-label { font-weight: 600; color: var(--rose-gold); cursor: pointer; }
-        #file-input { display: none; }
+        
+        #dropzone.is-hovering {
+            background-color: var(--ivory);
+            border-color: var(--rose-gold);
+        }
+        
+        #dropzone p {
+            font-size: 1.125rem;
+            color: var(--soft-gray);
+            margin-bottom: var(--baseline);
+        }
 
-        .status-message { text-align: center; padding: var(--gutter); font-size: 1.1rem; display: none; }
-        .status-message.is-loading { display: block; color: var(--soft-gray); }
-        .status-message.is-error { display: block; color: var(--danger-red); background-color: rgba(185, 28, 28, 0.05); border: 1px solid var(--danger-red); border-radius: var(--radius-soft); }
+        .file-label {
+            font-weight: 600;
+            color: var(--rose-gold);
+            cursor: pointer;
+        }
+        
+        #file-input {
+            display: none;
+        }
 
+        /* 讀取中/錯誤 狀態 */
+        .status-message {
+            text-align: center;
+            padding: var(--gutter);
+            font-size: 1.1rem;
+            display: none;
+        }
+        
+        .status-message.is-loading {
+            display: block;
+            color: var(--soft-gray);
+        }
+        
+        .status-message.is-error {
+            display: block;
+            color: var(--danger-red);
+            background-color: rgba(185, 28, 28, 0.05);
+            border: 1px solid var(--danger-red);
+            border-radius: var(--radius-soft);
+        }
+
+        /* 結果顯示區 */
         #results-container {
             margin-top: calc(var(--section-padding) / 2);
-            opacity: 0; transform: translateY(20px);
+            opacity: 0;
+            transform: translateY(20px);
             transition: opacity var(--dur-breathe) var(--easing-emphasized), transform var(--dur-breathe) var(--easing-emphasized);
         }
-        #results-container.is-visible { opacity: 1; transform: translateY(0); }
 
-        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--gutter); }
+        #results-container.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--gutter);
+        }
+        
         .result-card {
-            background-color: #FFFFFF; border: 1px solid var(--mist-silver); border-radius: var(--radius-soft);
-            box-shadow: var(--shadow-soft); padding: var(--gutter);
+            background-color: #FFFFFF;
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-soft);
+            box-shadow: var(--shadow-soft);
+            padding: var(--gutter);
             transition: transform var(--dur-short) ease, box-shadow var(--dur-short) ease;
         }
-        .result-card:hover { transform: scale(1.02); box-shadow: 0 10px 30px rgba(0, 0, 0, .08); }
-        .result-card h2 { font-size: var(--fs-h2); color: var(--rose-gold); border-bottom: 1px solid var(--mist-silver); padding-bottom: var(--baseline); margin-bottom: calc(var(--baseline) * 2); }
 
-        .result-card.card-total { background-color: var(--smoke); color: var(--ivory); border-color: var(--smoke); }
-        .result-card.card-total h2 { color: var(--rose-gold); border-bottom-color: var(--mist-silver); }
-        .result-card.card-total .result-item span { color: var(--cream); }
-        .result-card.card-total .result-value { color: var(--ivory); }
+        .result-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+        }
+
+        .result-card h2 {
+            font-size: var(--fs-h2);
+            color: var(--rose-gold);
+            border-bottom: 1px solid var(--mist-silver);
+            padding-bottom: var(--baseline);
+            margin-bottom: calc(var(--baseline) * 2);
+        }
+        
+        /* 區塊 3 (總計) 特殊樣式 */
+        .result-card.card-total {
+            background-color: var(--smoke);
+            color: var(--ivory);
+            border-color: var(--smoke);
+        }
+        .result-card.card-total h2 {
+            color: var(--rose-gold);
+            border-bottom-color: var(--mist-silver);
+        }
+        .result-card.card-total .result-item span {
+            color: var(--cream);
+        }
+        .result-card.card-total .result-value {
+            color: var(--ivory);
+        }
 
         .result-item {
-            display: flex; justify-content: space-between; align-items: baseline;
-            margin-bottom: var(--baseline); padding-bottom: var(--baseline); border-bottom: 1px dashed var(--mist-silver);
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: var(--baseline);
+            padding-bottom: var(--baseline);
+            border-bottom: 1px dashed var(--mist-silver);
             font-size: var(--fs-body);
         }
-        .result-card.card-total .result-item { border-bottom-color: rgba(192, 196, 201, 0.3); }
-        .result-item:last-child { border-bottom: none; margin-bottom: 0; }
-        .result-item span { color: var(--soft-gray); font-size: var(--fs-small); }
-        .result-value { font-family: var(--font-body); font-size: 1.25rem; font-weight: 600; color: var(--ink-black); letter-spacing: 0.5px; }
-        .result-item.is-total .result-value { font-size: 1.5rem; color: var(--rose-gold); padding-top: var(--baseline); border-top: 1px solid var(--mist-silver); }
-        .result-card.card-total .result-item.is-total .result-value { border-top-color: rgba(192, 196, 201, 0.3); }
+        .result-card.card-total .result-item {
+            border-bottom-color: rgba(192, 196, 201, 0.3);
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
 
+        .result-item span {
+            color: var(--soft-gray);
+            font-size: var(--fs-small);
+        }
+        
+        .result-value {
+            font-family: var(--font-body);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--ink-black);
+            letter-spacing: 0.5px;
+        }
+        
+        .result-item.is-total .result-value {
+            font-size: 1.5rem;
+            color: var(--rose-gold);
+            padding-top: var(--baseline);
+            border-top: 1px solid var(--mist-silver);
+        }
+        .result-card.card-total .result-item.is-total .result-value {
+            border-top-color: rgba(192, 196, 201, 0.3);
+        }
+        
         /* --- 6. Modal (欄位對應 & 警告) --- */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-            display: none; align-items: center; justify-content: center; z-index: 1000; opacity: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none; /* Changed to none */
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
             transition: opacity var(--dur-medium) ease;
         }
-        .modal-overlay.is-visible { display: flex; opacity: 1; }
+        
+        .modal-overlay.is-visible {
+            display: flex;
+            opacity: 1;
+        }
+
         .modal-content {
-            background-color: var(--ivory); border-radius: var(--radius-medium);
+            background-color: var(--ivory);
+            border-radius: var(--radius-medium);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            width: min(500px, 90vw); padding: var(--gutter);
-            opacity: 0; transform: scale(0.95) translateY(10px);
+            width: min(500px, 90vw);
+            padding: var(--gutter);
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
             transition: all var(--dur-medium) var(--easing-emphasized);
         }
-        .modal-overlay.is-visible .modal-content { opacity: 1; transform: scale(1) translateY(0); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--mist-silver); padding-bottom: calc(var(--baseline) * 2); margin-bottom: calc(var(--baseline) * 2); }
-        .modal-header h2 { margin: 0; color: var(--rose-gold); }
-        .form-group { margin-bottom: calc(var(--baseline) * 2); }
-        .form-group label { display: block; font-weight: 600; margin-bottom: var(--baseline); color: var(--soft-gray); }
-        .form-select {
-            width: 100%; padding: calc(var(--baseline) * 1.5);
-            font-family: var(--font-body); font-size: var(--fs-body);
-            border: 1px solid var(--mist-silver); border-radius: var(--radius-soft);
-            background-color: #FFFFFF; appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23C0C4C9'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.25em 1.25em;
+        
+        .modal-overlay.is-visible .modal-content {
+            opacity: 1;
+            transform: scale(1) translateY(0);
         }
-        .modal-actions { display: flex; justify-content: flex-end; gap: var(--baseline); margin-top: var(--gutter); }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--mist-silver);
+            padding-bottom: calc(var(--baseline) * 2);
+            margin-bottom: calc(var(--baseline) * 2);
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: var(--rose-gold);
+        }
+
+        .form-group {
+            margin-bottom: calc(var(--baseline) * 2);
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: var(--baseline);
+            color: var(--soft-gray);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: calc(var(--baseline) * 1.5);
+            font-family: var(--font-body);
+            font-size: var(--fs-body);
+            border: 1px solid var(--mist-silver);
+            border-radius: var(--radius-soft);
+            background-color: #FFFFFF;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23C0C4C9'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.25em 1.25em;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--baseline);
+            margin-top: var(--gutter);
+        }
+        
         .btn {
-            font-family: var(--font-body); font-size: var(--fs-body); font-weight: 600;
+            font-family: var(--font-body);
+            font-size: var(--fs-body);
+            font-weight: 600;
             padding: calc(var(--baseline) * 1.25) calc(var(--baseline) * 3);
-            border-radius: var(--radius-soft); border: 1px solid transparent; cursor: pointer;
+            border-radius: var(--radius-soft);
+            border: 1px solid transparent;
+            cursor: pointer;
             transition: all var(--dur-short) ease;
         }
-        .btn-primary { background-color: var(--rose-gold); color: var(--ivory); border-color: var(--rose-gold); }
-        .btn-primary:hover { background-color: #b38e68; border-color: #b38e68; transform: scale(1.02); }
-        .btn-secondary { background-color: transparent; color: var(--soft-gray); border-color: var(--mist-silver); }
-        .btn-secondary:hover { background-color: var(--cream); color: var(--ink-black); border-color: var(--mist-silver); }
-        .btn-danger { background-color: var(--danger-red); color: var(--ivory); }
-        .btn-danger:hover { background-color: #991b1b; }
-
-        #warning-modal .modal-content { border-left: 5px solid var(--danger-red); }
-        #warning-modal h2 { color: var(--danger-red); }
-        #warning-modal p { color: var(--soft-gray); line-height: var(--lh-body); }
-
+        
+        .btn-primary {
+            background-color: var(--rose-gold);
+            color: var(--ivory);
+            border-color: var(--rose-gold);
+        }
+        .btn-primary:hover {
+            background-color: #b38e68;
+            border-color: #b38e68;
+            transform: scale(1.02);
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--soft-gray);
+            border-color: var(--mist-silver);
+        }
+        .btn-secondary:hover {
+            background-color: var(--cream);
+            color: var(--ink-black);
+            border-color: var(--mist-silver);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-red);
+            color: var(--ivory);
+        }
+        .btn-danger:hover {
+            background-color: #991b1b;
+        }
+        
+        /* 警告 modal 特定樣式 */
+        #warning-modal .modal-content {
+            border-left: 5px solid var(--danger-red);
+        }
+        #warning-modal h2 {
+            color: var(--danger-red);
+        }
+        #warning-modal p {
+            color: var(--soft-gray);
+            line-height: var(--lh-body);
+        }
+        
         /* --- 7. Print Styles --- */
         @media print {
-            body { background-color: #FFFFFF; color: #000000; font-family: "Times New Roman", serif; }
-            .site-header, .site-footer, .block-hero, .app-shell, .modal-overlay, #dropzone { display: none !important; }
-            main { min-height: auto; }
-            #results-container { display: block !important; opacity: 1 !important; transform: none !important; margin-top: 0; }
-            .container { width: 100%; margin: 0; padding: 0; }
-            .results-grid { grid-template-columns: 1fr; gap: 20px; }
-            .result-card { box-shadow: none; border: 1px solid #CCCCCC; border-radius: 0; padding: 15px; page-break-inside: avoid; }
-            .result-card.card-total { background-color: #F0F0F0; color: #000000; }
-            .result-card h2, .result-value, .result-item.is-total .result-value { color: #000000 !important; }
-            .result-item span { color: #444444 !important; }
-            .result-item { border-bottom: 1px dashed #DDDDDD; }
+            body {
+                background-color: #FFFFFF;
+                color: #000000;
+                font-family: "Times New Roman", serif;
+            }
+            
+            .site-header, .site-footer, .block-hero, .app-shell, .modal-overlay, #dropzone {
+                display: none !important;
+            }
+            
+            main {
+                min-height: auto;
+            }
+
+            #results-container {
+                display: block !important;
+                opacity: 1 !important;
+                transform: none !important;
+                margin-top: 0;
+            }
+            
+            .container {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .result-card {
+                box-shadow: none;
+                border: 1px solid #CCCCCC;
+                border-radius: 0;
+                padding: 15px;
+                page-break-inside: avoid;
+            }
+            
+            .result-card.card-total {
+                background-color: #F0F0F0;
+                color: #000000;
+            }
+            
+            .result-card h2, .result-value, .result-item.is-total .result-value {
+                color: #000000 !important;
+            }
+            
+            .result-item span {
+                color: #444444 !important;
+            }
+            
+            .result-item {
+                border-bottom: 1px dashed #DDDDDD;
+            }
         }
     </style>
 </head>
@@ -236,21 +564,21 @@
         <section class="block-hero">
             <div>
                 <h1 class="hero-title" id="hero-title">銷售紀錄分析工具</h1>
-                <p class="hero-subtitle">100% 離線運作｜拖放您的 Excel 檔案開始分析（支援多檔）</p>
+                <p class="hero-subtitle">100% 離線運作｜拖放您的 Excel 檔案開始分析</p>
             </div>
         </section>
 
         <section class="app-shell container">
             <div id="dropzone">
-                <!-- ✅ 批量上傳 -->
-                <input type="file" id="file-input" accept=".xlsx, .xls, .csv" multiple />
-                <p>拖曳 1 個或多個 Excel 檔案至此，或<label for="file-input" class="file-label">點此選取檔案</label></p>
+                <input type="file" id="file-input" accept=".xlsx, .xls, .csv" />
+                <p>拖曳 Excel 檔案至此，或<label for="file-input" class="file-label">點此選取檔案</label></p>
                 <span id="file-name" style="color: var(--soft-gray); font-size: var(--fs-small);"></span>
             </div>
 
             <div id="status-message" class="status-message"></div>
 
-            <div id="results-container"></div>
+            <div id="results-container">
+                </div>
         </section>
     </main>
 
@@ -260,7 +588,6 @@
         </div>
     </footer>
 
-    <!-- 欄位對應 -->
     <div class="modal-overlay" id="mapping-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -269,26 +596,16 @@
             <p>我們找不到預設的欄位名稱，請從您的 Excel 手動指定對應的欄位。</p>
             
             <div class="form-group">
-                <label for="map-id">買方統一編號 (必選)</label>
+                <label for="map-id">買方統一編號 (ID)</label>
                 <select id="map-id" class="form-select"></select>
             </div>
             <div class="form-group">
-                <label for="map-taxable">應稅銷售額 (必選)</label>
+                <label for="map-taxable">應稅銷售額 (Taxable Amount)</label>
                 <select id="map-taxable" class="form-select"></select>
             </div>
             <div class="form-group">
-                <label for="map-tax">營業稅 (必選)</label>
+                <label for="map-tax">營業稅 (Tax)</label>
                 <select id="map-tax" class="form-select"></select>
-            </div>
-
-            <!-- ✅ 新增：選配欄位 -->
-            <div class="form-group">
-                <label for="map-format">格式代號 (選填，用於 33=減)</label>
-                <select id="map-format" class="form-select"></select>
-            </div>
-            <div class="form-group">
-                <label for="map-status">發票狀態 (選填，用於「作廢已確認」略過)</label>
-                <select id="map-status" class="form-select"></select>
             </div>
             
             <div class="modal-actions">
@@ -298,7 +615,6 @@
         </div>
     </div>
     
-    <!-- 警告 -->
     <div class="modal-overlay" id="warning-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -306,7 +622,7 @@
             </div>
             <p>您選取了非預設的欄位名稱，請務必確認您的選擇符合分析邏輯。</p>
             <p style="font-size: var(--fs-small); color: var(--soft-gray);">
-                邏輯：(1) ID 為 8 位數時，累加應稅額與營業稅；(2) ID 非 8 位數時，僅累加應稅額並回推稅金；(3) 格式代號為 33 時，數值視為負數；(4) 發票狀態為「作廢已確認」則忽略整列。
+                邏輯：(1) ID 為 8 位數時，累加應稅額與營業稅；(2) ID 非 8 位數時，僅累加應稅額並回推稅金。
             </p>
             
             <div class="modal-actions">
@@ -316,7 +632,7 @@
         </div>
     </div>
 
-    <!-- ✅ 本地離線引用 -->
+    <!-- ✅ 改為本地離線引用的 Xlsx.js -->
     <script src="./xlsx.full.min.js"></script>
     
     <script>
@@ -337,8 +653,6 @@
                 mapId: document.getElementById('map-id'),
                 mapTaxable: document.getElementById('map-taxable'),
                 mapTax: document.getElementById('map-tax'),
-                mapFormat: document.getElementById('map-format'),   // ✅ 新增
-                mapStatus: document.getElementById('map-status'),   // ✅ 新增
                 mapConfirm: document.getElementById('map-confirm'),
                 mapCancel: document.getElementById('map-cancel'),
                 // Warning Modal
@@ -349,30 +663,39 @@
 
             // --- 2. 應用程式狀態 ---
             const state = {
-                // 多檔資料集合：每個元素 { headers: string[], rows: any[][], name: string }
-                datasets: [],
-                // 當前映射
-                mappedFields: { id: null, taxable: null, tax: null, format: null, status: null },
+                workbookData: null,
+                headers: [],
+                jsonData: [],
+                mappedFields: { id: null, taxable: null, tax: null },
                 isWarningConfirmed: false,
                 defaultFields: {
                     id: '買方統一編號',
                     taxable: '應稅銷售額',
-                    tax: '營業稅',
-                    format: '格式代號',     // ✅ 新增（選填）
-                    status: '發票狀態'      // ✅ 新增（選填）
+                    tax: '營業稅'
                 }
             };
 
             // --- 3. 初始化 ---
             const init = () => {
+                // 頁尾年份
                 dom.currentYear.textContent = new Date().getFullYear();
+                
+                // Hero 標題動效 (Speckit)
                 staggerHeroText();
+                
+                // 標頭滾動動效 (Speckit)
                 window.addEventListener('scroll', handleHeaderScroll);
+                
+                // 拖放事件
                 setupDragDrop();
+                
+                // 點選事件
                 setupClickListeners();
             };
 
-            // --- 4. 動效 ---
+            // --- 4. 動效 (Speckit) ---
+            
+            // Hero 字母延遲
             const staggerHeroText = () => {
                 const text = dom.heroTitle.textContent;
                 dom.heroTitle.innerHTML = '';
@@ -380,162 +703,150 @@
                     const span = document.createElement('span');
                     span.className = 'char';
                     span.textContent = char;
-                    span.style.animationDelay = `${index * 40}ms`;
+                    span.style.animationDelay = `${index * 40}ms`; // 總延遲約 0.3s+
                     dom.heroTitle.appendChild(span);
                 });
             };
+
+            // Header 滾動
             const handleHeaderScroll = () => {
-                if (window.scrollY > 48) dom.header.classList.add('is-scrolled');
-                else dom.header.classList.remove('is-scrolled');
+                if (window.scrollY > 48) {
+                    dom.header.classList.add('is-scrolled');
+                } else {
+                    dom.header.classList.remove('is-scrolled');
+                }
             };
 
             // --- 5. 事件監聽 ---
+            
             const setupDragDrop = () => {
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     dom.dropzone.addEventListener(eventName, preventDefaults, false);
                 });
+                
                 ['dragenter', 'dragover'].forEach(eventName => {
                     dom.dropzone.addEventListener(eventName, () => dom.dropzone.classList.add('is-hovering'), false);
                 });
+                
                 ['dragleave', 'drop'].forEach(eventName => {
                     dom.dropzone.addEventListener(eventName, () => dom.dropzone.classList.remove('is-hovering'), false);
                 });
-                dom.dropzone.addEventListener('drop', handleFilesDrop, false);
-                dom.fileInput.addEventListener('change', handleFilesSelect, false);
+                
+                dom.dropzone.addEventListener('drop', handleFileDrop, false);
+                dom.fileInput.addEventListener('change', handleFileSelect, false);
             };
 
             const setupClickListeners = () => {
                 // Mapping Modal
                 dom.mapConfirm.addEventListener('click', handleMapConfirm);
                 dom.mapCancel.addEventListener('click', hideMappingModal);
+                
                 // Warning Modal
                 dom.warnConfirm.addEventListener('click', handleWarnConfirm);
                 dom.warnCancel.addEventListener('click', handleWarnCancel);
             };
 
-            // --- 6. 檔案處理 (批量) ---
-            const preventDefaults = (e) => { e.preventDefault(); e.stopPropagation(); };
+            // --- 6. 檔案處理 ---
 
-            const handleFilesDrop = (e) => {
-                const files = e.dataTransfer.files;
-                if (files && files.length > 0) processFiles(files);
+            const preventDefaults = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
             };
-            const handleFilesSelect = (e) => {
+
+            const handleFileDrop = (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    processFile(files[0]);
+                }
+            };
+            
+            const handleFileSelect = (e) => {
                 const files = e.target.files;
-                if (files && files.length > 0) processFiles(files);
+                if (files.length > 0) {
+                    processFile(files[0]);
+                }
             };
 
-            const processFiles = (fileList) => {
+            const processFile = (file) => {
                 resetUI();
-                const files = Array.from(fileList);
-                dom.fileName.textContent = files.length === 1
-                    ? files[0].name
-                    : `${files.length} files selected`;
-
+                dom.fileName.textContent = file.name;
                 showStatus('loading', '正在讀取與分析檔案...');
-                const readPromises = files.map(file => readWorkbook(file));
-                
-                Promise.allSettled(readPromises).then(results => {
-                    state.datasets = [];
-                    const okFiles = [];
-                    results.forEach((res, idx) => {
-                        if (res.status === 'fulfilled' && res.value) {
-                            state.datasets.push({
-                                headers: res.value.headers,
-                                rows: res.value.rows,
-                                name: files[idx].name
-                            });
-                            okFiles.push(files[idx].name);
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = e.target.result;
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 讀取 Header 和 JSON
+                        // 使用 header: 1 來取得陣列的陣列，以確保第一行是標頭
+                        const dataAsArray = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (dataAsArray.length < 2) {
+                            showStatus('error', '錯誤：Excel 檔案為空或沒有資料列。');
+                            return;
                         }
-                    });
-                    if (state.datasets.length === 0) {
-                        showStatus('error', '無有效檔案可分析。請確認檔案內容與格式。');
-                        return;
+                        
+                        state.headers = dataAsArray[0].map(String); // 確保標頭是字串
+                        state.jsonData = dataAsArray.slice(1); // 取得資料
+                        
+                        autoMapHeaders();
+
+                    } catch (err) {
+                        console.error(err);
+                        showStatus('error', `檔案處理失敗：${err.message}。請確認檔案格式正確。`);
                     }
-                    autoMapHeaders();
-                }).catch(err => {
-                    showStatus('error', `處理檔案時發生錯誤：${(err && err.message) ? err.message : String(err)}`);
-                });
+                };
+                reader.onerror = () => {
+                    showStatus('error', '讀取檔案時發生錯誤。');
+                };
+                reader.readAsArrayBuffer(file);
             };
-
-            const readWorkbook = (file) => {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const data = e.target.result;
-                            const workbook = XLSX.read(data, { type: 'array' });
-                            const firstSheetName = workbook.SheetNames[0];
-                            const worksheet = workbook.Sheets[firstSheetName];
-                            const dataAsArray = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                            if (!Array.isArray(dataAsArray) || dataAsArray.length < 2) {
-                                resolve(null); // 視為無效，略過
-                                return;
-                            }
-                            const headers = dataAsArray[0].map(v => String(v !== undefined ? v : ''));
-                            const rows = dataAsArray.slice(1);
-                            resolve({ headers, rows });
-                        } catch (err) {
-                            resolve(null); // 單檔錯誤略過，不丟例外避免 console 噴錯
-                        }
-                    };
-                    reader.onerror = () => resolve(null);
-                    reader.readAsArrayBuffer(file);
-                });
-            };
-
+            
             // --- 7. 欄位對應邏輯 ---
-            const autoMapHeaders = () => {
-                // 以第一個資料集的標頭做預設對應
-                const primary = state.datasets[0];
-                const H = primary.headers || [];
 
+            const autoMapHeaders = () => {
                 const foundFields = {
-                    id: H.find(h => h === state.defaultFields.id) || null,
-                    taxable: H.find(h => h === state.defaultFields.taxable) || null,
-                    tax: H.find(h => h === state.defaultFields.tax) || null,
-                    format: H.find(h => h === state.defaultFields.format) || '',  // 選填
-                    status: H.find(h => h === state.defaultFields.status) || ''   // 選填
+                    id: state.headers.find(h => h === state.defaultFields.id),
+                    taxable: state.headers.find(h => h === state.defaultFields.taxable),
+                    tax: state.headers.find(h => h === state.defaultFields.tax)
                 };
 
                 if (foundFields.id && foundFields.taxable && foundFields.tax) {
+                    // 情境 A: 全部找到
                     state.mappedFields = foundFields;
                     state.isWarningConfirmed = true; // 自動對應 = 無需警告
                     runAnalysis();
                 } else {
-                    showMappingModal(H);
+                    // 情境 B: 有缺，顯示對應 Modal
+                    showMappingModal();
                 }
             };
 
-            const populateSelect = (select, headers, placeholder) => {
-                select.innerHTML = '';
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = placeholder;
-                select.appendChild(defaultOption);
-                headers.forEach(header => {
-                    const option = document.createElement('option');
-                    option.value = header;
-                    option.textContent = header;
-                    select.appendChild(option);
+            const showMappingModal = () => {
+                // 填充下拉選單
+                [dom.mapId, dom.mapTaxable, dom.mapTax].forEach(select => {
+                    select.innerHTML = ''; // 清空
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '-- 請選擇欄位 --';
+                    select.appendChild(defaultOption);
+                    
+                    state.headers.forEach(header => {
+                        const option = document.createElement('option');
+                        option.value = header;
+                        option.textContent = header;
+                        select.appendChild(option);
+                    });
                 });
-            };
-
-            const showMappingModal = (headers) => {
-                const H = headers || [];
-                populateSelect(dom.mapId, H, '-- 請選擇欄位 --');
-                populateSelect(dom.mapTaxable, H, '-- 請選擇欄位 --');
-                populateSelect(dom.mapTax, H, '-- 請選擇欄位 --');
-                populateSelect(dom.mapFormat, H, '(選填) -- 格式代號 --');   // ✅ 新增
-                populateSelect(dom.mapStatus, H, '(選填) -- 發票狀態 --');  // ✅ 新增
-
-                // 預選（若剛好名稱一致）
-                dom.mapId.value = H.find(h => h === state.defaultFields.id) || '';
-                dom.mapTaxable.value = H.find(h => h === state.defaultFields.taxable) || '';
-                dom.mapTax.value = H.find(h => h === state.defaultFields.tax) || '';
-                dom.mapFormat.value = H.find(h => h === state.defaultFields.format) || '';
-                dom.mapStatus.value = H.find(h => h === state.defaultFields.status) || '';
+                
+                // 嘗試預選
+                dom.mapId.value = state.headers.find(h => h === state.defaultFields.id) || '';
+                dom.mapTaxable.value = state.headers.find(h => h === state.defaultFields.taxable) || '';
+                dom.mapTax.value = state.headers.find(h => h === state.defaultFields.tax) || '';
 
                 hideStatus();
                 dom.mappingModal.classList.add('is-visible');
@@ -543,178 +854,183 @@
 
             const hideMappingModal = () => {
                 dom.mappingModal.classList.remove('is-visible');
-                // 不 reset：讓使用者可以再次選擇檔案時保留狀態
+                resetUI(); // 如果取消就重置
             };
 
             const handleMapConfirm = () => {
                 const selectedId = dom.mapId.value;
                 const selectedTaxable = dom.mapTaxable.value;
                 const selectedTax = dom.mapTax.value;
-                const selectedFormat = dom.mapFormat.value; // 允許空字串
-                const selectedStatus = dom.mapStatus.value; // 允許空字串
 
                 if (!selectedId || !selectedTaxable || !selectedTax) {
-                    showStatus('error', '錯誤：買方統一編號／應稅銷售額／營業稅 均為必選欄位。');
-                    alert('買方統一編號、應稅銷售額、營業稅為必選欄位。');
+                    showStatus('error', '錯誤：所有欄位都必須指定。');
+                    // 在 Modal 內顯示錯誤 (未來可優化)
+                    alert('所有欄位都必須指定。');
                     return;
                 }
 
                 state.mappedFields = {
                     id: selectedId,
                     taxable: selectedTaxable,
-                    tax: selectedTax,
-                    format: selectedFormat || '',
-                    status: selectedStatus || ''
+                    tax: selectedTax
                 };
 
-                const isDefaultRequiredOK = (
+                // 檢查是否使用非預設值
+                const isDefault = (
                     selectedId === state.defaultFields.id &&
                     selectedTaxable === state.defaultFields.taxable &&
                     selectedTax === state.defaultFields.tax
                 );
 
-                if (isDefaultRequiredOK) {
+                if (isDefault) {
                     state.isWarningConfirmed = true;
                     hideMappingModal();
                     runAnalysis();
                 } else if (state.isWarningConfirmed) {
+                    // 已確認過警告 (例如：從警告 modal 返回)
                     hideMappingModal();
                     runAnalysis();
                 } else {
+                    // 顯示警告
                     showWarningModal();
                 }
             };
 
             // --- 8. 警告 Modal 邏輯 ---
-            const showWarningModal = () => { dom.warningModal.classList.add('is-visible'); };
-            const hideWarningModal = () => { dom.warningModal.classList.remove('is-visible'); };
+            
+            const showWarningModal = () => {
+                dom.warningModal.classList.add('is-visible');
+            };
+
+            const hideWarningModal = () => {
+                dom.warningModal.classList.remove('is-visible');
+            };
+
             const handleWarnConfirm = () => {
                 state.isWarningConfirmed = true;
                 hideWarningModal();
-                handleMapConfirm();
+                handleMapConfirm(); // 再次觸發確認 (此時 isWarningConfirmed 為 true)
             };
-            const handleWarnCancel = () => { hideWarningModal(); };
+
+            const handleWarnCancel = () => {
+                hideWarningModal();
+                // 停留在 mapping modal
+            };
 
             // --- 9. 核心分析邏輯 ---
+
             const runAnalysis = () => {
                 if (!state.isWarningConfirmed) {
                     showStatus('error', '分析中止。請先確認欄位對應。');
                     return;
                 }
+                
                 showStatus('loading', '正在計算...');
+                
+                // 找到欄位索引
+                const indices = {
+                    id: state.headers.indexOf(state.mappedFields.id),
+                    taxable: state.headers.indexOf(state.mappedFields.taxable),
+                    tax: state.headers.indexOf(state.mappedFields.tax)
+                };
 
-                // 累計器（合併所有檔）
+                if (indices.id < 0 || indices.taxable < 0 || indices.tax < 0) {
+                    showStatus('error', '致命錯誤：找不到欄位索引。');
+                    return;
+                }
+                
+                // 規範：ID 為 8 位數字
+                const ID_REGEX = /^[0-9]{8}$/;
+
+                // 初始化計算器
                 let block1_Taxable = 0;
                 let block1_Tax = 0;
                 let block2_RawTotal = 0;
 
-                const ID_REGEX = /^[0-9]{8}$/;
-                let skippedFiles = [];
-
-                // 將每個資料集依照映射名稱找 index，找不到必選欄位就略過該檔
-                state.datasets.forEach(ds => {
-                    const H = ds.headers || [];
-                    const idx = {
-                        id: H.indexOf(state.mappedFields.id),
-                        taxable: H.indexOf(state.mappedFields.taxable),
-                        tax: H.indexOf(state.mappedFields.tax),
-                        format: state.mappedFields.format ? H.indexOf(state.mappedFields.format) : -1,
-                        status: state.mappedFields.status ? H.indexOf(state.mappedFields.status) : -1
-                    };
-                    if (idx.id < 0 || idx.taxable < 0 || idx.tax < 0) {
-                        skippedFiles.push(ds.name || '未命名檔案');
-                        return;
+                // 遍歷資料
+                state.jsonData.forEach((row, rowIndex) => {
+                    const id = String(row[indices.id] || '').trim();
+                    // 確保數值正確轉換，無效值視為 0
+                    const taxableAmount = parseFloat(row[indices.taxable]) || 0;
+                    
+                    if (ID_REGEX.test(id)) {
+                        // 區塊 1：標準應稅 (8位數)
+                        const taxAmount = parseFloat(row[indices.tax]) || 0;
+                        block1_Taxable += taxableAmount;
+                        block1_Tax += taxAmount;
+                    } else {
+                        // 區塊 2：零稅率/彙總 (非8位數)
+                        // 僅累加「應稅銷售額」欄位的值
+                        block2_RawTotal += taxableAmount;
                     }
-
-                    ds.rows.forEach(row => {
-                        const id = String(row[idx.id] !== undefined ? row[idx.id] : '').trim();
-                        const taxableRaw = parseFloat(row[idx.taxable]) || 0;
-                        const taxRaw = parseFloat(row[idx.tax]) || 0;
-
-                        // 依「發票狀態」略過
-                        if (idx.status >= 0) {
-                            const statusVal = String(row[idx.status] !== undefined ? row[idx.status] : '').trim();
-                            if (statusVal === '作廢已確認') return; // 直接忽略整列
-                        }
-
-                        // 依「格式代號」決定正負
-                        let sign = 1;
-                        if (idx.format >= 0) {
-                            const fmt = String(row[idx.format] !== undefined ? row[idx.format] : '').trim();
-                            if (fmt === '33' || parseInt(fmt, 10) === 33) sign = -1;
-                        }
-
-                        if (ID_REGEX.test(id)) {
-                            // 區塊 1：標準 8 碼
-                            block1_Taxable += sign * taxableRaw;
-                            block1_Tax += sign * taxRaw;
-                        } else {
-                            // 區塊 2：非 8 碼（彙總）→ 只計「應稅銷售額」原始值（之後回推）
-                            block2_RawTotal += sign * taxableRaw;
-                        }
-                    });
                 });
-
-                // 統一計算
-                const b1 = {
+                
+                // --- 計算結果 ---
+                
+                // 區塊 1
+                const block1 = {
                     taxable: block1_Taxable,
                     tax: block1_Tax,
                     total: block1_Taxable + block1_Tax
                 };
+                
+                // 區塊 2 (回推)
                 const block2_Taxable = block2_RawTotal / 1.05;
-                const b2 = {
+                const block2 = {
                     taxable: block2_Taxable,
                     tax: block2_RawTotal - block2_Taxable,
                     total: block2_RawTotal
                 };
-                const b3 = {
-                    taxable: b1.taxable + b2.taxable,
-                    tax: b1.tax + b2.tax,
-                    total: b1.total + b2.total
+                
+                // 區塊 3 (總計)
+                const block3 = {
+                    taxable: block1.taxable + block2.taxable,
+                    tax: block1.tax + block2.tax,
+                    total: block1.total + block2.total
                 };
-
+                
+                // 模擬處理時間 (增加呼吸感)
                 setTimeout(() => {
                     hideStatus();
-                    displayResults(b1, b2, b3, skippedFiles);
-                }, 300);
+                    displayResults(block1, block2, block3);
+                }, 500);
             };
 
             // --- 10. UI 顯示 ---
+
             const resetUI = () => {
                 dom.fileName.textContent = '';
                 hideStatus();
                 dom.resultsContainer.innerHTML = '';
                 dom.resultsContainer.classList.remove('is-visible');
                 state.isWarningConfirmed = false;
-                state.datasets = [];
-                dom.fileInput.value = '';
+                state.workbookData = null;
+                state.headers = [];
+                state.jsonData = [];
+                dom.fileInput.value = ''; // 允許重新上傳同名檔案
             };
-
+            
             const showStatus = (type, message) => {
                 dom.statusMessage.className = `status-message is-${type}`;
                 dom.statusMessage.textContent = message;
             };
+
             const hideStatus = () => {
                 dom.statusMessage.className = 'status-message';
                 dom.statusMessage.textContent = '';
             };
 
-            const displayResults = (b1, b2, b3, skippedFiles) => {
-                const formatNum = (num) => {
-                    const n = Number(num) || 0;
-                    return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                };
-                const formatDecimal = (num) => {
-                    const n = Number(num) || 0;
-                    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                };
-
-                const skippedNote = (Array.isArray(skippedFiles) && skippedFiles.length > 0)
-                    ? `<div style="margin-top:16px;padding:12px;border:1px dashed var(--mist-silver);border-radius:8px;color:var(--soft-gray);font-size:var(--fs-small);">
-                         以下檔案缺少必要欄位（買方統一編號／應稅銷售額／營業稅），已略過：<br>
-                         ${skippedFiles.map(n => `<span>• ${escapeHTML(n)}</span>`).join('<br>')}
-                       </div>`
-                    : '';
+            const displayResults = (b1, b2, b3) => {
+                // 格式化數字 (Speckit: 增加可讀性)
+                const formatNum = (num) => num.toLocaleString('en-US', { 
+                    minimumFractionDigits: 0, 
+                    maximumFractionDigits: 0 
+                });
+                // 對於稅金和回推，可能需要小數點
+                const formatDecimal = (num) => num.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
 
                 dom.resultsContainer.innerHTML = `
                     <div class="results-grid">
@@ -729,7 +1045,7 @@
                                 <span class="result-value">$${formatNum(b1.tax)}</span>
                             </div>
                             <div class="result-item is-total">
-                                <span>合計</span>
+                                <span>總計</span>
                                 <span class="result-value">$${formatNum(b1.total)}</span>
                             </div>
                         </div>
@@ -745,7 +1061,7 @@
                                 <span class="result-value">$${formatDecimal(b2.tax)}</span>
                             </div>
                             <div class="result-item is-total">
-                                <span>原始累加</span>
+                                <span>總計 (原始累加)</span>
                                 <span class="result-value">$${formatNum(b2.total)}</span>
                             </div>
                         </div>
@@ -766,22 +1082,13 @@
                             </div>
                         </div>
                     </div>
-                    ${skippedNote}
-                    <div style="margin-top:12px;color:var(--soft-gray);font-size:var(--fs-small);">
-                        計算規則：ID 為 8 碼 → 應稅+營業稅；非 8 碼 → 僅累加應稅並回推；格式代號=33 → 以負數計；發票狀態=「作廢已確認」→ 略過整列。
-                    </div>
                 `;
-                requestAnimationFrame(() => dom.resultsContainer.classList.add('is-visible'));
-            };
-
-            // 安全字串
-            const escapeHTML = (str) => {
-                return String(str)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#39;');
+                
+                // (Speckit) 呼吸感進場
+                // 使用 requestAnimationFrame 確保 DOM 渲染後再加 class
+                requestAnimationFrame(() => {
+                    dom.resultsContainer.classList.add('is-visible');
+                });
             };
 
             // --- 啟動 ---
