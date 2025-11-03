@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 
@@ -327,6 +326,11 @@
         }
 
         .label-box {
+            /* 注意：
+              固定寬高 (width: 15cm; height: 6cm;) 已保留，
+              但 JS 將使用 inline styles (labelBox.style.width) 來覆蓋它們，
+              這允許保留預設值，同時實現動態調整。
+            */
             width: 15cm;
             height: 6cm;
             border: 1px solid var(--ink-black);
@@ -486,7 +490,6 @@
             <p class="hero-subtitle">Vogue × Bazaar Hybrid Edition</p>
         </section>
 
-        <!-- MODIFICATION: Removed the 'reveal' class so it's not targeted by the animation script -->
         <section class="block-split" id="appContainer">
             <div class="form-section">
                 <div>
@@ -500,6 +503,24 @@
                     <div class="form-group">
                         <label for="printTitleStatic">2. 第二塊標題 (PrintTitleStatic)</label>
                         <input type="text" id="printTitleStatic" class="form-input" placeholder="請輸入標籤的靜態標題...">
+                    </div>
+
+                    <div class="form-group" style="margin-top: var(--spacing-lg);">
+                        <label>2b. 標籤設定 (預設: 2份, 15x6 cm)</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-top: 8px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="labelCount" style="font-size: 0.8rem; font-family: var(--font-body); font-weight: 400; margin-bottom: 4px;">數量 (每位)</label>
+                                <input type="number" id="labelCount" class="form-input" value="2" min="1">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="labelWidth" style="font-size: 0.8rem; font-family: var(--font-body); font-weight: 400; margin-bottom: 4px;">寬度 (cm)</label>
+                                <input type="number" id="labelWidth" class="form-input" value="15" min="1" step="0.1">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="labelHeight" style="font-size: 0.8rem; font-family: var(--font-body); font-weight: 400; margin-bottom: 4px;">高度 (cm)</label>
+                                <input type="number" id="labelHeight" class="form-input" value="6" min="1" step="0.1">
+                            </div>
+                        </div>
                     </div>
                     <div class="button-group">
                         <button id="btnGenerateAll" class="btn btn-primary">預覽列印 (全體模式)</button>
@@ -521,12 +542,11 @@
             <div class="preview-info">
                 <h3>預覽說明</h3>
                 <p>點擊生成按鈕後，符合列印標準的 A4 預覽將顯示於下方。</p>
-                <p>每個客戶姓名將生成兩份相同的 $15 \text{ cm} \times 6 \text{ cm}$ 標籤。</p>
-                <p>一頁 A4 最多可容納 4 個標籤。</p>
-            </div>
+                <p>您可以在左側「標籤設定」中自定義每個客戶的標籤數量、寬度和高度。</p>
+                <p>系統將根據您的標籤尺寸自動計算每頁 A4 可容納的標籤數量。</p>
+                </div>
         </section>
 
-        <!-- Customer Selection Container -->
         <section class="customer-selection-container" id="customerSelectionContainer">
             <h3 style="font-family: var(--font-display); color: var(--ink-black); margin-bottom: var(--spacing-md);">
                 客戶選擇列表
@@ -553,7 +573,6 @@
         © 2025 Speckit Framework. All rights reserved.
     </footer>
 
-    <!-- Modal for Error Messages -->
     <div class="modal-overlay" id="errorModal">
         <div class="modal-content">
             <p id="errorMessage"></p>
@@ -590,6 +609,12 @@
             // DOM Elements
             const customerNameListInput = document.getElementById('customerNameList');
             const printTitleStaticInput = document.getElementById('printTitleStatic');
+
+            // MODIFICATION START: Get new setting inputs
+            const labelCountInput = document.getElementById('labelCount');
+            const labelWidthInput = document.getElementById('labelWidth');
+            const labelHeightInput = document.getElementById('labelHeight');
+            // MODIFICATION END
 
             const btnGenerateAll = document.getElementById('btnGenerateAll');
             const btnCreateSelection = document.getElementById('btnCreateSelection');
@@ -651,6 +676,13 @@
                 const numberedCustomers = parseAndNumberNames(customerNameListInput.value);
                 const staticTitle = printTitleStaticInput.value.trim();
 
+                // MODIFICATION START: Get values from new inputs
+                // Use fallback (default) values if input is invalid
+                const labelCount = parseInt(labelCountInput.value, 10) || 2;
+                const labelWidth = parseFloat(labelWidthInput.value) || 15;
+                const labelHeight = parseFloat(labelHeightInput.value) || 6;
+                // MODIFICATION END
+
                 if (numberedCustomers.length === 0) {
                     showError('請輸入至少一位客戶姓名。', [customerNameListInput]);
                     return;
@@ -659,8 +691,9 @@
                     showError('請輸入第二塊標題。', [printTitleStaticInput]);
                     return;
                 }
-
-                generatePreview(numberedCustomers, staticTitle);
+                
+                // MODIFICATION: Pass new values to the preview function
+                generatePreview(numberedCustomers, staticTitle, labelCount, labelWidth, labelHeight);
             }
 
             // New Custom Selection Functions
@@ -763,15 +796,25 @@
                 }
 
                 const staticTitle = printTitleStaticInput.value.trim();
+                
+                // MODIFICATION START: Get values from new inputs
+                const labelCount = parseInt(labelCountInput.value, 10) || 2;
+                const labelWidth = parseFloat(labelWidthInput.value) || 15;
+                const labelHeight = parseFloat(labelHeightInput.value) || 6;
+                // MODIFICATION END
+
                 const selectedCustomerData = allCustomers.filter(customer =>
                     selectedCustomers.has(customer.id)
                 );
 
-                generatePreview(selectedCustomerData, staticTitle);
+                // MODIFICATION: Pass new values to the preview function
+                generatePreview(selectedCustomerData, staticTitle, labelCount, labelWidth, labelHeight);
             }
 
             // S6: Layout and Preview Generation
-            function generatePreview(printData, staticTitle) {
+            // MODIFICATION START: Update function signature to accept new parameters
+            function generatePreview(printData, staticTitle, labelCount, labelWidth, labelHeight) {
+                // MODIFICATION END
                 previewOutput.innerHTML = ''; // Clear previous results
 
                 if (printData.length === 0) {
@@ -779,18 +822,42 @@
                     return;
                 }
 
+                // MODIFICATION START: Calculate labels per page dynamically
+                // A4 page size: 21cm x 29.7cm
+                // Page padding: 1cm (all sides)
+                // Usable area: 19cm x 27.7cm
+                // Gap between labels: 1cm
+                const A4_USABLE_WIDTH_CM = 19;
+                const A4_USABLE_HEIGHT_CM = 27.7;
+                const GAP_CM = 1;
+
+                // Calculate how many labels fit per row and column
+                // Formula: floor((UsableArea + Gap) / (LabelSize + Gap))
+                const labelsPerRow = Math.floor((A4_USABLE_WIDTH_CM + GAP_CM) / (labelWidth + GAP_CM));
+                const labelsPerCol = Math.floor((A4_USABLE_HEIGHT_CM + GAP_CM) / (labelHeight + GAP_CM));
+                
+                const LABELS_PER_PAGE = labelsPerRow * labelsPerCol;
+
+                // Add a check in case the label is too big for the page
+                if (LABELS_PER_PAGE === 0) {
+                    showError(`標籤尺寸 (${labelWidth} x ${labelHeight} cm) 過大，單一標籤已超出 A4 可用範圍。`);
+                    previewContainer.classList.remove('visible');
+                    return;
+                }
+                // MODIFICATION END
+
                 // S6-1: Title Generation
                 const finalTitle = staticTitle; // 只使用第二塊標題，不加客戶名稱
                 previewTitle.textContent = "預覽結果";
 
-                const LABELS_PER_PAGE = 4; // 1 column * 4 rows for 15x6cm labels on A4
+                // MODIFICATION: The 'LABELS_PER_PAGE' const is now calculated above
                 let currentPage = null;
                 let labelCountOnPage = 0;
 
                 // S6-2: Label Generation
                 printData.forEach(customer => {
-                    // Each customer gets TWO labels
-                    for (let i = 0; i < 2; i++) {
+                    // MODIFICATION: Use dynamic labelCount instead of fixed '2'
+                    for (let i = 0; i < labelCount; i++) {
                         if (labelCountOnPage % LABELS_PER_PAGE === 0) {
                             currentPage = document.createElement('div');
                             currentPage.className = 'a4-page';
@@ -800,6 +867,12 @@
 
                         const labelBox = document.createElement('div');
                         labelBox.className = 'label-box';
+
+                        // MODIFICATION START: Apply dynamic width and height via inline styles
+                        // This will override the CSS class, achieving the desired effect.
+                        labelBox.style.width = `${labelWidth}cm`;
+                        labelBox.style.height = `${labelHeight}cm`;
+                        // MODIFICATION END
 
                         // S6-3: Fill Content
                         const titleElement = document.createElement('div');
