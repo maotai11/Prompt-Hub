@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多冊批量計算與核算工具</title>
+    
+    <style>
+        :root {
+            --color-bg: #f9f9f9;
+            --color-surface: #ffffff;
+            --color-border: #e0e0e0;
+            --color-text-primary: #222222;
+            --color-text-secondary: #555555;
+            --color-text-accent: #007aff;
+            --color-text-monospace: #d9480f;
+            --color-error: #d9534f;
+            --color-success: #4caf50;
+            --color-button-bg: #f0f0f0;
+            --color-button-hover-bg: #e0e0e0;
+            --color-button-primary-bg: #333333;
+            --color-button-primary-text: #ffffff;
+            --color-button-danger-bg: #d9534f;
+            --color-button-danger-text: #ffffff;
+
+            --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+
+            --spacing-xs: 4px;
+            --spacing-s: 8px;
+            --spacing-m: 16px;
+            --spacing-l: 24px;
+            --spacing-xl: 32px;
+
+            --border-radius: 6px;
+            --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* --- 1. Base & Layout --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-family-sans);
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            padding: var(--spacing-l);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            gap: var(--spacing-l);
+        }
+
+        header {
+            padding-bottom: var(--spacing-m);
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+        
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-m);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: var(--spacing-m);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h3 .tax-rate-badge {
+            font-size: 0.8rem;
+            font-weight: 400;
+            color: var(--color-text-secondary);
+            background-color: var(--color-bg);
+            padding: var(--spacing-xs) var(--spacing-s);
+            border-radius: var(--border-radius);
+        }
+
+        /* --- 2. Panels & Cards --- */
+        .panel {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .config-panel,
+        .actions-panel {
+            padding: var(--spacing-m);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-m);
+            align-items: center;
+        }
+        
+        .actions-panel {
+            background: none;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            justify-content: space-between;
+        }
+
+        .summary-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-l);
+        }
+
+        @media (max-width: 768px) {
+            .summary-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .books-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: var(--spacing-l);
+        }
+
+        .book {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* For border-radius */
+        }
+
+        /* --- 3. Forms & Inputs --- */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text-secondary);
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            font-family: var(--font-family-mono);
+            font-size: 1rem;
+            padding: var(--spacing-s);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+        }
+
+        input[type="number"]:focus-visible,
+        input[type="text"]:focus-visible {
+            outline: 2px solid var(--color-text-accent);
+            outline-offset: 2px;
+            border-color: var(--color-text-accent);
+        }
+        
+        button {
+            font-family: var(--font-family-sans);
+            font-size: 0.9rem;
+            padding: var(--spacing-s) var(--spacing-m);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-button-bg);
+            color: var(--color-text-primary);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover, button:focus-visible {
+            background-color: var(--color-button-hover-bg);
+        }
+        
+        button:focus-visible {
+            outline: 2px solid var(--color-text-accent);
+            outline-offset: 2px;
+        }
+        
+        button.btn-primary {
+            background-color: var(--color-button-primary-bg);
+            color: var(--color-button-primary-text);
+            border-color: var(--color-button-primary-bg);
+            font-weight: 500;
+        }
+        button.btn-primary:hover, button.btn-primary:focus-visible {
+            background-color: #000;
+        }
+        
+        button.btn-danger {
+            background-color: var(--color-button-danger-bg);
+            color: var(--color-button-danger-text);
+            border-color: var(--color-button-danger-bg);
+        }
+        button.btn-danger:hover, button.btn-danger:focus-visible {
+            background-color: #c9302c;
+        }
+
+        .entry-form {
+            padding: var(--spacing-m);
+            border-top: 1px solid var(--color-border);
+        }
+        
+        .entry-form input {
+            width: 100%;
+        }
+
+        .error-message {
+            font-size: 0.85rem;
+            color: var(--color-error);
+            margin-top: var(--spacing-s);
+            display: none; /* Hidden by default */
+        }
+        
+        .book.has-error .entry-form input {
+            border-color: var(--color-error);
+        }
+        
+        .book.has-error .error-message {
+            display: block;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* --- 4. Data Display --- */
+        .entries-list {
+            padding: var(--spacing-s) var(--spacing-m);
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse; /* New entries appear at the top */
+        }
+        
+        .entry {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--spacing-s);
+            padding: var(--spacing-xs) 0;
+            font-family: var(--font-family-mono);
+            font-size: 0.95rem;
+            border-bottom: 1px dashed var(--color-border);
+        }
+        
+        .entry span:nth-child(1) { text-align: left; }
+        .entry span:nth-child(2) { text-align: right; color: var(--color-text-secondary); }
+        .entry span:nth-child(3) { text-align: right; font-weight: 500; }
+        
+        .entry-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: var(--spacing-s);
+            padding: var(--spacing-xs) 0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            padding: var(--spacing-xs) var(--spacing-m);
+        }
+        .entry-header span:nth-child(1) { text-align: left; }
+        .entry-header span:nth-child(2) { text-align: right; }
+        .entry-header span:nth-child(3) { text-align: right; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: var(--spacing-m);
+            padding: var(--spacing-m);
+        }
+        
+        .summary-grid > div {
+            display: contents; /* Allows grid layout to apply to children */
+        }
+
+        .summary-key {
+            font-weight: 500;
+            color: var(--color-text-secondary);
+        }
+        
+        .summary-value {
+            font-family: var(--font-family-mono);
+            font-weight: 600;
+            text-align: right;
+            font-size: 1.1rem;
+            color: var(--color-text-primary);
+        }
+        
+        .summary-value.is-error {
+            color: var(--color-error);
+        }
+        
+        .summary-value.is-success {
+            color: var(--color-success);
+        }
+
+        .book-summary {
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+        }
+
+        /* --- 5. Toast Notifications (for Zero-Console-Issue) --- */
+        #toast-container {
+            position: fixed;
+            top: var(--spacing-l);
+            right: var(--spacing-l);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-m);
+        }
+        
+        .toast {
+            padding: var(--spacing-m);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-weight: 500;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .toast.success {
+            background-color: var(--color-success);
+            color: white;
+        }
+        
+        .toast.error {
+            background-color: var(--color-error);
+            color: white;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>多冊批量計算與核算工具</h1>
+        </header>
+
+        <main>
+            <div class="panel config-panel">
+                <div class="form-group">
+                    <label for="taxRateInput">當前稅率設定 (%)</label>
+                    <input type="number" id="taxRateInput" value="5" min="0" step="0.01">
+                </div>
+            </div>
+
+            <div class="actions-panel">
+                <button id="addNewBookBtn" class="btn-primary">＋ 新增一冊</button>
+                
+                <div>
+                    <button id="exportBtn">匯出 JSON</button>
+                    <button id="importBtn">匯入 JSON</button>
+                    <input type="file" id="importFileInput" accept="application/json" class="hidden">
+                    <button id="clearAllBtn" class="btn-danger">全部清除</button>
+                </div>
+            </div>
+
+            <div id="booksContainer" class="books-container">
+                </div>
+
+            <div class="summary-container">
+                <div class="panel">
+                    <h2>總結數據</h2>
+                    <div class="summary-grid" id="summaryPanel">
+                        <div>
+                            <span class="summary-key">總筆數</span>
+                            <span class="summary-value" id="grandTotalCount">0</span>
+                        </div>
+                        <div>
+                            <span class="summary-key">總未稅銷售額</span>
+                            <span class="summary-value" id="grandTotalUntaxed">0.00</span>
+                        </div>
+                        <div>
+                            <span class="summary-key">總稅額</span>
+                            <span class="summary-value" id="grandTotalTax">0.00</span>
+                        </div>
+                        <div>
+                            <span class="summary-key">總總計</span>
+                            <span class="summary-value" id="grandTotalTotal">0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h2>核算驗證</h2>
+                    <div class="summary-grid" id="verificationPanel">
+                        <div>
+                            <span class="summary-key">核算未稅總額</span>
+                            <span class="summary-value" id="verifyUntaxed">0.00</span>
+                        </div>
+                        <div>
+                            <span class="summary-key">核算稅額總額</span>
+                            <span class="summary-value" id="verifyTax">0.00</span>
+                        </div>
+                        <div>
+                            <span class="summary-key">核算誤差 (絕對值)</span>
+                            <span class="summary-value" id="verifyError">0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="toast-container"></div>
+
+    <template id="bookTemplate">
+        <article class="book">
+            <h3>
+                <span class="book-title">第 X 冊</span>
+                <span class="tax-rate-badge">稅率: Y%</span>
+            </h3>
+            
+            <div class="entry-header">
+                <span>未稅額</span>
+                <span>稅額</span>
+                <span>總計</span>
+            </div>
+            <div class="entries-list">
+                </div>
+
+            <form class="entry-form" novalidate>
+                <input type="number" step="0.01" placeholder="輸入未稅銷售額 (Enter 提交)">
+                <div class="error-message"></div>
+            </form>
+            
+            <div class="book-summary">
+                <div class="summary-grid">
+                    <div>
+                        <span class="summary-key">本冊筆數</span>
+                        <span class="summary-value book-summary-count">0</span>
+                    </div>
+                    <div>
+                        <span class="summary-key">本冊未稅加總</span>
+                        <span class="summary-value book-summary-untaxed">0.00</span>
+                    </div>
+                    <div>
+                        <span class="summary-key">本冊稅額加總</span>
+                        <span class="summary-value book-summary-tax">0.00</span>
+                    </div>
+                    <div>
+                        <span class="summary-key">本冊總計加總</span>
+                        <span class="summary-value book-summary-total">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </template>
+
+    <script type="module">
+        // 嚴格模式
+        "use strict";
+
+        // --- 0. Constants and State ---
+        const STORAGE_KEY = 'multiBookCalculatorData_v1';
+        
+        // DOM Elements
+        const taxRateInput = document.getElementById('taxRateInput');
+        const addNewBookBtn = document.getElementById('addNewBookBtn');
+        const booksContainer = document.getElementById('booksContainer');
+        const bookTemplate = document.getElementById('bookTemplate');
+        
+        // Summary Panel Elements
+        const grandTotalCountEl = document.getElementById('grandTotalCount');
+        const grandTotalUntaxedEl = document.getElementById('grandTotalUntaxed');
+        const grandTotalTaxEl = document.getElementById('grandTotalTax');
+        const grandTotalTotalEl = document.getElementById('grandTotalTotal');
+        
+        // Verification Panel Elements
+        const verifyUntaxedEl = document.getElementById('verifyUntaxed');
+        const verifyTaxEl = document.getElementById('verifyTax');
+        const verifyErrorEl = document.getElementById('verifyError');
+        
+        // Actions
+        const exportBtn = document.getElementById('exportBtn');
+        const importBtn = document.getElementById('importBtn');
+        const importFileInput = document.getElementById('importFileInput');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        
+        const toastContainer = document.getElementById('toast-container');
+
+        // Application State
+        let state = {
+            books: [], // Array of book objects
+            globalTaxRate: 5.0,
+        };
+        
+        // Debounce timer for saving
+        let saveTimeout;
+
+        // --- 1. Utility Functions ---
+
+        /**
+         * 財務捨入：四捨五入到小數點後 2 位
+         * @param {number} value - The number to round
+         * @returns {number} The rounded number
+         */
+        function round(value) {
+            return Math.round(value * 100) / 100;
+        }
+
+        /**
+         * 格式化數字為貨幣顯示 (2 位小數)
+         * @param {number} value - The number to format
+         * @returns {string} The formatted string
+         */
+        function formatDisplay(value) {
+            return value.toFixed(2);
+        }
+
+        /**
+         * 顯示 UI Toast 通知 (符合 Zero-Console-Issue)
+         * @param {string} message - The message to display
+         * @param {'success' | 'error'} type - The type of toast
+         */
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 500);
+            }, 3000);
+        }
+
+        /**
+         * 在特定輸入框顯示錯誤
+         * @param {HTMLInputElement} inputElement - The input element
+         * @param {string} message - The error message
+         */
+        function showInputError(inputElement, message) {
+            const bookElement = inputElement.closest('.book');
+            if (!bookElement) return;
+            
+            const errorEl = bookElement.querySelector('.error-message');
+            bookElement.classList.add('has-error');
+            if (errorEl) {
+                errorEl.textContent = message;
+            }
+        }
+
+        /**
+         * 清除特定輸入框的錯誤
+         * @param {HTMLInputElement} inputElement - The input element
+         */
+        function clearInputError(inputElement) {
+            const bookElement = inputElement.closest('.book');
+            if (!bookElement) return;
+
+            const errorEl = bookElement.querySelector('.error-message');
+            bookElement.classList.remove('has-error');
+            if (errorEl) {
+                errorEl.textContent = '';
+            }
+        }
+
+        // --- 2. State Management & Persistence (Data Ownership) ---
+
+        /**
+         * 延遲保存狀態到 localStorage
+         */
+        function debouncedSaveState() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveState, 300);
+        }
+
+        /**
+         * 立即保存狀態到 localStorage
+         */
+        function saveState() {
+            try {
+                const data = JSON.stringify(state);
+                localStorage.setItem(STORAGE_KEY, data);
+            } catch (e) {
+                // 遵循 Zero-Console-Issue，使用 UI 提示
+                showToast('儲存資料時發生錯誤，空間可能已滿。', 'error');
+            }
+        }
+
+        /**
+         * 從 localStorage 載入狀態
+         */
+        function loadState() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                if (data) {
+                    const parsedData = JSON.parse(data);
+                    // 基礎 Schema 驗證
+                    if (parsedData && Array.isArray(parsedData.books) && typeof parsedData.globalTaxRate === 'number') {
+                        state = parsedData;
+                    } else {
+                        // 資料格式錯誤，重置
+                        resetState();
+                    }
+                } else {
+                    // 沒有資料，初始化
+                    resetState();
+                }
+            } catch (e) {
+                showToast('載入本地資料失敗，將重置為預設值。', 'error');
+                resetState();
+            }
+        }
+
+        /**
+         * 重置狀態並創建第一冊
+         */
+        function resetState() {
+            state = {
+                books: [],
+                globalTaxRate: 5.0,
+            };
+            // 初始化時創建第一冊
+            addNewBook();
+        }
+
+        // --- 3. Core Calculation Logic (as per spec) ---
+
+        /**
+         * 重新計算並更新所有總結
+         */
+        function updateAllCalculations() {
+            let grandTotalCount = 0;
+            let grandTotalUntaxed = 0;
+            let grandTotalTax = 0;
+            let grandTotalTotal = 0;
+
+            // 1. 更新每冊的總結 (Update Book Totals)
+            state.books.forEach(book => {
+                let bookCount = 0;
+                let bookUntaxed = 0;
+                let bookTax = 0;
+                let bookTotal = 0;
+
+                book.entries.forEach(entry => {
+                    bookCount++;
+                    bookUntaxed += entry.untaxed;
+                    bookTax += entry.tax;
+                    bookTotal += entry.total;
+                });
+                
+                // 儲存計算結果到 state
+                book.totals = {
+                    count: bookCount,
+                    untaxed: round(bookUntaxed),
+                    tax: round(bookTax),
+                    total: round(bookTotal)
+                };
+                
+                // 更新 DOM (分冊顯示)
+                updateBookSummaryDOM(book);
+
+                // 2. 累加到總結 (Aggregate to Grand Totals)
+                grandTotalCount += book.totals.count;
+                grandTotalUntaxed += book.totals.untaxed;
+                grandTotalTax += book.totals.tax;
+                grandTotalTotal += book.totals.total;
+            });
+            
+            // 處理浮點數精度問題
+            grandTotalUntaxed = round(grandTotalUntaxed);
+            grandTotalTax = round(grandTotalTax);
+            grandTotalTotal = round(grandTotalTotal);
+
+            // 3. 更新總結 DOM (總結數據)
+            grandTotalCountEl.textContent = grandTotalCount;
+            grandTotalUntaxedEl.textContent = formatDisplay(grandTotalUntaxed);
+            grandTotalTaxEl.textContent = formatDisplay(grandTotalTax);
+            grandTotalTotalEl.textContent = formatDisplay(grandTotalTotal);
+            
+            // 4. 執行核算驗證 (核算驗證)
+            runVerification(grandTotalTotal, grandTotalTax);
+        }
+
+        /**
+         * 執行反向核算驗證
+         * @param {number} grandTotalTotal - 總總計加總
+         * @param {number} grandTotalTax - 總稅額加總
+         */
+        function runVerification(grandTotalTotal, grandTotalTax) {
+            const rate = state.globalTaxRate / 100;
+            
+            if (rate <= -1) { // 避免除以 0 或負數
+                verifyUntaxedEl.textContent = 'N/A';
+                verifyTaxEl.textContent = 'N/A';
+                verifyErrorEl.textContent = 'N/A';
+                return;
+            }
+
+            const verifiedUntaxed = grandTotalTotal / (1 + rate);
+            const verifiedTax = grandTotalTotal - verifiedUntaxed; // 另一種算法: verifiedUntaxed * rate;
+            const verificationError = Math.abs(grandTotalTax - verifiedTax);
+
+            verifyUntaxedEl.textContent = formatDisplay(verifiedUntaxed);
+            verifyTaxEl.textContent = formatDisplay(verifiedTax);
+            verifyErrorEl.textContent = formatDisplay(verificationError);
+            
+            // 根據誤差值添加樣式
+            if (verificationError < 0.01) {
+                verifyErrorEl.className = 'summary-value is-success';
+            } else {
+                verifyErrorEl.className = 'summary-value is-error';
+            }
+        }
+
+
+        // --- 4. DOM Rendering ---
+
+        /**
+         * 渲染所有 state 中的 books
+         */
+        function renderAllBooks() {
+            booksContainer.innerHTML = ''; // 清空
+            state.books.forEach(book => renderBook(book));
+            updateAllCalculations();
+        }
+
+        /**
+         * 渲染單一冊
+         * @param {object} book - The book object from state
+         */
+        function renderBook(book) {
+            const bookElement = bookTemplate.content.cloneNode(true);
+            const article = bookElement.querySelector('.book');
+            const titleEl = bookElement.querySelector('.book-title');
+            const taxRateEl = bookElement.querySelector('.tax-rate-badge');
+            const entriesListEl = bookElement.querySelector('.entries-list');
+            const formEl = bookElement.querySelector('.entry-form');
+            const inputEl = bookElement.querySelector('input[type="number"]');
+
+            article.dataset.bookId = book.id;
+            titleEl.textContent = `第 ${book.index} 冊`;
+            taxRateEl.textContent = `稅率: ${book.taxRate}%`;
+
+            // 渲染該冊所有條目
+            entriesListEl.innerHTML = '';
+            book.entries.forEach(entry => {
+                renderEntry(entriesListEl, entry);
+            });
+
+            // 綁定表單提交事件
+            formEl.addEventListener('submit', (e) => handleEntrySubmit(e, book.id));
+            inputEl.addEventListener('input', () => clearInputError(inputEl));
+
+            booksContainer.appendChild(bookElement);
+        }
+
+        /**
+         * 渲染單一條目到指定的 list 元素
+         * @param {HTMLElement} listElement - The .entries-list element
+         * @param {object} entry - The entry object
+         */
+        function renderEntry(listElement, entry) {
+            const entryEl = document.createElement('div');
+            entryEl.className = 'entry';
+            entryEl.innerHTML = `
+                <span>${formatDisplay(entry.untaxed)}</span>
+                <span>${formatDisplay(entry.tax)}</span>
+                <span>${formatDisplay(entry.total)}</span>
+            `;
+            // 插入到頂部 (因為 list 是 flex-direction: column-reverse)
+            listElement.appendChild(entryEl);
+        }
+
+        /**
+         * 更新指定 book 的 DOM 總結
+         * @param {object} book - The book object from state
+         */
+        function updateBookSummaryDOM(book) {
+            const bookElement = booksContainer.querySelector(`.book[data-book-id="${book.id}"]`);
+            if (!bookElement) return;
+
+            bookElement.querySelector('.book-summary-count').textContent = book.totals.count;
+            bookElement.querySelector('.book-summary-untaxed').textContent = formatDisplay(book.totals.untaxed);
+            bookElement.querySelector('.book-summary-tax').textContent = formatDisplay(book.totals.tax);
+            bookElement.querySelector('.book-summary-total').textContent = formatDisplay(book.totals.total);
+        }
+
+
+        // --- 5. Event Handlers ---
+
+        /**
+         * 處理新增一冊
+         */
+        function addNewBook() {
+            const newBook = {
+                id: `book-${Date.now()}`,
+                index: state.books.length + 1,
+                taxRate: state.globalTaxRate, // 鎖定當前稅率
+                entries: [],
+                totals: { count: 0, untaxed: 0, tax: 0, total: 0 }
+            };
+            state.books.push(newBook);
+            renderBook(newBook); // 只渲染新增的
+            debouncedSaveState();
+        }
+
+        /**
+         * 處理單筆輸入提交 (步驟 3-6)
+         * @param {Event} event - The form submit event
+         * @param {string} bookId - The ID of the book being added to
+         */
+        function handleEntrySubmit(event, bookId) {
+            event.preventDefault();
+            const form = event.target;
+            const input = form.querySelector('input[type="number"]');
+            
+            const untaxedAmount = parseFloat(input.value);
+
+            // 判斷1: 無效輸入或負值
+            if (isNaN(untaxedAmount) || untaxedAmount < 0) {
+                showInputError(input, "輸入無效，請輸入大於或等於 0 的數字。");
+                input.value = ''; // 清空無效輸入
+                input.focus();
+                return;
+            }
+            
+            clearInputError(input);
+
+            const book = state.books.find(b => b.id === bookId);
+            if (!book) return;
+
+            // 步驟4: 單筆計算 (使用該冊鎖定的稅率)
+            const rate = book.taxRate / 100;
+            const calculatedTax = round(untaxedAmount * rate);
+            const calculatedTotal = round(untaxedAmount + calculatedTax); // 依規範: 總計 = 未稅 + 稅額
+
+            const entry = {
+                untaxed: untaxedAmount,
+                tax: calculatedTax,
+                total: calculatedTotal
+            };
+
+            // 步驟5: 分層加總與緩存 (更新 state)
+            book.entries.push(entry);
+
+            // 更新 DOM
+            const listElement = form.previousElementSibling; // .entries-list
+            renderEntry(listElement, entry);
+            
+            // 步驟6: 更新總結並儲存
+            updateAllCalculations();
+            debouncedSaveState();
+
+            // 步驟7: 清空輸入框以便連續輸入
+            input.value = '';
+            input.focus();
+        }
+
+        /**
+         * 處理稅率變更 (步驟 2)
+         */
+        function handleTaxRateChange(event) {
+            const newRate = parseFloat(event.target.value);
+            if (isNaN(newRate) || newRate < 0) {
+                event.target.value = state.globalTaxRate; // 恢復原值
+                showToast("稅率必須是有效的正數。", "error");
+                return;
+            }
+            state.globalTaxRate = newRate;
+            
+            // 稅率變更會影響核算驗證，所以要重新計算
+            updateAllCalculations();
+            debouncedSaveState();
+        }
+
+        /**
+         * 處理全部清除
+         */
+        function handleClearAll() {
+            if (confirm("您確定要清除所有冊和全部數據嗎？此操作無法復原。")) {
+                resetState();
+                renderAllBooks(); // 會渲染出新的第一冊
+                saveState(); // 立即儲存
+                showToast("所有數據已清除。", "success");
+            }
+        }
+
+        /**
+         * 處理 JSON 匯出
+         */
+        function handleExport() {
+            try {
+                const data = JSON.stringify(state, null, 2);
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                a.href = url;
+                a.download = `multi-book-calculator-backup-${timestamp}.json`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast("資料匯出成功。", "success");
+            } catch (e) {
+                showToast("匯出失敗。", "error");
+            }
+        }
+
+        /**
+         * 處理匯入按鈕點擊 (觸發隱藏的 input)
+         */
+        function handleImportClick() {
+            importFileInput.click();
+        }
+
+        /**
+         * 處理檔案匯入 (覆蓋模式)
+         */
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // 驗證匯入的資料
+                    if (importedData && Array.isArray(importedData.books) && typeof importedData.globalTaxRate === 'number') {
+                        if (confirm("匯入將會覆蓋當前所有資料，確定要繼續嗎？")) {
+                            state = importedData;
+                            taxRateInput.value = state.globalTaxRate; // 更新稅率輸入框
+                            renderAllBooks();
+                            saveState(); // 立即儲存
+                            showToast("資料匯入並覆蓋成功。", "success");
+                        }
+                    } else {
+                        throw new Error("無效的檔案格式。");
+                    }
+                } catch (err) {
+                    showToast(`匯入失敗：${err.message}`, "error");
+                } finally {
+                    // 重置 input file 以便下次觸發 change 事件
+                    importFileInput.value = '';
+                }
+            };
+            
+            reader.onerror = () => {
+                showToast("讀取檔案失敗。", "error");
+                importFileInput.value = '';
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        // --- 6. Initialization ---
+
+        /**
+         * 應用程式初始化
+         */
+        function init() {
+            // 綁定全域事件
+            taxRateInput.addEventListener('change', handleTaxRateChange);
+            addNewBookBtn.addEventListener('click', addNewBook);
+            
+            // 綁定匯出/匯入/清除
+            exportBtn.addEventListener('click', handleExport);
+            importBtn.addEventListener('click', handleImportClick);
+            importFileInput.addEventListener('change', handleImportFile);
+            clearAllBtn.addEventListener('click', handleClearAll);
+
+            // 載入資料並渲染
+            loadState();
+            taxRateInput.value = state.globalTaxRate;
+            renderAllBooks();
+            
+            // 確保即使沒有資料，總結和驗證也是 0.00
+            if (state.books.length === 0 || (state.books.length === 1 && state.books[0].entries.length === 0)) {
+                updateAllCalculations();
+            }
+        }
+
+        // --- 7. Run Application ---
+        // 確保 DOM 載入完成
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+    </script>
+</body>
+</html>
