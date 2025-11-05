@@ -4,20 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>銷售紀錄條件式計算</title>
-    
-    <script>
-    /* * =============================================================================
-     * || 請將 xlsx.full.min.js 的完整內容貼在這裡 (Paste xlsx.full.min.js here) ||
-     * =============================================================================
-     */
-     
-     
-     
-    /* * =============================================================================
-     * || (貼上的代碼會非常長，這很正常)                                           ||
-     * =============================================================================
-     */
-    </script>
+
+    <!-- 改成外部載入你同資料夾的 SheetJS -->
+    <script src="./xlsx.full.min.js"></script>
 
     <style>
         /* --- 1. Speckit 美學: 變數與重置 --- */
@@ -90,39 +79,27 @@
             transition: background-color 0.2s;
             text-align: center;
         }
-
         .btn-primary {
             background-color: var(--color-primary);
             color: var(--color-primary-text);
         }
-
         .btn-primary:hover {
             background-color: var(--color-primary-hover);
         }
-
         .btn-secondary {
             background-color: #f1f3f4;
             color: #3c4043;
             border: 1px solid #dadce0;
         }
-        
         .btn-secondary:hover {
-             background-color: #f8f9fa;
-             border-color: #d2d5d8;
-        }
-
-        .btn:disabled {
-            background-color: #f1f1f1;
-            color: #aaa;
-            cursor: not-allowed;
-            border-color: #e0e0e0;
+            background-color: #f8f9fa;
+            border-color: #d2d5d8;
         }
 
         .file-uploader {
             display: block;
             width: 100%;
         }
-
         input[type="file"] {
             border: 2px dashed var(--color-border);
             padding: var(--spacing);
@@ -130,20 +107,18 @@
             width: 100%;
             cursor: pointer;
         }
-        
         input[type="file"]::file-selector-button {
-             margin-right: var(--spacing);
-             border: none;
-             background: var(--color-primary);
-             padding: 10px 16px;
-             border-radius: var(--radius);
-             color: #fff;
-             cursor: pointer;
-             transition: background-color .2s;
+            margin-right: var(--spacing);
+            border: none;
+            background: var(--color-primary);
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            color: #fff;
+            cursor: pointer;
+            transition: background-color .2s;
         }
-
         input[type="file"]::file-selector-button:hover {
-             background: var(--color-primary-hover);
+            background: var(--color-primary-hover);
         }
 
         .toast {
@@ -280,9 +255,6 @@
         }
         .results-summary h2 {
             margin: 0 0 12px 0;
-            padding: 0;
-            border: none;
-            color: #1e4620;
         }
         .summary-grid {
             display: grid;
@@ -306,7 +278,6 @@
             font-weight: 700;
             color: #1e4620;
         }
-
         .results-details details {
             margin-bottom: var(--spacing);
             border: 1px solid var(--color-border);
@@ -343,7 +314,6 @@
         td:last-child, th:last-child {
             text-align: right;
         }
-        /* 格式化數字 */
         .num {
             font-family: "Menlo", "Consolas", monospace;
             text-align: right;
@@ -427,6 +397,7 @@
         </main>
     </div>
 
+    <!-- 欄位對應的 Modal -->
     <div id="mapping-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -505,16 +476,7 @@
         const toast = document.getElementById('toast');
         let toastTimer;
 
-        // --- 1. 輔助函數 (Speckit: UI 提示) ---
-        
-        /**
-         * 顯示提示訊息 (Toast)
-         * @param {string} message - 要顯示的訊息
-         * @param {string} type - 'success' 或 'error'
-         */
         function showToast(message, type = 'success') {
-            // 嚴格遵守 Speckit: 不使用 console.warn/error
-            
             clearTimeout(toastTimer);
             toast.textContent = message;
             toast.className = `toast ${type} show`;
@@ -523,33 +485,29 @@
             }, 3000);
         }
 
-        /**
-         * 格式化貨幣
-         * @param {number} num - 數值
-         * @returns {string} 格式化後的字串 (e.g., 1,234.56)
-         */
         function formatCurrency(num) {
             if (isNaN(num)) return "0.00";
             return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        // --- 2. 核心邏輯 (TDS: 步驟 1) ---
+        function ensureXLSXLoaded() {
+            if (typeof XLSX === 'undefined') {
+                showToast("錯誤：XLSX 解析庫 (SheetJS) 未被正確加載。", "error");
+                showToast("請確認同資料夾有 xlsx.full.min.js，並已在 <head> 加入 <script src=\"./xlsx.full.min.js\"></script>。", "error");
+                return false;
+            }
+            return true;
+        }
 
-        /**
-         * 處理檔案上傳
-         */
+        // 處理檔案上傳
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) {
                 return;
             }
 
-            // 檢查 SheetJS 是否存在 (檢查內嵌的庫)
-            if (typeof XLSX === 'undefined') {
-                showToast("錯誤：XLSX 解析庫 (SheetJS) 未被正確加載。", "error");
-                showToast("請確認已將 xlsx.full.min.js 貼入 HTML 中。", "error");
-                // 恢復上傳按鈕狀態
-                fileUploader.value = ""; // 清空選擇
+            if (!ensureXLSXLoaded()) {
+                fileUploader.value = "";
                 return;
             }
 
@@ -561,8 +519,7 @@
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
                     
-                    // 將工作表轉換為 JSON 物件陣列
-                    // header: 1 表示第一行是抬頭
+                    // 第一版是把工作表轉成陣列
                     rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
 
                     if (rawData.length < 2) {
@@ -570,12 +527,12 @@
                         return;
                     }
 
-                    // 步驟 1：數據讀取與欄位解析 (僅讀取第一行)
-                    fileHeaders = rawData[0]; 
-                    // 移除抬頭，保留真實數據
-                    rawData.shift(); 
+                    // 第 1 列當抬頭
+                    fileHeaders = rawData[0];
+                    // 剩下的是資料列
+                    rawData.shift();
 
-                    // 將陣列數據轉換為物件 (基於 fileHeaders)
+                    // 將資料列轉成物件
                     rawData = rawData.map(row => {
                         let obj = {};
                         fileHeaders.forEach((header, index) => {
@@ -584,17 +541,15 @@
                         return obj;
                     });
 
-
                     if (!fileHeaders || fileHeaders.length === 0) {
                         showToast("錯誤：無法讀取檔案抬頭。", "error");
                         return;
                     }
 
-                    // 更新 UI
                     processButton.disabled = false;
                     processButton.textContent = "步驟 2：對應欄位並計算";
                     showToast("檔案讀取成功！", "success");
-                    
+
                     // 預先填充模態框
                     populateMappingModal();
 
@@ -604,7 +559,7 @@
                     processButton.textContent = "請先上傳檔案";
                 }
             };
-            
+
             reader.onerror = () => {
                 showToast("檔案讀取失敗。", "error");
             };
@@ -612,13 +567,8 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // --- 3. 核心邏輯 (TDS: 步驟 2) ---
-        
-        /**
-         * 填充欄位對應模態框
-         */
+        // 填充欄位對應
         function populateMappingModal() {
-            // 顯示偵測到的欄位
             detectedFieldsList.innerHTML = fileHeaders.map(h => `<code>${h}</code>`).join(' ');
 
             const selects = {
@@ -635,10 +585,10 @@
 
             for (const key in selects) {
                 selects[key].innerHTML = placeholder + options;
-                
+
                 // 嘗試自動對應
                 const coreName = CORE_FIELDS[key];
-                const foundHeader = fileHeaders.find(h => 
+                const foundHeader = fileHeaders.find(h =>
                     h.replace(/[\s()（）]/g, '') === coreName.replace(/[\s()（）]/g, '')
                 );
                 if (foundHeader) {
@@ -647,24 +597,15 @@
             }
         }
 
-        /**
-         * 顯示模態框
-         */
         function showMappingModal() {
             modal.classList.add('show');
         }
 
-        /**
-         * 隱藏模態框
-         */
         function hideMappingModal() {
             modal.classList.remove('show');
         }
-        
-        /**
-         * 驗證並儲存欄位對應
-         * @returns {boolean} 是否驗證通過
-         */
+
+        // 驗證並儲存欄位對應
         function validateAndSaveMapping() {
             columnMapping = {};
             let isValid = true;
@@ -675,16 +616,8 @@
                 const value = select.value;
                 
                 if (!value) {
-                    // 情況 1：欄位對應不完整
                     isValid = false;
                 }
-                
-                // 可選：是否允許同一欄位對應多個核心欄位？TDS 未說明，此處假設允許。
-                // 如果不允許，可取消以下註解：
-                // if (selectedValues.has(value)) {
-                //     showToast(`錯誤：欄位 "${value}" 被重複對應。`, "error");
-                //     isValid = false;
-                // }
 
                 columnMapping[key] = value;
                 selectedValues.add(value);
@@ -698,23 +631,19 @@
             return true;
         }
 
-        // --- 4. 核心邏輯 (TDS: 步驟 3-6) ---
-
-        /**
-         * 執行計算
-         */
+        // 執行計算
         function handleCalculation() {
             if (!validateAndSaveMapping()) {
-                return; // 驗證失敗
+                return;
             }
             
             hideMappingModal();
             showToast("開始計算...", "success");
 
-            // 步驟 3：數據初始化
+            // 初始化加總
             const totals = {
                 eightDigit: { taxable: 0, tax: 0, total: 0, count: 0 },
-                nonEightDigit: { taxable: 0, tax: 0, total: 0, count: 0 }, // 非8位存的是 "計算後" 的值
+                nonEightDigit: { taxable: 0, tax: 0, total: 0, count: 0 },
                 code33: { taxable: 0, tax: 0, total: 0, count: 0 },
                 void: { taxable: 0, tax: 0, total: 0, count: 0 }
             };
@@ -726,24 +655,17 @@
                 void: []
             };
 
-            // 迭代中繼資料 (用於非8位計算)
-            let nonEightDigitCalculated = [];
-
             try {
-                // 步驟 3：逐行迭代
                 for (const row of rawData) {
-                    // 透過 mapping 取得真實數據
                     const status = row[columnMapping.invoiceStatus];
                     const formatCode = String(row[columnMapping.formatCode]);
                     const buyerId = String(row[columnMapping.buyerId] || '').trim();
                     
-                    // 情況 2：資料缺失/非數值處理
-                    // 確保數值是數值，若非數值則視為 0
                     const taxable = parseFloat(row[columnMapping.taxableAmount] || 0);
                     const tax = parseFloat(row[columnMapping.tax] || 0);
                     const total = parseFloat(row[columnMapping.total] || 0);
 
-                    // 判斷 1 (排除作廢)
+                    // 排除作廢
                     if (status === "作廢已確認") {
                         totals.void.taxable += taxable;
                         totals.void.tax += tax;
@@ -753,147 +675,125 @@
                         continue;
                     }
 
-                    // 判斷 2 (格式代號 33 減項)
-                    // TDS 說 "將其對應的金額視為負值來加總"
-                    // 且 "單獨展示減項數據"
+                    // 格式代號 33 → 減項
                     if (formatCode === "33") {
                         totals.code33.taxable += taxable;
                         totals.code33.tax += tax;
                         totals.code33.total += total;
                         totals.code33.count++;
                         details.code33.push({ ...row, original: { taxable, tax, total } });
-                        continue; // 33 不應再進入 8 位或非 8 位判斷
+                        continue;
                     }
 
-                    // 步驟 4：執行統編分類與計算
-                    // 情況 4：統編判斷 (長度 8 且純數字)
+                    // 統編 8 位數
                     if (buyerId.length === 8 && /^\d{8}$/.test(buyerId)) {
                         totals.eightDigit.taxable += taxable;
                         totals.eightDigit.tax += tax;
                         totals.eightDigit.total += total;
                         totals.eightDigit.count++;
+                        // ✅ 修正：原本是 { .row, ... } 這裡要用展開
                         details.eightDigit.push({ ...row, original: { taxable, tax, total } });
                     } else {
-                        // G歸入「統編非 8 位數明細」
-                        // 特殊計算: 未稅銷售額 = 應稅銷售額 / 1.05
-                        // 假設 "應稅銷售額" 欄位此時代表 "含稅總額"
-                        
-                        // 情況 3: 浮點數運算
+                        // 統編非 8 位數要用 1.05 還原
                         const calculatedUntaxed = taxable / 1.05;
                         const calculatedTax = taxable - calculatedUntaxed;
-                        const calculatedTotal = taxable; // 含稅總額
+                        const calculatedTotal = taxable;
 
-                        totals.nonEightDigit.taxable += calculatedUntaxed; // 加總 "計算後未稅"
-                        totals.nonEightDigit.tax += calculatedTax;       // 加總 "計算後營業稅"
-                        totals.nonEightDigit.total += calculatedTotal;     // 加總 "總計" (即原始含稅額)
+                        totals.nonEightDigit.taxable += calculatedUntaxed;
+                        totals.nonEightDigit.tax += calculatedTax;
+                        totals.nonEightDigit.total += calculatedTotal;
                         totals.nonEightDigit.count++;
-                        
-                        // 儲存明細，包含原始值和計算值
-                        details.nonEightDigit.push({ 
-                            ...row, 
+
+                        // ✅ 修正：這裡也把 .row 改成 ...row
+                        details.nonEightDigit.push({
+                            ...row,
                             original: { taxable, tax, total },
                             calculated: { taxable: calculatedUntaxed, tax: calculatedTax, total: calculatedTotal }
                         });
                     }
                 }
             } catch (err) {
-                // 處理迭代中的潛在錯誤
                 showToast(`計算失敗：${err.message}。請檢查檔案內容和欄位對應。`, "error");
                 return;
             }
 
-            // 步驟 5：計算最終總和
-            // 總銷售額 = 統編 8 位應稅 + 非 8 位計算後未稅
-            // 格式代號 33 是減項
+            // 最終總和（扣掉 33）
             const finalTaxable = totals.eightDigit.taxable + totals.nonEightDigit.taxable - totals.code33.taxable;
             const finalTax = totals.eightDigit.tax + totals.nonEightDigit.tax - totals.code33.tax;
             const finalTotal = totals.eightDigit.total + totals.nonEightDigit.total - totals.code33.total;
 
             const finalTotals = { taxable: finalTaxable, tax: finalTax, total: finalTotal };
 
-            // 步驟 6：按照輸出規格，輸出結果
             renderResults(totals, details, finalTotals);
         }
 
-        // --- 5. 核心邏輯 (TDS: 步驟 6 輸出) ---
-
-        /**
-         * 渲染結果到畫面
-         */
+        // 輸出結果
         function renderResults(totals, details, finalTotals) {
-            // 渲染最終總數據
             document.getElementById('final-taxable').textContent = formatCurrency(finalTotals.taxable);
             document.getElementById('final-tax').textContent = formatCurrency(finalTotals.tax);
             document.getElementById('final-total').textContent = formatCurrency(finalTotals.total);
 
-            // 渲染明細表
             const headers = [
-                columnMapping.buyerId, 
-                columnMapping.invoiceStatus, 
+                columnMapping.buyerId,
+                columnMapping.invoiceStatus,
                 columnMapping.formatCode,
                 columnMapping.taxableAmount,
                 columnMapping.tax,
                 columnMapping.total
             ];
-            
-            // 統編 8 位數
+
+            // 8 位
             document.getElementById('table-8digit').innerHTML = createDetailTable(
-                headers, 
-                details.eightDigit, 
+                headers,
+                details.eightDigit,
                 totals.eightDigit,
-                false // 不使用計算值
-            );
-            
-            // 統編非 8 位數 (需顯示計算後的值)
-            document.getElementById('table-non-8digit').innerHTML = createDetailTable(
-                headers, 
-                details.nonEightDigit, 
-                totals.nonEightDigit,
-                true // 使用計算值
+                false
             );
 
-            // 格式代號 33
+            // 非 8 位
+            document.getElementById('table-non-8digit').innerHTML = createDetailTable(
+                headers,
+                details.nonEightDigit,
+                totals.nonEightDigit,
+                true
+            );
+
+            // 33
             document.getElementById('table-code33').innerHTML = createDetailTable(
-                headers, 
-                details.code33, 
+                headers,
+                details.code33,
                 totals.code33,
                 false
             );
 
-            // 作廢已確認
+            // 作廢
             document.getElementById('table-void').innerHTML = createDetailTable(
-                headers, 
-                details.void, 
+                headers,
+                details.void,
                 totals.void,
                 false
             );
 
-            // 更新 <summary> 標題
-            document.querySelector('#details-8digit summary').textContent = `買方統編 8 位數加總 (${totals.eightDigit.count} 筆)`;
-            document.querySelector('#details-non-8digit summary').textContent = `買方統編非 8 位數加總 (${totals.nonEightDigit.count} 筆)`;
-            document.querySelector('#details-code33 summary').textContent = `格式代號 33 加總 (${totals.code33.count} 筆)`;
-            document.querySelector('#details-void summary').textContent = `作廢已確認 (${totals.void.count} 筆)`;
+            // 更新小標題
+            document.querySelector('#details-8digit summary').textContent =
+                `買方統編 8 位數加總 (${totals.eightDigit.count} 筆)`;
+            document.querySelector('#details-non-8digit summary').textContent =
+                `買方統編非 8 位數加總 (${totals.nonEightDigit.count} 筆)`;
+            document.querySelector('#details-code33 summary').textContent =
+                `格式代號 33 加總 (${totals.code33.count} 筆)`;
+            document.querySelector('#details-void summary').textContent =
+                `作廢已確認 (${totals.void.count} 筆)`;
 
             resultsArea.style.display = 'block';
             resultsArea.scrollIntoView({ behavior: 'smooth' });
         }
 
-        /**
-         * 創建明細
-         * @param {string[]} headers - 欄位抬頭 (用戶對應的)
-         * @param {object[]} dataRows - 原始數據行
-         * @param {object} totalData - 該分類的加總
-         * @param {boolean} useCalculated - 是否使用 'calculated' 欄位 (適用非8位)
-         */
+        // 建表
         function createDetailTable(headers, dataRows, totalData, useCalculated) {
-            
-            // 複製一份 headers，避免修改到原始 mapping
-            let currentHeaders = [...headers]; 
-
+            let currentHeaders = [...headers];
             let html = '<thead><tr>';
-            
-            if(useCalculated) {
-                // 如果是非8位，欄位名稱需要調整
+
+            if (useCalculated) {
                 currentHeaders[3] = `[計算後] 未稅銷售額`;
                 currentHeaders[4] = `[計算後] 營業稅`;
                 currentHeaders[5] = `[計算後] 總計`;
@@ -911,7 +811,7 @@
                 html += `<td>${row[columnMapping.buyerId] || ''}</td>`;
                 html += `<td>${row[columnMapping.invoiceStatus] || ''}</td>`;
                 html += `<td>${row[columnMapping.formatCode] || ''}</td>`;
-                
+
                 if (useCalculated) {
                     html += `<td class="num">${formatCurrency(row.calculated.taxable)}</td>`;
                     html += `<td class="num">${formatCurrency(row.calculated.tax)}</td>`;
@@ -923,7 +823,7 @@
                 }
                 html += '</tr>';
             }
-            
+
             // 總計行
             html += '</tbody><tfoot><tr class="total-row">';
             html += `<td colspan="3"><strong>總計 (${totalData.count} 筆)</strong></td>`;
@@ -935,22 +835,19 @@
             return html;
         }
 
-        // --- 6. 事件監聽 ---
+        // 事件
         fileUploader.addEventListener('change', handleFileUpload);
         processButton.addEventListener('click', showMappingModal);
-        
         modalClose.addEventListener('click', hideMappingModal);
         modalCancel.addEventListener('click', hideMappingModal);
         modalConfirm.addEventListener('click', handleCalculation);
 
-        // 初始化
-        // 檢查 XLSX 是否已手動加載
-        if (typeof XLSX === 'undefined') {
-             showToast("系統就緒。請先手動貼上 xlsx.js 庫代碼。", "error");
+        // 初始化時先看外部 xlsx 有沒有載到
+        if (!ensureXLSXLoaded()) {
+            // 沒載到就不逼它，但先提醒
         } else {
             showToast("系統就緒，請上傳 XLSX 檔案。", "success");
         }
-
     </script>
 </body>
 </html>
