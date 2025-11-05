@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多冊批量計算與核算工具</title>
+    <title>多冊批量計算與核算工具 (v2)</title>
     
     <style>
         :root {
@@ -16,6 +16,7 @@
             --color-text-monospace: #d9480f;
             --color-error: #d9534f;
             --color-success: #4caf50;
+            --color-info: #007aff;
             --color-button-bg: #f0f0f0;
             --color-button-hover-bg: #e0e0e0;
             --color-button-primary-bg: #333333;
@@ -76,7 +77,15 @@
             font-size: 1.25rem;
             font-weight: 600;
             margin-bottom: var(--spacing-m);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-s);
         }
+        
+        h2.summary-out-title { color: var(--color-error); }
+        h2.summary-in-title { color: var(--color-success); }
+        h2.summary-calc-title { color: var(--color-info); }
+
 
         h3 {
             font-size: 1.1rem;
@@ -114,6 +123,66 @@
             align-items: center;
         }
         
+        /* 【NEW】Input mode panel */
+        .input-mode-panel {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: var(--spacing-l);
+            background-color: var(--color-surface);
+            padding: var(--spacing-m);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .input-mode-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-s);
+        }
+        
+        .input-mode-group legend {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-text-secondary);
+        }
+        
+        .toggle-switch {
+            display: flex;
+            gap: var(--spacing-s);
+        }
+        
+        .toggle-switch label {
+            padding: var(--spacing-s) var(--spacing-m);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .toggle-switch input[type="radio"] {
+            display: none;
+        }
+        
+        .toggle-switch input[type="radio"]:checked + label {
+            background-color: var(--color-button-primary-bg);
+            color: var(--color-button-primary-text);
+            border-color: var(--color-button-primary-bg);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-s);
+            padding-top: var(--spacing-m);
+        }
+        .checkbox-group label {
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
         .actions-panel {
             background: none;
             border: none;
@@ -124,10 +193,15 @@
 
         .summary-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: var(--spacing-l);
         }
 
+        @media (max-width: 900px) {
+            .summary-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
         @media (max-width: 768px) {
             .summary-container {
                 grid-template-columns: 1fr;
@@ -136,7 +210,7 @@
 
         .books-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
             gap: var(--spacing-l);
         }
 
@@ -256,9 +330,10 @@
             flex-direction: column-reverse; /* New entries appear at the top */
         }
         
+        /* 【MODIFIED】Grid layout 4 columns */
         .entry {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 0.6fr 1.2fr 1fr 1.2fr;
             gap: var(--spacing-s);
             padding: var(--spacing-xs) 0;
             font-family: var(--font-family-mono);
@@ -266,46 +341,25 @@
             border-bottom: 1px dashed var(--color-border);
         }
         
-        /* 【NEW】 Styles for editable inputs in entry rows */
-        .entry-input {
-            width: 100%;
-            border: 1px solid transparent;
-            padding: var(--spacing-xs) 4px;
-            font-family: var(--font-family-mono);
-            font-size: 0.95rem;
+        .entry span:nth-child(1) { /* Type */
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-align: left;
+            padding: 2px 4px;
             border-radius: var(--border-radius);
-            background-color: transparent;
+            align-self: center;
         }
-        .entry-input:hover, .entry-input:focus {
-            border: 1px solid var(--color-border);
-            background-color: var(--color-bg);
-        }
-        .entry-input.entry-untaxed { 
-            text-align: left; 
-        }
-        .entry-input.entry-tax { 
-            text-align: right; 
-            color: var(--color-text-secondary); 
-        }
-        .entry-input.entry-total { 
-            text-align: right; 
-            font-weight: 500; 
-            background-color: transparent;
-            border-color: transparent;
-        }
-        .entry-input[readonly] {
-            cursor: default;
-        }
-        .entry-input[readonly]:hover, .entry-input[readonly]:focus {
-            border-color: transparent;
-            background-color: transparent;
-            outline: none;
-        }
-
+        .entry span.type-out { color: var(--color-error); background-color: #fdeaea; }
+        .entry span.type-in { color: var(--color-success); background-color: #eaf7eb; }
         
+        .entry span:nth-child(2) { text-align: right; } /* Untaxed */
+        .entry span:nth-child(3) { text-align: right; color: var(--color-text-secondary); } /* Tax */
+        .entry span:nth-child(4) { text-align: right; font-weight: 500; } /* Total */
+        
+        /* 【MODIFIED】Grid layout 4 columns */
         .entry-header {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 0.6fr 1.2fr 1fr 1.2fr;
             gap: var(--spacing-s);
             padding: var(--spacing-xs) 0;
             font-size: 0.8rem;
@@ -316,6 +370,7 @@
         .entry-header span:nth-child(1) { text-align: left; }
         .entry-header span:nth-child(2) { text-align: right; }
         .entry-header span:nth-child(3) { text-align: right; }
+        .entry-header span:nth-child(4) { text-align: right; }
 
         .summary-grid {
             display: grid;
@@ -348,10 +403,52 @@
         .summary-value.is-success {
             color: var(--color-success);
         }
+        
+        /* 【NEW】Final tax calculation display */
+        .final-tax-panel {
+            padding: var(--spacing-l);
+            text-align: center;
+        }
+        .final-tax-panel .summary-key {
+            font-size: 1.1rem;
+            text-align: center;
+            display: block;
+        }
+        .final-tax-panel .summary-value {
+            font-size: 2rem;
+            text-align: center;
+            display: block;
+            margin-top: var(--spacing-s);
+        }
+        .final-tax-panel .summary-value.is-payable {
+            color: var(--color-error);
+        }
+        .final-tax-panel .summary-value.is-creditable {
+            color: var(--color-success);
+        }
 
         .book-summary {
             border-top: 1px solid var(--color-border);
             background-color: var(--color-bg);
+        }
+        
+        /* 【NEW】Per-book verification */
+        .book-verification {
+            background-color: var(--color-bg);
+            border-top: 1px solid var(--color-border);
+        }
+        .book-verification summary {
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: var(--spacing-s) var(--spacing-m);
+            cursor: pointer;
+            color: var(--color-text-secondary);
+        }
+        .book-verification summary:hover {
+            background-color: var(--color-button-hover-bg);
+        }
+        .book-verification .summary-grid {
+            background-color: var(--color-surface);
         }
 
         /* --- 5. Toast Notifications (for Zero-Console-Issue) --- */
@@ -396,14 +493,32 @@
 
     <div class="container">
         <header>
-            <h1>多冊批量計算與核算工具</h1>
+            <h1>多冊批量計算與核算工具 (v2)</h1>
         </header>
 
         <main>
-            <div class="panel config-panel">
+            <div class="input-mode-panel">
                 <div class="form-group">
                     <label for="taxRateInput">當前稅率設定 (%)</label>
-                    <input type="number" id="taxRateInput" value="5" min="0" step="0.01">
+                    <input type="number" id="taxRateInput" value="5" min="0" step="0.01" style="width: 150px;">
+                </div>
+                
+                <div class="input-mode-group">
+                    <legend>輸入模式 (用於新增資料)</legend>
+                    <div style="display: flex; gap: var(--spacing-m);">
+                        <fieldset class="toggle-switch">
+                            <input type="radio" id="typeIn" name="entryType" value="IN">
+                            <label for="typeIn">進項</label>
+                            
+                            <input type="radio" id="typeOut" name="entryType" value="OUT" checked>
+                            <label for="typeOut">銷項</label>
+                        </fieldset>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="modeInclusive">
+                            <label for="modeInclusive">含稅金額輸入</label>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -423,43 +538,62 @@
 
             <div class="summary-container">
                 <div class="panel">
-                    <h2>總結數據</h2>
-                    <div class="summary-grid" id="summaryPanel">
+                    <h2 class="summary-out-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                        銷項總覽 (OUT)
+                    </h2>
+                    <div class="summary-grid" id="summaryOutPanel">
                         <div>
                             <span class="summary-key">總筆數</span>
-                            <span class="summary-value" id="grandTotalCount">0</span>
+                            <span class="summary-value" id="grandTotalOutCount">0</span>
                         </div>
                         <div>
                             <span class="summary-key">總未稅銷售額</span>
-                            <span class="summary-value" id="grandTotalUntaxed">0.00</span>
+                            <span class="summary-value" id="grandTotalOutUntaxed">0.00</span>
                         </div>
                         <div>
                             <span class="summary-key">總稅額</span>
-                            <span class="summary-value" id="grandTotalTax">0</span>
+                            <span class="summary-value" id="grandTotalOutTax">0</span>
                         </div>
                         <div>
                             <span class="summary-key">總總計</span>
-                            <span class="summary-value" id="grandTotalTotal">0.00</span>
+                            <span class="summary-value" id="grandTotalOutTotal">0.00</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="panel">
-                    <h2>核算驗證</h2>
-                    <div class="summary-grid" id="verificationPanel">
+                    <h2 class="summary-in-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                        進項總覽 (IN)
+                    </h2>
+                    <div class="summary-grid" id="summaryInPanel">
                         <div>
-                            <span class="summary-key">核算未稅總額</span>
-                            <span class="summary-value" id="verifyUntaxed">0.00</span>
+                            <span class="summary-key">總筆數</span>
+                            <span class="summary-value" id="grandTotalInCount">0</span>
                         </div>
                         <div>
-                            <span class="summary-key">核算稅額總額</span>
-                            <span class="summary-value" id="verifyTax">0.00</span>
+                            <span class="summary-key">總未稅銷售額</span>
+                            <span class="summary-value" id="grandTotalInUntaxed">0.00</span>
                         </div>
                         <div>
-                            <span class="summary-key">核算誤差 (絕對值)</span>
-                            <span class="summary-value" id="verifyError">0.00</span>
+                            <span class="summary-key">總稅額</span>
+                            <span class="summary-value" id="grandTotalInTax">0</span>
+                        </div>
+                        <div>
+                            <span class="summary-key">總總計</span>
+                            <span class="summary-value" id="grandTotalInTotal">0.00</span>
                         </div>
                     </div>
+                </div>
+
+                <div class="panel final-tax-panel">
+                    <h2 class="summary-calc-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8.11 3h7.9A7 7 0 0 0 21.21 15.89z"></path></svg>
+                        預估稅額
+                    </h2>
+                    <span class="summary-key" id="finalTaxLabel">應繳稅額</span>
+                    <span class="summary-value" id="finalTaxValue">0</span>
                 </div>
             </div>
         </main>
@@ -475,6 +609,7 @@
             </h3>
             
             <div class="entry-header">
+                <span>類型</span>
                 <span>未稅額</span>
                 <span>稅額</span>
                 <span>總計</span>
@@ -483,7 +618,7 @@
                 </div>
 
             <form class="entry-form" novalidate>
-                <input type="number" step="0.01" placeholder="輸入未稅銷售額 (Enter 提交)">
+                <input type="number" step="0.01" placeholder="輸入金額 (Enter 提交)">
                 <div class="error-message"></div>
             </form>
             
@@ -507,6 +642,25 @@
                     </div>
                 </div>
             </div>
+            
+            <details class="book-verification">
+                <summary>本冊核算驗證</summary>
+                <div class="summary-grid">
+                    <div>
+                        <span class="summary-key">核算未稅總額</span>
+                        <span class="summary-value book-verify-untaxed">0.00</span>
+                    </div>
+                    <div>
+                        <span class="summary-key">核算稅額總額</span>
+                        <span class="summary-value book-verify-tax">0.00</span>
+                    </div>
+                    <div>
+                        <span class="summary-key">核算誤差 (絕對值)</span>
+                        <span class="summary-value book-verify-error">0.00</span>
+                    </div>
+                </div>
+            </details>
+
         </article>
     </template>
 
@@ -523,16 +677,28 @@
         const booksContainer = document.getElementById('booksContainer');
         const bookTemplate = document.getElementById('bookTemplate');
         
-        // Summary Panel Elements
-        const grandTotalCountEl = document.getElementById('grandTotalCount');
-        const grandTotalUntaxedEl = document.getElementById('grandTotalUntaxed');
-        const grandTotalTaxEl = document.getElementById('grandTotalTax');
-        const grandTotalTotalEl = document.getElementById('grandTotalTotal');
+        // 【NEW】Input Mode Elements
+        const entryTypeIn = document.getElementById('typeIn');
+        const entryTypeOut = document.getElementById('typeOut');
+        const modeInclusive = document.getElementById('modeInclusive');
+        const entryFormPlaceholders = {
+            exclusive: "輸入未稅金額 (Enter 提交)",
+            inclusive: "輸入含稅總額 (Enter 提交)"
+        };
         
-        // Verification Panel Elements
-        const verifyUntaxedEl = document.getElementById('verifyUntaxed');
-        const verifyTaxEl = document.getElementById('verifyTax');
-        const verifyErrorEl = document.getElementById('verifyError');
+        // 【REBUILT】Summary Panel Elements
+        const grandTotalOutCountEl = document.getElementById('grandTotalOutCount');
+        const grandTotalOutUntaxedEl = document.getElementById('grandTotalOutUntaxed');
+        const grandTotalOutTaxEl = document.getElementById('grandTotalOutTax');
+        const grandTotalOutTotalEl = document.getElementById('grandTotalOutTotal');
+        
+        const grandTotalInCountEl = document.getElementById('grandTotalInCount');
+        const grandTotalInUntaxedEl = document.getElementById('grandTotalInUntaxed');
+        const grandTotalInTaxEl = document.getElementById('grandTotalInTax');
+        const grandTotalInTotalEl = document.getElementById('grandTotalInTotal');
+
+        const finalTaxLabelEl = document.getElementById('finalTaxLabel');
+        const finalTaxValueEl = document.getElementById('finalTaxValue');
         
         // Actions
         const exportBtn = document.getElementById('exportBtn');
@@ -546,17 +712,17 @@
         let state = {
             books: [], // Array of book objects
             globalTaxRate: 5.0,
+            // 【NEW】Global input settings
+            entryType: 'OUT', // 'IN' | 'OUT'
+            isInclusive: false, // bool
         };
         
-        // Debounce timer for saving
         let saveTimeout;
 
         // --- 1. Utility Functions ---
 
         /**
          * 財務捨入：四捨五入到小數點後 2 位
-         * @param {number} value - The number to round
-         * @returns {number} The rounded number
          */
         function round(value) {
             return Math.round(value * 100) / 100;
@@ -564,27 +730,20 @@
 
         /**
          * 格式化數字為貨幣顯示 (2 位小數)
-         * @param {number} value - The number to format
-         * @returns {string} The formatted string
          */
         function formatDisplay(value) {
             return value.toFixed(2);
         }
         
         /**
-         * 【NEW】格式化數字為整數顯示 (用於稅額)
-         * @param {number} value - The number to format
-         * @returns {string} The formatted integer string
+         * 格式化數字為整數顯示 (用於稅額)
          */
         function formatInteger(value) {
             return Math.round(value).toString();
         }
 
-
         /**
-         * 顯示 UI Toast 通知 (符合 Zero-Console-Issue)
-         * @param {string} message - The message to display
-         * @param {'success' | 'error'} type - The type of toast
+         * 顯示 UI Toast 通知
          */
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
@@ -592,24 +751,16 @@
             toast.textContent = message;
             toastContainer.appendChild(toast);
             
-            // Trigger animation
-            setTimeout(() => {
-                toast.classList.add('show');
-            }, 10);
+            setTimeout(() => { toast.classList.add('show'); }, 10);
             
-            // Remove after 3 seconds
             setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(() => {
-                    toast.remove();
-                }, 500);
+                setTimeout(() => { toast.remove(); }, 500);
             }, 3000);
         }
 
         /**
          * 在特定輸入框顯示錯誤
-         * @param {HTMLInputElement} inputElement - The input element
-         * @param {string} message - The error message
          */
         function showInputError(inputElement, message) {
             const bookElement = inputElement.closest('.book');
@@ -624,7 +775,6 @@
 
         /**
          * 清除特定輸入框的錯誤
-         * @param {HTMLInputElement} inputElement - The input element
          */
         function clearInputError(inputElement) {
             const bookElement = inputElement.closest('.book');
@@ -655,7 +805,6 @@
                 const data = JSON.stringify(state);
                 localStorage.setItem(STORAGE_KEY, data);
             } catch (e) {
-                // 遵循 Zero-Console-Issue，使用 UI 提示
                 showToast('儲存資料時發生錯誤，空間可能已滿。', 'error');
             }
         }
@@ -671,30 +820,41 @@
                     // 基礎 Schema 驗證
                     if (parsedData && Array.isArray(parsedData.books) && typeof parsedData.globalTaxRate === 'number') {
                         state = parsedData;
+                        
+                        // 【NEW】確保舊資料有新的 state 屬性
+                        state.entryType = state.entryType || 'OUT';
+                        state.isInclusive = state.isInclusive || false;
+
                     } else {
-                        // 資料格式錯誤，重置
-                        resetState();
+                        resetState(false); // 載入失敗，重置但不新增
                     }
-                } else {
-                    // 沒有資料，初始化
-                    resetState();
                 }
             } catch (e) {
                 showToast('載入本地資料失敗，將重置為預設值。', 'error');
-                resetState();
+                resetState(false); // 載入失敗，重置但不新增
+            }
+            
+            // 如果載入後一本都沒有，才新增第一冊
+            if (state.books.length === 0) {
+                 addNewBook();
             }
         }
 
         /**
-         * 重置狀態並創建第一冊
+         * 重置狀態
+         * @param {boolean} [createFirstBook=true] - 是否自動創建第一冊
          */
-        function resetState() {
+        function resetState(createFirstBook = true) {
             state = {
                 books: [],
                 globalTaxRate: 5.0,
+                entryType: 'OUT',
+                isInclusive: false,
             };
-            // 初始化時創建第一冊
-            addNewBook();
+            if (createFirstBook) {
+                addNewBook();
+            }
+            updateInputModeUI();
         }
 
         // --- 3. Core Calculation Logic (as per spec) ---
@@ -703,87 +863,117 @@
          * 重新計算並更新所有總結
          */
         function updateAllCalculations() {
-            let grandTotalCount = 0;
-            let grandTotalUntaxed = 0;
-            let grandTotalTax = 0;
-            let grandTotalTotal = 0;
+            let grandTotal = {
+                IN: { count: 0, untaxed: 0, tax: 0, total: 0 },
+                OUT: { count: 0, untaxed: 0, tax: 0, total: 0 }
+            };
 
-            // 1. 更新每冊的總結 (Update Book Totals)
+            // 1. 更新每冊的總結
             state.books.forEach(book => {
-                let bookCount = 0;
-                let bookUntaxed = 0;
-                let bookTax = 0;
-                let bookTotal = 0;
+                let bookTotals = {
+                    count: 0,
+                    untaxed: 0,
+                    tax: 0,
+                    total: 0
+                };
 
                 book.entries.forEach(entry => {
-                    bookCount++;
-                    bookUntaxed += entry.untaxed;
-                    bookTax += entry.tax; // 稅額是整數
-                    bookTotal += entry.total;
+                    // 累加到冊
+                    bookTotals.count++;
+                    bookTotals.untaxed += entry.untaxed;
+                    bookTotals.tax += entry.tax;
+                    bookTotals.total += entry.total;
+
+                    // 累加到總
+                    const type = entry.type; // 'IN' or 'OUT'
+                    grandTotal[type].count++;
+                    grandTotal[type].untaxed += entry.untaxed;
+                    grandTotal[type].tax += entry.tax;
+                    grandTotal[type].total += entry.total;
                 });
                 
                 // 儲存計算結果到 state
                 book.totals = {
-                    count: bookCount,
-                    untaxed: round(bookUntaxed),
-                    tax: Math.round(bookTax), // 確保為整數
-                    total: round(bookTotal)
+                    count: bookTotals.count,
+                    untaxed: round(bookTotals.untaxed),
+                    tax: Math.round(bookTotals.tax),
+                    total: round(bookTotals.total)
                 };
                 
                 // 更新 DOM (分冊顯示)
                 updateBookSummaryDOM(book);
 
-                // 2. 累加到總結 (Aggregate to Grand Totals)
-                grandTotalCount += book.totals.count;
-                grandTotalUntaxed += book.totals.untaxed;
-                grandTotalTax += book.totals.tax; // 整數相加
-                grandTotalTotal += book.totals.total;
+                // 【NEW】執行分冊核算
+                runBookVerification(book);
             });
             
-            // 處理浮點數精度問題 (稅額除外)
-            grandTotalUntaxed = round(grandTotalUntaxed);
-            grandTotalTax = Math.round(grandTotalTax); // 確保總稅額也是整數
-            grandTotalTotal = round(grandTotalTotal);
-
-            // 3. 更新總結 DOM (總結數據)
-            grandTotalCountEl.textContent = grandTotalCount;
-            grandTotalUntaxedEl.textContent = formatDisplay(grandTotalUntaxed);
-            grandTotalTaxEl.textContent = formatInteger(grandTotalTax); // 【MODIFIED】使用整數格式
-            grandTotalTotalEl.textContent = formatDisplay(grandTotalTotal);
+            // 2. 處理總結的浮點數精度
+            grandTotal.IN.untaxed = round(grandTotal.IN.untaxed);
+            grandTotal.IN.tax = Math.round(grandTotal.IN.tax);
+            grandTotal.IN.total = round(grandTotal.IN.total);
             
-            // 4. 執行核算驗證 (核算驗證)
-            runVerification(grandTotalTotal, grandTotalTax);
+            grandTotal.OUT.untaxed = round(grandTotal.OUT.untaxed);
+            grandTotal.OUT.tax = Math.round(grandTotal.OUT.tax);
+            grandTotal.OUT.total = round(grandTotal.OUT.total);
+
+            // 3. 更新總結 DOM
+            grandTotalOutCountEl.textContent = grandTotal.OUT.count;
+            grandTotalOutUntaxedEl.textContent = formatDisplay(grandTotal.OUT.untaxed);
+            grandTotalOutTaxEl.textContent = formatInteger(grandTotal.OUT.tax);
+            grandTotalOutTotalEl.textContent = formatDisplay(grandTotal.OUT.total);
+            
+            grandTotalInCountEl.textContent = grandTotal.IN.count;
+            grandTotalInUntaxedEl.textContent = formatDisplay(grandTotal.IN.untaxed);
+            grandTotalInTaxEl.textContent = formatInteger(grandTotal.IN.tax);
+            grandTotalInTotalEl.textContent = formatDisplay(grandTotal.IN.total);
+            
+            // 4. 執行最終稅額計算
+            const finalTax = grandTotal.OUT.tax - grandTotal.IN.tax;
+            if (finalTax >= 0) {
+                finalTaxLabelEl.textContent = "應繳稅額";
+                finalTaxValueEl.textContent = formatInteger(finalTax);
+                finalTaxValueEl.className = 'summary-value is-payable';
+            } else {
+                finalTaxLabelEl.textContent = "可留抵稅額";
+                finalTaxValueEl.textContent = formatInteger(Math.abs(finalTax));
+                finalTaxValueEl.className = 'summary-value is-creditable';
+            }
         }
 
         /**
-         * 執行反向核算驗證
-         * @param {number} grandTotalTotal - 總總計加總 (float)
-         * @param {number} grandTotalTax - 總稅額加總 (integer)
+         * 【MODIFIED】執行反向核算驗證 (針對特定冊)
+         * @param {object} book - The book object from state
          */
-        function runVerification(grandTotalTotal, grandTotalTax) {
-            const rate = state.globalTaxRate / 100;
+        function runBookVerification(book) {
+            const bookElement = booksContainer.querySelector(`.book[data-book-id="${book.id}"]`);
+            if (!bookElement) return;
+
+            const verifyUntaxedEl = bookElement.querySelector('.book-verify-untaxed');
+            const verifyTaxEl = bookElement.querySelector('.book-verify-tax');
+            const verifyErrorEl = bookElement.querySelector('.book-verify-error');
+
+            const rate = book.taxRate / 100;
+            const bookTotal = book.totals.total;
+            const bookTax = book.totals.tax;
             
-            if (rate <= -1) { // 避免除以 0 或負數
+            if (rate <= -1) { // 避免除以 0
                 verifyUntaxedEl.textContent = 'N/A';
                 verifyTaxEl.textContent = 'N/A';
                 verifyErrorEl.textContent = 'N/A';
                 return;
             }
 
-            const verifiedUntaxed = grandTotalTotal / (1 + rate);
-            const verifiedTax = grandTotalTotal - verifiedUntaxed; // 這是 float
-            const verificationError = Math.abs(grandTotalTax - verifiedTax); // 比較 (integer) 和 (float)
+            const verifiedUntaxed = bookTotal / (1 + rate);
+            const verifiedTax = bookTotal - verifiedUntaxed; // float
+            const verificationError = Math.abs(bookTax - verifiedTax); // (integer) vs (float)
 
             verifyUntaxedEl.textContent = formatDisplay(verifiedUntaxed);
-            verifyTaxEl.textContent = formatDisplay(verifiedTax); // 核算結果保留小數，以便看出誤差
+            verifyTaxEl.textContent = formatDisplay(verifiedTax);
             verifyErrorEl.textContent = formatDisplay(verificationError);
             
-            // 根據誤差值添加樣式
-            if (verificationError < 0.01) {
-                verifyErrorEl.className = 'summary-value is-success';
-            } else {
-                verifyErrorEl.className = 'summary-value is-error';
-            }
+            verifyErrorEl.className = verificationError < 0.01 
+                ? 'summary-value book-verify-error is-success' 
+                : 'summary-value book-verify-error is-error';
         }
 
 
@@ -796,11 +986,11 @@
             booksContainer.innerHTML = ''; // 清空
             state.books.forEach(book => renderBook(book));
             updateAllCalculations();
+            updateInputModePlaceholders(); // 更新所有輸入框的 placeholder
         }
 
         /**
          * 渲染單一冊
-         * @param {object} book - The book object from state
          */
         function renderBook(book) {
             const bookElement = bookTemplate.content.cloneNode(true);
@@ -814,12 +1004,14 @@
             article.dataset.bookId = book.id;
             titleEl.textContent = `第 ${book.index} 冊`;
             taxRateEl.textContent = `稅率: ${book.taxRate}%`;
+            
+            // 更新 placeholder
+            inputEl.placeholder = state.isInclusive ? entryFormPlaceholders.inclusive : entryFormPlaceholders.exclusive;
 
             // 渲染該冊所有條目
             entriesListEl.innerHTML = '';
             book.entries.forEach(entry => {
-                // 【MODIFIED】傳入 book.id
-                renderEntry(entriesListEl, entry, book.id);
+                renderEntry(entriesListEl, entry);
             });
 
             // 綁定表單提交事件
@@ -830,37 +1022,29 @@
         }
 
         /**
-         * 【MODIFIED】渲染單一條目 (改為可編輯 input)
+         * 【REBUILT】渲染單一條目 (改回 span 顯示)
          * @param {HTMLElement} listElement - The .entries-list element
          * @param {object} entry - The entry object
-         * @param {string} bookId - The parent book's ID
          */
-        function renderEntry(listElement, entry, bookId) {
+        function renderEntry(listElement, entry) {
             const entryEl = document.createElement('div');
             entryEl.className = 'entry';
-            entryEl.dataset.entryId = entry.id;
-            entryEl.dataset.bookId = bookId; // 方便事件處理
+            
+            const typeText = entry.type === 'IN' ? '進項' : '銷項';
+            const typeClass = entry.type === 'IN' ? 'type-in' : 'type-out';
             
             entryEl.innerHTML = `
-                <input type="number" step="0.01" class="entry-input entry-untaxed" value="${formatDisplay(entry.untaxed)}">
-                <input type="number" step="1" class="entry-input entry-tax" value="${formatInteger(entry.tax)}">
-                <input type="number" step="0.01" class="entry-input entry-total" value="${formatDisplay(entry.total)}" readonly>
+                <span class="entry-type ${typeClass}">${typeText}</span>
+                <span>${formatDisplay(entry.untaxed)}</span>
+                <span>${formatInteger(entry.tax)}</span>
+                <span>${formatDisplay(entry.total)}</span>
             `;
             
-            // 綁定編輯事件
-            const untaxedInput = entryEl.querySelector('.entry-untaxed');
-            const taxInput = entryEl.querySelector('.entry-tax');
-            
-            untaxedInput.addEventListener('change', (e) => handleEntryEdit(e, bookId, entry.id, 'untaxed'));
-            taxInput.addEventListener('change', (e) => handleEntryEdit(e, bookId, entry.id, 'tax'));
-
-            // 插入到頂部 (因為 list 是 flex-direction: column-reverse)
             listElement.appendChild(entryEl);
         }
 
         /**
          * 更新指定 book 的 DOM 總結
-         * @param {object} book - The book object from state
          */
         function updateBookSummaryDOM(book) {
             const bookElement = booksContainer.querySelector(`.book[data-book-id="${book.id}"]`);
@@ -868,7 +1052,7 @@
 
             bookElement.querySelector('.book-summary-count').textContent = book.totals.count;
             bookElement.querySelector('.book-summary-untaxed').textContent = formatDisplay(book.totals.untaxed);
-            bookElement.querySelector('.book-summary-tax').textContent = formatInteger(book.totals.tax); // 【MODIFIED】
+            bookElement.querySelector('.book-summary-tax').textContent = formatInteger(book.totals.tax);
             bookElement.querySelector('.book-summary-total').textContent = formatDisplay(book.totals.total);
         }
 
@@ -892,7 +1076,7 @@
         }
 
         /**
-         * 處理單筆輸入提交 (步驟 3-6)
+         * 【REBUILT】處理單筆輸入提交
          * @param {Event} event - The form submit event
          * @param {string} bookId - The ID of the book being added to
          */
@@ -901,10 +1085,10 @@
             const form = event.target;
             const input = form.querySelector('input[type="number"]');
             
-            const untaxedAmount = parseFloat(input.value);
+            const inputValue = parseFloat(input.value);
 
             // 判斷1: 無效輸入或負值
-            if (isNaN(untaxedAmount) || untaxedAmount < 0) {
+            if (isNaN(inputValue) || inputValue < 0) {
                 showInputError(input, "輸入無效，請輸入大於或等於 0 的數字。");
                 input.value = ''; // 清空無效輸入
                 input.focus();
@@ -918,23 +1102,34 @@
 
             // 步驟4: 單筆計算 (使用該冊鎖定的稅率)
             const rate = book.taxRate / 100;
-            // 【MODIFIED】稅額四捨五入到整數
-            const calculatedTax = Math.round(untaxedAmount * rate);
-            const calculatedTotal = round(untaxedAmount + calculatedTax); // 依規範: 總計 = 未稅 + 稅額 (保留小數)
+            let untaxed, tax, total;
+            
+            if (state.isInclusive) {
+                // 含稅模式
+                total = round(inputValue);
+                untaxed = round(total / (1 + rate));
+                tax = Math.round(total - untaxed); // 稅額 = 總計 - 未稅 (取整)
+            } else {
+                // 未稅模式
+                untaxed = round(inputValue);
+                tax = Math.round(untaxed * rate); // 稅額 = 未稅 * 稅率 (取整)
+                total = round(untaxed + tax);
+            }
 
             const entry = {
-                id: `entry-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // 【NEW】新增唯一 ID
-                untaxed: untaxedAmount,
-                tax: calculatedTax,
-                total: calculatedTotal
+                id: `entry-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                type: state.entryType, // 'IN' or 'OUT'
+                untaxed: untaxed,
+                tax: tax,
+                total: total
             };
 
-            // 步驟5: 分層加總與緩存 (更新 state)
+            // 步驟5: 更新 state
             book.entries.push(entry);
 
             // 更新 DOM
             const listElement = form.previousElementSibling; // .entries-list
-            renderEntry(listElement, entry, book.id); // 【MODIFIED】
+            renderEntry(listElement, entry);
             
             // 步驟6: 更新總結並儲存
             updateAllCalculations();
@@ -944,73 +1139,9 @@
             input.value = '';
             input.focus();
         }
-
+        
         /**
-         * 【NEW】處理資料列 (Entry) 的編輯
-         * @param {Event} event - The change event
-         * @param {string} bookId - The ID of the book
-         * @param {string} entryId - The ID of the entry being edited
-         * @param {'untaxed' | 'tax'} fieldChanged - Which field was changed
-         */
-        function handleEntryEdit(event, bookId, entryId, fieldChanged) {
-            const input = event.target;
-            const newValue = parseFloat(input.value);
-
-            // 驗證
-            if (isNaN(newValue) || newValue < 0) {
-                showToast("輸入無效，請輸入大於或等於 0 的數字。", "error");
-                // 恢復舊值
-                const book = state.books.find(b => b.id === bookId);
-                const entry = book.entries.find(e => e.id === entryId);
-                if (entry) {
-                    input.value = fieldChanged === 'tax' ? formatInteger(entry.tax) : formatDisplay(entry[fieldChanged]);
-                }
-                return;
-            }
-
-            // 尋找資料
-            const book = state.books.find(b => b.id === bookId);
-            if (!book) return;
-            const entry = book.entries.find(e => e.id === entryId);
-            if (!entry) return;
-
-            // 重新計算
-            let newUntaxed = entry.untaxed;
-            let newTax = entry.tax;
-            let newTotal = entry.total;
-
-            if (fieldChanged === 'untaxed') {
-                newUntaxed = newValue;
-                // 變更未稅額，使用書冊稅率重算稅額
-                const rate = book.taxRate / 100;
-                newTax = Math.round(newUntaxed * rate); // 套用整數規則
-                newTotal = round(newUntaxed + newTax);
-            } else if (fieldChanged === 'tax') {
-                // 變更稅額 (來自用戶請求)
-                newTax = Math.round(newValue); // 確保稅額為整數
-                newTotal = round(entry.untaxed + newTax); // 總計 = 未稅 + 新稅額
-                newUntaxed = entry.untaxed; // 未稅額不變
-            }
-
-            // 更新 state
-            entry.untaxed = newUntaxed;
-            entry.tax = newTax;
-            entry.total = newTotal;
-
-            // 更新同列的其他 DOM input
-            const entryElement = input.closest('.entry');
-            entryElement.querySelector('.entry-untaxed').value = formatDisplay(newUntaxed);
-            entryElement.querySelector('.entry-tax').value = formatInteger(newTax);
-            entryElement.querySelector('.entry-total').value = formatDisplay(newTotal);
-
-            // 更新總結並儲存
-            updateAllCalculations();
-            debouncedSaveState();
-        }
-
-
-        /**
-         * 處理稅率變更 (步驟 2)
+         * 處理稅率變更
          */
         function handleTaxRateChange(event) {
             const newRate = parseFloat(event.target.value);
@@ -1025,14 +1156,45 @@
             updateAllCalculations();
             debouncedSaveState();
         }
+        
+        /**
+         * 【NEW】更新輸入模式 (IN/OUT, Inclusive/Exclusive)
+         */
+        function handleInputModeChange() {
+            state.entryType = entryTypeIn.checked ? 'IN' : 'OUT';
+            state.isInclusive = modeInclusive.checked;
+            
+            updateInputModePlaceholders();
+            debouncedSaveState();
+        }
+        
+        /**
+         * 【NEW】更新所有 book 的 placeholder
+         */
+        function updateInputModePlaceholders() {
+            const placeholder = state.isInclusive ? entryFormPlaceholders.inclusive : entryFormPlaceholders.exclusive;
+            booksContainer.querySelectorAll('.entry-form input').forEach(input => {
+                input.placeholder = placeholder;
+            });
+        }
+        
+        /**
+         * 【NEW】更新輸入模式 UI (通常在載入時)
+         */
+        function updateInputModeUI() {
+            taxRateInput.value = state.globalTaxRate;
+            entryTypeIn.checked = state.entryType === 'IN';
+            entryTypeOut.checked = state.entryType === 'OUT';
+            modeInclusive.checked = state.isInclusive;
+        }
 
         /**
          * 處理全部清除
          */
         function handleClearAll() {
             if (confirm("您確定要清除所有冊和全部數據嗎？此操作無法復原。")) {
-                resetState();
-                renderAllBooks(); // 會渲染出新的第一冊
+                resetState(true); // 重置並建立新冊
+                renderAllBooks(); // 渲染
                 saveState(); // 立即儲存
                 showToast("所有數據已清除。", "success");
             }
@@ -1064,7 +1226,7 @@
         }
 
         /**
-         * 處理匯入按鈕點擊 (觸發隱藏的 input)
+         * 處理匯入按鈕點擊
          */
         function handleImportClick() {
             importFileInput.click();
@@ -1082,13 +1244,17 @@
                 try {
                     const importedData = JSON.parse(e.target.result);
                     
-                    // 驗證匯入的資料
                     if (importedData && Array.isArray(importedData.books) && typeof importedData.globalTaxRate === 'number') {
                         if (confirm("匯入將會覆蓋當前所有資料，確定要繼續嗎？")) {
                             state = importedData;
-                            taxRateInput.value = state.globalTaxRate; // 更新稅率輸入框
+                            
+                            // 【NEW】確保匯入的資料有新 state
+                            state.entryType = state.entryType || 'OUT';
+                            state.isInclusive = state.isInclusive || false;
+                            
+                            updateInputModeUI(); // 更新 UI 上的設定
                             renderAllBooks();
-                            saveState(); // 立即儲存
+                            saveState();
                             showToast("資料匯入並覆蓋成功。", "success");
                         }
                     } else {
@@ -1097,7 +1263,6 @@
                 } catch (err) {
                     showToast(`匯入失敗：${err.message}`, "error");
                 } finally {
-                    // 重置 input file 以便下次觸發 change 事件
                     importFileInput.value = '';
                 }
             };
@@ -1120,6 +1285,11 @@
             taxRateInput.addEventListener('change', handleTaxRateChange);
             addNewBookBtn.addEventListener('click', addNewBook);
             
+            // 【NEW】綁定輸入模式
+            entryTypeIn.addEventListener('change', handleInputModeChange);
+            entryTypeOut.addEventListener('change', handleInputModeChange);
+            modeInclusive.addEventListener('change', handleInputModeChange);
+            
             // 綁定匯出/匯入/清除
             exportBtn.addEventListener('click', handleExport);
             importBtn.addEventListener('click', handleImportClick);
@@ -1128,17 +1298,15 @@
 
             // 載入資料並渲染
             loadState();
-            taxRateInput.value = state.globalTaxRate;
+            updateInputModeUI();
             renderAllBooks();
             
-            // 確保即使沒有資料，總結和驗證也是 0.00
             if (state.books.length === 0 || (state.books.length === 1 && state.books[0].entries.length === 0)) {
                 updateAllCalculations();
             }
         }
 
         // --- 7. Run Application ---
-        // 確保 DOM 載入完成
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
         } else {
