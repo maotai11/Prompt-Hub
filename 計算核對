@@ -266,9 +266,42 @@
             border-bottom: 1px dashed var(--color-border);
         }
         
-        .entry span:nth-child(1) { text-align: left; }
-        .entry span:nth-child(2) { text-align: right; color: var(--color-text-secondary); }
-        .entry span:nth-child(3) { text-align: right; font-weight: 500; }
+        /* 【NEW】 Styles for editable inputs in entry rows */
+        .entry-input {
+            width: 100%;
+            border: 1px solid transparent;
+            padding: var(--spacing-xs) 4px;
+            font-family: var(--font-family-mono);
+            font-size: 0.95rem;
+            border-radius: var(--border-radius);
+            background-color: transparent;
+        }
+        .entry-input:hover, .entry-input:focus {
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+        }
+        .entry-input.entry-untaxed { 
+            text-align: left; 
+        }
+        .entry-input.entry-tax { 
+            text-align: right; 
+            color: var(--color-text-secondary); 
+        }
+        .entry-input.entry-total { 
+            text-align: right; 
+            font-weight: 500; 
+            background-color: transparent;
+            border-color: transparent;
+        }
+        .entry-input[readonly] {
+            cursor: default;
+        }
+        .entry-input[readonly]:hover, .entry-input[readonly]:focus {
+            border-color: transparent;
+            background-color: transparent;
+            outline: none;
+        }
+
         
         .entry-header {
             display: grid;
@@ -402,7 +435,7 @@
                         </div>
                         <div>
                             <span class="summary-key">總稅額</span>
-                            <span class="summary-value" id="grandTotalTax">0.00</span>
+                            <span class="summary-value" id="grandTotalTax">0</span>
                         </div>
                         <div>
                             <span class="summary-key">總總計</span>
@@ -466,7 +499,7 @@
                     </div>
                     <div>
                         <span class="summary-key">本冊稅額加總</span>
-                        <span class="summary-value book-summary-tax">0.00</span>
+                        <span class="summary-value book-summary-tax">0</span>
                     </div>
                     <div>
                         <span class="summary-key">本冊總計加總</span>
@@ -537,6 +570,16 @@
         function formatDisplay(value) {
             return value.toFixed(2);
         }
+        
+        /**
+         * 【NEW】格式化數字為整數顯示 (用於稅額)
+         * @param {number} value - The number to format
+         * @returns {string} The formatted integer string
+         */
+        function formatInteger(value) {
+            return Math.round(value).toString();
+        }
+
 
         /**
          * 顯示 UI Toast 通知 (符合 Zero-Console-Issue)
@@ -675,7 +718,7 @@
                 book.entries.forEach(entry => {
                     bookCount++;
                     bookUntaxed += entry.untaxed;
-                    bookTax += entry.tax;
+                    bookTax += entry.tax; // 稅額是整數
                     bookTotal += entry.total;
                 });
                 
@@ -683,7 +726,7 @@
                 book.totals = {
                     count: bookCount,
                     untaxed: round(bookUntaxed),
-                    tax: round(bookTax),
+                    tax: Math.round(bookTax), // 確保為整數
                     total: round(bookTotal)
                 };
                 
@@ -693,19 +736,19 @@
                 // 2. 累加到總結 (Aggregate to Grand Totals)
                 grandTotalCount += book.totals.count;
                 grandTotalUntaxed += book.totals.untaxed;
-                grandTotalTax += book.totals.tax;
+                grandTotalTax += book.totals.tax; // 整數相加
                 grandTotalTotal += book.totals.total;
             });
             
-            // 處理浮點數精度問題
+            // 處理浮點數精度問題 (稅額除外)
             grandTotalUntaxed = round(grandTotalUntaxed);
-            grandTotalTax = round(grandTotalTax);
+            grandTotalTax = Math.round(grandTotalTax); // 確保總稅額也是整數
             grandTotalTotal = round(grandTotalTotal);
 
             // 3. 更新總結 DOM (總結數據)
             grandTotalCountEl.textContent = grandTotalCount;
             grandTotalUntaxedEl.textContent = formatDisplay(grandTotalUntaxed);
-            grandTotalTaxEl.textContent = formatDisplay(grandTotalTax);
+            grandTotalTaxEl.textContent = formatInteger(grandTotalTax); // 【MODIFIED】使用整數格式
             grandTotalTotalEl.textContent = formatDisplay(grandTotalTotal);
             
             // 4. 執行核算驗證 (核算驗證)
@@ -714,8 +757,8 @@
 
         /**
          * 執行反向核算驗證
-         * @param {number} grandTotalTotal - 總總計加總
-         * @param {number} grandTotalTax - 總稅額加總
+         * @param {number} grandTotalTotal - 總總計加總 (float)
+         * @param {number} grandTotalTax - 總稅額加總 (integer)
          */
         function runVerification(grandTotalTotal, grandTotalTax) {
             const rate = state.globalTaxRate / 100;
@@ -728,11 +771,11 @@
             }
 
             const verifiedUntaxed = grandTotalTotal / (1 + rate);
-            const verifiedTax = grandTotalTotal - verifiedUntaxed; // 另一種算法: verifiedUntaxed * rate;
-            const verificationError = Math.abs(grandTotalTax - verifiedTax);
+            const verifiedTax = grandTotalTotal - verifiedUntaxed; // 這是 float
+            const verificationError = Math.abs(grandTotalTax - verifiedTax); // 比較 (integer) 和 (float)
 
             verifyUntaxedEl.textContent = formatDisplay(verifiedUntaxed);
-            verifyTaxEl.textContent = formatDisplay(verifiedTax);
+            verifyTaxEl.textContent = formatDisplay(verifiedTax); // 核算結果保留小數，以便看出誤差
             verifyErrorEl.textContent = formatDisplay(verificationError);
             
             // 根據誤差值添加樣式
@@ -775,7 +818,8 @@
             // 渲染該冊所有條目
             entriesListEl.innerHTML = '';
             book.entries.forEach(entry => {
-                renderEntry(entriesListEl, entry);
+                // 【MODIFIED】傳入 book.id
+                renderEntry(entriesListEl, entry, book.id);
             });
 
             // 綁定表單提交事件
@@ -786,18 +830,30 @@
         }
 
         /**
-         * 渲染單一條目到指定的 list 元素
+         * 【MODIFIED】渲染單一條目 (改為可編輯 input)
          * @param {HTMLElement} listElement - The .entries-list element
          * @param {object} entry - The entry object
+         * @param {string} bookId - The parent book's ID
          */
-        function renderEntry(listElement, entry) {
+        function renderEntry(listElement, entry, bookId) {
             const entryEl = document.createElement('div');
             entryEl.className = 'entry';
+            entryEl.dataset.entryId = entry.id;
+            entryEl.dataset.bookId = bookId; // 方便事件處理
+            
             entryEl.innerHTML = `
-                <span>${formatDisplay(entry.untaxed)}</span>
-                <span>${formatDisplay(entry.tax)}</span>
-                <span>${formatDisplay(entry.total)}</span>
+                <input type="number" step="0.01" class="entry-input entry-untaxed" value="${formatDisplay(entry.untaxed)}">
+                <input type="number" step="1" class="entry-input entry-tax" value="${formatInteger(entry.tax)}">
+                <input type="number" step="0.01" class="entry-input entry-total" value="${formatDisplay(entry.total)}" readonly>
             `;
+            
+            // 綁定編輯事件
+            const untaxedInput = entryEl.querySelector('.entry-untaxed');
+            const taxInput = entryEl.querySelector('.entry-tax');
+            
+            untaxedInput.addEventListener('change', (e) => handleEntryEdit(e, bookId, entry.id, 'untaxed'));
+            taxInput.addEventListener('change', (e) => handleEntryEdit(e, bookId, entry.id, 'tax'));
+
             // 插入到頂部 (因為 list 是 flex-direction: column-reverse)
             listElement.appendChild(entryEl);
         }
@@ -812,7 +868,7 @@
 
             bookElement.querySelector('.book-summary-count').textContent = book.totals.count;
             bookElement.querySelector('.book-summary-untaxed').textContent = formatDisplay(book.totals.untaxed);
-            bookElement.querySelector('.book-summary-tax').textContent = formatDisplay(book.totals.tax);
+            bookElement.querySelector('.book-summary-tax').textContent = formatInteger(book.totals.tax); // 【MODIFIED】
             bookElement.querySelector('.book-summary-total').textContent = formatDisplay(book.totals.total);
         }
 
@@ -862,10 +918,12 @@
 
             // 步驟4: 單筆計算 (使用該冊鎖定的稅率)
             const rate = book.taxRate / 100;
-            const calculatedTax = round(untaxedAmount * rate);
-            const calculatedTotal = round(untaxedAmount + calculatedTax); // 依規範: 總計 = 未稅 + 稅額
+            // 【MODIFIED】稅額四捨五入到整數
+            const calculatedTax = Math.round(untaxedAmount * rate);
+            const calculatedTotal = round(untaxedAmount + calculatedTax); // 依規範: 總計 = 未稅 + 稅額 (保留小數)
 
             const entry = {
+                id: `entry-${Date.now()}-${Math.floor(Math.random() * 1000)}`, // 【NEW】新增唯一 ID
                 untaxed: untaxedAmount,
                 tax: calculatedTax,
                 total: calculatedTotal
@@ -876,7 +934,7 @@
 
             // 更新 DOM
             const listElement = form.previousElementSibling; // .entries-list
-            renderEntry(listElement, entry);
+            renderEntry(listElement, entry, book.id); // 【MODIFIED】
             
             // 步驟6: 更新總結並儲存
             updateAllCalculations();
@@ -886,6 +944,70 @@
             input.value = '';
             input.focus();
         }
+
+        /**
+         * 【NEW】處理資料列 (Entry) 的編輯
+         * @param {Event} event - The change event
+         * @param {string} bookId - The ID of the book
+         * @param {string} entryId - The ID of the entry being edited
+         * @param {'untaxed' | 'tax'} fieldChanged - Which field was changed
+         */
+        function handleEntryEdit(event, bookId, entryId, fieldChanged) {
+            const input = event.target;
+            const newValue = parseFloat(input.value);
+
+            // 驗證
+            if (isNaN(newValue) || newValue < 0) {
+                showToast("輸入無效，請輸入大於或等於 0 的數字。", "error");
+                // 恢復舊值
+                const book = state.books.find(b => b.id === bookId);
+                const entry = book.entries.find(e => e.id === entryId);
+                if (entry) {
+                    input.value = fieldChanged === 'tax' ? formatInteger(entry.tax) : formatDisplay(entry[fieldChanged]);
+                }
+                return;
+            }
+
+            // 尋找資料
+            const book = state.books.find(b => b.id === bookId);
+            if (!book) return;
+            const entry = book.entries.find(e => e.id === entryId);
+            if (!entry) return;
+
+            // 重新計算
+            let newUntaxed = entry.untaxed;
+            let newTax = entry.tax;
+            let newTotal = entry.total;
+
+            if (fieldChanged === 'untaxed') {
+                newUntaxed = newValue;
+                // 變更未稅額，使用書冊稅率重算稅額
+                const rate = book.taxRate / 100;
+                newTax = Math.round(newUntaxed * rate); // 套用整數規則
+                newTotal = round(newUntaxed + newTax);
+            } else if (fieldChanged === 'tax') {
+                // 變更稅額 (來自用戶請求)
+                newTax = Math.round(newValue); // 確保稅額為整數
+                newTotal = round(entry.untaxed + newTax); // 總計 = 未稅 + 新稅額
+                newUntaxed = entry.untaxed; // 未稅額不變
+            }
+
+            // 更新 state
+            entry.untaxed = newUntaxed;
+            entry.tax = newTax;
+            entry.total = newTotal;
+
+            // 更新同列的其他 DOM input
+            const entryElement = input.closest('.entry');
+            entryElement.querySelector('.entry-untaxed').value = formatDisplay(newUntaxed);
+            entryElement.querySelector('.entry-tax').value = formatInteger(newTax);
+            entryElement.querySelector('.entry-total').value = formatDisplay(newTotal);
+
+            // 更新總結並儲存
+            updateAllCalculations();
+            debouncedSaveState();
+        }
+
 
         /**
          * 處理稅率變更 (步驟 2)
