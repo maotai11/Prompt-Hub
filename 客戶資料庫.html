@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 
@@ -202,6 +203,115 @@
             overflow-y: auto;
         }
 
+        /* patch: 2025-11-08 客戶表單 modal 樣式 */
+        .modal-content.customer-form-modal {
+            max-width: 1200px;
+            width: 95%;
+        }
+
+        /* patch: 2025-11-08 多選功能樣式 */
+        .customer-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--color-accent-gold);
+        }
+
+        .batch-actions-bar {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+            border: 1px solid var(--color-accent-gold);
+            border-radius: 6px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: none;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .batch-actions-bar.active {
+            display: flex;
+        }
+
+        .batch-info {
+            flex: 1;
+            color: var(--color-accent-gold);
+            font-weight: 600;
+        }
+
+        .batch-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* patch: 2025-11-08 客戶備註折疊區樣式 */
+        .customer-notes-row {
+            display: none;
+            background: var(--color-surface-light);
+        }
+
+        .customer-notes-row.expanded {
+            display: table-row;
+        }
+
+        .customer-notes-content {
+            padding: 1.5rem;
+            border-left: 3px solid var(--color-accent-gold);
+        }
+
+        .notes-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .notes-section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-accent-gold);
+        }
+
+        .add-note-section {
+            background: var(--color-surface);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .note-item {
+            background: var(--color-surface);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.8rem;
+            border-left: 3px solid var(--color-border);
+        }
+
+        .note-item-content {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+
+        .note-item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        .note-item-tags {
+            display: flex;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+
+        .note-item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
         .modal-content h3 {
             margin-bottom: 1.5rem;
             color: var(--color-accent-gold);
@@ -232,6 +342,18 @@
             gap: 1rem;
             justify-content: flex-end;
             margin-top: 1.5rem;
+        }
+
+        /* patch: 2025-11-08 標籤分類標題樣式 */
+        .tag-category-header {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: 0.5rem;
         }
 
         .message-preview {
@@ -658,6 +780,42 @@
             top: 0;
         }
 
+        /* patch: 2025-11-08 排序功能樣式 */
+        .vat-data-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+
+        .vat-data-table th.sortable:hover {
+            background-color: var(--color-surface-light);
+            color: var(--color-accent-gold);
+        }
+
+        .sort-icon {
+            font-size: 0.7rem;
+            opacity: 0.5;
+            margin-left: 0.3rem;
+        }
+
+        .vat-data-table th.sortable.sorted-asc .sort-icon {
+            opacity: 1;
+            color: var(--color-accent-gold);
+        }
+
+        .vat-data-table th.sortable.sorted-asc .sort-icon::after {
+            content: ' ▲';
+        }
+
+        .vat-data-table th.sortable.sorted-desc .sort-icon {
+            opacity: 1;
+            color: var(--color-accent-gold);
+        }
+
+        .vat-data-table th.sortable.sorted-desc .sort-icon::after {
+            content: ' ▼';
+        }
+
         .vat-data-table tbody tr:hover {
             background: rgba(212, 175, 55, 0.05);
         }
@@ -739,6 +897,26 @@
             margin-top: 1.5rem;
             border-top: 1px solid var(--color-border);
             padding-top: 1.5rem;
+        }
+
+        /* patch: 2025-11-08 固定新增按鈕樣式 */
+        .floating-add-btn {
+            position: sticky;
+            top: 1rem;
+            left: 0;
+            z-index: 100;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .floating-add-btn .btn {
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+            font-size: 1rem;
+            padding: 0.8rem 1.5rem;
+        }
+
+        .floating-add-btn .btn:hover {
+            box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
         }
 
         /* --- Customer Table --- */
@@ -1082,6 +1260,40 @@
             position: relative;
         }
 
+        /* patch: 2025-11-08 折疊功能樣式 */
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+
+        .collapsible-header:hover {
+            opacity: 0.8;
+        }
+
+        .collapse-icon {
+            transition: transform 0.3s ease;
+            font-size: 1.2rem;
+            color: var(--color-accent-gold);
+        }
+
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+
         /* 優先級指示器 - 增強視覺警示 */
         .priority-indicator {
             position: absolute;
@@ -1356,6 +1568,417 @@
             transform: translateY(0);
         }
     </style>
+
+    <style>
+        /* patch: 2025-11-08 訊息模板系統樣式 */
+        
+        /* 模板列表頁面 */
+        .template-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .template-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .template-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .template-card:hover {
+            border-color: var(--color-accent-gold);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+        }
+
+        .template-card-header {
+            margin-bottom: 1rem;
+        }
+
+        .template-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--color-accent-gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .template-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        .template-card-body {
+            margin-bottom: 1rem;
+        }
+
+        .template-description {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-preview {
+            background: var(--color-surface-light);
+            padding: 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            max-height: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .template-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        /* patch: 2025-11-08 平台徽章和客戶預覽樣式 */
+        .template-platform-badge {
+            background: var(--color-accent-gold);
+            color: #000;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .template-subject {
+            color: var(--color-text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            font-style: italic;
+        }
+
+        .template-customer-preview {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .customer-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+            color: var(--color-accent-gold);
+        }
+
+        .customer-preview-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .customer-preview-item {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .customer-preview-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .customer-preview-item-name {
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .customer-preview-item-subject {
+            background: var(--color-surface);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .customer-preview-item-subject-label {
+            color: var(--color-text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .customer-preview-item-content {
+            background: var(--color-surface);
+            padding: 0.8rem;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        /* 模板編輯器 Modal */
+        .template-editor-modal {
+            max-width: 800px;
+            width: 95%;
+        }
+
+        .template-content-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-help-text {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* 標籤選擇器 Modal */
+        .tag-selector-modal {
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .tag-selector-search {
+            margin-bottom: 1rem;
+        }
+
+        .tag-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+        }
+
+        .tag-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--color-border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tag-option:last-child {
+            border-bottom: none;
+        }
+
+        .tag-option:hover {
+            background: var(--color-surface-light);
+            border-left: 3px solid var(--color-accent-gold);
+        }
+
+        .tag-label {
+            font-weight: 500;
+            color: var(--color-text-primary);
+        }
+
+        .tag-format {
+            font-family: 'Courier New', monospace;
+            color: var(--color-accent-gold);
+            font-size: 0.9rem;
+        }
+
+        /* 訊息預覽 Modal */
+        .message-preview-modal {
+            max-width: 900px;
+            width: 95%;
+            max-height: 85vh;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .message-list {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+
+        .message-item {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--color-accent-gold);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .message-number {
+            font-weight: 700;
+            color: var(--color-accent-gold);
+        }
+
+        .customer-info {
+            flex: 1;
+            margin: 0 1rem;
+            color: var(--color-text-primary);
+        }
+
+        .message-content {
+            background: var(--color-surface);
+            padding: 1rem;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .btn-copy-message {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+        }
+
+        /* 模板選擇器 */
+        .template-selector-modal {
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .template-selector-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .template-selector-item {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .template-selector-item:hover {
+            border-color: var(--color-accent-gold);
+            background: var(--color-surface);
+            transform: translateX(4px);
+        }
+
+        .template-selector-item-name {
+            font-weight: 600;
+            color: var(--color-accent-gold);
+            margin-bottom: 0.3rem;
+        }
+
+        .template-selector-item-desc {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* 空狀態 */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--color-text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state-hint {
+            font-size: 0.9rem;
+        }
+
+        /* patch: 2025-11-08 客戶選擇器樣式 */
+        .customer-selector-search {
+            margin-bottom: 1rem;
+        }
+
+        .customer-selector-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+        }
+
+        .customer-selector-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+            transition: background 0.2s ease;
+        }
+
+        .customer-selector-item:last-child {
+            border-bottom: none;
+        }
+
+        .customer-selector-item:hover {
+            background: var(--color-surface-light);
+        }
+
+        .customer-selector-item input[type="checkbox"] {
+            margin-right: 0.8rem;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .template-list-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .template-actions {
+                flex-direction: column;
+            }
+
+            .template-card-actions {
+                justify-content: flex-start;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -1365,8 +1988,7 @@
     <main class="main-container">
         <nav class="tab-nav">
             <button id="tab-list" type="button" class="tab-btn active">客戶列表</button>
-            <button id="tab-form" type="button" class="tab-btn">客戶資料</button>
-            <button id="tab-notes" type="button" class="tab-btn">所有備註</button>
+            <button id="tab-templates" type="button" class="tab-btn">訊息模板</button>
             <button id="tab-vat" type="button" class="tab-btn">營業稅</button>
         </nav>
 
@@ -1418,9 +2040,12 @@
                 <div class="priority-indicator" id="priority-indicator" style="display: none;">
                     高優先級提醒
                 </div>
-                <div class="section-header-row">
+                <div class="section-header-row collapsible-header" id="expiring-section-header">
                     <h2 class="module-title no-margin-bottom">即將到期客戶</h2>
-                    <div class="header-controls" style="display: flex; gap: 1rem; align-items: center;">
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="collapsible-content" id="expiring-section-content">
+                    <div class="header-controls" style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem; flex-wrap: wrap;">
                         <select id="expiring-sort-select" class="form-control"
                             style="background: var(--color-surface-light); color: var(--color-text-primary); border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 4px;">
                             <option value="days-asc">依到期日排序 (近到遠)</option>
@@ -1445,8 +2070,8 @@
                         <button id="clear-data-btn" class="btn btn-secondary"
                             style="background-color: #E53E3E; color: white;">清除所有資料</button>
                     </div>
+                    <ul id="expiring-customers-list"></ul>
                 </div>
-                <ul id="expiring-customers-list"></ul>
             </div>
 
             <div id="reminder-card" class="card">
@@ -1465,9 +2090,29 @@
                 </div>
             </div>
 
+            <!-- patch: 2025-11-08 固定新增按鈕 -->
+            <div class="floating-add-btn">
+                <button id="floating-add-customer-btn" class="btn btn-primary">+ 新增客戶資料</button>
+            </div>
+
+            <!-- patch: 2025-11-08 批次操作工具列 -->
+            <div class="batch-actions-bar" id="batch-actions-bar">
+                <div class="batch-info">
+                    已選擇 <span id="selected-count">0</span> 筆客戶
+                </div>
+                <div class="batch-buttons">
+                    <button id="apply-template-btn" class="btn btn-primary">套用訊息模板</button>
+                    <button id="export-selected-notes-btn" class="btn btn-primary">匯出選中客戶備註</button>
+                    <button id="clear-selection-btn" class="btn btn-secondary">取消選擇</button>
+                </div>
+            </div>
+
             <table class="data-table">
                 <thead>
                     <tr>
+                        <th style="width: 3%;">
+                            <input type="checkbox" id="select-all-checkbox" class="customer-checkbox" title="全選/取消全選">
+                        </th>
                         <th>代號<br>公司名稱</th>
                         <th>聯絡人<br>電話</th>
                         <th>統一編號<br>稅籍編號</th>
@@ -1488,9 +2133,13 @@
                         <span>載入中...</span>
                     </div>
                 </div>
-                <div class="toolbar-right">
+                <div class="toolbar-right" style="display: flex; gap: 1rem;">
                     <div class="export-container">
-                        <button id="export-customers-excel-btn" class="btn btn-primary">匯出 Excel (.xlsx)</button>
+                        <button id="export-all-notes-btn" class="btn btn-secondary">匯出所有備註</button>
+                        <div class="export-info">匯出：所有客戶備註</div>
+                    </div>
+                    <div class="export-container">
+                        <button id="export-customers-excel-btn" class="btn btn-primary">匯出客戶資料</button>
                         <div class="export-info">匯出：目前結果</div>
                     </div>
                 </div>
@@ -1542,6 +2191,11 @@
                 <span></span><button class="btn btn-secondary" id="clear-filter-btn">清空篩選</button>
             </div>
             <ul class="notes-list" id="notes-list"></ul>
+        </div>
+
+        <!-- patch: 2025-11-08 訊息模板頁面 -->
+        <div id="page-templates" class="page">
+            <div id="templates-container"></div>
         </div>
 
         <!-- 營業稅頁面 -->
@@ -1607,7 +2261,7 @@
 
             <!-- 提醒客人區塊 -->
             <div class="vat-batch-section card">
-                <h3>提醒客人（批次話術 & 匯出）</h3>
+                <h3>提醒客人（訊息模板 & 批次話術）</h3>
                 <div class="batch-controls">
                     <div class="collect-method-filter">
                         <label>收取發票方式：</label>
@@ -1615,6 +2269,7 @@
                         <button id="add-collect-method-btn" class="btn btn-secondary btn-small">+ 新增方式</button>
                     </div>
                     <div class="batch-actions">
+                        <button id="apply-vat-template-btn" class="btn btn-primary">📋 套用訊息模板</button>
                         <button id="generate-batch-message-btn" class="btn btn-primary">一鍵產生話術</button>
                         <button id="export-batch-excel-btn" class="btn btn-primary">匯出 Excel</button>
                     </div>
@@ -1636,11 +2291,12 @@
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="select-all-vat"></th>
-                                <th>客戶</th>
-                                <th>收取方式</th>
-                                <th>預計收取日</th>
-                                <th>備註-發票</th>
-                                <th>備註-提醒</th>
+                                <th class="sortable" data-sort="customer">客戶 <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-sort="method">收取方式 <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-sort="date">預計收取日 <span class="sort-icon">⇅</span></th>
+                                <th>稅金</th>
+                                <th class="sortable" data-sort="note-invoice">備註-發票 <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-sort="note-reminder">備註-提醒 <span class="sort-icon">⇅</span></th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -1662,6 +2318,7 @@
             const STORAGE_KEY = 'offline-crm-customers';
             const BACKUP_KEY = 'offline-crm-backup';
             const SETTINGS_KEY = 'offline-crm-settings';
+            const TEMPLATES_STORAGE_KEY = 'crm-message-templates'; // patch: 2025-11-08 訊息模板系統
 
             // 儲存資料到 localStorage（增強版）
             const saveCustomersToStorage = () => {
@@ -1897,6 +2554,368 @@
             let newNoteTags = [];
             let filterState = { selectedTags: [], logic: 'OR' };
 
+            // patch: 2025-11-08 訊息模板系統 - 核心類別
+            // ========================================
+            // Template Manager Class
+            // ========================================
+            class TemplateManager {
+                constructor() {
+                    this.storageKey = TEMPLATES_STORAGE_KEY;
+                    this.templates = [];
+                    this.loadTemplates();
+                }
+
+                loadTemplates() {
+                    try {
+                        const data = localStorage.getItem(this.storageKey);
+                        this.templates = data ? JSON.parse(data) : [];
+                        return this.templates;
+                    } catch (error) {
+                        console.error('載入模板失敗:', error);
+                        this.templates = [];
+                        return [];
+                    }
+                }
+
+                saveTemplates() {
+                    try {
+                        localStorage.setItem(this.storageKey, JSON.stringify(this.templates));
+                        return true;
+                    } catch (error) {
+                        console.error('儲存模板失敗:', error);
+                        if (error.name === 'QuotaExceededError') {
+                            showToast('儲存空間不足！', 'error');
+                        }
+                        return false;
+                    }
+                }
+
+                addTemplate(template) {
+                    const newTemplate = {
+                        id: template.id || `template-${Date.now()}`, // patch: 2025-11-08 允許自訂 ID
+                        name: template.name,
+                        content: template.content,
+                        description: template.description || '',
+                        platform: template.platform || 'LINE', // patch: 2025-11-08 訊息平台
+                        subject: template.subject || '', // patch: 2025-11-08 Mail 主旨
+                        category: template.category || 'general', // patch: 2025-11-08 模板類別
+                        createdAt: template.createdAt || new Date().toISOString(),
+                        updatedAt: template.updatedAt || new Date().toISOString(),
+                        usageCount: template.usageCount || 0
+                    };
+                    this.templates.push(newTemplate);
+                    this.saveTemplates();
+                    return newTemplate;
+                }
+
+                updateTemplate(id, updates) {
+                    const index = this.templates.findIndex(t => t.id === id);
+                    if (index !== -1) {
+                        this.templates[index] = {
+                            ...this.templates[index],
+                            ...updates,
+                            updatedAt: new Date().toISOString()
+                        };
+                        this.saveTemplates();
+                        return this.templates[index];
+                    }
+                    return null;
+                }
+
+                deleteTemplate(id) {
+                    const index = this.templates.findIndex(t => t.id === id);
+                    if (index !== -1) {
+                        this.templates.splice(index, 1);
+                        this.saveTemplates();
+                        return true;
+                    }
+                    return false;
+                }
+
+                getTemplate(id) {
+                    return this.templates.find(t => t.id === id);
+                }
+
+                incrementUsage(id) {
+                    const template = this.getTemplate(id);
+                    if (template) {
+                        template.usageCount = (template.usageCount || 0) + 1;
+                        template.updatedAt = new Date().toISOString();
+                        this.saveTemplates();
+                    }
+                }
+
+                exportTemplates() {
+                    const data = {
+                        version: '1.0',
+                        exportDate: new Date().toISOString(),
+                        templates: this.templates
+                    };
+                    return JSON.stringify(data, null, 2);
+                }
+
+                importTemplates(jsonData) {
+                    try {
+                        const data = JSON.parse(jsonData);
+                        const imported = data.templates || [];
+                        const conflicts = [];
+                        const newTemplates = [];
+
+                        imported.forEach(template => {
+                            const existing = this.templates.find(t => t.id === template.id);
+                            if (existing) {
+                                conflicts.push({ existing, imported: template });
+                            } else {
+                                newTemplates.push(template);
+                            }
+                        });
+
+                        return { conflicts, newTemplates, success: true };
+                    } catch (error) {
+                        return { success: false, error: 'JSON 格式錯誤' };
+                    }
+                }
+
+                mergeTemplates(newTemplates, overwriteConflicts = false) {
+                    if (overwriteConflicts) {
+                        newTemplates.forEach(template => {
+                            const index = this.templates.findIndex(t => t.id === template.id);
+                            if (index !== -1) {
+                                this.templates[index] = template;
+                            } else {
+                                this.templates.push(template);
+                            }
+                        });
+                    } else {
+                        this.templates.push(...newTemplates);
+                    }
+                    this.saveTemplates();
+                }
+            }
+
+            // ========================================
+            // Tag System Class
+            // ========================================
+            class TagSystem {
+                constructor(customers, vatData = null) {
+                    this.customers = customers;
+                    this.vatData = vatData; // patch: 2025-11-08 營業稅資料
+                    this.fieldMapping = {
+                        'id': '客戶代號',
+                        'companyName': '公司名稱',
+                        'contact': '聯絡人',
+                        'phone': '電話',
+                        'taxId': '統一編號',
+                        'taxAddr': '稅籍編號',
+                        'regAddr': '設籍地址',
+                        'contactAddr': '聯絡地址',
+                        'leaseStart': '租約起日',
+                        'leaseEnd': '租約迄日',
+                        'bookkeepingFee': '記帳費', // patch: 2025-11-08
+                        // patch: 2025-11-08 營業稅專用標籤
+                        'vat_period': '營業稅期數',
+                        'vat_year': '營業稅年度',
+                        'vat_deadline': '最晚收取發票日',
+                        'vat_deadline_minus2': '最晚收取日-2天',
+                        'vat_collect_method': '收取方式',
+                        'vat_planned_date': '預計收取日',
+                        'vat_tax_amount': '稅金',
+                        'vat_note_invoice': '備註-發票',
+                        'vat_note_reminder': '備註-提醒'
+                    };
+                    this.excludeFields = ['notes'];
+                }
+
+                getAvailableFields(includeVatFields = false) {
+                    let fields = [];
+                    
+                    // 客戶欄位
+                    if (this.customers.length === 0) {
+                        fields = Object.keys(this.fieldMapping)
+                            .filter(key => !key.startsWith('vat_'))
+                            .map(key => ({
+                                field: key,
+                                label: this.fieldMapping[key],
+                                tag: `{{${key}}}`,
+                                category: 'customer'
+                            }));
+                    } else {
+                        const firstCustomer = this.customers[0];
+                        fields = Object.keys(firstCustomer)
+                            .filter(key => !this.excludeFields.includes(key))
+                            .map(key => ({
+                                field: key,
+                                label: this.fieldMapping[key] || key,
+                                tag: `{{${key}}}`,
+                                category: 'customer'
+                            }));
+                    }
+                    
+                    // patch: 2025-11-08 營業稅欄位
+                    if (includeVatFields) {
+                        const vatFields = Object.keys(this.fieldMapping)
+                            .filter(key => key.startsWith('vat_'))
+                            .map(key => ({
+                                field: key,
+                                label: this.fieldMapping[key],
+                                tag: `{{${key}}}`,
+                                category: 'vat'
+                            }));
+                        fields = fields.concat(vatFields);
+                    }
+
+                    return fields;
+                }
+
+                replaceTagsInTemplate(template, customer, vatRow = null) {
+                    let result = template;
+                    const tagRegex = /\{\{(\w+)\}\}/g;
+                    
+                    result = result.replace(tagRegex, (match, fieldName) => {
+                        // 優先處理客戶欄位
+                        if (customer.hasOwnProperty(fieldName)) {
+                            const value = customer[fieldName];
+                            return value !== null && value !== undefined ? String(value) : '';
+                        }
+                        
+                        // patch: 2025-11-08 處理營業稅欄位
+                        if (fieldName.startsWith('vat_') && this.vatData) {
+                            const vatField = fieldName.replace('vat_', '');
+                            
+                            switch (vatField) {
+                                case 'period':
+                                    return this.vatData.period ? `${this.vatData.period}` : '';
+                                case 'year':
+                                    return this.vatData.year ? `${this.vatData.year}` : '';
+                                case 'deadline':
+                                    return this.vatData.last_collect_deadline || '';
+                                case 'deadline_minus2':
+                                    return this.vatData.last_collect_deadline ? getDateMinus2(this.vatData.last_collect_deadline) : '';
+                                case 'collect_method':
+                                    return vatRow ? (vatRow.collect_method || '') : '';
+                                case 'planned_date':
+                                    return vatRow ? (vatRow.planned_collect_date || '') : '';
+                                case 'tax_amount':
+                                    return vatRow ? (vatRow.tax_amount || '') : '';
+                                case 'note_invoice':
+                                    return vatRow ? (vatRow.note_invoice || '') : '';
+                                case 'note_reminder':
+                                    return vatRow ? (vatRow.note_reminder ? `\n${vatRow.note_reminder}` : '') : '';
+                                default:
+                                    return match;
+                            }
+                        }
+                        
+                        return match;
+                    });
+
+                    return result;
+                }
+
+                generateMessages(template, customers, vatRows = null) {
+                    return customers.map(customer => {
+                        // patch: 2025-11-08 尋找對應的營業稅資料
+                        const vatRow = vatRows ? vatRows.find(row => row.customer_id === customer.id) : null;
+                        
+                        return {
+                            customer: customer,
+                            message: this.replaceTagsInTemplate(template, customer, vatRow)
+                        };
+                    });
+                }
+
+                validateTags(template) {
+                    const tagRegex = /\{\{(\w+)\}\}/g;
+                    const tags = [];
+                    let match;
+
+                    while ((match = tagRegex.exec(template)) !== null) {
+                        tags.push(match[1]);
+                    }
+
+                    const availableFields = this.getAvailableFields().map(f => f.field);
+                    const invalidTags = tags.filter(tag => !availableFields.includes(tag));
+
+                    return {
+                        allTags: tags,
+                        validTags: tags.filter(tag => availableFields.includes(tag)),
+                        invalidTags: invalidTags
+                    };
+                }
+            }
+
+            // 初始化模板管理器和標籤系統
+            const templateManager = new TemplateManager();
+            const tagSystem = new TagSystem(customers);
+            
+            // patch: 2025-11-08 初始化預設營業稅模板
+            function initializeDefaultVatTemplates() {
+                const templates = templateManager.loadTemplates();
+                const hasVatTemplates = templates.some(t => t.category === 'vat');
+                
+                if (!hasVatTemplates) {
+                    const defaultVatTemplates = [
+                        {
+                            id: 'vat-template-self-send',
+                            name: '營業稅提醒 - 自己寄送',
+                            description: '用於提醒客戶自己寄送發票',
+                            category: 'vat',
+                            platform: 'LINE',
+                            content: `{{contact}}您好：
+
+提醒您，本期（第{{vat_period}}期）營業稅即將開始申報囉！
+
+請您務必於{{vat_deadline_minus2}}前備妥所有進項、銷項發票及相關憑證（含作廢發票、進口報單等），並準備好交付本所。{{vat_note_reminder}}
+
+謝謝`,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            usageCount: 0
+                        },
+                        {
+                            id: 'vat-template-pickup',
+                            name: '營業稅提醒 - 到府收取',
+                            description: '用於約定到府收取發票的時間',
+                            category: 'vat',
+                            platform: 'LINE',
+                            content: `{{contact}}您好：
+
+提醒您，本期（第{{vat_period}}期）營業稅即將開始申報囉！
+
+請問{{vat_deadline_minus2}}前的哪個時段過去貴公司收取資料比較方便呢？
+
+請提供您方便的確切日期與時間，會盡快為您安排過去收取。`,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            usageCount: 0
+                        },
+                        {
+                            id: 'vat-template-tomorrow',
+                            name: '明日預計收取提醒',
+                            description: '用於提醒明日預計收取發票的客戶',
+                            category: 'vat',
+                            platform: 'LINE',
+                            content: `{{contact}}您好：
+
+提醒您，明日（{{vat_planned_date}}）預計前往貴公司收取第{{vat_period}}期營業稅發票。
+
+收取方式：{{vat_collect_method}}{{vat_note_reminder}}
+
+如有任何變更，請提前告知，謝謝！`,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            usageCount: 0
+                        }
+                    ];
+                    
+                    defaultVatTemplates.forEach(template => {
+                        templateManager.addTemplate(template);
+                    });
+                    
+                    console.log('已載入預設營業稅模板');
+                }
+            }
+
             // UI狀態物件
             let uiState = {
                 activeTab: 'page-list',
@@ -1910,7 +2929,7 @@
             const doc = (id) => document.getElementById(id);
             const ui = {
                 list: doc('page-list'), form: doc('page-form'), notes: doc('page-notes'),
-                tabList: doc('tab-list'), tabForm: doc('tab-form'), tabNotes: doc('tab-notes'),
+                tabList: doc('tab-list'),
                 customerBody: doc('customer-list-body'), formContainer: doc('form-container'),
                 notesList: doc('notes-list'), tagFilterBar: doc('tag-filter-bar'),
                 filterLogicSwitcher: doc('filter-logic-switcher'), filterStatusBar: doc('filter-status-bar'), clearFilterBtn: doc('clear-filter-btn'),
@@ -1956,6 +2975,576 @@
                 const diffTime = endDate.getTime() - today.getTime();
                 return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             };
+
+            // patch: 2025-11-08 訊息模板系統 - 渲染函數
+            // ========================================
+            // Template Rendering Functions
+            // ========================================
+            
+            function renderTemplateList() {
+                const container = doc('templates-container');
+                if (!container) return;
+
+                const templates = templateManager.templates;
+
+                // 始終顯示工具列
+                const headerHtml = `
+                    <div class="template-list-header">
+                        <h2 class="module-title">訊息模板</h2>
+                        <div class="template-actions">
+                            <button id="add-template-btn" class="btn btn-primary">+ 新增模板</button>
+                            <button id="export-templates-btn" class="btn btn-secondary">匯出模板</button>
+                            <button id="import-templates-btn" class="btn btn-secondary">匯入模板</button>
+                        </div>
+                    </div>
+                `;
+
+                if (templates.length === 0) {
+                    container.innerHTML = headerHtml + `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📝</div>
+                            <div class="empty-state-text">尚未建立任何訊息模板</div>
+                            <div class="empty-state-hint">點擊上方「+ 新增模板」開始建立您的第一個模板</div>
+                        </div>
+                    `;
+                } else {
+                    const html = headerHtml + `
+                        <div class="template-grid">
+                            ${templates.map(template => `
+                                <div class="template-card" data-template-id="${template.id}">
+                                    <div class="template-card-header">
+                                        <h3 class="template-name">${escapeHTML(template.name)}</h3>
+                                        <div class="template-meta">
+                                            <span class="template-platform-badge">${escapeHTML(template.platform || 'LINE')}</span>
+                                            <span>使用 ${template.usageCount || 0} 次</span>
+                                            <span>${new Date(template.updatedAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                    <div class="template-card-body">
+                                        <p class="template-description">${escapeHTML(template.description || '無描述')}</p>
+                                        ${template.platform === 'Mail' && template.subject ? `<p class="template-subject">主旨: ${escapeHTML(template.subject)}</p>` : ''}
+                                        <div class="template-preview">${escapeHTML(template.content.substring(0, 100))}${template.content.length > 100 ? '...' : ''}</div>
+                                    </div>
+                                    <div class="template-card-actions">
+                                        <button class="btn btn-small btn-select-customers" data-id="${template.id}">選取客戶</button>
+                                        <button class="btn btn-small btn-edit-template" data-id="${template.id}">編輯</button>
+                                        <button class="btn btn-small btn-preview-template" data-id="${template.id}">預覽</button>
+                                        <button class="btn btn-small btn-delete-template" data-id="${template.id}">刪除</button>
+                                    </div>
+                                    <div class="template-customer-preview" id="customer-preview-${template.id}" style="display: none;">
+                                        <div class="customer-preview-header">
+                                            <span>客戶訊息預覽</span>
+                                            <button class="btn btn-small btn-close-preview" data-id="${template.id}">收起</button>
+                                        </div>
+                                        <div class="customer-preview-list" id="customer-preview-list-${template.id}"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    container.innerHTML = html;
+                }
+
+                // 綁定按鈕事件
+                setupTemplateListEvents();
+            }
+
+            function showTemplateEditorModal(template = null) {
+                const isEdit = template !== null;
+                const platform = template?.platform || 'LINE';
+                const category = template?.category || 'general'; // patch: 2025-11-08
+                
+                const html = `
+                    <div class="modal-overlay" id="template-editor-modal">
+                        <div class="modal-content template-editor-modal">
+                            <h3>${isEdit ? '編輯模板' : '新增模板'}</h3>
+                            
+                            <form id="template-form">
+                                <div class="form-group">
+                                    <label for="template-name">模板名稱 *</label>
+                                    <input type="text" id="template-name" value="${template?.name || ''}" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="template-description">模板描述</label>
+                                    <input type="text" id="template-description" value="${template?.description || ''}" placeholder="選填">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="template-category">模板類別 *</label>
+                                    <select id="template-category" required>
+                                        <option value="general" ${category === 'general' ? 'selected' : ''}>一般模板</option>
+                                        <option value="vat" ${category === 'vat' ? 'selected' : ''}>營業稅模板</option>
+                                    </select>
+                                    <div class="template-help-text" style="margin-top: 0.3rem; font-size: 0.85rem; color: var(--color-text-secondary);">
+                                        💡 選擇「營業稅模板」可使用營業稅專用標籤（如期數、最晚收取日等）
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="template-platform">訊息平台 *</label>
+                                    <select id="template-platform" required>
+                                        <option value="LINE" ${platform === 'LINE' ? 'selected' : ''}>LINE</option>
+                                        <option value="Mail" ${platform === 'Mail' ? 'selected' : ''}>Mail</option>
+                                        <option value="SMS" ${platform === 'SMS' ? 'selected' : ''}>SMS</option>
+                                        <option value="WhatsApp" ${platform === 'WhatsApp' ? 'selected' : ''}>WhatsApp</option>
+                                        <option value="其他" ${platform === '其他' ? 'selected' : ''}>其他</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group" id="subject-group" style="display: ${platform === 'Mail' ? 'flex' : 'none'};">
+                                    <label for="template-subject">Mail 主旨</label>
+                                    <div class="template-content-toolbar">
+                                        <button type="button" id="insert-tag-subject-btn" class="btn btn-secondary btn-small">
+                                            插入標籤
+                                        </button>
+                                    </div>
+                                    <input type="text" id="template-subject" value="${template?.subject || ''}" placeholder="可使用 {{標籤}}">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="template-content">模板內容 *</label>
+                                    <div class="template-content-toolbar">
+                                        <button type="button" id="insert-tag-btn" class="btn btn-secondary btn-small">
+                                            插入標籤
+                                        </button>
+                                        <button type="button" id="preview-template-btn" class="btn btn-secondary btn-small">
+                                            預覽
+                                        </button>
+                                    </div>
+                                    <textarea id="template-content" rows="10" required>${template?.content || ''}</textarea>
+                                    <div class="template-help-text">
+                                        使用 {{標籤}} 格式插入客戶資料，點擊「插入標籤」查看可用欄位
+                                    </div>
+                                </div>
+                                
+                                <div class="modal-actions">
+                                    <button type="submit" class="btn btn-primary">儲存</button>
+                                    <button type="button" class="btn btn-secondary" id="cancel-template-btn">取消</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', html);
+                
+                // 綁定事件
+                setupTemplateEditorEvents(template);
+            }
+
+            function showTagSelector(insertCallback, includeVatFields = false) {
+                const fields = tagSystem.getAvailableFields(includeVatFields);
+                
+                // patch: 2025-11-08 分組顯示標籤
+                const customerFields = fields.filter(f => f.category === 'customer');
+                const vatFields = fields.filter(f => f.category === 'vat');
+                
+                const html = `
+                    <div class="modal-overlay" id="tag-selector-modal">
+                        <div class="modal-content tag-selector-modal">
+                            <h3>選擇標籤</h3>
+                            <div class="tag-selector-search">
+                                <input type="text" id="tag-search" placeholder="搜尋欄位..." class="search-input">
+                            </div>
+                            <div class="tag-list">
+                                ${customerFields.length > 0 ? `
+                                    <div class="tag-category-header">客戶資料</div>
+                                    ${customerFields.map(field => `
+                                        <div class="tag-option" data-field="${field.field}">
+                                            <span class="tag-label">${field.label}</span>
+                                            <span class="tag-format">${field.tag}</span>
+                                        </div>
+                                    `).join('')}
+                                ` : ''}
+                                ${vatFields.length > 0 ? `
+                                    <div class="tag-category-header" style="margin-top: 1rem;">營業稅資料</div>
+                                    ${vatFields.map(field => `
+                                        <div class="tag-option" data-field="${field.field}">
+                                            <span class="tag-label">${field.label}</span>
+                                            <span class="tag-format">${field.tag}</span>
+                                        </div>
+                                    `).join('')}
+                                ` : ''}
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" id="cancel-tag-selector">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', html);
+                
+                // 綁定點擊事件
+                document.querySelectorAll('.tag-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const field = option.dataset.field;
+                        const tag = `{{${field}}}`;
+                        insertCallback(tag);
+                        const modal = doc('tag-selector-modal');
+                        if (modal) modal.remove();
+                    });
+                });
+                
+                // 搜尋功能
+                const searchInput = doc('tag-search');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const searchTerm = e.target.value.toLowerCase();
+                        document.querySelectorAll('.tag-option').forEach(option => {
+                            const label = option.querySelector('.tag-label').textContent.toLowerCase();
+                            option.style.display = label.includes(searchTerm) ? 'flex' : 'none';
+                        });
+                    });
+                }
+
+                // 取消按鈕
+                const cancelBtn = doc('cancel-tag-selector');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => {
+                        const modal = doc('tag-selector-modal');
+                        if (modal) modal.remove();
+                    });
+                }
+
+                // 點擊背景關閉
+                const modal = doc('tag-selector-modal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) modal.remove();
+                    });
+                }
+            }
+
+            function showMessagePreviewModal(messages) {
+                const html = `
+                    <div class="modal-overlay" id="message-preview-modal">
+                        <div class="modal-content message-preview-modal">
+                            <div class="modal-header">
+                                <h3>訊息預覽 (${messages.length} 筆)</h3>
+                                <button type="button" class="btn btn-primary" id="copy-all-messages">全部複製</button>
+                            </div>
+                            
+                            <div class="message-list">
+                                ${messages.map((msg, index) => `
+                                    <div class="message-item">
+                                        <div class="message-header">
+                                            <span class="message-number">#${index + 1}</span>
+                                            <span class="customer-info">
+                                                ${escapeHTML(msg.customer.companyName || msg.customer.id)}
+                                                ${msg.customer.contact ? `- ${escapeHTML(msg.customer.contact)}` : ''}
+                                            </span>
+                                            <button class="btn btn-small btn-copy-message" data-index="${index}">複製</button>
+                                        </div>
+                                        <div class="message-content">
+${escapeHTML(msg.message)}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" id="close-preview">關閉</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', html);
+                
+                // 綁定複製事件
+                setupMessageCopyEvents(messages);
+            }
+
+            // patch: 2025-11-08 客戶選擇器（用於模板預覽）
+            function showCustomerSelectorForTemplate(templateId) {
+                const template = templateManager.getTemplate(templateId);
+                if (!template) return;
+
+                const html = `
+                    <div class="modal-overlay" id="customer-selector-modal">
+                        <div class="modal-content template-selector-modal">
+                            <h3>選擇要預覽的客戶</h3>
+                            <div class="customer-selector-search">
+                                <input type="text" id="customer-selector-search" placeholder="搜尋客戶..." class="search-input">
+                            </div>
+                            <div class="customer-selector-list">
+                                ${customers.map(customer => `
+                                    <div class="customer-selector-item">
+                                        <input type="checkbox" class="customer-checkbox customer-selector-checkbox" 
+                                               data-customer-id="${customer.id}" id="cust-${customer.id}">
+                                        <label for="cust-${customer.id}" style="flex: 1; cursor: pointer; padding: 0.5rem;">
+                                            <div style="font-weight: 600;">${escapeHTML(customer.companyName || customer.id)}</div>
+                                            <div style="font-size: 0.85rem; color: var(--color-text-secondary);">
+                                                ${escapeHTML(customer.contact || '')} ${customer.phone ? `- ${escapeHTML(customer.phone)}` : ''}
+                                            </div>
+                                        </label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-primary" id="confirm-customer-selection">確定 (已選 <span id="selected-customer-count">0</span> 位)</button>
+                                <button type="button" class="btn btn-secondary" id="cancel-customer-selector">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', html);
+
+                // 更新選中數量
+                const updateCount = () => {
+                    const count = document.querySelectorAll('.customer-selector-checkbox:checked').length;
+                    const countSpan = doc('selected-customer-count');
+                    if (countSpan) countSpan.textContent = count;
+                };
+
+                // 綁定 checkbox 事件
+                document.querySelectorAll('.customer-selector-checkbox').forEach(cb => {
+                    cb.addEventListener('change', updateCount);
+                });
+
+                // 搜尋功能
+                const searchInput = doc('customer-selector-search');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const searchTerm = e.target.value.toLowerCase();
+                        document.querySelectorAll('.customer-selector-item').forEach(item => {
+                            const text = item.textContent.toLowerCase();
+                            item.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+                        });
+                    });
+                }
+
+                // 確定按鈕
+                const confirmBtn = doc('confirm-customer-selection');
+                if (confirmBtn) {
+                    confirmBtn.addEventListener('click', () => {
+                        const selectedIds = Array.from(document.querySelectorAll('.customer-selector-checkbox:checked'))
+                            .map(cb => cb.dataset.customerId);
+                        
+                        if (selectedIds.length === 0) {
+                            showToast('請至少選擇一位客戶', 'error');
+                            return;
+                        }
+
+                        const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
+                        renderCustomerPreview(templateId, template, selectedCustomers);
+                        
+                        const modal = doc('customer-selector-modal');
+                        if (modal) modal.remove();
+                    });
+                }
+
+                // 取消按鈕
+                const cancelBtn = doc('cancel-customer-selector');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => {
+                        const modal = doc('customer-selector-modal');
+                        if (modal) modal.remove();
+                    });
+                }
+
+                // 點擊背景關閉
+                const modal = doc('customer-selector-modal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) modal.remove();
+                    });
+                }
+            }
+
+            // patch: 2025-11-08 渲染客戶預覽
+            function renderCustomerPreview(templateId, template, selectedCustomers) {
+                const previewDiv = doc(`customer-preview-${templateId}`);
+                const listDiv = doc(`customer-preview-list-${templateId}`);
+                
+                if (!previewDiv || !listDiv) return;
+
+                const messages = tagSystem.generateMessages(template.content, selectedCustomers);
+                
+                // 如果是 Mail，也要處理主旨
+                let subjectMessages = [];
+                if (template.platform === 'Mail' && template.subject) {
+                    subjectMessages = tagSystem.generateMessages(template.subject, selectedCustomers);
+                }
+
+                const html = messages.map((msg, index) => {
+                    const subjectHtml = template.platform === 'Mail' && subjectMessages[index] ? `
+                        <div class="customer-preview-item-subject">
+                            <div class="customer-preview-item-subject-label">主旨:</div>
+                            <div>${escapeHTML(subjectMessages[index].message)}</div>
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="customer-preview-item">
+                            <div class="customer-preview-item-header">
+                                <span class="customer-preview-item-name">
+                                    ${escapeHTML(msg.customer.companyName || msg.customer.id)}
+                                    ${msg.customer.contact ? `- ${escapeHTML(msg.customer.contact)}` : ''}
+                                </span>
+                                <button class="btn btn-small btn-copy-customer-message" data-index="${index}">複製</button>
+                            </div>
+                            ${subjectHtml}
+                            <div class="customer-preview-item-content">${escapeHTML(msg.message)}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                listDiv.innerHTML = html;
+                previewDiv.style.display = 'block';
+
+                // 綁定複製按鈕
+                document.querySelectorAll('.btn-copy-customer-message').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const index = parseInt(btn.dataset.index);
+                        const msg = messages[index];
+                        let textToCopy = msg.message;
+                        
+                        // 如果是 Mail，包含主旨
+                        if (template.platform === 'Mail' && subjectMessages[index]) {
+                            textToCopy = `主旨: ${subjectMessages[index].message}\n\n${msg.message}`;
+                        }
+                        
+                        navigator.clipboard.writeText(textToCopy).then(() => {
+                            showToast('訊息已複製');
+                        }).catch(() => {
+                            showToast('複製失敗', 'error');
+                        });
+                    });
+                });
+
+                showToast(`已為 ${selectedCustomers.length} 位客戶產生預覽`);
+            }
+
+            function showTemplateSelectorModal(onSelect) {
+                const templates = templateManager.templates;
+
+                if (templates.length === 0) {
+                    showToast('尚未建立任何模板', 'error');
+                    return;
+                }
+
+                const html = `
+                    <div class="modal-overlay" id="template-selector-modal">
+                        <div class="modal-content template-selector-modal">
+                            <h3>選擇訊息模板</h3>
+                            <div class="template-selector-list">
+                                ${templates.map(template => `
+                                    <div class="template-selector-item" data-template-id="${template.id}">
+                                        <div class="template-selector-item-name">${escapeHTML(template.name)}</div>
+                                        <div class="template-selector-item-desc">${escapeHTML(template.description || '無描述')}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" id="cancel-template-selector">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', html);
+
+                // 綁定選擇事件
+                document.querySelectorAll('.template-selector-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const templateId = item.dataset.templateId;
+                        const template = templateManager.getTemplate(templateId);
+                        if (template) {
+                            onSelect(template);
+                            const modal = doc('template-selector-modal');
+                            if (modal) modal.remove();
+                        }
+                    });
+                });
+
+                // 取消按鈕
+                const cancelBtn = doc('cancel-template-selector');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => {
+                        const modal = doc('template-selector-modal');
+                        if (modal) modal.remove();
+                    });
+                }
+
+                // 點擊背景關閉
+                const modal = doc('template-selector-modal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) modal.remove();
+                    });
+                }
+            }
+
+            // patch: 2025-11-08 營業稅專用模板選擇器
+            function showVatTemplateSelectorModal(onSelect) {
+                const templates = templateManager.templates.filter(t => t.category === 'vat');
+
+                if (templates.length === 0) {
+                    showToast('尚未建立營業稅模板，請先到訊息模板頁面建立', 'error');
+                    return;
+                }
+
+                const html = `
+                    <div class="modal-overlay" id="template-selector-modal">
+                        <div class="modal-content template-selector-modal">
+                            <h3>選擇營業稅訊息模板</h3>
+                            <div class="template-help-text" style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(212, 175, 55, 0.1); border-left: 3px solid var(--color-accent-gold); border-radius: 4px;">
+                                💡 提示：這些模板支援營業稅專用標籤（如期數、最晚收取日等）
+                            </div>
+                            <div class="template-selector-list">
+                                ${templates.map(template => `
+                                    <div class="template-selector-item" data-template-id="${template.id}">
+                                        <div class="template-selector-item-name">${escapeHTML(template.name)}</div>
+                                        <div class="template-selector-item-desc">${escapeHTML(template.description || '無描述')}</div>
+                                        <div class="template-selector-item-meta" style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.3rem;">
+                                            使用 ${template.usageCount || 0} 次
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="modal-actions">
+                                <button type="button" class="btn btn-secondary" id="cancel-template-selector">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', html);
+
+                // 綁定選擇事件
+                document.querySelectorAll('.template-selector-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const templateId = item.dataset.templateId;
+                        const template = templateManager.getTemplate(templateId);
+                        if (template) {
+                            onSelect(template);
+                            const modal = doc('template-selector-modal');
+                            if (modal) modal.remove();
+                        }
+                    });
+                });
+
+                // 取消按鈕
+                const cancelBtn = doc('cancel-template-selector');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => {
+                        const modal = doc('template-selector-modal');
+                        if (modal) modal.remove();
+                    });
+                }
+
+                // 點擊背景關閉
+                const modal = doc('template-selector-modal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) modal.remove();
+                    });
+                }
+            }
 
             // --- RENDER FUNCTIONS --- //
             const renderAll = () => {
@@ -2028,7 +3617,29 @@
                     const rowClass = isExpired ? 'expired' : isExpiring ? 'expiring-soon' : '';
                     const leaseEndClass = isExpired ? 'lease-end-cell expired' : isExpiring ? 'lease-end-cell expiring' : 'lease-end-cell';
 
+                    // patch: 2025-11-08 渲染備註區
+                    const notesHtml = (c.notes && c.notes.length > 0) ? c.notes.map(note => `
+                        <div class="note-item">
+                            <div class="note-item-content">${escapeHTML(note.content)}</div>
+                            <div class="note-item-meta">
+                                <div>
+                                    <div class="note-item-tags">
+                                        ${note.tags.map(tag => `<span class="tag-item" style="background-color: ${getTagColor(tag)};">${escapeHTML(tag)}</span>`).join('')}
+                                    </div>
+                                    <span>${note.createdAt}</span>
+                                </div>
+                                <div class="note-item-actions">
+                                    <button class="btn-action btn-edit-note" data-customer-id="${c.id}" data-note-id="${note.id}">編輯</button>
+                                    <button class="btn-action btn-delete-note" data-customer-id="${c.id}" data-note-id="${note.id}">刪除</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('') : '<div style="text-align: center; padding: 1rem; color: var(--color-text-secondary);">此客戶目前沒有備註</div>';
+
                     return `<tr data-id="${c.id}" class="${rowClass}">
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="customer-checkbox customer-select-checkbox" data-customer-id="${c.id}">
+                        </td>
                         <td>${escapeHTML(c.id)}<br>${escapeHTML(c.companyName)}</td>
                         <td>${escapeHTML(c.contact) || '-'}<br>${escapeHTML(c.phone) || '-'}</td>
                         <td>${escapeHTML(c.taxId) || '-'}<br>${c.taxAddr ? `稅籍:${escapeHTML(c.taxAddr)}` : '-'}</td>
@@ -2037,9 +3648,31 @@
                         <td class="${leaseEndClass}">${toROCDate(c.leaseEnd) || '-'}</td>
                         <td class="table-row-actions">
                             <div class="action-buttons-grid">
-                                <button type="button" class="btn-action btn-view-notes">查看備註</button>
+                                <button type="button" class="btn-action btn-view-notes" data-customer-id="${c.id}">查看備註 (${c.notes?.length || 0})</button>
+                                <button type="button" class="btn-action btn-apply-template-single" data-customer-id="${c.id}">套用模板</button>
+                                <button type="button" class="btn-action btn-export-single-notes" data-customer-id="${c.id}">匯出備註</button>
                                 <button type="button" class="btn-action btn-edit">編輯</button>
                                 <button type="button" class="btn-action btn-delete">刪除</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="customer-notes-row" id="notes-row-${c.id}" data-customer-id="${c.id}">
+                        <td colspan="8">
+                            <div class="customer-notes-content">
+                                <div class="notes-section-header">
+                                    <span class="notes-section-title">${escapeHTML(c.companyName)} - 備註</span>
+                                    <button class="btn btn-secondary btn-small btn-close-notes" data-customer-id="${c.id}">收起</button>
+                                </div>
+                                <div class="add-note-section">
+                                    <textarea class="notes-textarea" id="new-note-content-${c.id}" placeholder="輸入新備註..."></textarea>
+                                    <div style="margin: 0.5rem 0;">
+                                        <input type="text" class="tag-input" id="new-note-tags-${c.id}" placeholder="輸入標籤，用逗號分隔">
+                                    </div>
+                                    <button class="btn btn-primary btn-small btn-add-note" data-customer-id="${c.id}">新增備註</button>
+                                </div>
+                                <div id="notes-list-${c.id}">
+                                    ${notesHtml}
+                                </div>
                             </div>
                         </td>
                     </tr>`;
@@ -2152,6 +3785,92 @@
 
                 // 一次性指派完整HTML
                 ui.expiringCustomersList.innerHTML = listItemsHtml.join('');
+            };
+
+            // patch: 2025-11-08 Modal 版本的客戶表單
+            const showCustomerFormModal = (customer = null) => {
+                currentlyEditingId = customer ? customer.id : null;
+                
+                const formHtml = `
+                <div class="modal-overlay" id="customer-form-modal">
+                    <div class="modal-content customer-form-modal">
+                        <h2 class="module-title">${customer ? '編輯客戶資料' : '新增客戶資料'}</h2>
+                        <form id="data-form">
+                            <div class="data-form-grid">
+                                <div class="form-group">
+                                    <label for="id">客戶代號</label>
+                                    <input type="text" id="id" value="${customer?.id || ''}" ${customer ? 'readonly' : ''}>
+                                </div>
+                                <div class="form-group">
+                                    <label for="companyName">公司名稱</label>
+                                    <input type="text" id="companyName" value="${customer?.companyName || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="taxId">統一編號</label>
+                                    <input type="text" id="taxId" value="${customer?.taxId || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="contact">聯絡人</label>
+                                    <input type="text" id="contact" value="${customer?.contact || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="phone">電話</label>
+                                    <input type="text" id="phone" value="${customer?.phone || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="leaseStart">租約起日</label>
+                                    <input type="date" id="leaseStart" value="${customer?.leaseStart || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="taxAddr">稅籍編號</label>
+                                    <input type="text" id="taxAddr" value="${customer?.taxAddr || ''}">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label for="regAddr">設籍地址</label>
+                                    <input type="text" id="regAddr" value="${customer?.regAddr || ''}">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label for="contactAddr">聯絡地址</label>
+                                    <input type="text" id="contactAddr" value="${customer?.contactAddr || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="leaseEnd">租約迄日</label>
+                                    <input type="date" id="leaseEnd" value="${customer?.leaseEnd || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="bookkeepingFee">記帳費（選填）</label>
+                                    <input type="number" id="bookkeepingFee" value="${customer?.bookkeepingFee || ''}" placeholder="請輸入金額" min="0">
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">${customer ? '更新客戶' : '新增客戶'}</button>
+                                    <button type="button" class="btn btn-secondary" id="cancel-form-btn">取消</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>`;
+                
+                document.body.insertAdjacentHTML('beforeend', formHtml);
+                
+                const modal = doc('customer-form-modal');
+                const form = doc('data-form');
+                const cancelBtn = doc('cancel-form-btn');
+                
+                if (form) {
+                    form.addEventListener('submit', handleFormSubmit);
+                }
+                
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => {
+                        if (modal) modal.remove();
+                    });
+                }
+                
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) modal.remove();
+                    });
+                }
             };
 
             const renderFormPage = (customer = null) => {
@@ -2500,27 +4219,395 @@
                 document.body.removeChild(link);
             }
 
+            // patch: 2025-11-08 訊息模板系統 - 事件處理函數
+            // ========================================
+            // Template Event Handlers
+            // ========================================
+            
+            function setupTemplateListEvents() {
+                // 新增模板按鈕
+                const addBtn = doc('add-template-btn');
+                if (addBtn) {
+                    addBtn.addEventListener('click', () => showTemplateEditorModal());
+                }
+
+                // 編輯按鈕
+                document.querySelectorAll('.btn-edit-template').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const templateId = btn.dataset.id;
+                        const template = templateManager.getTemplate(templateId);
+                        if (template) {
+                            showTemplateEditorModal(template);
+                        }
+                    });
+                });
+
+                // 預覽按鈕
+                document.querySelectorAll('.btn-preview-template').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const templateId = btn.dataset.id;
+                        const template = templateManager.getTemplate(templateId);
+                        if (template && customers.length > 0) {
+                            const previewMessage = tagSystem.replaceTagsInTemplate(template.content, customers[0]);
+                            alert(`預覽（使用第一筆客戶資料）：\n\n${previewMessage}`);
+                        } else if (customers.length === 0) {
+                            showToast('沒有客戶資料可供預覽', 'error');
+                        }
+                    });
+                });
+
+                // 刪除按鈕
+                document.querySelectorAll('.btn-delete-template').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const templateId = btn.dataset.id;
+                        const template = templateManager.getTemplate(templateId);
+                        if (template && confirm(`確定要刪除模板「${template.name}」嗎？`)) {
+                            templateManager.deleteTemplate(templateId);
+                            renderTemplateList();
+                            showToast('模板已刪除');
+                        }
+                    });
+                });
+
+                // patch: 2025-11-08 選取客戶按鈕
+                document.querySelectorAll('.btn-select-customers').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const templateId = btn.dataset.id;
+                        showCustomerSelectorForTemplate(templateId);
+                    });
+                });
+
+                // patch: 2025-11-08 收起預覽按鈕
+                document.querySelectorAll('.btn-close-preview').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const templateId = btn.dataset.id;
+                        const previewDiv = doc(`customer-preview-${templateId}`);
+                        if (previewDiv) {
+                            previewDiv.style.display = 'none';
+                        }
+                    });
+                });
+
+                // 匯出按鈕
+                const exportBtn = doc('export-templates-btn');
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', () => {
+                        try {
+                            const jsonData = templateManager.exportTemplates();
+                            const blob = new Blob([jsonData], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `訊息模板_${new Date().toISOString().split('T')[0]}.json`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                            showToast('模板已匯出');
+                        } catch (error) {
+                            console.error('匯出失敗:', error);
+                            showToast('匯出失敗', 'error');
+                        }
+                    });
+                }
+
+                // 匯入按鈕
+                const importBtn = doc('import-templates-btn');
+                if (importBtn) {
+                    importBtn.addEventListener('click', () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = '.json';
+                        input.onchange = (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                    try {
+                                        const result = templateManager.importTemplates(event.target.result);
+                                        if (result.success) {
+                                            if (result.conflicts.length > 0) {
+                                                const overwrite = confirm(`發現 ${result.conflicts.length} 個重複的模板ID，是否覆蓋？\n\n點擊「確定」覆蓋，點擊「取消」保留兩者`);
+                                                if (overwrite) {
+                                                    templateManager.mergeTemplates([...result.newTemplates, ...result.conflicts.map(c => c.imported)], true);
+                                                } else {
+                                                    // 為衝突的模板生成新ID
+                                                    const conflictsWithNewIds = result.conflicts.map(c => ({
+                                                        ...c.imported,
+                                                        id: `template-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                                                    }));
+                                                    templateManager.mergeTemplates([...result.newTemplates, ...conflictsWithNewIds], false);
+                                                }
+                                            } else {
+                                                templateManager.mergeTemplates(result.newTemplates, false);
+                                            }
+                                            renderTemplateList();
+                                            showToast(`成功匯入 ${result.newTemplates.length + result.conflicts.length} 個模板`);
+                                        } else {
+                                            showToast(result.error, 'error');
+                                        }
+                                    } catch (error) {
+                                        console.error('匯入失敗:', error);
+                                        showToast('匯入失敗：檔案格式錯誤', 'error');
+                                    }
+                                };
+                                reader.readAsText(file);
+                            }
+                        };
+                        input.click();
+                    });
+                }
+            }
+
+            function setupTemplateEditorEvents(template) {
+                const form = doc('template-form');
+                const contentTextarea = doc('template-content');
+                const subjectInput = doc('template-subject');
+                const platformSelect = doc('template-platform');
+                const insertTagBtn = doc('insert-tag-btn');
+                const insertTagSubjectBtn = doc('insert-tag-subject-btn');
+                const previewBtn = doc('preview-template-btn');
+                const cancelBtn = doc('cancel-template-btn');
+
+                // patch: 2025-11-08 平台切換顯示/隱藏主旨欄位
+                if (platformSelect) {
+                    platformSelect.addEventListener('change', () => {
+                        const subjectGroup = doc('subject-group');
+                        if (subjectGroup) {
+                            subjectGroup.style.display = platformSelect.value === 'Mail' ? 'flex' : 'none';
+                        }
+                    });
+                }
+
+                // 表單提交
+                if (form) {
+                    form.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        
+                        const name = doc('template-name')?.value?.trim();
+                        const description = doc('template-description')?.value?.trim();
+                        const content = doc('template-content')?.value?.trim();
+                        const platform = doc('template-platform')?.value || 'LINE';
+                        const subject = doc('template-subject')?.value?.trim() || '';
+                        const category = doc('template-category')?.value || 'general'; // patch: 2025-11-08
+
+                        if (!name) {
+                            showToast('請輸入模板名稱', 'error');
+                            return;
+                        }
+
+                        if (!content) {
+                            showToast('請輸入模板內容', 'error');
+                            return;
+                        }
+
+                        if (template) {
+                            // 更新模板
+                            templateManager.updateTemplate(template.id, { name, description, content, platform, subject, category });
+                            showToast('模板已更新');
+                        } else {
+                            // 新增模板
+                            templateManager.addTemplate({ name, description, content, platform, subject, category });
+                            showToast('模板已新增');
+                        }
+
+                        const modal = doc('template-editor-modal');
+                        if (modal) modal.remove();
+                        renderTemplateList();
+                    });
+                }
+
+                // 插入標籤按鈕（內容）
+                if (insertTagBtn && contentTextarea) {
+                    insertTagBtn.addEventListener('click', () => {
+                        // 記錄游標位置
+                        const cursorPos = contentTextarea.selectionStart;
+                        
+                        // patch: 2025-11-08 根據當前選擇的模板類別決定是否顯示營業稅標籤
+                        const categorySelect = doc('template-category');
+                        const currentCategory = categorySelect ? categorySelect.value : (template ? template.category : 'general');
+                        const includeVatFields = currentCategory === 'vat';
+                        
+                        showTagSelector((tag) => {
+                            // 在游標位置插入標籤
+                            const before = contentTextarea.value.substring(0, cursorPos);
+                            const after = contentTextarea.value.substring(cursorPos);
+                            contentTextarea.value = before + tag + after;
+                            
+                            // 將游標移到插入標籤之後
+                            const newPos = cursorPos + tag.length;
+                            contentTextarea.setSelectionRange(newPos, newPos);
+                            contentTextarea.focus();
+                        }, includeVatFields);
+                    });
+                }
+
+                // patch: 2025-11-08 插入標籤按鈕（主旨）
+                if (insertTagSubjectBtn && subjectInput) {
+                    insertTagSubjectBtn.addEventListener('click', () => {
+                        const cursorPos = subjectInput.selectionStart;
+                        
+                        // patch: 2025-11-08 根據當前選擇的模板類別決定是否顯示營業稅標籤
+                        const categorySelect = doc('template-category');
+                        const currentCategory = categorySelect ? categorySelect.value : (template ? template.category : 'general');
+                        const includeVatFields = currentCategory === 'vat';
+                        
+                        showTagSelector((tag) => {
+                            const before = subjectInput.value.substring(0, cursorPos);
+                            const after = subjectInput.value.substring(cursorPos);
+                            subjectInput.value = before + tag + after;
+                            
+                            const newPos = cursorPos + tag.length;
+                            subjectInput.setSelectionRange(newPos, newPos);
+                            subjectInput.focus();
+                        }, includeVatFields);
+                    });
+                }
+
+                // 預覽按鈕
+                if (previewBtn && contentTextarea) {
+                    previewBtn.addEventListener('click', () => {
+                        const content = contentTextarea.value;
+                        if (!content) {
+                            showToast('請先輸入模板內容', 'error');
+                            return;
+                        }
+
+                        if (customers.length === 0) {
+                            showToast('沒有客戶資料可供預覽', 'error');
+                            return;
+                        }
+
+                        const previewMessage = tagSystem.replaceTagsInTemplate(content, customers[0]);
+                        const validation = tagSystem.validateTags(content);
+                        
+                        let message = `預覽（使用第一筆客戶資料）：\n\n${previewMessage}`;
+                        
+                        if (validation.invalidTags.length > 0) {
+                            message += `\n\n⚠️ 發現無效標籤：${validation.invalidTags.map(t => `{{${t}}}`).join(', ')}`;
+                        }
+                        
+                        alert(message);
+                    });
+                }
+
+                // 取消按鈕
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => {
+                        const modal = doc('template-editor-modal');
+                        if (modal) modal.remove();
+                    });
+                }
+
+                // 點擊背景關閉
+                const modal = doc('template-editor-modal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) modal.remove();
+                    });
+                }
+            }
+
+            function setupMessageCopyEvents(messages) {
+                // 複製單一訊息
+                document.querySelectorAll('.btn-copy-message').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const index = parseInt(btn.dataset.index);
+                        const message = messages[index];
+                        if (message) {
+                            navigator.clipboard.writeText(message.message).then(() => {
+                                showToast('訊息已複製');
+                            }).catch(() => {
+                                showToast('複製失敗', 'error');
+                            });
+                        }
+                    });
+                });
+
+                // 全部複製
+                const copyAllBtn = doc('copy-all-messages');
+                if (copyAllBtn) {
+                    copyAllBtn.addEventListener('click', () => {
+                        const allMessages = messages.map((msg, index) => {
+                            return `========== #${index + 1} ${msg.customer.companyName || msg.customer.id} ==========\n${msg.message}`;
+                        }).join('\n\n');
+                        
+                        navigator.clipboard.writeText(allMessages).then(() => {
+                            showToast('所有訊息已複製');
+                        }).catch(() => {
+                            showToast('複製失敗', 'error');
+                        });
+                    });
+                }
+
+                // 關閉按鈕
+                const closeBtn = doc('close-preview');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        const modal = doc('message-preview-modal');
+                        if (modal) modal.remove();
+                    });
+                }
+
+                // 點擊背景關閉
+                const modal = doc('message-preview-modal');
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) modal.remove();
+                    });
+                }
+            }
+
             // --- EVENT HANDLERS --- //
             const showPage = (pageId) => {
                 // 保存當前狀態
                 uiState.activeTab = pageId;
 
-                ['page-list', 'page-form', 'page-notes', 'page-vat'].forEach(p => doc(p).classList.remove('active'));
-                ['tab-list', 'tab-form', 'tab-notes', 'tab-vat'].forEach(t => doc(t).classList.remove('active'));
-                doc(pageId).classList.add('active');
-                doc(pageId.replace('page', 'tab')).classList.add('active');
-
-                if (pageId === 'page-form') {
-                    ui.formContainer.style.display = 'block';
-                }
+                ['page-list', 'page-form', 'page-notes', 'page-vat', 'page-templates'].forEach(p => {
+                    const el = doc(p);
+                    if (el) el.classList.remove('active');
+                });
+                ['tab-list', 'tab-vat', 'tab-templates'].forEach(t => {
+                    const el = doc(t);
+                    if (el) el.classList.remove('active');
+                });
+                
+                const pageEl = doc(pageId);
+                if (pageEl) pageEl.classList.add('active');
+                
+                const tabEl = doc(pageId.replace('page', 'tab'));
+                if (tabEl) tabEl.classList.add('active');
 
                 console.log('=== 頁面切換完成 ===', pageId);
             };
             ui.tabList.addEventListener('click', () => showPage('page-list'));
-            ui.tabForm.addEventListener('click', () => renderFormPage());
-            ui.tabNotes.addEventListener('click', () => showPage('page-notes'));
+            doc('tab-templates')?.addEventListener('click', () => { 
+                showPage('page-templates'); 
+                renderTemplateList(); 
+            }); // patch: 2025-11-08 訊息模板頁籤
             doc('tab-vat')?.addEventListener('click', () => { showPage('page-vat'); initVatPage(); });
-            ui.clearFilterBtn.addEventListener('click', () => { filterState.selectedTags = []; renderAll(); });
+
+            // patch: 2025-11-08 折疊功能
+            const expiringHeader = doc('expiring-section-header');
+            const expiringContent = doc('expiring-section-content');
+            const collapseIcon = expiringHeader?.querySelector('.collapse-icon');
+            if (expiringHeader && expiringContent && collapseIcon) {
+                expiringHeader.addEventListener('click', () => {
+                    expiringContent.classList.toggle('collapsed');
+                    collapseIcon.classList.toggle('collapsed');
+                });
+            }
+
+            // patch: 2025-11-08 固定新增按鈕 - 改為開啟 modal
+            const floatingAddBtn = doc('floating-add-customer-btn');
+            if (floatingAddBtn) {
+                floatingAddBtn.addEventListener('click', () => showCustomerFormModal());
+            }
 
             // --- 備註 Excel 匯出功能 ---
             doc('export-notes-excel-btn')?.addEventListener('click', () => {
@@ -2622,22 +4709,301 @@
                 }
             });
 
+            // patch: 2025-11-08 套用訊息模板到選中客戶
+            doc('apply-template-btn')?.addEventListener('click', () => {
+                const selectedIds = getSelectedCustomerIds();
+                if (selectedIds.length === 0) {
+                    showToast('請先選擇客戶', 'error');
+                    return;
+                }
+
+                const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
+                
+                showTemplateSelectorModal((template) => {
+                    // 產生訊息
+                    const messages = tagSystem.generateMessages(template.content, selectedCustomers);
+                    
+                    // 增加使用次數
+                    templateManager.incrementUsage(template.id);
+                    
+                    // 顯示預覽
+                    showMessagePreviewModal(messages);
+                    
+                    showToast(`已為 ${messages.length} 位客戶產生訊息`);
+                });
+            });
+
+            // patch: 2025-11-08 匯出所有客戶備註
+            doc('export-all-notes-btn')?.addEventListener('click', () => {
+                try {
+                    const allNotes = customers.flatMap(c =>
+                        (c.notes || []).map(note => ({ ...note, customer: c }))
+                    );
+
+                    if (allNotes.length === 0) {
+                        showToast('目前沒有任何備註資料', 'error');
+                        return;
+                    }
+
+                    exportNotesToExcel(allNotes, '所有客戶備註');
+                } catch (error) {
+                    console.error('匯出失敗:', error);
+                    showToast('匯出失敗', 'error');
+                }
+            });
+
+            // patch: 2025-11-08 匯出選中客戶備註
+            doc('export-selected-notes-btn')?.addEventListener('click', () => {
+                try {
+                    const selectedIds = getSelectedCustomerIds();
+                    if (selectedIds.length === 0) {
+                        showToast('請先選擇客戶', 'error');
+                        return;
+                    }
+
+                    const selectedNotes = customers
+                        .filter(c => selectedIds.includes(c.id))
+                        .flatMap(c => (c.notes || []).map(note => ({ ...note, customer: c })));
+
+                    if (selectedNotes.length === 0) {
+                        showToast('選中的客戶沒有備註資料', 'error');
+                        return;
+                    }
+
+                    exportNotesToExcel(selectedNotes, `選中客戶備註_${selectedIds.length}筆`);
+                } catch (error) {
+                    console.error('匯出失敗:', error);
+                    showToast('匯出失敗', 'error');
+                }
+            });
+
+            // patch: 2025-11-08 匯出備註通用函數
+            const exportNotesToExcel = (notes, title) => {
+                const excelData = [];
+                
+                excelData.push([
+                    '客戶代號', '公司名稱', '聯絡人', '電話', '備註日期', '備註內容', '標籤', '統一編號', '設籍地址'
+                ]);
+
+                notes.forEach(note => {
+                    const customer = note.customer;
+                    excelData.push([
+                        customer.id || '',
+                        customer.companyName || '',
+                        customer.contact || '',
+                        customer.phone || '',
+                        note.createdAt || '',
+                        note.content || '',
+                        note.tags ? note.tags.join(', ') : '',
+                        customer.taxId || '',
+                        customer.regAddr || ''
+                    ]);
+                });
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+                ws['!cols'] = [
+                    { width: 12 }, { width: 20 }, { width: 12 }, { width: 15 },
+                    { width: 12 }, { width: 50 }, { width: 20 }, { width: 12 }, { width: 30 }
+                ];
+
+                XLSX.utils.book_append_sheet(wb, ws, "客戶備註");
+
+                const today = new Date().toISOString().split('T')[0];
+                const fileName = `${title}_${today}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+
+                showToast(`✅ 已匯出 ${notes.length} 筆備註資料`);
+            };
+
+            // patch: 2025-11-08 多選功能
+            const getSelectedCustomerIds = () => {
+                const checkboxes = document.querySelectorAll('.customer-select-checkbox:checked');
+                return Array.from(checkboxes).map(cb => cb.dataset.customerId);
+            };
+
+            const updateBatchActionsBar = () => {
+                const selectedIds = getSelectedCustomerIds();
+                const batchBar = doc('batch-actions-bar');
+                const selectedCount = doc('selected-count');
+                
+                if (batchBar && selectedCount) {
+                    selectedCount.textContent = selectedIds.length;
+                    if (selectedIds.length > 0) {
+                        batchBar.classList.add('active');
+                    } else {
+                        batchBar.classList.remove('active');
+                    }
+                }
+            };
+
+            // patch: 2025-11-08 全選功能
+            doc('select-all-checkbox')?.addEventListener('change', (e) => {
+                const checkboxes = document.querySelectorAll('.customer-select-checkbox');
+                checkboxes.forEach(cb => cb.checked = e.target.checked);
+                updateBatchActionsBar();
+            });
+
+            // patch: 2025-11-08 取消選擇
+            doc('clear-selection-btn')?.addEventListener('click', () => {
+                const checkboxes = document.querySelectorAll('.customer-select-checkbox');
+                checkboxes.forEach(cb => cb.checked = false);
+                const selectAll = doc('select-all-checkbox');
+                if (selectAll) selectAll.checked = false;
+                updateBatchActionsBar();
+            });
+
             ui.customerBody.addEventListener('click', async e => {
                 const row = e.target.closest('tr');
                 if (!row) return;
                 const id = row.dataset.id;
+                
+                // patch: 2025-11-08 處理多選框變更
+                if (e.target.classList.contains('customer-select-checkbox')) {
+                    updateBatchActionsBar();
+                    return;
+                }
+                
                 if (e.target.classList.contains('btn-edit')) {
                     const customer = customers.find(c => c.id === id);
-                    if (customer) renderFormPage(customer);
+                    // patch: 2025-11-08 改用 modal
+                    if (customer) showCustomerFormModal(customer);
                 } else if (e.target.classList.contains('btn-delete')) {
                     await deleteCustomer(id);
                 } else if (e.target.classList.contains('btn-view-notes')) {
-                    const customer = customers.find(c => c.id === id);
+                    // patch: 2025-11-08 展開備註區
+                    const customerId = e.target.dataset.customerId;
+                    const notesRow = doc(`notes-row-${customerId}`);
+                    if (notesRow) {
+                        // 先收起所有其他備註區
+                        document.querySelectorAll('.customer-notes-row.expanded').forEach(r => {
+                            if (r.id !== `notes-row-${customerId}`) {
+                                r.classList.remove('expanded');
+                            }
+                        });
+                        // 切換當前備註區
+                        notesRow.classList.toggle('expanded');
+                    }
+                } else if (e.target.classList.contains('btn-close-notes')) {
+                    // patch: 2025-11-08 收起備註區
+                    const customerId = e.target.dataset.customerId;
+                    const notesRow = doc(`notes-row-${customerId}`);
+                    if (notesRow) {
+                        notesRow.classList.remove('expanded');
+                    }
+                } else if (e.target.classList.contains('btn-add-note')) {
+                    // patch: 2025-11-08 新增備註
+                    const customerId = e.target.dataset.customerId;
+                    const content = doc(`new-note-content-${customerId}`)?.value?.trim();
+                    const tagsInput = doc(`new-note-tags-${customerId}`)?.value?.trim();
+                    
+                    if (!content) {
+                        showToast('請輸入備註內容', 'error');
+                        return;
+                    }
+                    
+                    const customer = customers.find(c => c.id === customerId);
                     if (!customer) return;
-                    filterState.selectedTags = [...new Set(customer.notes.flatMap(n => n.tags.map(normalizeTag)))];
-                    filterState.logic = 'OR';
-                    showPage('page-notes');
+                    
+                    const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
+                    const newNote = {
+                        id: `note-${Date.now()}`,
+                        content: content,
+                        tags: tags,
+                        createdAt: new Date().toLocaleString('zh-TW')
+                    };
+                    
+                    if (!customer.notes) customer.notes = [];
+                    customer.notes.push(newNote);
+                    
+                    saveCustomersToStorage();
                     renderAll();
+                    
+                    // 重新展開備註區
+                    setTimeout(() => {
+                        const notesRow = doc(`notes-row-${customerId}`);
+                        if (notesRow) notesRow.classList.add('expanded');
+                    }, 100);
+                    
+                    showToast('備註已新增');
+                } else if (e.target.classList.contains('btn-edit-note')) {
+                    // patch: 2025-11-08 編輯備註
+                    const customerId = e.target.dataset.customerId;
+                    const noteId = e.target.dataset.noteId;
+                    const customer = customers.find(c => c.id === customerId);
+                    if (!customer) return;
+                    
+                    const note = customer.notes.find(n => n.id === noteId);
+                    if (!note) return;
+                    
+                    const newContent = prompt('編輯備註內容:', note.content);
+                    if (newContent !== null && newContent.trim()) {
+                        note.content = newContent.trim();
+                        saveCustomersToStorage();
+                        renderAll();
+                        
+                        // 重新展開備註區
+                        setTimeout(() => {
+                            const notesRow = doc(`notes-row-${customerId}`);
+                            if (notesRow) notesRow.classList.add('expanded');
+                        }, 100);
+                        
+                        showToast('備註已更新');
+                    }
+                } else if (e.target.classList.contains('btn-delete-note')) {
+                    // patch: 2025-11-08 刪除備註
+                    const customerId = e.target.dataset.customerId;
+                    const noteId = e.target.dataset.noteId;
+                    
+                    if (!confirm('確定要刪除此備註嗎？')) return;
+                    
+                    const customer = customers.find(c => c.id === customerId);
+                    if (!customer) return;
+                    
+                    customer.notes = customer.notes.filter(n => n.id !== noteId);
+                    saveCustomersToStorage();
+                    renderAll();
+                    
+                    // 重新展開備註區
+                    setTimeout(() => {
+                        const notesRow = doc(`notes-row-${customerId}`);
+                        if (notesRow) notesRow.classList.add('expanded');
+                    }, 100);
+                    
+                    showToast('備註已刪除');
+                } else if (e.target.classList.contains('btn-export-single-notes')) {
+                    // patch: 2025-11-08 匯出單一客戶備註
+                    const customerId = e.target.dataset.customerId;
+                    const customer = customers.find(c => c.id === customerId);
+                    
+                    if (!customer) {
+                        showToast('找不到客戶資料', 'error');
+                        return;
+                    }
+                    
+                    if (!customer.notes || customer.notes.length === 0) {
+                        showToast('此客戶沒有備註資料', 'error');
+                        return;
+                    }
+                    
+                    const notes = customer.notes.map(note => ({ ...note, customer: customer }));
+                    exportNotesToExcel(notes, `${customer.companyName}_備註`);
+                } else if (e.target.classList.contains('btn-apply-template-single')) {
+                    // patch: 2025-11-08 單一客戶套用模板
+                    const customerId = e.target.dataset.customerId;
+                    const customer = customers.find(c => c.id === customerId);
+                    
+                    if (!customer) {
+                        showToast('找不到客戶資料', 'error');
+                        return;
+                    }
+                    
+                    showTemplateSelectorModal((template) => {
+                        const messages = tagSystem.generateMessages(template.content, [customer]);
+                        templateManager.incrementUsage(template.id);
+                        showMessagePreviewModal(messages);
+                    });
                 }
             });
 
@@ -2645,7 +5011,8 @@
                 if (e.target.classList.contains('btn-edit-from-note')) {
                     e.preventDefault();
                     const customer = customers.find(c => c.id === e.target.dataset.id);
-                    if (customer) renderFormPage(customer);
+                    // patch: 2025-11-08 改用 modal
+                    if (customer) showCustomerFormModal(customer);
                 }
             });
 
@@ -2674,7 +5041,8 @@
                     regAddr: form.querySelector('#regAddr')?.value?.trim() || '',
                     contactAddr: form.querySelector('#contactAddr')?.value?.trim() || '',
                     leaseStart: form.querySelector('#leaseStart')?.value?.trim() || '',
-                    leaseEnd: form.querySelector('#leaseEnd')?.value?.trim() || ''
+                    leaseEnd: form.querySelector('#leaseEnd')?.value?.trim() || '',
+                    bookkeepingFee: form.querySelector('#bookkeepingFee')?.value?.trim() || '' // patch: 2025-11-08 記帳費
                 };
 
                 console.log('收集到的表單資料:', formData);
@@ -2706,6 +5074,7 @@
                             contactAddr: formData.contactAddr,
                             leaseStart: formData.leaseStart,
                             leaseEnd: formData.leaseEnd,
+                            bookkeepingFee: formData.bookkeepingFee, // patch: 2025-11-08 記帳費
                             notes: originalCustomer.notes || [] // 保留備註
                         };
 
@@ -2724,12 +5093,13 @@
                         // 儲存資料到本地儲存
                         saveCustomersToStorage();
 
-                        // 單一路徑：更新資料 → renderAll() → 切換頁面
-                        console.log('=== 開始渲染流程 ===');
+                        // patch: 2025-11-08 關閉 modal 並刷新列表
+                        const modal = doc('customer-form-modal');
+                        if (modal) {
+                            modal.remove();
+                        }
+                        
                         renderAll();
-                        console.log('=== renderAll完成，準備切換頁面 ===');
-                        showPage('page-list');
-                        console.log('=== 頁面切換完成，清除編輯狀態 ===');
                         currentlyEditingId = null;
 
                     } else {
@@ -2750,8 +5120,13 @@
                     // 儲存資料到本地儲存
                     saveCustomersToStorage();
 
+                    // patch: 2025-11-08 關閉 modal 並刷新列表
+                    const modal = doc('customer-form-modal');
+                    if (modal) {
+                        modal.remove();
+                    }
+                    
                     renderAll();
-                    showPage('page-list');
                 }
 
                 // 雙重防呆：返回false阻止預設行為
@@ -2845,7 +5220,8 @@
                     const customerId = e.target.dataset.id;
                     const customer = customers.find(c => c.id === customerId);
                     if (customer) {
-                        renderFormPage(customer);
+                        // patch: 2025-11-08 改用 modal
+                        showCustomerFormModal(customer);
                     }
                 } else if (e.target.classList.contains('btn-mark-renewed')) {
                     const customerId = e.target.dataset.id;
@@ -3546,6 +5922,124 @@
 
                 // 渲染本期資料表格
                 renderVatDataTable();
+
+                // patch: 2025-11-08 綁定排序事件
+                document.querySelectorAll('.vat-data-table th.sortable').forEach(th => {
+                    th.addEventListener('click', () => {
+                        const sortColumn = th.dataset.sort;
+                        if (sortColumn) {
+                            sortVatTable(sortColumn);
+                        }
+                    });
+                });
+
+                // patch: 2025-11-08 渲染未收發票提醒（單月才顯示）
+                renderUnreceivedReminder();
+            };
+
+            // patch: 2025-11-08 渲染尚未收取清單（折疊式）
+            const renderUnreceivedReminder = () => {
+                if (!currentVatData) return;
+
+                // patch: 2025-11-08 檢查是否有輸入最晚收取發票日
+                if (!currentVatData.last_collect_deadline) {
+                    // 沒有輸入最晚收取發票日，不顯示
+                    const reminderSection = doc('unreceived-reminder-section');
+                    if (reminderSection) {
+                        reminderSection.remove();
+                    }
+                    return;
+                }
+
+                // 找出未收到的客戶
+                const unreceivedRows = currentVatData.rows.filter(row => !row.received);
+
+                if (unreceivedRows.length === 0) {
+                    const reminderSection = doc('unreceived-reminder-section');
+                    if (reminderSection) {
+                        reminderSection.remove();
+                    }
+                    return;
+                }
+
+                // 顯示尚未收取清單（折疊式）
+                const reminderHtml = `
+                    <div class="card" id="unreceived-reminder-section" style="background: linear-gradient(135deg, rgba(229, 115, 115, 0.1), rgba(229, 115, 115, 0.05)); border-left: 4px solid #E57373;">
+                        <div class="collapsible-header" id="unreceived-header">
+                            <h3 style="color: #E57373; margin: 0;">⚠️ 尚未收取清單（${unreceivedRows.length} 家）</h3>
+                            <span class="collapse-icon" style="color: #E57373;">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="unreceived-content" style="margin-top: 1rem;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.8rem;">
+                                ${unreceivedRows.map(row => {
+                                    const customer = customers.find(c => c.id === row.customer_id);
+                                    if (!customer) return '';
+                                    return `
+                                        <div style="background: var(--color-surface); padding: 1rem; border-radius: 4px; border: 1px solid var(--color-border);">
+                                            <div style="font-weight: 600; margin-bottom: 0.3rem;">${escapeHTML(customer.companyName || customer.id)}</div>
+                                            <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.3rem;">
+                                                ${customer.contact || '未設定'} | ${customer.phone || ''}
+                                            </div>
+                                            <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.5rem;">
+                                                收取方式: ${row.collect_method}
+                                            </div>
+                                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                                <button class="btn btn-small" onclick="setAppointmentDate('${row.row_id}')" style="background: var(--color-accent-gold); color: #000;">+ 約收日期</button>
+                                                <button class="btn btn-small" onclick="markAsReceived('${row.row_id}')" style="background: #38A169; color: white;">標記已收到</button>
+                                            </div>
+                                            ${row.appointment_date ? `<div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-accent-gold);">約收: ${row.appointment_date}</div>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 插入到本期資料區塊之前
+                const vatDataSection = document.querySelector('.vat-data-section');
+                if (vatDataSection) {
+                    const existingReminder = doc('unreceived-reminder-section');
+                    if (existingReminder) {
+                        existingReminder.remove();
+                    }
+                    vatDataSection.insertAdjacentHTML('beforebegin', reminderHtml);
+
+                    // 綁定折疊事件
+                    const header = doc('unreceived-header');
+                    const content = doc('unreceived-content');
+                    const icon = header?.querySelector('.collapse-icon');
+                    
+                    if (header && content && icon) {
+                        header.addEventListener('click', () => {
+                            content.classList.toggle('collapsed');
+                            icon.classList.toggle('collapsed');
+                        });
+                    }
+                }
+            };
+
+            // patch: 2025-11-08 標記為已收到
+            window.markAsReceived = (rowId) => {
+                const row = currentVatData.rows.find(r => r.row_id === rowId);
+                if (!row) return;
+
+                row.received = true;
+                row.updated_at = new Date().toISOString();
+
+                const customer = customers.find(c => c.id === row.customer_id);
+                const customerName = customer ? (customer.companyName || customer.id) : '未知客戶';
+
+                currentVatData.history.push({
+                    timestamp: new Date().toISOString(),
+                    action: '標記已收到',
+                    summary: `${customerName} - 發票已收到`
+                });
+
+                saveVatData();
+                renderVatDataTable();
+                renderUnreceivedReminder();
+                showToast('已標記為已收到');
             };
 
 
@@ -3801,9 +6295,10 @@
                                 </div>
                             </td>
                             <td>${row.collect_method}</td>
-                            <td>${row.planned_collect_date}</td>
-                            <td>${row.note_invoice || ''}</td>
-                            <td>${row.note_reminder || ''}</td>
+                            <td>${row.planned_collect_date || '-'}</td>
+                            <td>${row.tax_amount || '-'}</td>
+                            <td>${row.note_invoice || '-'}</td>
+                            <td>${row.note_reminder || '-'}</td>
                             <td class="vat-row-actions">
                                 <button class="btn btn-small btn-secondary" onclick="editVatRow('${row.row_id}')">編輯</button>
                                 <button class="btn btn-small btn-secondary" onclick="deleteVatRow('${row.row_id}')">刪除</button>
@@ -3976,7 +6471,16 @@
 
             // 顯示新增客戶對話框
             const showAddVatRowDialog = () => {
-                const customerOptions = customers.map(c =>
+                // patch: 2025-11-08 過濾已存在的客戶
+                const existingCustomerIds = currentVatData.rows.map(r => r.customer_id);
+                const availableCustomers = customers.filter(c => !existingCustomerIds.includes(c.id));
+
+                if (availableCustomers.length === 0) {
+                    showToast('所有客戶都已新增到本期資料中', 'error');
+                    return;
+                }
+
+                const customerOptions = availableCustomers.map(c =>
                     `<option value="${c.id}">${c.companyName || c.id} (${c.contact || '未設定'})</option>`
                 ).join('');
 
@@ -3999,6 +6503,10 @@
                             <div class="form-group">
                                 <label>預計收取日</label>
                                 <input type="date" id="new-vat-date">
+                            </div>
+                            <div class="form-group">
+                                <label>稅金（選填，可後補）</label>
+                                <input type="number" id="new-vat-tax-amount" placeholder="選填" min="0">
                             </div>
                             <div class="form-group">
                                 <label>備註-發票</label>
@@ -4030,6 +6538,7 @@
                 const customerId = doc('new-vat-customer').value;
                 const method = doc('new-vat-method').value;
                 const date = doc('new-vat-date').value;
+                const taxAmount = doc('new-vat-tax-amount')?.value || ''; // patch: 2025-11-08 稅金可選填
                 const noteInvoice = doc('new-vat-note-invoice').value;
                 const noteReminder = doc('new-vat-note-reminder').value;
 
@@ -4038,7 +6547,7 @@
                     return;
                 }
 
-                // 檢查是否已存在
+                // 檢查是否已存在（雙重檢查）
                 const exists = currentVatData.rows.some(row => row.customer_id === customerId);
                 if (exists) {
                     showToast('此客戶已存在於本期資料中', 'error');
@@ -4050,6 +6559,9 @@
                     customer_id: customerId,
                     collect_method: method,
                     planned_collect_date: date,
+                    tax_amount: taxAmount, // patch: 2025-11-08 稅金可後填
+                    received: false, // patch: 2025-11-08 已收到狀態
+                    appointment_date: '', // patch: 2025-11-08 約收發票日期
                     note_invoice: noteInvoice,
                     note_reminder: noteReminder,
                     created_at: new Date().toISOString(),
@@ -4138,6 +6650,10 @@
                                 <input type="date" id="edit-vat-date" value="${row.planned_collect_date || ''}">
                             </div>
                             <div class="form-group">
+                                <label>稅金</label>
+                                <input type="number" id="edit-vat-tax-amount" value="${row.tax_amount || ''}" placeholder="選填" min="0">
+                            </div>
+                            <div class="form-group">
                                 <label>備註-發票</label>
                                 <input type="text" id="edit-vat-note-invoice" value="${row.note_invoice || ''}" placeholder="選填">
                             </div>
@@ -4166,6 +6682,7 @@
             window.confirmEditVatRow = (rowId) => {
                 const method = doc('edit-vat-method').value;
                 const date = doc('edit-vat-date').value;
+                const taxAmount = doc('edit-vat-tax-amount')?.value || ''; // patch: 2025-11-08
                 const noteInvoice = doc('edit-vat-note-invoice').value;
                 const noteReminder = doc('edit-vat-note-reminder').value;
 
@@ -4188,6 +6705,7 @@
                     ...currentVatData.rows[rowIndex],
                     collect_method: method,
                     planned_collect_date: date,
+                    tax_amount: taxAmount, // patch: 2025-11-08
                     note_invoice: noteInvoice,
                     note_reminder: noteReminder,
                     updated_at: new Date().toISOString()
@@ -4210,8 +6728,103 @@
                 saveVatData();
                 renderVatDataTable();
                 renderReminderLists(); // 重新渲染提醒列表
+                renderUnreceivedReminder(); // patch: 2025-11-08 重新渲染未收提醒
                 closeEditVatRowDialog();
                 showToast('客戶資料已更新');
+            };
+
+            // patch: 2025-11-08 設定約收日期
+            window.setAppointmentDate = (rowId) => {
+                const row = currentVatData.rows.find(r => r.row_id === rowId);
+                if (!row) return;
+
+                const customer = customers.find(c => c.id === row.customer_id);
+                const customerName = customer ? (customer.companyName || customer.id) : '未知客戶';
+
+                const date = prompt(`設定「${customerName}」的約收發票日期：\n\n請輸入日期（格式：YYYY-MM-DD）`, row.appointment_date || '');
+                
+                if (date === null) return; // 取消
+                
+                if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    showToast('日期格式錯誤，請使用 YYYY-MM-DD 格式', 'error');
+                    return;
+                }
+
+                row.appointment_date = date;
+                row.updated_at = new Date().toISOString();
+
+                currentVatData.history.push({
+                    timestamp: new Date().toISOString(),
+                    action: '設定約收日期',
+                    summary: `${customerName} - 約收日期: ${date || '清除'}`
+                });
+
+                saveVatData();
+                renderVatDataTable();
+                showToast(date ? '約收日期已設定' : '約收日期已清除');
+            };
+
+            // patch: 2025-11-08 表格排序功能
+            let currentSort = { column: null, direction: 'asc' };
+
+            const sortVatTable = (column) => {
+                if (currentSort.column === column) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = column;
+                    currentSort.direction = 'asc';
+                }
+
+                const rows = [...currentVatData.rows];
+
+                rows.sort((a, b) => {
+                    let aVal, bVal;
+
+                    switch (column) {
+                        case 'customer':
+                            const aCustomer = customers.find(c => c.id === a.customer_id);
+                            const bCustomer = customers.find(c => c.id === b.customer_id);
+                            aVal = aCustomer?.companyName || aCustomer?.id || '';
+                            bVal = bCustomer?.companyName || bCustomer?.id || '';
+                            break;
+                        case 'method':
+                            aVal = a.collect_method || '';
+                            bVal = b.collect_method || '';
+                            break;
+                        case 'date':
+                            aVal = a.planned_collect_date || '';
+                            bVal = b.planned_collect_date || '';
+                            break;
+                        case 'note-invoice':
+                            aVal = a.note_invoice || '';
+                            bVal = b.note_invoice || '';
+                            break;
+                        case 'note-reminder':
+                            aVal = a.note_reminder || '';
+                            bVal = b.note_reminder || '';
+                            break;
+                        default:
+                            return 0;
+                    }
+
+                    if (currentSort.direction === 'asc') {
+                        return aVal.localeCompare(bVal, 'zh-TW');
+                    } else {
+                        return bVal.localeCompare(aVal, 'zh-TW');
+                    }
+                });
+
+                currentVatData.rows = rows;
+                renderVatDataTable();
+
+                // 更新排序圖示
+                document.querySelectorAll('.vat-data-table th.sortable').forEach(th => {
+                    th.classList.remove('sorted-asc', 'sorted-desc');
+                });
+                const sortedTh = document.querySelector(`.vat-data-table th[data-sort="${column}"]`);
+                if (sortedTh) {
+                    sortedTh.classList.add(`sorted-${currentSort.direction}`);
+                }
             };
 
             // 刪除營業稅資料行
@@ -4249,6 +6862,60 @@
             });
 
             doc('add-collect-method-btn')?.addEventListener('click', addCollectMethod);
+
+            // patch: 2025-11-08 套用訊息模板到營業稅客戶
+            doc('apply-vat-template-btn')?.addEventListener('click', () => {
+                console.log('=== 套用訊息模板到營業稅客戶 ===');
+                
+                if (!currentVatData || currentVatData.rows.length === 0) {
+                    showToast('本期沒有客戶資料', 'error');
+                    return;
+                }
+                
+                const selectedMethods = Array.from(document.querySelectorAll('#collect-method-checkboxes input:checked'))
+                    .map(cb => cb.value);
+
+                if (selectedMethods.length === 0) {
+                    showToast('請先選擇收取發票方式', 'error');
+                    return;
+                }
+
+                const filteredRows = currentVatData.rows.filter(row =>
+                    selectedMethods.includes(row.collect_method)
+                );
+
+                if (filteredRows.length === 0) {
+                    showToast('沒有符合條件的客戶資料', 'error');
+                    return;
+                }
+                
+                // 取得對應的客戶資料
+                const selectedCustomers = filteredRows.map(row => {
+                    return customers.find(c => c.id === row.customer_id);
+                }).filter(c => c);
+                
+                if (selectedCustomers.length === 0) {
+                    showToast('找不到對應的客戶資料', 'error');
+                    return;
+                }
+                
+                // 顯示模板選擇器（只顯示營業稅模板）
+                showVatTemplateSelectorModal((template) => {
+                    // 更新 tagSystem 的營業稅資料
+                    tagSystem.vatData = currentVatData;
+                    
+                    // 產生訊息（傳入營業稅資料）
+                    const messages = tagSystem.generateMessages(template.content, selectedCustomers, filteredRows);
+                    
+                    // 增加使用次數
+                    templateManager.incrementUsage(template.id);
+                    
+                    // 顯示訊息預覽
+                    showMessagePreviewModal(messages);
+                    
+                    showToast(`已產生 ${messages.length} 筆訊息`);
+                });
+            });
 
             // 載入他期作為草稿
             doc('load-other-period-btn')?.addEventListener('click', () => {
@@ -4586,6 +7253,7 @@
             };
 
             // 匯出客戶Excel
+            // patch: 2025-11-08 新增欄寬列高自動調整功能
             const exportCustomersToExcel = () => {
                 if (filteredCustomers.length === 0) {
                     showToast('沒有可匯出的資料', 'error');
@@ -4627,17 +7295,26 @@
                     const wb = XLSX.utils.book_new();
                     const ws = XLSX.utils.aoa_to_sheet(excelData);
 
-                    // 設定欄位寬度
-                    ws['!cols'] = [
-                        { width: 12 }, // customer_id
-                        { width: 25 }, // company_name
-                        { width: 15 }, // contact_name
-                        { width: 25 }, // email
-                        { width: 15 }, // phone
-                        { width: 35 }, // registered_address
-                        { width: 12 }, // lease_end_date
-                        { width: 30 }  // tags
-                    ];
+                    // patch: 2025-11-08 自動計算欄寬
+                    const colWidths = [];
+                    for (let col = 0; col < 8; col++) {
+                        let maxWidth = 10;
+                        for (let row = 0; row < excelData.length; row++) {
+                            const cellValue = excelData[row][col] || '';
+                            const cellLength = String(cellValue).length;
+                            if (cellLength > maxWidth) {
+                                maxWidth = cellLength;
+                            }
+                        }
+                        colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
+                    }
+                    ws['!cols'] = colWidths;
+
+                    // patch: 2025-11-08 設定列高（標題行較高）
+                    ws['!rows'] = [{ hpt: 25 }];
+                    for (let i = 1; i < excelData.length; i++) {
+                        ws['!rows'].push({ hpt: 18 });
+                    }
 
                     // 凍結標題行
                     ws['!freeze'] = { xSplit: 0, ySplit: 1 };
@@ -4646,7 +7323,7 @@
                     const headerStyle = {
                         font: { bold: true },
                         fill: { fgColor: { rgb: "D4AF37" } },
-                        alignment: { horizontal: "center" }
+                        alignment: { horizontal: "center", vertical: "center" }
                     };
 
                     for (let col = 0; col < 8; col++) {
@@ -4663,7 +7340,7 @@
                     const fileName = `customers_${timestamp}.xlsx`;
                     XLSX.writeFile(wb, fileName);
 
-                    showToast(`✅ 已匯出 ${filteredCustomers.length} 筆客戶資料`);
+                    showToast(`✅ 已匯出 ${filteredCustomers.length} 筆客戶資料（已自動調整欄寬列高）`);
 
                 } catch (error) {
                     console.error('Excel匯出失敗:', error);
@@ -4733,6 +7410,9 @@
             }
 
             renderAll();
+
+            // patch: 2025-11-08 初始化預設營業稅模板
+            initializeDefaultVatTemplates();
 
             // 初始化收取方式（確保在營業稅頁面正確顯示）
             console.log('載入的收取方式:', collectMethods);
