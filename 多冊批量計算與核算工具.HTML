@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 
@@ -444,15 +445,53 @@
             /* New entries appear at the bottom */
         }
 
-        /* 【MODIFIED】Grid layout 4 columns */
+        /* 【MODIFIED】Grid layout 5 columns - patch: 2025-11-08 新增操作欄 */
         .entry {
             display: grid;
-            grid-template-columns: 0.6fr 1.2fr 1fr 1.2fr;
+            grid-template-columns: 0.6fr 1.2fr 1fr 1.2fr auto;
             gap: var(--spacing-s);
             padding: var(--spacing-xs) 0;
             font-family: var(--font-family-mono);
             font-size: 0.95rem;
             border-bottom: 1px dashed var(--color-border);
+            align-items: center;
+        }
+
+        /* patch: 2025-11-08 條目操作按鈕樣式 */
+        .entry-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .entry:hover .entry-actions {
+            opacity: 1;
+        }
+
+        .entry-action-btn {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            border: 1px solid var(--color-border);
+            border-radius: 3px;
+            background-color: var(--color-surface);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .entry-action-btn:hover {
+            background-color: var(--color-button-hover-bg);
+        }
+
+        .entry-action-btn.btn-delete {
+            color: var(--color-error);
+            border-color: var(--color-error);
+        }
+
+        .entry-action-btn.btn-delete:hover {
+            background-color: var(--color-error);
+            color: white;
         }
 
         .entry span:nth-child(1) {
@@ -493,10 +532,10 @@
 
         /* Total */
 
-        /* 【MODIFIED】Grid layout 4 columns */
+        /* 【MODIFIED】Grid layout 5 columns - patch: 2025-11-08 新增操作欄 */
         .entry-header {
             display: grid;
-            grid-template-columns: 0.6fr 1.2fr 1fr 1.2fr;
+            grid-template-columns: 0.6fr 1.2fr 1fr 1.2fr auto;
             gap: var(--spacing-s);
             padding: var(--spacing-xs) 0;
             font-size: 0.8rem;
@@ -643,6 +682,134 @@
             background-color: var(--color-error);
             color: white;
         }
+
+        /* patch: 2025-11-08 智慧核對模式樣式 */
+        .book.has-warning {
+            border: 2px solid #ff9800;
+            box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+        }
+
+        .book.has-warning h3 {
+            background-color: #fff3e0;
+        }
+
+        .warning-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: var(--border-radius);
+            background-color: #ff9800;
+            color: white;
+            font-weight: 500;
+        }
+
+        /* patch: 2025-11-08 儲存紀錄樣式 */
+        .saved-records-panel {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: var(--spacing-m);
+        }
+
+        .saved-records-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-s);
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: var(--spacing-m);
+        }
+
+        .saved-record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-s) var(--spacing-m);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background-color: var(--color-bg);
+            transition: all 0.2s;
+        }
+
+        .saved-record-item:hover {
+            background-color: var(--color-button-hover-bg);
+        }
+
+        .saved-record-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .saved-record-name {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .saved-record-date {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            font-family: var(--font-family-mono);
+        }
+
+        .saved-record-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .saved-record-actions button {
+            padding: var(--spacing-xs) var(--spacing-s);
+            font-size: 0.8rem;
+        }
+
+        /* patch: 2025-11-08 儲存對話框樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .modal-content {
+            background-color: var(--color-surface);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            padding: var(--spacing-l);
+            min-width: 400px;
+            max-width: 90vw;
+        }
+
+        .modal-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-m);
+        }
+
+        .modal-body {
+            margin-bottom: var(--spacing-l);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-s);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: var(--spacing-s);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            margin-top: var(--spacing-s);
+        }
     </style>
 </head>
 
@@ -767,10 +934,21 @@
 
             <div class="actions-panel">
                 <div>
+                    <button id="saveRecordBtn" class="btn-primary">💾 儲存紀錄</button>
                     <button id="exportBtn">匯出 JSON</button>
                     <button id="importBtn">匯入 JSON</button>
                     <input type="file" id="importFileInput" accept="application/json" class="hidden">
                     <button id="clearAllBtn" class="btn-danger">全部清除</button>
+                </div>
+            </div>
+
+            <!-- patch: 2025-11-08 儲存紀錄面板 -->
+            <div class="saved-records-panel">
+                <h2>📋 儲存紀錄</h2>
+                <div class="saved-records-list" id="savedRecordsList">
+                    <div style="text-align: center; color: var(--color-text-secondary); padding: var(--spacing-l);">
+                        尚無儲存紀錄
+                    </div>
                 </div>
             </div>
 
@@ -812,6 +990,7 @@
                 <span>未稅額</span>
                 <span>稅額</span>
                 <span>總計</span>
+                <span>操作</span>
             </div>
             <div class="entries-list">
             </div>
@@ -907,6 +1086,9 @@
         const importBtn = document.getElementById('importBtn');
         const importFileInput = document.getElementById('importFileInput');
         const clearAllBtn = document.getElementById('clearAllBtn');
+        // patch: 2025-11-08 新增儲存紀錄按鈕
+        const saveRecordBtn = document.getElementById('saveRecordBtn');
+        const savedRecordsList = document.getElementById('savedRecordsList');
 
         const toastContainer = document.getElementById('toast-container');
 
@@ -918,6 +1100,10 @@
             roundingMode: 'original', // 'original' | 'round' | 'ceil' | 'floor'
             decimalPlaces: 0, // 0, 1, 2
         };
+
+        // patch: 2025-11-08 儲存紀錄 state
+        let savedRecords = [];
+        const SAVED_RECORDS_KEY = 'multiBookCalculatorRecords_v1';
 
         let saveTimeout;
 
@@ -1113,6 +1299,7 @@
 
         /**
          * 重新計算並更新所有總結
+         * // patch: 2025-11-08 修正計算邏輯：每筆先取整數再累加，而非累加後才取整數
          */
         function updateAllCalculations() {
             let grandTotal = {
@@ -1130,26 +1317,31 @@
                 };
 
                 book.entries.forEach(entry => {
+                    // patch: 2025-11-08 每筆先取整數再累加
+                    const roundedUntaxed = round(entry.untaxed);
+                    const roundedTax = Math.round(entry.tax);
+                    const roundedTotal = round(entry.total);
+
                     // 累加到冊
                     bookTotals.count++;
-                    bookTotals.untaxed += entry.untaxed;
-                    bookTotals.tax += entry.tax;
-                    bookTotals.total += entry.total;
+                    bookTotals.untaxed += roundedUntaxed;
+                    bookTotals.tax += roundedTax;
+                    bookTotals.total += roundedTotal;
 
                     // 累加到總
                     const type = entry.type; // 'IN' or 'OUT'
                     grandTotal[type].count++;
-                    grandTotal[type].untaxed += entry.untaxed;
-                    grandTotal[type].tax += entry.tax;
-                    grandTotal[type].total += entry.total;
+                    grandTotal[type].untaxed += roundedUntaxed;
+                    grandTotal[type].tax += roundedTax;
+                    grandTotal[type].total += roundedTotal;
                 });
 
-                // 儲存計算結果到 state
+                // 儲存計算結果到 state（已經是整數累加的結果，不需再次取整）
                 book.totals = {
                     count: bookTotals.count,
-                    untaxed: round(bookTotals.untaxed),
-                    tax: Math.round(bookTotals.tax),
-                    total: round(bookTotals.total)
+                    untaxed: bookTotals.untaxed,
+                    tax: bookTotals.tax,
+                    total: bookTotals.total
                 };
 
                 // 更新 DOM (分冊顯示)
@@ -1159,14 +1351,8 @@
                 runBookVerification(book);
             });
 
-            // 2. 處理總結的浮點數精度
-            grandTotal.IN.untaxed = round(grandTotal.IN.untaxed);
-            grandTotal.IN.tax = Math.round(grandTotal.IN.tax);
-            grandTotal.IN.total = round(grandTotal.IN.total);
-
-            grandTotal.OUT.untaxed = round(grandTotal.OUT.untaxed);
-            grandTotal.OUT.tax = Math.round(grandTotal.OUT.tax);
-            grandTotal.OUT.total = round(grandTotal.OUT.total);
+            // 2. 總結已經是整數累加的結果，不需再次取整
+            // patch: 2025-11-08 移除重複的取整操作
 
             // 3. 更新總結 DOM
             grandTotalOutCountEl.textContent = grandTotal.OUT.count;
@@ -1190,6 +1376,9 @@
                 finalTaxValueEl.textContent = formatInteger(Math.abs(finalTax));
                 finalTaxValueEl.className = 'summary-value is-creditable';
             }
+
+            // patch: 2025-11-08 執行智慧核對
+            runSmartVerification();
         }
 
         /**
@@ -1226,6 +1415,64 @@
             verifyErrorEl.className = verificationError < 0.01
                 ? 'summary-value book-verify-error is-success'
                 : 'summary-value book-verify-error is-error';
+        }
+
+        /**
+         * patch: 2025-11-08 智慧核對模式：自動標示異常稅率或誤差超標冊
+         */
+        function runSmartVerification() {
+            const ERROR_THRESHOLD = 10; // 誤差超過 10 元視為異常
+            const TAX_RATE_TOLERANCE = 0.5; // 稅率偏差容忍度 0.5%
+
+            state.books.forEach(book => {
+                const bookElement = booksContainer.querySelector(`.book[data-book-id="${book.id}"]`);
+                if (!bookElement) return;
+
+                let hasWarning = false;
+                let warningMessages = [];
+
+                // 檢查 1: 稅率異常（與全域稅率差異過大）
+                const rateDiff = Math.abs(book.taxRate - state.globalTaxRate);
+                if (rateDiff > TAX_RATE_TOLERANCE) {
+                    hasWarning = true;
+                    warningMessages.push(`稅率異常 (${book.taxRate}% vs ${state.globalTaxRate}%)`);
+                }
+
+                // 檢查 2: 核算誤差超標
+                const rate = book.taxRate / 100;
+                const bookTotal = book.totals.total;
+                const bookTax = book.totals.tax;
+                
+                if (rate > -1) {
+                    const verifiedUntaxed = bookTotal / (1 + rate);
+                    const verifiedTax = bookTotal - verifiedUntaxed;
+                    const verificationError = Math.abs(bookTax - verifiedTax);
+                    
+                    if (verificationError > ERROR_THRESHOLD) {
+                        hasWarning = true;
+                        warningMessages.push(`誤差超標 (${formatDisplay(verificationError)} 元)`);
+                    }
+                }
+
+                // 更新 DOM
+                const h3 = bookElement.querySelector('h3');
+                if (!h3) return;
+
+                // 移除舊的警告標記
+                const oldBadge = h3.querySelector('.warning-badge');
+                if (oldBadge) oldBadge.remove();
+
+                if (hasWarning) {
+                    bookElement.classList.add('has-warning');
+                    const badge = document.createElement('span');
+                    badge.className = 'warning-badge';
+                    badge.textContent = '⚠️ ' + warningMessages.join(' / ');
+                    badge.title = warningMessages.join('\n');
+                    h3.appendChild(badge);
+                } else {
+                    bookElement.classList.remove('has-warning');
+                }
+            });
         }
 
 
@@ -1308,6 +1555,7 @@
          * 【REBUILT】渲染單一條目 (改回 span 顯示)
          * @param {HTMLElement} listElement - The .entries-list element
          * @param {object} entry - The entry object
+         * // patch: 2025-11-08 新增操作按鈕（切換類型、刪除）
          */
         function renderEntry(listElement, entry) {
             const entryEl = document.createElement('div');
@@ -1322,12 +1570,34 @@
                 <span class="entry-value" data-field="untaxed">${formatDisplay(entry.untaxed)}</span>
                 <span class="entry-value" data-field="tax">${formatInteger(entry.tax)}</span>
                 <span class="entry-value" data-field="total">${formatDisplay(entry.total)}</span>
+                <div class="entry-actions">
+                    <button class="entry-action-btn btn-toggle-type" title="切換進銷項">⇄</button>
+                    <button class="entry-action-btn btn-delete" title="刪除">✕</button>
+                </div>
             `;
 
             // 【NEW】為可編輯數值添加點擊事件
             entryEl.querySelectorAll('.entry-value').forEach(valueEl => {
                 valueEl.addEventListener('click', () => makeEntryValueEditable(valueEl, entry));
             });
+
+            // patch: 2025-11-08 綁定操作按鈕事件
+            const toggleTypeBtn = entryEl.querySelector('.btn-toggle-type');
+            const deleteBtn = entryEl.querySelector('.btn-delete');
+            
+            if (toggleTypeBtn) {
+                toggleTypeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleEntryType(entry);
+                });
+            }
+            
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteEntry(entry);
+                });
+            }
 
             listElement.appendChild(entryEl);
         }
@@ -1432,6 +1702,61 @@
                     finishEdit(false);
                 }
             });
+        }
+
+        /**
+         * patch: 2025-11-08 切換條目的進銷項類型
+         * @param {object} entry - The entry object
+         */
+        function toggleEntryType(entry) {
+            if (!entry) return;
+            
+            // 切換類型
+            entry.type = entry.type === 'IN' ? 'OUT' : 'IN';
+            
+            // 找到對應的 DOM 元素並更新
+            const entryEl = booksContainer.querySelector(`.entry[data-entry-id="${entry.id}"]`);
+            if (!entryEl) return;
+            
+            const typeSpan = entryEl.querySelector('.entry-type');
+            if (typeSpan) {
+                const newTypeText = entry.type === 'IN' ? '進項' : '銷項';
+                const newTypeClass = entry.type === 'IN' ? 'type-in' : 'type-out';
+                typeSpan.textContent = newTypeText;
+                typeSpan.className = `entry-type ${newTypeClass}`;
+            }
+            
+            // 更新計算和儲存
+            updateAllCalculations();
+            debouncedSaveState();
+        }
+
+        /**
+         * patch: 2025-11-08 刪除單筆條目
+         * @param {object} entry - The entry object
+         */
+        function deleteEntry(entry) {
+            if (!entry) return;
+            
+            // 找到該條目所屬的冊
+            const book = state.books.find(b => b.entries.some(e => e.id === entry.id));
+            if (!book) return;
+            
+            // 從 state 中移除
+            const entryIndex = book.entries.findIndex(e => e.id === entry.id);
+            if (entryIndex === -1) return;
+            
+            book.entries.splice(entryIndex, 1);
+            
+            // 從 DOM 中移除
+            const entryEl = booksContainer.querySelector(`.entry[data-entry-id="${entry.id}"]`);
+            if (entryEl) {
+                entryEl.remove();
+            }
+            
+            // 更新計算和儲存
+            updateAllCalculations();
+            debouncedSaveState();
         }
 
         /**
@@ -1592,6 +1917,216 @@
         }
 
         /**
+         * patch: 2025-11-08 載入儲存紀錄
+         */
+        function loadSavedRecords() {
+            try {
+                const data = localStorage.getItem(SAVED_RECORDS_KEY);
+                if (data) {
+                    savedRecords = JSON.parse(data);
+                    if (!Array.isArray(savedRecords)) {
+                        savedRecords = [];
+                    }
+                }
+            } catch (e) {
+                savedRecords = [];
+            }
+            renderSavedRecords();
+        }
+
+        /**
+         * patch: 2025-11-08 儲存紀錄到 localStorage
+         */
+        function saveSavedRecords() {
+            try {
+                localStorage.setItem(SAVED_RECORDS_KEY, JSON.stringify(savedRecords));
+            } catch (e) {
+                showToast('儲存紀錄失敗', 'error');
+            }
+        }
+
+        /**
+         * patch: 2025-11-08 渲染儲存紀錄列表
+         */
+        function renderSavedRecords() {
+            if (!savedRecordsList) return;
+
+            if (savedRecords.length === 0) {
+                savedRecordsList.innerHTML = `
+                    <div style="text-align: center; color: var(--color-text-secondary); padding: var(--spacing-l);">
+                        尚無儲存紀錄
+                    </div>
+                `;
+                return;
+            }
+
+            savedRecordsList.innerHTML = '';
+            savedRecords.forEach((record, index) => {
+                const item = document.createElement('div');
+                item.className = 'saved-record-item';
+                
+                const date = new Date(record.timestamp);
+                const dateStr = date.toLocaleString('zh-TW', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                item.innerHTML = `
+                    <div class="saved-record-info">
+                        <div class="saved-record-name">${record.name}</div>
+                        <div class="saved-record-date">${dateStr}</div>
+                    </div>
+                    <div class="saved-record-actions">
+                        <button class="btn-load" data-index="${index}">載入</button>
+                        <button class="btn-danger btn-delete-record" data-index="${index}">刪除</button>
+                    </div>
+                `;
+
+                // 綁定載入按鈕
+                const loadBtn = item.querySelector('.btn-load');
+                if (loadBtn) {
+                    loadBtn.addEventListener('click', () => loadRecord(index));
+                }
+
+                // 綁定刪除按鈕
+                const deleteBtn = item.querySelector('.btn-delete-record');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', () => deleteRecord(index));
+                }
+
+                savedRecordsList.appendChild(item);
+            });
+        }
+
+        /**
+         * patch: 2025-11-08 顯示儲存對話框
+         */
+        function showSaveDialog() {
+            // 建立 modal
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">💾 儲存紀錄</div>
+                    <div class="modal-body">
+                        <label for="recordName">請輸入紀錄名稱：</label>
+                        <input type="text" id="recordName" class="modal-input" placeholder="例如：2025年1月報稅資料" autofocus>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel">取消</button>
+                        <button class="btn-primary btn-confirm">確定儲存</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const input = modal.querySelector('#recordName');
+            const cancelBtn = modal.querySelector('.btn-cancel');
+            const confirmBtn = modal.querySelector('.btn-confirm');
+
+            // 關閉 modal
+            const closeModal = () => {
+                modal.remove();
+            };
+
+            // 取消按鈕
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeModal);
+            }
+
+            // 點擊背景關閉
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // 確定按鈕
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', () => {
+                    const name = input ? input.value.trim() : '';
+                    if (!name) {
+                        showToast('請輸入紀錄名稱', 'error');
+                        return;
+                    }
+                    saveRecord(name);
+                    closeModal();
+                });
+            }
+
+            // Enter 鍵確認
+            if (input) {
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        confirmBtn.click();
+                    } else if (e.key === 'Escape') {
+                        closeModal();
+                    }
+                });
+                input.focus();
+            }
+        }
+
+        /**
+         * patch: 2025-11-08 儲存當前狀態為紀錄
+         */
+        function saveRecord(name) {
+            const record = {
+                name: name,
+                timestamp: Date.now(),
+                data: JSON.parse(JSON.stringify(state)) // 深拷貝
+            };
+
+            savedRecords.unshift(record); // 新的放最前面
+
+            // 限制最多 20 筆紀錄
+            if (savedRecords.length > 20) {
+                savedRecords = savedRecords.slice(0, 20);
+            }
+
+            saveSavedRecords();
+            renderSavedRecords();
+            showToast(`紀錄「${name}」已儲存`, 'success');
+        }
+
+        /**
+         * patch: 2025-11-08 載入紀錄
+         */
+        function loadRecord(index) {
+            if (index < 0 || index >= savedRecords.length) return;
+
+            const record = savedRecords[index];
+            if (!record || !record.data) return;
+
+            if (confirm(`確定要載入紀錄「${record.name}」嗎？\n當前資料將被覆蓋。`)) {
+                state = JSON.parse(JSON.stringify(record.data)); // 深拷貝
+                updateGlobalUI();
+                renderAllBooks();
+                saveState();
+                showToast(`已載入紀錄「${record.name}」`, 'success');
+            }
+        }
+
+        /**
+         * patch: 2025-11-08 刪除紀錄
+         */
+        function deleteRecord(index) {
+            if (index < 0 || index >= savedRecords.length) return;
+
+            const record = savedRecords[index];
+            if (confirm(`確定要刪除紀錄「${record.name}」嗎？`)) {
+                savedRecords.splice(index, 1);
+                saveSavedRecords();
+                renderSavedRecords();
+                showToast('紀錄已刪除', 'success');
+            }
+        }
+
+        /**
          * 處理全部清除
          */
         function handleClearAll() {
@@ -1700,11 +2235,17 @@
             importBtn.addEventListener('click', handleImportClick);
             importFileInput.addEventListener('change', handleImportFile);
             clearAllBtn.addEventListener('click', handleClearAll);
+            // patch: 2025-11-08 綁定儲存紀錄按鈕
+            if (saveRecordBtn) {
+                saveRecordBtn.addEventListener('click', showSaveDialog);
+            }
 
             // 載入資料並渲染
             loadState();
             updateGlobalUI();
             renderAllBooks();
+            // patch: 2025-11-08 載入儲存紀錄
+            loadSavedRecords();
 
             if (state.books.length === 0 || (state.books.length === 1 && state.books[0].entries.length === 0)) {
                 updateAllCalculations();
