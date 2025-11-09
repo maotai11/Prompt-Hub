@@ -134,6 +134,27 @@
             margin-bottom: 2rem;
         }
 
+        /* patch: 2025-11-09 全域 select 和 option 樣式 */
+        select {
+            background: var(--color-surface-light);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        select option {
+            background: var(--color-surface);
+            color: var(--color-text-primary);
+            padding: 0.5rem;
+        }
+
+        /* 確保下拉選單的選項有足夠的對比度 */
+        select option:hover,
+        select option:focus,
+        select option:checked {
+            background: var(--color-accent-gold);
+            color: var(--color-background);
+        }
+
         /* patch: 2025-11-09 統一按鈕樣式系統 */
         .btn {
             padding: 0.6rem 1.2rem;
@@ -2121,10 +2142,13 @@
             background: var(--color-surface);
             border: 1px solid var(--color-border);
             border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             min-width: 150px;
-            z-index: 100;
+            z-index: 1000;
             margin-top: 0.3rem;
+            /* patch: 2025-11-09 確保背景不透明 */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         .action-dropdown-menu.show {
@@ -3464,7 +3488,6 @@
             <button id="tab-list" type="button" class="tab-btn">客戶列表</button>
             <button id="tab-templates" type="button" class="tab-btn">訊息模板</button>
             <button id="tab-vat" type="button" class="tab-btn">營業稅</button>
-            <button id="tab-settings" type="button" class="tab-btn">⚙️ 設定</button>
         </nav>
 
         <!-- patch: 2025-11-09 Dashboard Home Page -->
@@ -6948,12 +6971,7 @@ ${escapeHTML(msg.message)}
                 renderTemplateList(); 
             }); // patch: 2025-11-08 訊息模板頁籤
             doc('tab-vat')?.addEventListener('click', () => { showPage('page-vat'); initVatPage(); });
-            
-            // patch: 2025-11-09 Settings Page - Tab Event Listener
-            doc('tab-settings')?.addEventListener('click', () => { 
-                showPage('page-settings'); 
-                loadAppSettings(); 
-            });
+
 
             // ========================================
             // patch: 2025-11-09 Advanced Features - Global Search
@@ -10835,7 +10853,11 @@ ${escapeHTML(msg.message)}
                 const groupEventsByDate = (events) => {
                     const grouped = {};
                     events.forEach(event => {
-                        const dateKey = event.date.toISOString().split('T')[0];
+                        // patch: 2025-11-09 使用本地時間避免時區問題
+                        const year = event.date.getFullYear();
+                        const month = String(event.date.getMonth() + 1).padStart(2, '0');
+                        const day = String(event.date.getDate()).padStart(2, '0');
+                        const dateKey = `${year}-${month}-${day}`;
                         if (!grouped[dateKey]) {
                             grouped[dateKey] = [];
                         }
