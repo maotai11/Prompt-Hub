@@ -124,6 +124,7 @@
             margin-bottom: 2rem;
         }
 
+        /* patch: 2025-11-09 統一按鈕樣式系統 */
         .btn {
             padding: 0.6rem 1.2rem;
             font-family: 'Inter', sans-serif;
@@ -146,8 +147,58 @@
 
         .btn-primary:hover {
             background-color: #FFD700;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(212, 175, 55, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-text-secondary);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            color: var(--color-text-primary);
+            border-color: var(--color-accent-gold);
+            background-color: rgba(212, 175, 55, 0.1);
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background-color: transparent;
+            color: #E57373;
+            border: 1px solid #E57373;
+        }
+
+        .btn-danger:hover {
+            background-color: rgba(229, 115, 115, 0.1);
+            border-color: #EF5350;
+            color: #EF5350;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* --- 備註匯出面板樣式 --- */
@@ -179,34 +230,83 @@
             border: 1px solid rgba(212, 175, 55, 0.3);
         }
 
-        /* --- 營業稅對話框和訊息預覽樣式 --- */
+        /* patch: 2025-11-09 優化 Modal 系統 */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.closing {
+            animation: fadeOut 0.2s ease forwards;
         }
 
         .modal-content {
             background: var(--color-surface);
-            padding: 2rem;
+            padding: 2.5rem;
             border-radius: 8px;
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         /* patch: 2025-11-08 客戶表單 modal 樣式 */
         .modal-content.customer-form-modal {
             max-width: 1200px;
             width: 95%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .modal-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.8rem;
+            color: var(--color-accent-gold);
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+
+        .modal-close-btn:hover {
+            color: var(--color-text-primary);
         }
 
         /* patch: 2025-11-08 多選功能樣式 */
@@ -852,11 +952,7 @@
             }
         }
 
-        .btn-secondary {
-            background-color: transparent;
-            color: var(--color-text-secondary);
-            border-color: var(--color-border);
-        }
+        /* patch: 2025-11-09 移除重複的 btn-secondary 定義，已在上方統一定義 */
 
         /* --- Customer Form --- */
         .data-form-grid {
@@ -927,50 +1023,96 @@
             table-layout: fixed;
         }
 
+        /* patch: 2025-11-09 調整欄寬，增加地址欄位寬度 */
         .data-table th:nth-child(1) {
-            width: 18%;
+            width: 3%;
+            min-width: 40px;
         }
 
         /* 代號/公司名稱 */
         .data-table th:nth-child(2) {
             width: 15%;
+            min-width: 150px;
         }
 
         /* 聯絡人/電話 */
         .data-table th:nth-child(3) {
-            width: 15%;
+            width: 12%;
+            min-width: 120px;
         }
 
         /* 統一編號/稅籍編號 */
         .data-table th:nth-child(4) {
-            width: 20%;
+            width: 12%;
+            min-width: 120px;
         }
 
-        /* 地址 */
+        /* 地址 - 增加寬度 */
         .data-table th:nth-child(5) {
-            width: 10%;
+            width: 25%;
+            min-width: 200px;
         }
 
         /* 租約起日 */
         .data-table th:nth-child(6) {
             width: 10%;
+            min-width: 100px;
         }
 
         /* 租約迄日 */
         .data-table th:nth-child(7) {
-            width: 12%;
+            width: 10%;
+            min-width: 100px;
+        }
+
+        /* 操作 */
+        .data-table th:nth-child(8) {
+            width: 13%;
+            min-width: 120px;
+        }
+
+        /* 可調整欄寬功能 */
+        .data-table th {
+            position: relative;
+            user-select: none;
+        }
+
+        .data-table th .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s ease;
+            z-index: 1;
+        }
+
+        .data-table th .resize-handle:hover {
+            background: var(--color-accent-gold);
+        }
+
+        .data-table th .resize-handle.resizing {
+            background: var(--color-accent-gold);
+        }
+
+        .data-table th.resizable:hover {
+            background-color: rgba(212, 175, 55, 0.05);
         }
 
         /* 操作 */
 
+        /* patch: 2025-11-09 調整表格間距 */
         .data-table th,
         .data-table td {
-            padding: 1rem 0.8rem;
+            padding: 1.2rem 0.8rem;
             text-align: left;
             vertical-align: top;
             border-bottom: 1px solid var(--color-border);
-            line-height: 1.5;
+            line-height: 1.6;
             position: relative;
+            min-height: 3rem;
         }
 
         .data-table th {
@@ -985,34 +1127,36 @@
             z-index: 10;
             text-align: center;
             vertical-align: middle;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .data-table tr {
+        /* patch: 2025-11-09 改善表格互動效果 */
+        .data-table tbody tr {
             transition: all 0.2s ease;
         }
 
-        .data-table tr:hover {
-            background-color: rgba(212, 175, 55, 0.05);
+        .data-table tbody tr:hover {
+            background-color: rgba(212, 175, 55, 0.08);
+            transform: translateX(2px);
         }
 
-        /* 即將到期的行樣式 */
+        /* patch: 2025-11-09 增強租約到期視覺狀態 */
         .data-table tr.expiring-soon {
-            background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), transparent);
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.12), transparent);
             border-left: 4px solid var(--color-accent-gold);
         }
 
         .data-table tr.expired {
-            background: linear-gradient(90deg, rgba(229, 115, 115, 0.1), transparent);
+            background: linear-gradient(90deg, rgba(229, 115, 115, 0.12), transparent);
             border-left: 4px solid #E57373;
         }
 
-        .data-table tr.expiring-soon:hover,
-        .data-table tr.expired:hover {
-            background: linear-gradient(90deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+        .data-table tr.expiring-soon:hover {
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.18), rgba(212, 175, 55, 0.05));
         }
 
         .data-table tr.expired:hover {
-            background: linear-gradient(90deg, rgba(229, 115, 115, 0.15), rgba(229, 115, 115, 0.05));
+            background: linear-gradient(90deg, rgba(229, 115, 115, 0.18), rgba(229, 115, 115, 0.05));
         }
 
         /* 租約到期日欄位的特殊樣式 */
@@ -1054,6 +1198,27 @@
             animation: urgentBlink 1s infinite;
         }
 
+        /* patch: 2025-11-09 租約到期動畫 */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: translateY(-50%) scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: translateY(-50%) scale(1.2);
+            }
+        }
+
+        @keyframes urgentBlink {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
         .table-row-actions {
             padding: 0.5rem;
         }
@@ -1081,6 +1246,39 @@
         .table-row-actions .btn-action:hover {
             color: var(--color-text-primary);
             background-color: rgba(212, 175, 55, 0.1);
+        }
+
+        /* patch: 2025-11-08 可調整欄寬功能樣式 */
+        .data-table th {
+            position: relative;
+            user-select: none;
+        }
+
+        .data-table th .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 5px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s ease;
+        }
+
+        .data-table th .resize-handle:hover {
+            background: var(--color-accent-gold);
+        }
+
+        .data-table th .resize-handle.resizing {
+            background: var(--color-accent-gold);
+        }
+
+        .data-table th.resizable {
+            cursor: default;
+        }
+
+        .data-table th.resizable:hover {
+            background-color: rgba(212, 175, 55, 0.05);
         }
 
         /* --- Global Notes Page & Tag Filtering --- */
@@ -1274,14 +1472,25 @@
             opacity: 0.8;
         }
 
+        /* patch: 2025-11-09 改進展開收合圖示 */
         .collapse-icon {
-            transition: transform 0.3s ease;
-            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            font-size: 1.3rem;
             color: var(--color-accent-gold);
+            cursor: pointer;
+        }
+
+        .collapse-icon:hover {
+            color: #FFD700;
+            transform: scale(1.1);
         }
 
         .collapse-icon.collapsed {
             transform: rotate(-90deg);
+        }
+
+        .collapse-icon.collapsed:hover {
+            transform: rotate(-90deg) scale(1.1);
         }
 
         .collapsible-content {
@@ -1294,43 +1503,7 @@
             max-height: 0;
         }
 
-        /* 優先級指示器 - 增強視覺警示 */
-        .priority-indicator {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: linear-gradient(135deg, #E53E3E, #C53030);
-            color: white;
-            padding: 0.5rem 1.2rem;
-            border-radius: 25px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4), 0 0 20px rgba(229, 62, 62, 0.2);
-            animation: criticalPulse 1.5s infinite;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-
-        @keyframes criticalPulse {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-                box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4), 0 0 20px rgba(229, 62, 62, 0.2);
-            }
-
-            50% {
-                opacity: 0.9;
-                transform: scale(1.08);
-                box-shadow: 0 6px 25px rgba(229, 62, 62, 0.6), 0 0 30px rgba(229, 62, 62, 0.4);
-            }
-
-            100% {
-                opacity: 1;
-                transform: scale(1);
-                box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4), 0 0 20px rgba(229, 62, 62, 0.2);
-            }
-        }
+        /* patch: 2025-11-09 移除舊的 priority-indicator 樣式，使用新的統一樣式 */
 
         /* 增強狀態標籤的視覺衝擊力 */
         .status-badge.critical {
@@ -1537,35 +1710,499 @@
         }
     </style>
     <style>
-        /* --- Toast Notifications --- */
+        /* patch: 2025-11-09 Toast 通知系統改進 */
         #toast-container {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
+            top: 2rem;
+            right: 2rem;
+            z-index: 9999;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            align-items: center;
+            gap: 0.5rem;
+            pointer-events: none;
         }
 
         .toast {
-            background-color: rgba(50, 50, 50, 0.9);
-            color: var(--color-text-primary);
-            padding: 10px 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-            transform: translateY(20px);
-            min-width: 250px;
-            text-align: center;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1rem 1.5rem;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            pointer-events: auto;
+            animation: slideInRight 0.3s ease;
+        }
+
+        .toast.toast-success {
+            border-left: 4px solid var(--color-accent-gold);
+        }
+
+        .toast.toast-error {
+            border-left: 4px solid #E57373;
+        }
+
+        .toast.toast-info {
+            border-left: 4px solid #64B5F6;
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .toast-success .toast-icon {
+            color: var(--color-accent-gold);
+        }
+
+        .toast-error .toast-icon {
+            color: #E57373;
+        }
+
+        .toast-info .toast-icon {
+            color: #64B5F6;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .toast-message {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .toast.hiding {
+            animation: slideOutRight 0.3s ease forwards;
         }
 
         .toast.show {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(0);
+        }
+
+        /* patch: 2025-11-09 Loading 指示器系統 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .loading-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--color-border);
+            border-top-color: var(--color-accent-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--color-text-primary);
+            font-size: 0.9rem;
+        }
+
+        /* patch: 2025-11-09 功能按鈕分組樣式 */
+        .function-groups-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+        }
+
+        .function-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .function-group-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .function-group-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .function-group-buttons .btn {
+            width: 100%;
+            text-align: left;
+            justify-content: flex-start;
+        }
+
+        /* patch: 2025-11-09 響應式設計優化 */
+        @media (max-width: 768px) {
+            .function-groups-container {
+                grid-template-columns: 1fr;
+                padding: 1.5rem;
+            }
+
+            .function-group-buttons .btn {
+                width: 100%;
+                padding: 0.8rem 1rem;
+            }
+
+            .data-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95vw;
+                padding: 1.5rem;
+            }
+
+            .modal-content.customer-form-modal {
+                width: 95vw;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 0.8rem 1rem;
+            }
+
+            .batch-actions-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .batch-buttons {
+                flex-direction: column;
+            }
+
+            .batch-buttons .btn {
+                width: 100%;
+            }
+
+            .toast {
+                min-width: 280px;
+                max-width: 90vw;
+            }
+
+            #toast-container {
+                right: 1rem;
+                left: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 1.5rem;
+            }
+
+            .module-title {
+                font-size: 2rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 0.8rem 0.5rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* patch: 2025-11-09 額外的 UI 改進 */
+        
+        /* 1. 統計卡片化 */
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+            border-color: var(--color-accent-gold);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* 2. 緊急提示樣式增強 */
+        .priority-indicator {
+            background: linear-gradient(135deg, rgba(229, 115, 115, 0.2), rgba(229, 115, 115, 0.1));
+            border: 2px solid #E57373;
+            border-radius: 6px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #E57373;
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+            animation: urgentPulse 2s infinite;
+        }
+
+        @keyframes urgentPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(229, 115, 115, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(229, 115, 115, 0);
+            }
+        }
+
+        /* 3. 資訊提示框 */
+        .info-box {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+            border-left: 4px solid var(--color-accent-gold);
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .info-box-icon {
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .info-box-content {
+            flex: 1;
+        }
+
+        .info-box-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--color-accent-gold);
+        }
+
+        .info-box-text {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            line-height: 1.6;
+        }
+
+        /* 4. 客戶工具列 */
+        .customer-toolbar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .customer-toolbar > * {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* 5. 操作欄位下拉選單 */
+        .action-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .action-dropdown-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.3rem 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .action-dropdown-btn:hover {
+            color: var(--color-accent-gold);
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 4px;
+        }
+
+        .action-dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 150px;
+            z-index: 100;
+            margin-top: 0.3rem;
+        }
+
+        .action-dropdown-menu.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .action-dropdown-item {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .action-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .action-dropdown-item:hover {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--color-accent-gold);
+        }
+
+        .action-dropdown-item.danger:hover {
+            background: rgba(229, 115, 115, 0.1);
+            color: #E57373;
+        }
+
+        /* 6. 數字欄位右對齊 */
+        .cell-numeric {
+            text-align: right;
+        }
+
+        /* 7. 儲存空間視覺化 */
+        .storage-info-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .storage-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        .storage-info-label {
+            font-weight: 600;
+        }
+
+        .storage-info-value {
+            font-family: 'Courier New', monospace;
+        }
+
+        .storage-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--color-surface-light);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .storage-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-accent-gold), #FFD700);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .storage-progress-fill.warning {
+            background: linear-gradient(90deg, #F59E0B, #FBBF24);
+        }
+
+        .storage-progress-fill.danger {
+            background: linear-gradient(90deg, #E57373, #EF5350);
         }
     </style>
 
@@ -1993,50 +2630,39 @@
         </nav>
 
         <div id="page-list" class="page active">
-            <!-- Excel 功能說明 -->
-            <div class="excel-info card"
-                style="margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="font-size: 1.5rem;">📊</div>
-                    <div>
-                        <strong>Excel 批量編輯功能</strong>
-                        <div style="font-size: 0.9rem; color: var(--color-text-secondary); margin-top: 0.3rem;">
-                            點擊「匯出範本 (.xlsx)」下載Excel檔案 → 在Excel中編輯客戶資料 → 點擊「匯入 Excel」上傳修改後的檔案
-                        </div>
+            <!-- patch: 2025-11-09 Excel 功能說明美化 -->
+            <div class="info-box">
+                <div class="info-box-icon">📊</div>
+                <div class="info-box-content">
+                    <div class="info-box-title">Excel 批量編輯功能</div>
+                    <div class="info-box-text">
+                        點擊「匯出範本 (.xlsx)」下載Excel檔案 → 在Excel中編輯客戶資料 → 點擊「匯入 Excel」上傳修改後的檔案
                     </div>
                 </div>
             </div>
 
-            <!-- 統計資訊面板 -->
-            <div class="stats-panel card" style="margin-bottom: 1rem; padding: 1.5rem;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
-                    <div class="stat-item" style="text-align: center;">
-                        <div class="stat-number" id="total-customers"
-                            style="font-size: 2rem; font-weight: 700; color: var(--color-accent-gold);">0</div>
-                        <div class="stat-label" style="color: var(--color-text-secondary); font-size: 0.9rem;">總客戶數
-                        </div>
-                    </div>
-                    <div class="stat-item" style="text-align: center;">
-                        <div class="stat-number" id="expired-count"
-                            style="font-size: 2rem; font-weight: 700; color: #E57373;">0</div>
-                        <div class="stat-label" style="color: var(--color-text-secondary); font-size: 0.9rem;">已到期</div>
-                    </div>
-                    <div class="stat-item" style="text-align: center;">
-                        <div class="stat-number" id="expiring-count"
-                            style="font-size: 2rem; font-weight: 700; color: var(--color-accent-gold);">0</div>
-                        <div class="stat-label" style="color: var(--color-text-secondary); font-size: 0.9rem;">即將到期
-                        </div>
-                    </div>
-                    <div class="stat-item" style="text-align: center;">
-                        <div class="stat-number" id="active-count"
-                            style="font-size: 2rem; font-weight: 700; color: #38A169;">0</div>
-                        <div class="stat-label" style="color: var(--color-text-secondary); font-size: 0.9rem;">正常租約
-                        </div>
-                    </div>
+            <!-- patch: 2025-11-09 統計資訊面板卡片化 -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-customers" style="color: var(--color-accent-gold);">0</div>
+                    <div class="stat-label">總客戶數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="expired-count" style="color: #E57373;">0</div>
+                    <div class="stat-label">已到期</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="expiring-count" style="color: var(--color-accent-gold);">0</div>
+                    <div class="stat-label">即將到期</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-count" style="color: #38A169;">0</div>
+                    <div class="stat-label">正常租約</div>
                 </div>
             </div>
 
             <div id="expiring-customers-section" class="card">
+                <!-- patch: 2025-11-09 緊急提示樣式 -->
                 <div class="priority-indicator" id="priority-indicator" style="display: none;">
                     高優先級提醒
                 </div>
@@ -2045,30 +2671,54 @@
                     <span class="collapse-icon">▼</span>
                 </div>
                 <div class="collapsible-content" id="expiring-section-content">
-                    <div class="header-controls" style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem; flex-wrap: wrap;">
-                        <select id="expiring-sort-select" class="form-control"
-                            style="background: var(--color-surface-light); color: var(--color-text-primary); border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 4px;">
-                            <option value="days-asc">依到期日排序 (近到遠)</option>
-                            <option value="days-desc">依到期日排序 (遠到近)</option>
-                            <option value="company-asc">依公司名稱排序 (A-Z)</option>
-                            <option value="company-desc">依公司名稱排序 (Z-A)</option>
-                        </select>
-                        <select id="expiring-filter-select" class="form-control"
-                            style="background: var(--color-surface-light); color: var(--color-text-primary); border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 4px;">
-                            <option value="all">顯示全部</option>
-                            <option value="expired">僅顯示已到期</option>
-                            <option value="critical">僅顯示30天內到期</option>
-                            <option value="warning">僅顯示90天內到期</option>
-                        </select>
-                        <button id="export-expiring-csv-btn" class="btn btn-secondary">匯出 CSV</button>
-                        <button id="export-excel-template-btn" class="btn btn-primary">匯出範本 (.xlsx)</button>
-                        <button id="import-excel-btn" class="btn btn-primary">匯入 Excel</button>
-                        <button id="export-all-data-btn" class="btn btn-secondary">匯出所有資料</button>
-                        <button id="import-data-btn" class="btn btn-secondary">匯入資料</button>
-                        <button id="restore-backup-btn" class="btn btn-secondary">還原備份</button>
-                        <button id="auto-backup-btn" class="btn btn-secondary">立即備份</button>
-                        <button id="clear-data-btn" class="btn btn-secondary"
-                            style="background-color: #E53E3E; color: white;">清除所有資料</button>
+                    <!-- patch: 2025-11-09 功能按鈕分組佈局 -->
+                    <div class="header-controls" style="margin-top: 1rem;">
+                        <!-- 排序和篩選控制項 -->
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                            <select id="expiring-sort-select" class="form-control"
+                                style="background: var(--color-surface-light); color: var(--color-text-primary); border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 4px;">
+                                <option value="days-asc">依到期日排序 (近到遠)</option>
+                                <option value="days-desc">依到期日排序 (遠到近)</option>
+                                <option value="company-asc">依公司名稱排序 (A-Z)</option>
+                                <option value="company-desc">依公司名稱排序 (Z-A)</option>
+                            </select>
+                            <select id="expiring-filter-select" class="form-control"
+                                style="background: var(--color-surface-light); color: var(--color-text-primary); border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 4px;">
+                                <option value="all">顯示全部</option>
+                                <option value="expired">僅顯示已到期</option>
+                                <option value="critical">僅顯示30天內到期</option>
+                                <option value="warning">僅顯示90天內到期</option>
+                            </select>
+                        </div>
+
+                        <!-- 功能按鈕分組 -->
+                        <div class="function-groups-container">
+                            <div class="function-group">
+                                <h4 class="function-group-title">資料管理</h4>
+                                <div class="function-group-buttons">
+                                    <button id="export-excel-template-btn" class="btn btn-primary">📥 匯出範本 (.xlsx)</button>
+                                    <button id="import-excel-btn" class="btn btn-primary">📤 匯入 Excel</button>
+                                    <button id="import-data-btn" class="btn btn-secondary">📂 匯入資料</button>
+                                </div>
+                            </div>
+                            
+                            <div class="function-group">
+                                <h4 class="function-group-title">備份還原</h4>
+                                <div class="function-group-buttons">
+                                    <button id="auto-backup-btn" class="btn btn-secondary">💾 立即備份</button>
+                                    <button id="restore-backup-btn" class="btn btn-secondary">♻️ 還原備份</button>
+                                    <button id="clear-data-btn" class="btn btn-danger">🗑️ 清除所有資料</button>
+                                </div>
+                            </div>
+                            
+                            <div class="function-group">
+                                <h4 class="function-group-title">匯出功能</h4>
+                                <div class="function-group-buttons">
+                                    <button id="export-all-data-btn" class="btn btn-secondary">📊 匯出所有資料</button>
+                                    <button id="export-expiring-csv-btn" class="btn btn-secondary">📄 匯出 CSV</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <ul id="expiring-customers-list"></ul>
                 </div>
@@ -2107,7 +2757,8 @@
                 </div>
             </div>
 
-            <table class="data-table">
+            <!-- patch: 2025-11-09 表格欄寬已調整，resize-handle 由 JavaScript 自動生成 -->
+            <table class="data-table" id="customer-table">
                 <thead>
                     <tr>
                         <th style="width: 3%;">
@@ -2125,15 +2776,20 @@
                 <tbody id="customer-list-body"></tbody>
             </table>
 
+            <!-- patch: 2025-11-09 視覺化儲存空間資訊 -->
+            <div class="storage-info-card" style="margin-bottom: 1.5rem;">
+                <div class="storage-info-header">
+                    <span class="storage-info-label">💾 儲存空間使用情況</span>
+                    <span class="storage-info-value" id="storage-stats-text">載入中...</span>
+                </div>
+                <div class="storage-progress-bar">
+                    <div class="storage-progress-fill" id="storage-progress-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
             <!-- 客戶列表工具列 -->
             <div class="customer-list-toolbar">
-                <div class="toolbar-left">
-                    <!-- 儲存統計資訊 -->
-                    <div id="storage-stats" style="font-size: 0.8rem; color: var(--color-text-secondary); display: flex; gap: 1rem;">
-                        <span>載入中...</span>
-                    </div>
-                </div>
-                <div class="toolbar-right" style="display: flex; gap: 1rem;">
+                <div class="toolbar-right" style="display: flex; gap: 1rem; width: 100%; justify-content: flex-end;">
                     <div class="export-container">
                         <button id="export-all-notes-btn" class="btn btn-secondary">匯出所有備註</button>
                         <div class="export-info">匯出：所有客戶備註</div>
@@ -2465,6 +3121,7 @@
             };
 
             // 更新儲存統計資訊
+            // patch: 2025-11-09 視覺化儲存統計
             const updateStorageStats = () => {
                 try {
                     let totalSize = 0;
@@ -2474,16 +3131,28 @@
                         }
                     }
                     
-                    // 更新 UI 中的統計資訊
-                    const statsElement = document.getElementById('storage-stats');
-                    if (statsElement) {
-                        const sizeKB = Math.round(totalSize / 1024);
-                        const maxSize = 5120; // 假設最大 5MB
-                        const percentage = Math.round((sizeKB / maxSize) * 100);
-                        statsElement.innerHTML = `
-                            <span>儲存：${sizeKB}KB/${maxSize}KB (${percentage}%)</span>
-                            <span>客戶：${customers.length}筆</span>
-                        `;
+                    const sizeKB = Math.round(totalSize / 1024);
+                    const maxSize = 5120; // 假設最大 5MB
+                    const percentage = Math.round((sizeKB / maxSize) * 100);
+                    
+                    // 更新文字資訊
+                    const statsText = document.getElementById('storage-stats-text');
+                    if (statsText) {
+                        statsText.textContent = `${sizeKB}KB / ${maxSize}KB (${percentage}%) • ${customers.length} 筆客戶`;
+                    }
+                    
+                    // 更新進度條
+                    const progressFill = document.getElementById('storage-progress-fill');
+                    if (progressFill) {
+                        progressFill.style.width = `${percentage}%`;
+                        
+                        // 根據使用量改變顏色
+                        progressFill.classList.remove('warning', 'danger');
+                        if (percentage >= 80) {
+                            progressFill.classList.add('danger');
+                        } else if (percentage >= 60) {
+                            progressFill.classList.add('warning');
+                        }
                     }
                 } catch (error) {
                     console.error('更新儲存統計失敗:', error);
@@ -2925,8 +3594,54 @@
                 scrollPosition: 0
             };
 
-            // --- UI ELEMENTS --- //
-            const doc = (id) => document.getElementById(id);
+            // patch: 2025-11-09 DOM 操作防呆機制
+            const doc = (id) => {
+                const el = document.getElementById(id);
+                if (!el) {
+                    console.warn(`Element not found: #${id}`);
+                }
+                return el;
+            };
+
+            const safeQuerySelector = (selector) => {
+                const el = document.querySelector(selector);
+                if (!el) {
+                    console.warn(`Element not found: ${selector}`);
+                }
+                return el;
+            };
+
+            const safeAddEventListener = (elementOrId, event, handler) => {
+                const el = typeof elementOrId === 'string' ? doc(elementOrId) : elementOrId;
+                if (el) {
+                    el.removeEventListener(event, handler);
+                    el.addEventListener(event, handler);
+                }
+            };
+
+            // patch: 2025-11-09 操作下拉選單功能
+            window.toggleActionMenu = (event, customerId) => {
+                event.stopPropagation();
+                const menu = doc(`action-menu-${customerId}`);
+                if (!menu) return;
+                
+                // 關閉其他所有選單
+                document.querySelectorAll('.action-dropdown-menu.show').forEach(m => {
+                    if (m.id !== `action-menu-${customerId}`) {
+                        m.classList.remove('show');
+                    }
+                });
+                
+                // 切換當前選單
+                menu.classList.toggle('show');
+            };
+
+            // 點擊外部關閉選單
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.action-dropdown-menu.show').forEach(m => {
+                    m.classList.remove('show');
+                });
+            });
             const ui = {
                 list: doc('page-list'), form: doc('page-form'), notes: doc('page-notes'),
                 tabList: doc('tab-list'),
@@ -2938,24 +3653,80 @@
             };
 
             // --- UTILITIES --- //
-            const showToast = (message, type = 'success') => {
+            // patch: 2025-11-09 改進的 Toast 通知系統（向後相容）
+            const showToast = (titleOrMessage, messageOrType = '', typeOrDuration = 'success', duration = 3000) => {
                 const toastContainer = doc('toast-container');
-                const toast = document.createElement('div');
-                toast.classList.add('toast');
-                if (type === 'error') {
-                    toast.style.backgroundColor = 'rgba(180, 50, 50, 0.9)';
+                if (!toastContainer) {
+                    console.warn('Toast container not found');
+                    return;
                 }
-                toast.textContent = message;
+                
+                // 向後相容：檢測舊的呼叫方式 showToast(message, type)
+                let title, message, type;
+                if (typeof messageOrType === 'string' && ['success', 'error', 'info', 'warning'].includes(messageOrType)) {
+                    // 舊格式：showToast(message, type)
+                    title = titleOrMessage;
+                    message = '';
+                    type = messageOrType;
+                } else {
+                    // 新格式：showToast(title, message, type, duration)
+                    title = titleOrMessage;
+                    message = messageOrType;
+                    type = typeOrDuration;
+                }
+                
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                
+                const icons = {
+                    success: '✓',
+                    error: '✕',
+                    info: 'ℹ',
+                    warning: '⚠'
+                };
+                
+                toast.innerHTML = `
+                    <div class="toast-icon">${icons[type] || icons.info}</div>
+                    <div class="toast-content">
+                        <div class="toast-title">${title}</div>
+                        ${message ? `<div class="toast-message">${message}</div>` : ''}
+                    </div>
+                `;
+                
                 toastContainer.appendChild(toast);
-
+                
                 setTimeout(() => {
-                    toast.classList.add('show');
-                }, 10); // Small delay to trigger transition
+                    toast.classList.add('hiding');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }, duration);
+            };
 
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                    toast.addEventListener('transitionend', () => toast.remove());
-                }, 3000);
+            // patch: 2025-11-09 Loading 指示器系統
+            const showLoading = (text = '處理中...') => {
+                // 移除現有的 loading overlay（如果有）
+                hideLoading();
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'loading-overlay';
+                overlay.id = 'loading-overlay';
+                overlay.innerHTML = `
+                    <div class="loading-content">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">${text}</div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            };
+
+            const hideLoading = () => {
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay && overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
             };
             const TAG_COLORS = ['#4A69BD', '#58B19F', '#F8C291', '#EAB543', '#9A6324', '#82589F', '#E06C9F'];
             const getTagColor = (tag) => { let hash = 0; for (let i = 0; i < tag.length; i++) { hash = tag.charCodeAt(i) + ((hash << 5) - hash); } return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length]; };
@@ -3640,19 +4411,25 @@ ${escapeHTML(msg.message)}
                         <td style="text-align: center;">
                             <input type="checkbox" class="customer-checkbox customer-select-checkbox" data-customer-id="${c.id}">
                         </td>
-                        <td>${escapeHTML(c.id)}<br>${escapeHTML(c.companyName)}</td>
-                        <td>${escapeHTML(c.contact) || '-'}<br>${escapeHTML(c.phone) || '-'}</td>
-                        <td>${escapeHTML(c.taxId) || '-'}<br>${c.taxAddr ? `稅籍:${escapeHTML(c.taxAddr)}` : '-'}</td>
+                        <td><span class="cell-numeric">${escapeHTML(c.id)}</span><br>${escapeHTML(c.companyName)}</td>
+                        <td>${escapeHTML(c.contact) || '-'}<br><span class="cell-numeric">${escapeHTML(c.phone) || '-'}</span></td>
+                        <td class="cell-numeric">${escapeHTML(c.taxId) || '-'}<br>${c.taxAddr ? `稅籍:${escapeHTML(c.taxAddr)}` : '-'}</td>
                         <td>${c.regAddr ? `設籍:${escapeHTML(c.regAddr)}` : ''}${c.regAddr && c.contactAddr ? '<br>' : ''}${c.contactAddr ? `聯絡:${escapeHTML(c.contactAddr)}` : ''}</td>
                         <td>${toROCDate(c.leaseStart) || '-'}</td>
                         <td class="${leaseEndClass}">${toROCDate(c.leaseEnd) || '-'}</td>
                         <td class="table-row-actions">
-                            <div class="action-buttons-grid">
-                                <button type="button" class="btn-action btn-view-notes" data-customer-id="${c.id}">查看備註 (${c.notes?.length || 0})</button>
-                                <button type="button" class="btn-action btn-apply-template-single" data-customer-id="${c.id}">套用模板</button>
-                                <button type="button" class="btn-action btn-export-single-notes" data-customer-id="${c.id}">匯出備註</button>
-                                <button type="button" class="btn-action btn-edit">編輯</button>
-                                <button type="button" class="btn-action btn-delete">刪除</button>
+                            <!-- patch: 2025-11-09 簡化操作欄位 -->
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <button type="button" class="btn-action btn-edit">✏️ 編輯</button>
+                                <div class="action-dropdown">
+                                    <button type="button" class="action-dropdown-btn" onclick="toggleActionMenu(event, '${c.id}')">⋮</button>
+                                    <div class="action-dropdown-menu" id="action-menu-${c.id}">
+                                        <div class="action-dropdown-item btn-view-notes" data-customer-id="${c.id}">📝 查看備註 (${c.notes?.length || 0})</div>
+                                        <div class="action-dropdown-item btn-apply-template-single" data-customer-id="${c.id}">📧 套用模板</div>
+                                        <div class="action-dropdown-item btn-export-single-notes" data-customer-id="${c.id}">📊 匯出備註</div>
+                                        <div class="action-dropdown-item danger btn-delete">🗑️ 刪除</div>
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -5371,9 +6148,13 @@ ${escapeHTML(msg.message)}
                 }
             });
 
-            // 立即備份按鈕
+            // patch: 2025-11-09 立即備份加入 Loading 指示器
             doc('auto-backup-btn')?.addEventListener('click', () => {
-                createAutoBackup();
+                showLoading('正在建立備份...');
+                setTimeout(() => {
+                    createAutoBackup();
+                    hideLoading();
+                }, 100);
             });
 
             // --- Excel 匯出範本功能 ---
@@ -5458,6 +6239,7 @@ ${escapeHTML(msg.message)}
             });
 
             // --- Excel 匯入功能 ---
+            // patch: 2025-11-09 加入 Loading 指示器
             doc('import-excel-btn')?.addEventListener('click', () => {
                 const input = document.createElement('input');
                 input.type = 'file';
@@ -5465,6 +6247,7 @@ ${escapeHTML(msg.message)}
                 input.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
+                        showLoading('正在讀取 Excel 檔案...');
                         const reader = new FileReader();
                         reader.onload = (e) => {
                             try {
@@ -5475,6 +6258,7 @@ ${escapeHTML(msg.message)}
                                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                                 if (jsonData.length < 2) {
+                                    hideLoading();
                                     showToast('Excel檔案格式錯誤或無資料', 'error');
                                     return;
                                 }
@@ -5488,6 +6272,7 @@ ${escapeHTML(msg.message)}
                                 );
 
                                 if (!isValidFormat) {
+                                    hideLoading();
                                     showToast('Excel檔案格式不正確，請使用匯出的範本格式', 'error');
                                     return;
                                 }
@@ -5574,23 +6359,29 @@ ${escapeHTML(msg.message)}
                                 }
 
                                 if (importedCustomers.length === 0) {
+                                    hideLoading();
                                     showToast('Excel檔案中沒有有效的客戶資料', 'error');
                                     return;
                                 }
 
+                                hideLoading();
+                                
                                 // 確認匯入
                                 const confirmMessage = `找到 ${importedCustomers.length} 筆客戶資料，確定要匯入嗎？\n\n匯入方式：\n• 確定：覆蓋現有資料\n• 取消：取消匯入`;
 
                                 if (confirm(confirmMessage)) {
+                                    showLoading('正在匯入資料...');
                                     customers = importedCustomers;
                                     saveCustomersToStorage();
                                     renderAll();
-                                    showToast(`✅ Excel 匯入完成：新增 ${created} 筆、覆蓋 ${updated} 筆`);
+                                    hideLoading();
+                                    showToast('匯入成功', `新增 ${created} 筆、覆蓋 ${updated} 筆`, 'success');
                                 }
 
                             } catch (error) {
                                 console.error('Excel匯入失敗:', error);
-                                showToast('Excel匯入失敗，請檢查檔案格式', 'error');
+                                hideLoading();
+                                showToast('Excel匯入失敗', '請檢查檔案格式', 'error');
                             }
                         };
                         reader.readAsArrayBuffer(file);
@@ -7410,6 +8201,123 @@ ${escapeHTML(msg.message)}
             }
 
             renderAll();
+
+            // patch: 2025-11-08 初始化欄寬調整功能
+            const initColumnResize = () => {
+                const table = document.querySelector('.data-table');
+                if (!table) return;
+
+                const thead = table.querySelector('thead tr');
+                if (!thead) return;
+
+                const ths = thead.querySelectorAll('th');
+                let isResizing = false;
+                let currentTh = null;
+                let startX = 0;
+                let startWidth = 0;
+
+                // 為每個 th 新增拖曳手柄
+                ths.forEach((th, index) => {
+                    // 跳過最後一欄（操作欄）
+                    if (index === ths.length - 1) return;
+
+                    th.classList.add('resizable');
+
+                    // 建立拖曳手柄
+                    const handle = document.createElement('div');
+                    handle.className = 'resize-handle';
+                    th.appendChild(handle);
+
+                    // 拖曳開始
+                    handle.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        isResizing = true;
+                        currentTh = th;
+                        startX = e.pageX;
+                        startWidth = th.offsetWidth;
+                        handle.classList.add('resizing');
+                        document.body.style.cursor = 'col-resize';
+                        document.body.style.userSelect = 'none';
+                    });
+
+                    // 雙擊自動調整
+                    handle.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        autoFitColumn(th, index);
+                    });
+                });
+
+                // 拖曳中
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizing || !currentTh) return;
+                    
+                    const diff = e.pageX - startX;
+                    const newWidth = Math.max(50, startWidth + diff);
+                    currentTh.style.width = newWidth + 'px';
+                });
+
+                // 拖曳結束
+                document.addEventListener('mouseup', () => {
+                    if (isResizing) {
+                        isResizing = false;
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        
+                        const handles = document.querySelectorAll('.resize-handle');
+                        handles.forEach(h => h.classList.remove('resizing'));
+                        
+                        currentTh = null;
+                    }
+                });
+
+                // 自動調整欄寬到最適大小
+                const autoFitColumn = (th, colIndex) => {
+                    const table = th.closest('table');
+                    if (!table) return;
+
+                    const rows = table.querySelectorAll('tbody tr');
+                    let maxWidth = 0;
+
+                    // 計算標題寬度
+                    const tempSpan = document.createElement('span');
+                    tempSpan.style.visibility = 'hidden';
+                    tempSpan.style.position = 'absolute';
+                    tempSpan.style.whiteSpace = 'nowrap';
+                    tempSpan.style.font = window.getComputedStyle(th).font;
+                    tempSpan.textContent = th.textContent;
+                    document.body.appendChild(tempSpan);
+                    maxWidth = tempSpan.offsetWidth + 40;
+                    document.body.removeChild(tempSpan);
+
+                    // 計算每一行的內容寬度
+                    rows.forEach(row => {
+                        const cell = row.querySelectorAll('td')[colIndex];
+                        if (!cell) return;
+
+                        const span = document.createElement('span');
+                        span.style.visibility = 'hidden';
+                        span.style.position = 'absolute';
+                        span.style.whiteSpace = 'nowrap';
+                        span.style.font = window.getComputedStyle(cell).font;
+                        span.textContent = cell.textContent;
+                        document.body.appendChild(span);
+                        const width = span.offsetWidth + 40;
+                        if (width > maxWidth) maxWidth = width;
+                        document.body.removeChild(span);
+                    });
+
+                    // 設定最大寬度限制
+                    maxWidth = Math.min(maxWidth, 500);
+                    th.style.width = maxWidth + 'px';
+                    
+                    showToast(`已自動調整欄寬至 ${maxWidth}px`);
+                };
+            };
+
+            // 在表格渲染後初始化欄寬調整
+            setTimeout(() => {
+                initColumnResize();
+            }, 100);
 
             // patch: 2025-11-08 初始化預設營業稅模板
             initializeDefaultVatTemplates();
