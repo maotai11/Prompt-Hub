@@ -45,9 +45,12 @@
         }
 
         /* --- Layout & Components --- */
+        /* patch: 2025-11-09 Advanced Features - Header with Search */
         .app-header {
             padding: 1.5rem 2.5rem;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 1px solid var(--color-border);
         }
 
@@ -55,6 +58,13 @@
             font-family: 'EB Garamond', serif;
             font-size: 2.2rem;
             font-weight: 700;
+            margin: 0;
+        }
+
+        .btn-icon {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .main-container {
@@ -199,6 +209,15 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
+        }
+
+        /* patch: 2025-11-09 select 下拉選單按鈕樣式 */
+        select.btn {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23A0A0A0' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.8rem center;
+            padding-right: 2.5rem;
         }
 
         /* --- 備註匯出面板樣式 --- */
@@ -892,28 +911,24 @@
             color: var(--color-accent-gold);
         }
 
-        .sort-icon {
-            font-size: 0.7rem;
-            opacity: 0.5;
+        /* patch: 2025-11-09 動態排序圖示 - 使用 ::after 偽元素 */
+        .vat-data-table th.sortable::after {
+            content: '';
             margin-left: 0.3rem;
+            font-size: 0.7rem;
+            opacity: 0;
         }
 
-        .vat-data-table th.sortable.sorted-asc .sort-icon {
-            opacity: 1;
-            color: var(--color-accent-gold);
-        }
-
-        .vat-data-table th.sortable.sorted-asc .sort-icon::after {
+        .vat-data-table th.sortable.sorted-asc::after {
             content: ' ▲';
-        }
-
-        .vat-data-table th.sortable.sorted-desc .sort-icon {
             opacity: 1;
             color: var(--color-accent-gold);
         }
 
-        .vat-data-table th.sortable.sorted-desc .sort-icon::after {
+        .vat-data-table th.sortable.sorted-desc::after {
             content: ' ▼';
+            opacity: 1;
+            color: var(--color-accent-gold);
         }
 
         .vat-data-table tbody tr:hover {
@@ -2254,11 +2269,16 @@
             margin-bottom: 0.5rem;
         }
 
+        /* patch: 2025-11-09 改善模板元數據樣式 */
         .template-meta {
             display: flex;
             gap: 1rem;
             font-size: 0.85rem;
             color: var(--color-text-secondary);
+            background: var(--color-surface-light);
+            padding: 0.5rem 0.8rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
         }
 
         .template-card-body {
@@ -2271,15 +2291,23 @@
             margin-bottom: 0.5rem;
         }
 
-        .template-preview {
-            background: var(--color-surface-light);
-            padding: 0.8rem;
+        /* patch: 2025-11-09 美化訊息內容預覽 */
+        .message-preview-box {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.05), rgba(212, 175, 55, 0.02));
+            border-left: 3px solid var(--color-accent-gold);
+            padding: 1rem;
             border-radius: 4px;
-            font-size: 0.85rem;
-            color: var(--color-text-secondary);
+            margin-top: 0.8rem;
+        }
+
+        .template-preview {
+            font-size: 0.9rem;
+            color: var(--color-text-primary);
+            line-height: 1.6;
             max-height: 80px;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: pre-wrap;
         }
 
         .template-card-actions {
@@ -2391,51 +2419,248 @@
             margin-top: 0.5rem;
         }
 
-        /* 標籤選擇器 Modal */
+        /* patch: 2025-11-09 Advanced Features - Global Search Styles */
+        .global-search-modal {
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+        }
+
+        .search-input-container {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .global-search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            background: var(--color-surface-light);
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            color: var(--color-text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .global-search-input:focus {
+            outline: none;
+            border-color: var(--color-accent-gold);
+        }
+
+        .search-shortcut-hint {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            background: var(--color-surface);
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .search-results {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .search-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .search-category-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-result-count {
+            font-size: 0.75rem;
+            color: var(--color-accent-gold);
+        }
+
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .search-result-item:hover {
+            background: var(--color-surface-light);
+            border-color: var(--color-accent-gold);
+            transform: translateX(4px);
+        }
+
+        .search-result-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .search-result-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .search-result-title {
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: 0.3rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .search-result-meta {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .search-initial-state,
+        .search-empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .search-initial-state .empty-state-icon,
+        .search-empty-state .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-initial-state .empty-state-text,
+        .search-empty-state .empty-state-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .search-initial-state .empty-state-hint,
+        .search-empty-state .empty-state-hint {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* patch: 2025-11-09 標籤選擇器 Modal 優化 */
         .tag-selector-modal {
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
         }
 
         .tag-selector-search {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tag-selector-search .search-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            color: var(--color-text-primary);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .tag-selector-search .search-input:focus {
+            outline: none;
+            border-color: var(--color-accent-gold);
+            background: var(--color-surface);
+        }
+
+        .tag-selector-search .search-input::placeholder {
+            color: var(--color-text-secondary);
         }
 
         .tag-list {
-            max-height: 400px;
+            max-height: 450px;
             overflow-y: auto;
             border: 1px solid var(--color-border);
-            border-radius: 4px;
+            border-radius: 6px;
+            background: var(--color-surface);
+        }
+
+        .tag-category-header {
+            padding: 0.8rem 1rem;
+            background: var(--color-surface-light);
+            border-bottom: 2px solid var(--color-border);
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--color-accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
         .tag-option {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.8rem 1rem;
+            padding: 1rem 1.2rem;
             border-bottom: 1px solid var(--color-border);
             cursor: pointer;
             transition: all 0.2s ease;
+            position: relative;
         }
 
         .tag-option:last-child {
             border-bottom: none;
         }
 
+        .tag-option::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--color-accent-gold);
+            transform: scaleY(0);
+            transition: transform 0.2s ease;
+        }
+
         .tag-option:hover {
-            background: var(--color-surface-light);
-            border-left: 3px solid var(--color-accent-gold);
+            background: rgba(212, 175, 55, 0.08);
+            padding-left: 1.5rem;
+        }
+
+        .tag-option:hover::before {
+            transform: scaleY(1);
         }
 
         .tag-label {
             font-weight: 500;
             color: var(--color-text-primary);
+            font-size: 0.95rem;
         }
 
         .tag-format {
             font-family: 'Courier New', monospace;
             color: var(--color-accent-gold);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            background: rgba(212, 175, 55, 0.1);
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
         }
 
         /* 訊息預覽 Modal */
@@ -2575,12 +2800,14 @@
             border-radius: 4px;
         }
 
+        /* patch: 2025-11-09 優化客戶選擇器佈局 */
         .customer-selector-item {
             display: flex;
             align-items: center;
-            padding: 0.5rem;
+            padding: 0.8rem;
             border-bottom: 1px solid var(--color-border);
             transition: background 0.2s ease;
+            gap: 0.8rem;
         }
 
         .customer-selector-item:last-child {
@@ -2592,7 +2819,18 @@
         }
 
         .customer-selector-item input[type="checkbox"] {
-            margin-right: 0.8rem;
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .customer-selector-item label {
+            flex: 1;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
         }
 
         /* 響應式設計 */
@@ -2616,20 +2854,711 @@
             }
         }
     </style>
+
+    <style>
+        /* patch: 2025-11-09 Dashboard Home Page Styles */
+        
+        /* Dashboard Header */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Dashboard Stats */
+        .dashboard-stats {
+            margin-bottom: 2rem;
+        }
+
+        .stat-card.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card.clickable:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(212, 175, 55, 0.3);
+            border-color: var(--color-accent-gold);
+        }
+
+        /* Dashboard Content Layout */
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-left,
+        .dashboard-right {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Dashboard Card */
+        .dashboard-card {
+            height: 100%;
+        }
+
+        .dashboard-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .dashboard-card-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-accent-gold);
+            margin: 0;
+        }
+
+        /* Dashboard List */
+        .dashboard-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .dashboard-list-item {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .dashboard-list-item:hover {
+            background: var(--color-border);
+            transform: translateX(4px);
+            border-left: 3px solid var(--color-accent-gold);
+        }
+
+        .dashboard-list-item.urgent {
+            border-left: 3px solid #E57373;
+        }
+
+        .dashboard-list-item.warning {
+            border-left: 3px solid var(--color-accent-gold);
+        }
+
+        .dashboard-list-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-list-item-company {
+            font-weight: 600;
+            color: var(--color-text-primary);
+            font-size: 1rem;
+        }
+
+        .dashboard-list-item-days {
+            font-size: 0.85rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .dashboard-list-item-days.urgent {
+            background: rgba(229, 115, 115, 0.2);
+            color: #E57373;
+        }
+
+        .dashboard-list-item-days.warning {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--color-accent-gold);
+        }
+
+        .dashboard-list-item-info {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            line-height: 1.5;
+        }
+
+        .dashboard-empty {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--color-text-secondary);
+        }
+
+        .dashboard-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .dashboard-empty-text {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Dashboard VAT Section */
+        .dashboard-vat-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .dashboard-vat-item {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+            border: 1px solid var(--color-border);
+            border-left: 3px solid var(--color-accent-gold);
+            border-radius: 6px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dashboard-vat-item:hover {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.08));
+            transform: translateX(4px);
+        }
+
+        .dashboard-vat-item.urgent {
+            border-left-color: #E57373;
+            background: linear-gradient(135deg, rgba(229, 115, 115, 0.1), rgba(229, 115, 115, 0.05));
+        }
+
+        .dashboard-vat-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-vat-item-period {
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .dashboard-vat-item-badge {
+            font-size: 0.85rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .dashboard-vat-item-badge.urgent {
+            background: rgba(229, 115, 115, 0.2);
+            color: #E57373;
+        }
+
+        .dashboard-vat-item-badge.normal {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--color-accent-gold);
+        }
+
+        .dashboard-vat-item-info {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* Dashboard Timeline */
+        .dashboard-timeline {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .timeline-month {
+            margin-bottom: 2rem;
+        }
+
+        .timeline-month-header {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--color-accent-gold);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .timeline-day {
+            margin-bottom: 1.5rem;
+        }
+
+        .timeline-day-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .timeline-day-date {
+            font-weight: 600;
+            color: var(--color-text-primary);
+            min-width: 80px;
+        }
+
+        .timeline-day-weekday {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        .timeline-day-count {
+            font-size: 0.85rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--color-accent-gold);
+            font-weight: 600;
+        }
+
+        .timeline-events {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-left: 1rem;
+            border-left: 2px solid var(--color-border);
+        }
+
+        .timeline-event {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .timeline-event:hover {
+            background: var(--color-border);
+            transform: translateX(4px);
+        }
+
+        .timeline-event-icon {
+            font-size: 1.2rem;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .timeline-event-content {
+            flex: 1;
+        }
+
+        .timeline-event-title {
+            font-weight: 600;
+            color: var(--color-text-primary);
+            font-size: 0.95rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .timeline-event-detail {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+        }
+
+        .timeline-event-type {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .timeline-event-type.lease {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--color-accent-gold);
+        }
+
+        .timeline-event-type.vat {
+            background: rgba(56, 161, 105, 0.2);
+            color: #38A169;
+        }
+
+        .timeline-event-type.reminder {
+            background: rgba(66, 153, 225, 0.2);
+            color: #4299E1;
+        }
+
+        /* Dashboard Quick Actions */
+        .dashboard-quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            padding: 2rem 0;
+            border-top: 1px solid var(--color-border);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .dashboard-quick-actions {
+                flex-direction: column;
+            }
+
+            .dashboard-quick-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+
+    <style>
+        /* patch: 2025-11-09 Settings Page Styles */
+        
+        /* Settings Section */
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+
+        .settings-section-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-accent-gold);
+            margin: 0 0 1.5rem 0;
+            padding-bottom: 0.8rem;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        /* Settings Item */
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item-info {
+            flex: 1;
+            padding-right: 2rem;
+        }
+
+        .settings-item-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 0.3rem;
+        }
+
+        .settings-item-description {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            line-height: 1.5;
+        }
+
+        .settings-item-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 200px;
+        }
+
+        .settings-item-control .form-control {
+            flex: 1;
+        }
+
+        .settings-unit {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+
+        .settings-info-text {
+            font-size: 0.9rem;
+            color: var(--color-accent-gold);
+            font-weight: 600;
+        }
+
+        /* Toggle Switch */
+        .settings-toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .settings-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .settings-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-border);
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .settings-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: var(--color-surface);
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider {
+            background-color: var(--color-accent-gold);
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .settings-toggle-slider:hover {
+            opacity: 0.8;
+        }
+
+        /* Settings Actions */
+        .settings-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        /* Settings Footer */
+        .settings-footer {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            padding: 2rem 0;
+            border-top: 2px solid var(--color-border);
+            margin-top: 2rem;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #E57373, #EF5350);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #EF5350, #E53935);
+        }
+
+        /* Light Theme Styles */
+        body.light-theme {
+            --color-background: #FAFAFA;
+            --color-surface: #FFFFFF;
+            --color-surface-light: #F5F5F5;
+            --color-text-primary: #212121;
+            --color-text-secondary: #757575;
+            --color-border: #E0E0E0;
+        }
+
+        body.light-theme .btn-secondary {
+            background: var(--color-surface-light);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        body.light-theme .btn-secondary:hover {
+            background: var(--color-border);
+        }
+
+        body.light-theme .stat-card {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body.light-theme .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Font Size Variations */
+        body.font-small {
+            font-size: 14px;
+        }
+
+        body.font-large {
+            font-size: 18px;
+        }
+
+        /* Performance Mode */
+        body.performance-mode * {
+            transition: none !important;
+            animation: none !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .settings-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .settings-item-info {
+                padding-right: 0;
+            }
+
+            .settings-item-control {
+                width: 100%;
+                min-width: auto;
+            }
+
+            .settings-actions {
+                flex-direction: column;
+            }
+
+            .settings-actions .btn {
+                width: 100%;
+            }
+
+            .settings-footer {
+                flex-direction: column;
+            }
+
+            .settings-footer .btn {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 
 <body>
+    <!-- patch: 2025-11-09 Advanced Features - Header with Search -->
     <header class="app-header">
         <h1 class="main-title">客戶資料庫</h1>
+        <button id="global-search-btn" class="btn btn-secondary btn-icon" title="全域搜尋 (Ctrl+K)">
+            🔍 搜尋
+        </button>
     </header>
     <main class="main-container">
         <nav class="tab-nav">
-            <button id="tab-list" type="button" class="tab-btn active">客戶列表</button>
+            <button id="tab-dashboard" type="button" class="tab-btn active">儀表板</button>
+            <button id="tab-list" type="button" class="tab-btn">客戶列表</button>
             <button id="tab-templates" type="button" class="tab-btn">訊息模板</button>
             <button id="tab-vat" type="button" class="tab-btn">營業稅</button>
+            <button id="tab-settings" type="button" class="tab-btn">⚙️ 設定</button>
         </nav>
 
-        <div id="page-list" class="page active">
+        <!-- patch: 2025-11-09 Dashboard Home Page -->
+        <div id="page-dashboard" class="page active">
+            <div class="dashboard-header">
+                <h1 class="module-title">儀表板</h1>
+                <button id="dashboard-refresh-btn" class="btn btn-secondary btn-icon">
+                    <span>🔄</span>
+                    <span>重新整理</span>
+                </button>
+            </div>
+
+            <!-- 統計卡片區域 -->
+            <div class="stats-container dashboard-stats">
+                <div class="stat-card clickable" data-filter="all">
+                    <div class="stat-number" id="dashboard-total-customers">0</div>
+                    <div class="stat-label">總客戶數</div>
+                </div>
+                <div class="stat-card clickable" data-filter="expired">
+                    <div class="stat-number" id="dashboard-expired-count" style="color: #E57373;">0</div>
+                    <div class="stat-label">已到期</div>
+                </div>
+                <div class="stat-card clickable" data-filter="expiring">
+                    <div class="stat-number" id="dashboard-expiring-count" style="color: var(--color-accent-gold);">0</div>
+                    <div class="stat-label">即將到期 (30天)</div>
+                </div>
+                <div class="stat-card clickable" data-filter="active">
+                    <div class="stat-number" id="dashboard-active-count" style="color: #38A169;">0</div>
+                    <div class="stat-label">正常租約</div>
+                </div>
+            </div>
+
+            <!-- 主要內容區域 -->
+            <div class="dashboard-content">
+                <!-- 左側：即將到期客戶 + 營業稅提醒 -->
+                <div class="dashboard-left">
+                    <!-- 即將到期客戶 -->
+                    <div class="card dashboard-card">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">即將到期客戶</h3>
+                            <button id="view-all-expiring-btn" class="btn btn-secondary btn-small">查看全部</button>
+                        </div>
+                        <div id="dashboard-expiring-list" class="dashboard-list">
+                            <!-- 動態生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 營業稅提醒 -->
+                    <div class="card dashboard-card">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">營業稅提醒</h3>
+                        </div>
+                        <div id="dashboard-vat-reminders" class="dashboard-vat-section">
+                            <!-- 動態生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：時間軸事件檢視 -->
+                <div class="dashboard-right">
+                    <div class="card dashboard-card">
+                        <div class="dashboard-card-header">
+                            <h3 class="dashboard-card-title">未來事件時間軸</h3>
+                            <select id="timeline-range-select" class="btn btn-secondary btn-small">
+                                <option value="30">未來 30 天</option>
+                                <option value="60">未來 60 天</option>
+                                <option value="90" selected>未來 90 天</option>
+                            </select>
+                        </div>
+                        <div id="dashboard-timeline" class="dashboard-timeline">
+                            <!-- 動態生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速操作區域 -->
+            <div class="dashboard-quick-actions">
+                <button id="dashboard-add-customer-btn" class="btn btn-primary btn-icon">
+                    <span>➕</span>
+                    <span>新增客戶</span>
+                </button>
+                <button id="dashboard-export-btn" class="btn btn-secondary btn-icon">
+                    <span>📊</span>
+                    <span>匯出資料</span>
+                </button>
+                <button id="dashboard-search-btn" class="btn btn-secondary btn-icon">
+                    <span>🔍</span>
+                    <span>全域搜尋</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="page-list" class="page">
             <!-- patch: 2025-11-09 Excel 功能說明美化 -->
             <div class="info-box">
                 <div class="info-box-icon">📊</div>
@@ -2866,7 +3795,7 @@
                         </div>
                         <div class="form-group">
                             <label for="vat-period">期數</label>
-                            <select id="vat-period">
+                            <select id="vat-period" class="btn btn-secondary">
                                 <option value="1">第1期 (01-02月)</option>
                                 <option value="2">第2期 (03-04月)</option>
                                 <option value="3">第3期 (05-06月)</option>
@@ -2922,12 +3851,12 @@
                     <div class="collect-method-filter">
                         <label>收取發票方式：</label>
                         <div id="collect-method-checkboxes" class="checkbox-group"></div>
-                        <button id="add-collect-method-btn" class="btn btn-secondary btn-small">+ 新增方式</button>
+                        <button id="add-collect-method-btn" class="btn btn-primary btn-small">+ 新增方式</button>
                     </div>
                     <div class="batch-actions">
-                        <button id="apply-vat-template-btn" class="btn btn-primary">📋 套用訊息模板</button>
-                        <button id="generate-batch-message-btn" class="btn btn-primary">一鍵產生話術</button>
-                        <button id="export-batch-excel-btn" class="btn btn-primary">匯出 Excel</button>
+                        <button id="apply-vat-template-btn" class="btn btn-secondary btn-small">📋 套用訊息模板</button>
+                        <button id="generate-batch-message-btn" class="btn btn-secondary btn-small">一鍵產生話術</button>
+                        <button id="export-batch-excel-btn" class="btn btn-secondary btn-small">匯出 EXCEL</button>
                     </div>
                 </div>
                 <div id="batch-message-preview" class="message-preview" style="display: none;"></div>
@@ -2947,12 +3876,12 @@
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="select-all-vat"></th>
-                                <th class="sortable" data-sort="customer">客戶 <span class="sort-icon">⇅</span></th>
-                                <th class="sortable" data-sort="method">收取方式 <span class="sort-icon">⇅</span></th>
-                                <th class="sortable" data-sort="date">預計收取日 <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-sort="customer">客戶</th>
+                                <th class="sortable" data-sort="method">收取方式</th>
+                                <th class="sortable" data-sort="date">預計收取日</th>
                                 <th>稅金</th>
-                                <th class="sortable" data-sort="note-invoice">備註-發票 <span class="sort-icon">⇅</span></th>
-                                <th class="sortable" data-sort="note-reminder">備註-提醒 <span class="sort-icon">⇅</span></th>
+                                <th class="sortable" data-sort="note-invoice">備註-發票</th>
+                                <th class="sortable" data-sort="note-reminder">備註-提醒</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -2963,6 +3892,213 @@
         </div>
 
         <div id="toast-container"></div>
+
+        <!-- patch: 2025-11-09 Advanced Features - Global Search Modal -->
+        <div class="modal-overlay" id="global-search-modal" style="display: none;">
+            <div class="modal-content global-search-modal">
+                <div class="search-input-container">
+                    <input type="text" id="global-search-input" 
+                           placeholder="搜尋客戶、備註、模板... (Ctrl+K)" 
+                           class="global-search-input"
+                           autocomplete="off">
+                    <span class="search-shortcut-hint">ESC 關閉</span>
+                </div>
+                
+                <div class="search-results" id="global-search-results" style="display: none;">
+                    <!-- 動態生成搜尋結果 -->
+                </div>
+                
+                <div class="search-empty-state" id="search-empty-state" style="display: none;">
+                    <div class="empty-state-icon">🔍</div>
+                    <div class="empty-state-text">找不到符合的結果</div>
+                    <div class="empty-state-hint">試試搜尋客戶名稱、聯絡人、電話或標籤</div>
+                </div>
+                
+                <div class="search-initial-state" id="search-initial-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <div class="empty-state-text">開始搜尋</div>
+                    <div class="empty-state-hint">輸入至少 2 個字元開始搜尋</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- patch: 2025-11-09 Settings Page -->
+        <div id="page-settings" class="page">
+            <h1 class="module-title">系統設定</h1>
+
+            <!-- 一般設定 -->
+            <div class="card settings-section">
+                <h2 class="settings-section-title">一般設定</h2>
+                
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">即將到期提醒天數</div>
+                        <div class="settings-item-description">設定多少天內到期的客戶會被標記為「即將到期」</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <input type="number" id="setting-expire-days" class="form-control" min="1" max="365" value="30">
+                        <span class="settings-unit">天</span>
+                    </div>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">緊急提醒天數</div>
+                        <div class="settings-item-description">設定多少天內到期的客戶會被標記為「緊急」（紅色警示）</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <input type="number" id="setting-urgent-days" class="form-control" min="1" max="30" value="7">
+                        <span class="settings-unit">天</span>
+                    </div>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">儀表板時間軸預設範圍</div>
+                        <div class="settings-item-description">設定儀表板時間軸預設顯示的天數</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <select id="setting-timeline-days" class="form-control">
+                            <option value="30">30 天</option>
+                            <option value="60">60 天</option>
+                            <option value="90" selected>90 天</option>
+                            <option value="120">120 天</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 外觀設定 -->
+            <div class="card settings-section">
+                <h2 class="settings-section-title">外觀設定</h2>
+                
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">主題模式</div>
+                        <div class="settings-item-description">選擇應用程式的顯示主題</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <select id="setting-theme" class="form-control">
+                            <option value="dark" selected>深色主題</option>
+                            <option value="light">淺色主題</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">字體大小</div>
+                        <div class="settings-item-description">調整介面文字的大小</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <select id="setting-font-size" class="form-control">
+                            <option value="small">小</option>
+                            <option value="medium" selected>中</option>
+                            <option value="large">大</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 資料管理 -->
+            <div class="card settings-section">
+                <h2 class="settings-section-title">資料管理</h2>
+                
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">自動備份</div>
+                        <div class="settings-item-description">啟用後，系統會定期自動備份資料到瀏覽器儲存空間</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="setting-auto-backup" checked>
+                            <span class="settings-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">備份頻率</div>
+                        <div class="settings-item-description">設定自動備份的時間間隔</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <select id="setting-backup-frequency" class="form-control">
+                            <option value="1">每天</option>
+                            <option value="3">每 3 天</option>
+                            <option value="7" selected>每週</option>
+                            <option value="30">每月</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">儲存空間使用情況</div>
+                        <div class="settings-item-description">查看目前資料佔用的儲存空間</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <div id="storage-usage-info" class="settings-info-text">計算中...</div>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button id="settings-export-all-btn" class="btn btn-secondary btn-icon">
+                        <span>📦</span>
+                        <span>匯出完整備份</span>
+                    </button>
+                    <button id="settings-import-backup-btn" class="btn btn-secondary btn-icon">
+                        <span>📥</span>
+                        <span>匯入備份</span>
+                    </button>
+                    <button id="settings-clear-all-btn" class="btn btn-danger btn-icon">
+                        <span>🗑️</span>
+                        <span>清除所有資料</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 進階設定 -->
+            <div class="card settings-section">
+                <h2 class="settings-section-title">進階設定</h2>
+                
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">開發者模式</div>
+                        <div class="settings-item-description">啟用後會在 Console 顯示詳細的除錯資訊</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="setting-debug-mode">
+                            <span class="settings-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">效能模式</div>
+                        <div class="settings-item-description">啟用後會減少動畫效果以提升效能</div>
+                    </div>
+                    <div class="settings-item-control">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="setting-performance-mode">
+                            <span class="settings-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 儲存按鈕 -->
+            <div class="settings-footer">
+                <button id="settings-save-btn" class="btn btn-primary btn-large">
+                    💾 儲存設定
+                </button>
+                <button id="settings-reset-btn" class="btn btn-secondary btn-large">
+                    🔄 重設為預設值
+                </button>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -3440,51 +4576,101 @@
                     let result = template;
                     const tagRegex = /\{\{(\w+)\}\}/g;
                     
+                    // patch: 2025-11-09 除錯日誌
+                    console.log('=== replaceTagsInTemplate 開始 ===');
+                    console.log('this.vatData:', this.vatData);
+                    console.log('customer:', customer);
+                    console.log('vatRow:', vatRow);
+                    console.log('template:', template);
+                    
                     result = result.replace(tagRegex, (match, fieldName) => {
+                        console.log(`處理標籤: ${match}, fieldName: ${fieldName}`);
+                        
                         // 優先處理客戶欄位
                         if (customer.hasOwnProperty(fieldName)) {
                             const value = customer[fieldName];
+                            console.log(`  -> 客戶欄位: ${fieldName} = ${value}`);
                             return value !== null && value !== undefined ? String(value) : '';
                         }
                         
                         // patch: 2025-11-08 處理營業稅欄位
-                        if (fieldName.startsWith('vat_') && this.vatData) {
+                        if (fieldName.startsWith('vat_')) {
+                            console.log(`  -> 營業稅欄位: ${fieldName}`);
+                            console.log(`  -> this.vatData 存在: ${!!this.vatData}`);
+                            
+                            if (!this.vatData) {
+                                console.warn(`  -> this.vatData 為 null，無法替換 ${fieldName}`);
+                                return match;
+                            }
+                            
                             const vatField = fieldName.replace('vat_', '');
+                            console.log(`  -> vatField: ${vatField}`);
                             
                             switch (vatField) {
                                 case 'period':
-                                    return this.vatData.period ? `${this.vatData.period}` : '';
+                                    const periodValue = this.vatData.period ? `${this.vatData.period}` : '';
+                                    console.log(`  -> period 值: ${periodValue}`);
+                                    return periodValue;
                                 case 'year':
-                                    return this.vatData.year ? `${this.vatData.year}` : '';
+                                    const yearValue = this.vatData.year ? `${this.vatData.year}` : '';
+                                    console.log(`  -> year 值: ${yearValue}`);
+                                    return yearValue;
                                 case 'deadline':
-                                    return this.vatData.last_collect_deadline || '';
+                                    const deadlineValue = this.vatData.last_collect_deadline || '';
+                                    console.log(`  -> deadline 值: ${deadlineValue}`);
+                                    return deadlineValue;
                                 case 'deadline_minus2':
-                                    return this.vatData.last_collect_deadline ? getDateMinus2(this.vatData.last_collect_deadline) : '';
+                                    const deadline2Value = this.vatData.last_collect_deadline ? getDateMinus2(this.vatData.last_collect_deadline) : '';
+                                    console.log(`  -> deadline_minus2 值: ${deadline2Value}`);
+                                    return deadline2Value;
                                 case 'collect_method':
-                                    return vatRow ? (vatRow.collect_method || '') : '';
+                                    const methodValue = vatRow ? (vatRow.collect_method || '') : '';
+                                    console.log(`  -> collect_method 值: ${methodValue}`);
+                                    return methodValue;
                                 case 'planned_date':
-                                    return vatRow ? (vatRow.planned_collect_date || '') : '';
+                                    const dateValue = vatRow ? (vatRow.planned_collect_date || '') : '';
+                                    console.log(`  -> planned_date 值: ${dateValue}`);
+                                    return dateValue;
                                 case 'tax_amount':
-                                    return vatRow ? (vatRow.tax_amount || '') : '';
+                                    const taxValue = vatRow ? (vatRow.tax_amount || '') : '';
+                                    console.log(`  -> tax_amount 值: ${taxValue}`);
+                                    return taxValue;
                                 case 'note_invoice':
-                                    return vatRow ? (vatRow.note_invoice || '') : '';
+                                    const invoiceValue = vatRow ? (vatRow.note_invoice || '') : '';
+                                    console.log(`  -> note_invoice 值: ${invoiceValue}`);
+                                    return invoiceValue;
                                 case 'note_reminder':
-                                    return vatRow ? (vatRow.note_reminder ? `\n${vatRow.note_reminder}` : '') : '';
+                                    const reminderValue = vatRow ? (vatRow.note_reminder ? `\n${vatRow.note_reminder}` : '') : '';
+                                    console.log(`  -> note_reminder 值: ${reminderValue}`);
+                                    return reminderValue;
                                 default:
+                                    console.log(`  -> 未知的營業稅欄位: ${vatField}`);
                                     return match;
                             }
                         }
                         
+                        console.log(`  -> 未處理的標籤: ${match}`);
                         return match;
                     });
+                    
+                    console.log('=== replaceTagsInTemplate 結束 ===');
+                    console.log('result:', result);
+                    console.log('');
+                    
 
                     return result;
                 }
 
                 generateMessages(template, customers, vatRows = null) {
-                    return customers.map(customer => {
+                    // patch: 2025-11-09 確保 this 綁定正確
+                    console.log('generateMessages - this.vatData:', this.vatData);
+                    
+                    return customers.map((customer) => {
                         // patch: 2025-11-08 尋找對應的營業稅資料
                         const vatRow = vatRows ? vatRows.find(row => row.customer_id === customer.id) : null;
+                        
+                        console.log('generateMessages - 處理客戶:', customer.companyName || customer.id);
+                        console.log('generateMessages - this.vatData (map 內):', this.vatData);
                         
                         return {
                             customer: customer,
@@ -3513,9 +4699,350 @@
                 }
             }
 
+            // ========================================
+            // patch: 2025-11-09 Advanced Features
+            // Tag Manager Class
+            // ========================================
+            class TagManager {
+                constructor() {
+                    this.storageKey = 'crm-tag-definitions';
+                    this.tags = this.loadTags();
+                }
+                
+                loadTags() {
+                    try {
+                        const stored = localStorage.getItem(this.storageKey);
+                        if (stored) {
+                            return JSON.parse(stored);
+                        }
+                    } catch (error) {
+                        console.error('載入標籤定義失敗:', error);
+                    }
+                    return this.getDefaultTags();
+                }
+                
+                getDefaultTags() {
+                    return [
+                        { id: 'vip', name: 'VIP', color: '#D4AF37', createdAt: new Date().toISOString(), usageCount: 0 },
+                        { id: 'important', name: '重要', color: '#E57373', createdAt: new Date().toISOString(), usageCount: 0 },
+                        { id: 'follow-up', name: '需追蹤', color: '#64B5F6', createdAt: new Date().toISOString(), usageCount: 0 }
+                    ];
+                }
+                
+                saveTags() {
+                    try {
+                        localStorage.setItem(this.storageKey, JSON.stringify(this.tags));
+                        return true;
+                    } catch (error) {
+                        console.error('儲存標籤定義失敗:', error);
+                        return false;
+                    }
+                }
+                
+                createTag(name, color) {
+                    if (this.getTagByName(name)) {
+                        return { success: false, error: '標籤名稱已存在' };
+                    }
+                    
+                    const id = `tag-${Date.now()}`;
+                    const tag = {
+                        id,
+                        name,
+                        color: color || this.getRandomColor(),
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        usageCount: 0
+                    };
+                    this.tags.push(tag);
+                    this.saveTags();
+                    return { success: true, tag };
+                }
+                
+                updateTag(id, updates) {
+                    const tag = this.tags.find(t => t.id === id);
+                    if (!tag) return false;
+                    
+                    Object.assign(tag, updates, {
+                        updatedAt: new Date().toISOString()
+                    });
+                    
+                    this.saveTags();
+                    return true;
+                }
+                
+                deleteTag(id) {
+                    const index = this.tags.findIndex(t => t.id === id);
+                    if (index === -1) return false;
+                    
+                    this.tags.splice(index, 1);
+                    this.saveTags();
+                    return true;
+                }
+                
+                getTagByName(name) {
+                    return this.tags.find(t => t.name === name);
+                }
+                
+                getTagById(id) {
+                    return this.tags.find(t => t.id === id);
+                }
+                
+                updateUsageCount(tagName, delta = 1) {
+                    const tag = this.getTagByName(tagName);
+                    if (tag) {
+                        tag.usageCount = (tag.usageCount || 0) + delta;
+                        this.saveTags();
+                    }
+                }
+                
+                getRandomColor() {
+                    const colors = [
+                        '#D4AF37', '#E57373', '#64B5F6', '#81C784',
+                        '#FFB74D', '#BA68C8', '#4DB6AC', '#FF8A65'
+                    ];
+                    return colors[Math.floor(Math.random() * colors.length)];
+                }
+                
+                getAllTags() {
+                    return [...this.tags];
+                }
+            }
+
+            // ========================================
+            // patch: 2025-11-09 Advanced Features
+            // Settings Manager Class
+            // ========================================
+            class SettingsManager {
+                constructor() {
+                    this.storageKey = 'crm-system-settings';
+                    this.settings = this.loadSettings();
+                }
+                
+                loadSettings() {
+                    try {
+                        const stored = localStorage.getItem(this.storageKey);
+                        if (stored) {
+                            return { ...this.getDefaultSettings(), ...JSON.parse(stored) };
+                        }
+                    } catch (error) {
+                        console.error('載入設定失敗:', error);
+                    }
+                    return this.getDefaultSettings();
+                }
+                
+                getDefaultSettings() {
+                    return {
+                        general: {
+                            expiringSoonDays: 90,
+                            language: 'zh-TW',
+                            dateFormat: 'YYYY-MM-DD'
+                        },
+                        appearance: {
+                            theme: 'dark',
+                            fontSize: 'medium',
+                            compactMode: false
+                        },
+                        notifications: {
+                            showExpiring: true,
+                            showVATReminders: true,
+                            soundEnabled: false
+                        },
+                        data: {
+                            autoBackup: false,
+                            backupFrequency: 'weekly',
+                            maxBackups: 5
+                        }
+                    };
+                }
+                
+                saveSettings() {
+                    try {
+                        localStorage.setItem(this.storageKey, JSON.stringify(this.settings));
+                        return true;
+                    } catch (error) {
+                        console.error('儲存設定失敗:', error);
+                        return false;
+                    }
+                }
+                
+                updateSetting(category, key, value) {
+                    if (this.settings[category]) {
+                        this.settings[category][key] = value;
+                        this.saveSettings();
+                        return true;
+                    }
+                    return false;
+                }
+                
+                getSetting(category, key) {
+                    return this.settings[category]?.[key];
+                }
+                
+                resetToDefaults() {
+                    this.settings = this.getDefaultSettings();
+                    this.saveSettings();
+                    return true;
+                }
+                
+                exportSettings() {
+                    const dataStr = JSON.stringify(this.settings, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `crm-settings-${new Date().toISOString().split('T')[0]}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                }
+                
+                importSettings(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const imported = JSON.parse(e.target.result);
+                                this.settings = { ...this.getDefaultSettings(), ...imported };
+                                this.saveSettings();
+                                resolve(true);
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        reader.onerror = reject;
+                        reader.readAsText(file);
+                    });
+                }
+            }
+
+            // ========================================
+            // patch: 2025-11-09 Advanced Features
+            // Global Search Class
+            // ========================================
+            class GlobalSearch {
+                constructor(customers, templates) {
+                    this.customers = customers;
+                    this.templates = templates;
+                    this.searchIndex = null;
+                }
+                
+                buildSearchIndex() {
+                    const index = {
+                        customers: [],
+                        notes: [],
+                        templates: []
+                    };
+                    
+                    // 索引客戶
+                    this.customers.forEach(customer => {
+                        const searchText = [
+                            customer.companyName,
+                            customer.contact,
+                            customer.phone,
+                            customer.email,
+                            customer.regAddr,
+                            customer.contactAddr,
+                            customer.taxId,
+                            ...(customer.tags || [])
+                        ].filter(Boolean).join(' ').toLowerCase();
+                        
+                        index.customers.push({
+                            id: customer.id,
+                            searchText,
+                            type: 'customer',
+                            data: customer
+                        });
+                        
+                        // 索引備註
+                        if (customer.notes && customer.notes.length > 0) {
+                            customer.notes.forEach(note => {
+                                const noteSearchText = [
+                                    note.content,
+                                    ...(note.tags || [])
+                                ].filter(Boolean).join(' ').toLowerCase();
+                                
+                                index.notes.push({
+                                    id: note.id,
+                                    customerId: customer.id,
+                                    searchText: noteSearchText,
+                                    type: 'note',
+                                    data: { ...note, customerName: customer.companyName, customerId: customer.id }
+                                });
+                            });
+                        }
+                    });
+                    
+                    // 索引模板
+                    this.templates.forEach(template => {
+                        const searchText = [
+                            template.name,
+                            template.description,
+                            template.content,
+                            template.platform
+                        ].filter(Boolean).join(' ').toLowerCase();
+                        
+                        index.templates.push({
+                            id: template.id,
+                            searchText,
+                            type: 'template',
+                            data: template
+                        });
+                    });
+                    
+                    this.searchIndex = index;
+                    return index;
+                }
+                
+                search(query) {
+                    if (!query || query.length < 2) {
+                        return { customers: [], notes: [], templates: [], total: 0 };
+                    }
+                    
+                    if (!this.searchIndex) {
+                        this.buildSearchIndex();
+                    }
+                    
+                    const lowerQuery = query.toLowerCase();
+                    const results = {
+                        customers: [],
+                        notes: [],
+                        templates: [],
+                        total: 0
+                    };
+                    
+                    // 搜尋客戶
+                    results.customers = this.searchIndex.customers
+                        .filter(item => item.searchText.includes(lowerQuery))
+                        .slice(0, 10)
+                        .map(item => item.data);
+                    
+                    // 搜尋備註
+                    results.notes = this.searchIndex.notes
+                        .filter(item => item.searchText.includes(lowerQuery))
+                        .slice(0, 10)
+                        .map(item => item.data);
+                    
+                    // 搜尋模板
+                    results.templates = this.searchIndex.templates
+                        .filter(item => item.searchText.includes(lowerQuery))
+                        .slice(0, 10)
+                        .map(item => item.data);
+                    
+                    results.total = results.customers.length + results.notes.length + results.templates.length;
+                    
+                    return results;
+                }
+                
+                refreshIndex() {
+                    this.buildSearchIndex();
+                }
+            }
+
             // 初始化模板管理器和標籤系統
             const templateManager = new TemplateManager();
             const tagSystem = new TagSystem(customers);
+            const tagManager = new TagManager(); // patch: 2025-11-09
+            const settingsManager = new SettingsManager(); // patch: 2025-11-09
+            let globalSearch = null; // patch: 2025-11-09 延遲初始化
             
             // patch: 2025-11-08 初始化預設營業稅模板
             function initializeDefaultVatTemplates() {
@@ -3595,9 +5122,9 @@
             };
 
             // patch: 2025-11-09 DOM 操作防呆機制
-            const doc = (id) => {
+            const doc = (id, silent = false) => {
                 const el = document.getElementById(id);
-                if (!el) {
+                if (!el && !silent) {
                     console.warn(`Element not found: #${id}`);
                 }
                 return el;
@@ -3782,7 +5309,7 @@
                     const html = headerHtml + `
                         <div class="template-grid">
                             ${templates.map(template => `
-                                <div class="template-card" data-template-id="${template.id}">
+                                <div class="card template-card" data-template-id="${template.id}">
                                     <div class="template-card-header">
                                         <h3 class="template-name">${escapeHTML(template.name)}</h3>
                                         <div class="template-meta">
@@ -3794,18 +5321,20 @@
                                     <div class="template-card-body">
                                         <p class="template-description">${escapeHTML(template.description || '無描述')}</p>
                                         ${template.platform === 'Mail' && template.subject ? `<p class="template-subject">主旨: ${escapeHTML(template.subject)}</p>` : ''}
-                                        <div class="template-preview">${escapeHTML(template.content.substring(0, 100))}${template.content.length > 100 ? '...' : ''}</div>
+                                        <div class="message-preview-box">
+                                            <div class="template-preview">${escapeHTML(template.content.substring(0, 100))}${template.content.length > 100 ? '...' : ''}</div>
+                                        </div>
                                     </div>
                                     <div class="template-card-actions">
-                                        <button class="btn btn-small btn-select-customers" data-id="${template.id}">選取客戶</button>
-                                        <button class="btn btn-small btn-edit-template" data-id="${template.id}">編輯</button>
-                                        <button class="btn btn-small btn-preview-template" data-id="${template.id}">預覽</button>
-                                        <button class="btn btn-small btn-delete-template" data-id="${template.id}">刪除</button>
+                                        <button class="btn btn-primary btn-small btn-select-customers" data-id="${template.id}">選取客戶</button>
+                                        <button class="btn btn-secondary btn-small btn-edit-template" data-id="${template.id}">編輯</button>
+                                        <button class="btn btn-secondary btn-small btn-preview-template" data-id="${template.id}">預覽</button>
+                                        <button class="btn btn-danger btn-small btn-delete-template" data-id="${template.id}">刪除</button>
                                     </div>
                                     <div class="template-customer-preview" id="customer-preview-${template.id}" style="display: none;">
                                         <div class="customer-preview-header">
                                             <span>客戶訊息預覽</span>
-                                            <button class="btn btn-small btn-close-preview" data-id="${template.id}">收起</button>
+                                            <button class="btn btn-secondary btn-small btn-close-preview" data-id="${template.id}">收起</button>
                                         </div>
                                         <div class="customer-preview-list" id="customer-preview-list-${template.id}"></div>
                                     </div>
@@ -3914,9 +5443,15 @@
                 const html = `
                     <div class="modal-overlay" id="tag-selector-modal">
                         <div class="modal-content tag-selector-modal">
-                            <h3>選擇標籤</h3>
+                            <div class="modal-header">
+                                <h3 class="modal-title">插入標籤</h3>
+                                <button type="button" class="modal-close-btn" id="close-tag-selector">✕</button>
+                            </div>
+                            <div style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(212, 175, 55, 0.1); border-left: 3px solid var(--color-accent-gold); border-radius: 4px; font-size: 0.85rem; color: var(--color-text-secondary);">
+                                💡 點擊標籤即可插入到游標位置
+                            </div>
                             <div class="tag-selector-search">
-                                <input type="text" id="tag-search" placeholder="搜尋欄位..." class="search-input">
+                                <input type="text" id="tag-search" placeholder="🔍 搜尋欄位名稱..." class="search-input">
                             </div>
                             <div class="tag-list">
                                 ${customerFields.length > 0 ? `
@@ -3970,6 +5505,15 @@
                     });
                 }
 
+                // patch: 2025-11-09 關閉按鈕
+                const closeBtn = doc('close-tag-selector');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        const modal = doc('tag-selector-modal');
+                        if (modal) modal.remove();
+                    });
+                }
+
                 // 取消按鈕
                 const cancelBtn = doc('cancel-tag-selector');
                 if (cancelBtn) {
@@ -3986,6 +5530,18 @@
                         if (e.target === modal) modal.remove();
                     });
                 }
+                
+                // patch: 2025-11-09 ESC 鍵關閉
+                const handleEsc = (e) => {
+                    if (e.key === 'Escape') {
+                        const modal = doc('tag-selector-modal');
+                        if (modal) {
+                            modal.remove();
+                            document.removeEventListener('keydown', handleEsc);
+                        }
+                    }
+                };
+                document.addEventListener('keydown', handleEsc);
             }
 
             function showMessagePreviewModal(messages) {
@@ -4045,8 +5601,8 @@ ${escapeHTML(msg.message)}
                                     <div class="customer-selector-item">
                                         <input type="checkbox" class="customer-checkbox customer-selector-checkbox" 
                                                data-customer-id="${customer.id}" id="cust-${customer.id}">
-                                        <label for="cust-${customer.id}" style="flex: 1; cursor: pointer; padding: 0.5rem;">
-                                            <div style="font-weight: 600;">${escapeHTML(customer.companyName || customer.id)}</div>
+                                        <label for="cust-${customer.id}">
+                                            <div style="font-weight: 600; margin-bottom: 0.2rem;">${escapeHTML(customer.companyName || customer.id)}</div>
                                             <div style="font-size: 0.85rem; color: var(--color-text-secondary);">
                                                 ${escapeHTML(customer.contact || '')} ${customer.phone ? `- ${escapeHTML(customer.phone)}` : ''}
                                             </div>
@@ -4133,12 +5689,30 @@ ${escapeHTML(msg.message)}
                 
                 if (!previewDiv || !listDiv) return;
 
+                // patch: 2025-11-09 如果是營業稅模板，設定模擬資料用於預覽
+                if (template.category === 'vat') {
+                    console.log('偵測到營業稅模板，設定模擬資料用於預覽');
+                    tagSystem.vatData = {
+                        period: 5,
+                        year: 114,  // patch: 2025-11-09 修正：2025年是民國114年
+                        last_collect_deadline: '2025-11-10',  // patch: 2025-11-09 修正：使用11/10作為範例
+                        rows: []
+                    };
+                    console.log('tagSystem.vatData 已設定為模擬資料:', tagSystem.vatData);
+                }
+
                 const messages = tagSystem.generateMessages(template.content, selectedCustomers);
                 
                 // 如果是 Mail，也要處理主旨
                 let subjectMessages = [];
                 if (template.platform === 'Mail' && template.subject) {
                     subjectMessages = tagSystem.generateMessages(template.subject, selectedCustomers);
+                }
+                
+                // patch: 2025-11-09 預覽完成後，如果是營業稅模板，清除模擬資料
+                if (template.category === 'vat') {
+                    console.log('預覽完成，清除營業稅模擬資料');
+                    tagSystem.vatData = null;
                 }
 
                 const html = messages.map((msg, index) => {
@@ -5345,29 +6919,272 @@ ${escapeHTML(msg.message)}
                 // 保存當前狀態
                 uiState.activeTab = pageId;
 
-                ['page-list', 'page-form', 'page-notes', 'page-vat', 'page-templates'].forEach(p => {
-                    const el = doc(p);
+                ['page-dashboard', 'page-list', 'page-form', 'page-notes', 'page-vat', 'page-templates', 'page-settings'].forEach(p => {
+                    const el = doc(p, true);
                     if (el) el.classList.remove('active');
                 });
-                ['tab-list', 'tab-vat', 'tab-templates'].forEach(t => {
-                    const el = doc(t);
+                ['tab-dashboard', 'tab-list', 'tab-vat', 'tab-templates', 'tab-settings'].forEach(t => {
+                    const el = doc(t, true);
                     if (el) el.classList.remove('active');
                 });
                 
-                const pageEl = doc(pageId);
+                const pageEl = doc(pageId, true);
                 if (pageEl) pageEl.classList.add('active');
                 
-                const tabEl = doc(pageId.replace('page', 'tab'));
+                const tabEl = doc(pageId.replace('page', 'tab'), true);
                 if (tabEl) tabEl.classList.add('active');
 
                 console.log('=== 頁面切換完成 ===', pageId);
             };
+            
+            // patch: 2025-11-09 Dashboard Home Page - Tab Event Listeners
+            doc('tab-dashboard')?.addEventListener('click', () => { 
+                showPage('page-dashboard'); 
+                refreshDashboard(); 
+            });
             ui.tabList.addEventListener('click', () => showPage('page-list'));
             doc('tab-templates')?.addEventListener('click', () => { 
                 showPage('page-templates'); 
                 renderTemplateList(); 
             }); // patch: 2025-11-08 訊息模板頁籤
             doc('tab-vat')?.addEventListener('click', () => { showPage('page-vat'); initVatPage(); });
+            
+            // patch: 2025-11-09 Settings Page - Tab Event Listener
+            doc('tab-settings')?.addEventListener('click', () => { 
+                showPage('page-settings'); 
+                loadAppSettings(); 
+            });
+
+            // ========================================
+            // patch: 2025-11-09 Advanced Features - Global Search
+            // ========================================
+            
+            // 初始化全域搜尋
+            globalSearch = new GlobalSearch(customers, templateManager.templates);
+            
+            // 全域搜尋按鈕事件
+            const globalSearchBtn = doc('global-search-btn');
+            const globalSearchModal = doc('global-search-modal');
+            const globalSearchInput = doc('global-search-input');
+            const globalSearchResults = doc('global-search-results');
+            const searchEmptyState = doc('search-empty-state');
+            const searchInitialState = doc('search-initial-state');
+            
+            // 開啟全域搜尋
+            function openGlobalSearch() {
+                if (globalSearchModal) {
+                    globalSearchModal.style.display = 'flex';
+                    if (globalSearchInput) {
+                        globalSearchInput.value = '';
+                        globalSearchInput.focus();
+                    }
+                    if (globalSearchResults) globalSearchResults.style.display = 'none';
+                    if (searchEmptyState) searchEmptyState.style.display = 'none';
+                    if (searchInitialState) searchInitialState.style.display = 'block';
+                }
+            }
+            
+            // 關閉全域搜尋
+            function closeGlobalSearch() {
+                if (globalSearchModal) {
+                    globalSearchModal.style.display = 'none';
+                }
+            }
+            
+            // 搜尋按鈕點擊
+            if (globalSearchBtn) {
+                globalSearchBtn.addEventListener('click', openGlobalSearch);
+            }
+            
+            // 點擊背景關閉
+            if (globalSearchModal) {
+                globalSearchModal.addEventListener('click', (e) => {
+                    if (e.target === globalSearchModal) {
+                        closeGlobalSearch();
+                    }
+                });
+            }
+            
+            // 搜尋輸入事件（節流）
+            let searchTimeout;
+            if (globalSearchInput) {
+                globalSearchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    const query = e.target.value.trim();
+                    
+                    if (query.length < 2) {
+                        if (globalSearchResults) globalSearchResults.style.display = 'none';
+                        if (searchEmptyState) searchEmptyState.style.display = 'none';
+                        if (searchInitialState) searchInitialState.style.display = 'block';
+                        return;
+                    }
+                    
+                    searchTimeout = setTimeout(() => {
+                        performGlobalSearch(query);
+                    }, 300);
+                });
+                
+                // ESC 關閉
+                globalSearchInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        closeGlobalSearch();
+                    }
+                });
+            }
+            
+            // 執行搜尋
+            function performGlobalSearch(query) {
+                const results = globalSearch.search(query);
+                
+                if (results.total === 0) {
+                    if (globalSearchResults) globalSearchResults.style.display = 'none';
+                    if (searchEmptyState) searchEmptyState.style.display = 'block';
+                    if (searchInitialState) searchInitialState.style.display = 'none';
+                    return;
+                }
+                
+                // 顯示結果
+                if (searchEmptyState) searchEmptyState.style.display = 'none';
+                if (searchInitialState) searchInitialState.style.display = 'none';
+                if (globalSearchResults) {
+                    globalSearchResults.style.display = 'block';
+                    renderSearchResults(results);
+                }
+            }
+            
+            // 渲染搜尋結果
+            function renderSearchResults(results) {
+                let html = '';
+                
+                // 客戶結果
+                if (results.customers.length > 0) {
+                    html += `
+                        <div class="search-category">
+                            <h4 class="search-category-title">客戶 (${results.customers.length})</h4>
+                            ${results.customers.map(customer => `
+                                <div class="search-result-item" data-type="customer" data-id="${customer.id}">
+                                    <div class="search-result-icon">👤</div>
+                                    <div class="search-result-content">
+                                        <div class="search-result-title">${escapeHTML(customer.companyName || customer.id)}</div>
+                                        <div class="search-result-meta">
+                                            ${customer.contact ? escapeHTML(customer.contact) + ' • ' : ''}
+                                            ${customer.phone ? escapeHTML(customer.phone) : ''}
+                                            ${customer.tags && customer.tags.length > 0 ? ' • ' + customer.tags.map(t => `<span class="tag-badge">${escapeHTML(t)}</span>`).join(' ') : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                // 備註結果
+                if (results.notes.length > 0) {
+                    html += `
+                        <div class="search-category">
+                            <h4 class="search-category-title">備註 (${results.notes.length})</h4>
+                            ${results.notes.map(note => `
+                                <div class="search-result-item" data-type="note" data-customer-id="${note.customerId}">
+                                    <div class="search-result-icon">📝</div>
+                                    <div class="search-result-content">
+                                        <div class="search-result-title">${escapeHTML(note.content.substring(0, 50))}${note.content.length > 50 ? '...' : ''}</div>
+                                        <div class="search-result-meta">
+                                            ${note.customerName ? escapeHTML(note.customerName) + ' • ' : ''}
+                                            ${new Date(note.timestamp).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                // 模板結果
+                if (results.templates.length > 0) {
+                    html += `
+                        <div class="search-category">
+                            <h4 class="search-category-title">訊息模板 (${results.templates.length})</h4>
+                            ${results.templates.map(template => `
+                                <div class="search-result-item" data-type="template" data-id="${template.id}">
+                                    <div class="search-result-icon">📋</div>
+                                    <div class="search-result-content">
+                                        <div class="search-result-title">${escapeHTML(template.name)}</div>
+                                        <div class="search-result-meta">
+                                            ${template.platform || 'LINE'} • 
+                                            ${template.description ? escapeHTML(template.description.substring(0, 30)) : '無描述'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                if (globalSearchResults) {
+                    globalSearchResults.innerHTML = html;
+                    
+                    // 綁定點擊事件
+                    globalSearchResults.querySelectorAll('.search-result-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            const type = item.dataset.type;
+                            const id = item.dataset.id;
+                            const customerId = item.dataset.customerId;
+                            
+                            closeGlobalSearch();
+                            
+                            if (type === 'customer') {
+                                showPage('page-list');
+                                // 高亮客戶
+                                setTimeout(() => {
+                                    const row = document.querySelector(`tr[data-customer-id="${id}"]`);
+                                    if (row) {
+                                        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        row.style.backgroundColor = 'rgba(212, 175, 55, 0.2)';
+                                        setTimeout(() => {
+                                            row.style.backgroundColor = '';
+                                        }, 2000);
+                                    }
+                                }, 100);
+                            } else if (type === 'note') {
+                                showPage('page-list');
+                                // 找到客戶並高亮
+                                setTimeout(() => {
+                                    const row = document.querySelector(`tr[data-customer-id="${customerId}"]`);
+                                    if (row) {
+                                        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        row.style.backgroundColor = 'rgba(212, 175, 55, 0.2)';
+                                        setTimeout(() => {
+                                            row.style.backgroundColor = '';
+                                        }, 2000);
+                                    }
+                                }, 100);
+                            } else if (type === 'template') {
+                                showPage('page-templates');
+                                renderTemplateList();
+                                // 高亮模板
+                                setTimeout(() => {
+                                    const card = document.querySelector(`.template-card[data-template-id="${id}"]`);
+                                    if (card) {
+                                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        card.style.border = '2px solid var(--color-accent-gold)';
+                                        setTimeout(() => {
+                                            card.style.border = '';
+                                        }, 2000);
+                                    }
+                                }, 100);
+                            }
+                        });
+                    });
+                }
+            }
+            
+            // Ctrl+K 快捷鍵
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    openGlobalSearch();
+                }
+            });
 
             // patch: 2025-11-08 折疊功能
             const expiringHeader = doc('expiring-section-header');
@@ -5497,6 +7314,12 @@ ${escapeHTML(msg.message)}
                 const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
                 
                 showTemplateSelectorModal((template) => {
+                    // patch: 2025-11-09 檢查是否為營業稅模板
+                    if (template.category === 'vat') {
+                        showToast('營業稅模板請在「營業稅」頁籤使用', 'error');
+                        return;
+                    }
+                    
                     // 產生訊息
                     const messages = tagSystem.generateMessages(template.content, selectedCustomers);
                     
@@ -5777,6 +7600,12 @@ ${escapeHTML(msg.message)}
                     }
                     
                     showTemplateSelectorModal((template) => {
+                        // patch: 2025-11-09 檢查是否為營業稅模板
+                        if (template.category === 'vat') {
+                            showToast('營業稅模板請在「營業稅」頁籤使用', 'error');
+                            return;
+                        }
+                        
                         const messages = tagSystem.generateMessages(template.content, [customer]);
                         templateManager.incrementUsage(template.id);
                         showMessagePreviewModal(messages);
@@ -6415,6 +8244,7 @@ ${escapeHTML(msg.message)}
             const VAT_STORAGE_KEY = 'offline-crm-vat-data';
             const VAT_BACKUP_KEY = 'offline-crm-vat-backup';
             const VAT_SETTINGS_KEY = 'offline-crm-vat-settings';
+            const VAT_PERIOD_SELECTION_KEY = 'offline-crm-vat-period-selection'; // patch: 2025-11-09 期數選擇本地儲存
             
             let currentVatData = null;
             let vatHistory = [];
@@ -6690,14 +8520,54 @@ ${escapeHTML(msg.message)}
                 return Math.ceil(month / 2);
             };
 
+            // patch: 2025-11-09 儲存期數選擇到本地儲存
+            const savePeriodSelection = () => {
+                try {
+                    const selection = {
+                        year: parseInt(doc('vat-year').value),
+                        period: parseInt(doc('vat-period').value),
+                        timestamp: new Date().toISOString()
+                    };
+                    localStorage.setItem(VAT_PERIOD_SELECTION_KEY, JSON.stringify(selection));
+                    console.log('期數選擇已儲存:', selection);
+                } catch (error) {
+                    console.error('儲存期數選擇失敗:', error);
+                }
+            };
+
+            // patch: 2025-11-09 載入期數選擇
+            const loadPeriodSelection = () => {
+                try {
+                    const stored = localStorage.getItem(VAT_PERIOD_SELECTION_KEY);
+                    if (stored) {
+                        const selection = JSON.parse(stored);
+                        console.log('載入期數選擇:', selection);
+                        return selection;
+                    }
+                } catch (error) {
+                    console.error('載入期數選擇失敗:', error);
+                }
+                return null;
+            };
+
             // 初始化營業稅頁面
             const initVatPage = () => {
                 const currentYear = new Date().getFullYear() - 1911; // 民國年
                 const currentPeriod = getCurrentPeriod();
 
+                // patch: 2025-11-09 優先載入使用者上次選擇的期數
+                const savedSelection = loadPeriodSelection();
+                
                 // 設定預設值
-                doc('vat-year').value = currentYear;
-                doc('vat-period').value = currentPeriod;
+                if (savedSelection) {
+                    doc('vat-year').value = savedSelection.year;
+                    doc('vat-period').value = savedSelection.period;
+                    console.log('使用上次選擇的期數:', savedSelection);
+                } else {
+                    doc('vat-year').value = currentYear;
+                    doc('vat-period').value = currentPeriod;
+                    console.log('使用系統預設期數:', currentYear, currentPeriod);
+                }
 
                 // 載入資料
                 loadCurrentVatPeriod();
@@ -6735,7 +8605,7 @@ ${escapeHTML(msg.message)}
                 // patch: 2025-11-08 檢查是否有輸入最晚收取發票日
                 if (!currentVatData.last_collect_deadline) {
                     // 沒有輸入最晚收取發票日，不顯示
-                    const reminderSection = doc('unreceived-reminder-section');
+                    const reminderSection = doc('unreceived-reminder-section', true);
                     if (reminderSection) {
                         reminderSection.remove();
                     }
@@ -6746,7 +8616,7 @@ ${escapeHTML(msg.message)}
                 const unreceivedRows = currentVatData.rows.filter(row => !row.received);
 
                 if (unreceivedRows.length === 0) {
-                    const reminderSection = doc('unreceived-reminder-section');
+                    const reminderSection = doc('unreceived-reminder-section', true);
                     if (reminderSection) {
                         reminderSection.remove();
                     }
@@ -6790,7 +8660,7 @@ ${escapeHTML(msg.message)}
                 // 插入到本期資料區塊之前
                 const vatDataSection = document.querySelector('.vat-data-section');
                 if (vatDataSection) {
-                    const existingReminder = doc('unreceived-reminder-section');
+                    const existingReminder = doc('unreceived-reminder-section', true);
                     if (existingReminder) {
                         existingReminder.remove();
                     }
@@ -7374,17 +9244,29 @@ ${escapeHTML(msg.message)}
                 showToast('客戶已新增到本期資料');
             };
 
-            // 獲取日期減2天
+            // patch: 2025-11-09 獲取日期減2天（往前推2天）
             const getDateMinus2 = (dateStr) => {
                 if (!dateStr) return '';
+                
+                console.log('getDateMinus2 輸入:', dateStr);
+                
                 const date = new Date(dateStr);
+                console.log('原始日期:', date.toISOString());
+                
+                // 減2天
                 date.setDate(date.getDate() - 2);
+                console.log('減2天後:', date.toISOString());
+                
                 const year = date.getFullYear() - 1911; // 民國年
                 const month = (date.getMonth() + 1).toString().padStart(2, '0');
                 const day = date.getDate().toString().padStart(2, '0');
                 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
                 const weekday = weekdays[date.getDay()];
-                return `${year}-${month}-${day}（週${weekday}）`;
+                
+                const result = `${year}-${month}-${day}（週${weekday}）`;
+                console.log('getDateMinus2 輸出:', result);
+                
+                return result;
             };
 
             // 編輯營業稅資料行
@@ -7643,8 +9525,15 @@ ${escapeHTML(msg.message)}
             };
 
             // --- 營業稅事件處理器 ---
-            doc('vat-year')?.addEventListener('change', loadCurrentVatPeriod);
-            doc('vat-period')?.addEventListener('change', loadCurrentVatPeriod);
+            // patch: 2025-11-09 期數變更時儲存選擇
+            doc('vat-year')?.addEventListener('change', () => {
+                savePeriodSelection();
+                loadCurrentVatPeriod();
+            });
+            doc('vat-period')?.addEventListener('change', () => {
+                savePeriodSelection();
+                loadCurrentVatPeriod();
+            });
             doc('vat-deadline')?.addEventListener('change', () => {
                 if (currentVatData) {
                     currentVatData.last_collect_deadline = doc('vat-deadline').value;
@@ -7692,11 +9581,48 @@ ${escapeHTML(msg.message)}
                 
                 // 顯示模板選擇器（只顯示營業稅模板）
                 showVatTemplateSelectorModal((template) => {
-                    // 更新 tagSystem 的營業稅資料
+                    console.log('========================================');
+                    console.log('=== 套用營業稅模板 - 開始 ===');
+                    console.log('========================================');
+                    console.log('選擇的模板:', template);
+                    console.log('模板內容:', template.content);
+                    console.log('currentVatData:', currentVatData);
+                    console.log('selectedCustomers:', selectedCustomers);
+                    console.log('filteredRows:', filteredRows);
+                    
+                    // patch: 2025-11-09 更新 tagSystem 的營業稅資料
+                    console.log('設定前 - tagSystem:', tagSystem);
+                    console.log('設定前 - tagSystem.vatData:', tagSystem.vatData);
+                    
                     tagSystem.vatData = currentVatData;
                     
+                    console.log('設定後 - tagSystem:', tagSystem);
+                    console.log('設定後 - tagSystem.vatData:', tagSystem.vatData);
+                    console.log('設定後 - tagSystem.vatData.period:', tagSystem.vatData?.period);
+                    console.log('設定後 - tagSystem.vatData.year:', tagSystem.vatData?.year);
+                    console.log('設定後 - tagSystem.vatData.last_collect_deadline:', tagSystem.vatData?.last_collect_deadline);
+                    
+                    // 驗證設定是否成功
+                    console.log('驗證 - tagSystem.vatData === currentVatData:', tagSystem.vatData === currentVatData);
+                    console.log('驗證 - typeof tagSystem.vatData:', typeof tagSystem.vatData);
+                    
                     // 產生訊息（傳入營業稅資料）
+                    console.log('');
+                    console.log('=== 開始產生訊息 ===');
+                    console.log('呼叫前 - tagSystem.vatData:', tagSystem.vatData);
                     const messages = tagSystem.generateMessages(template.content, selectedCustomers, filteredRows);
+                    console.log('呼叫後 - tagSystem.vatData:', tagSystem.vatData);
+                    
+                    console.log('');
+                    console.log('=== 訊息產生完成 ===');
+                    console.log('已產生訊息:', messages.length, '筆');
+                    if (messages.length > 0) {
+                        console.log('第一筆訊息範例:');
+                        console.log('  客戶:', messages[0].customer);
+                        console.log('  訊息:', messages[0].message);
+                    }
+                    console.log('========================================');
+                    console.log('');
                     
                     // 增加使用次數
                     templateManager.incrementUsage(template.id);
@@ -7704,7 +9630,7 @@ ${escapeHTML(msg.message)}
                     // 顯示訊息預覽
                     showMessagePreviewModal(messages);
                     
-                    showToast(`已產生 ${messages.length} 筆訊息`);
+                    showToast(`已產生 ${messages.length} 筆訊息`, 'success');
                 });
             });
 
@@ -7944,7 +9870,7 @@ ${escapeHTML(msg.message)}
 
             // --- 客戶列表搜尋和匯出功能 ---
             let filteredCustomers = [...customers]; // 搜尋後的結果
-            let searchTimeout = null;
+            let customerSearchTimeout = null; // patch: 2025-11-09 重新命名避免衝突
 
             // 關鍵字搜尋功能
             const searchCustomers = (keyword) => {
@@ -8150,8 +10076,8 @@ ${escapeHTML(msg.message)}
                 }
 
                 // Debounce搜尋
-                if (searchTimeout) clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
+                if (customerSearchTimeout) clearTimeout(customerSearchTimeout);
+                customerSearchTimeout = setTimeout(() => {
                     searchCustomers(keyword);
                 }, 300);
             });
@@ -8202,7 +10128,15 @@ ${escapeHTML(msg.message)}
 
             renderAll();
 
-            // patch: 2025-11-08 初始化欄寬調整功能
+            // ========================================
+            // patch: 2025-11-09 Advanced Features
+            // Global Search Initialization
+            // ========================================
+            
+            // 初始化全域搜尋
+            globalSearch = new GlobalSearch(customers, templateManager.templates);
+            
+            // 全域搜尋按鈕事件
             const initColumnResize = () => {
                 const table = document.querySelector('.data-table');
                 if (!table) return;
@@ -8325,9 +10259,705 @@ ${escapeHTML(msg.message)}
             // 初始化收取方式（確保在營業稅頁面正確顯示）
             console.log('載入的收取方式:', collectMethods);
 
+            // ========================================
+            // patch: 2025-11-09 Settings Page Functions
+            // ========================================
+
+            const APP_SETTINGS_KEY = 'app-settings/v1';
+
+            // 預設設定
+            const defaultSettings = {
+                expireDays: 30,
+                urgentDays: 7,
+                timelineDays: 90,
+                theme: 'dark',
+                fontSize: 'medium',
+                autoBackup: true,
+                backupFrequency: 7,
+                debugMode: false,
+                performanceMode: false
+            };
+
+            // 載入設定
+            let appSettings = { ...defaultSettings };
+            try {
+                const saved = localStorage.getItem(APP_SETTINGS_KEY);
+                if (saved) {
+                    appSettings = { ...defaultSettings, ...JSON.parse(saved) };
+                }
+            } catch (e) {
+                console.error('載入設定失敗:', e);
+            }
+
+            // 儲存設定
+            const saveAppSettings = () => {
+                try {
+                    localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(appSettings));
+                    return true;
+                } catch (e) {
+                    console.error('儲存設定失敗:', e);
+                    return false;
+                }
+            };
+
+            // 套用設定
+            const applySettings = () => {
+                // 套用主題
+                document.body.classList.remove('light-theme', 'dark-theme');
+                document.body.classList.add(`${appSettings.theme}-theme`);
+
+                // 套用字體大小
+                document.body.classList.remove('font-small', 'font-medium', 'font-large');
+                document.body.classList.add(`font-${appSettings.fontSize}`);
+
+                // 套用效能模式
+                if (appSettings.performanceMode) {
+                    document.body.classList.add('performance-mode');
+                } else {
+                    document.body.classList.remove('performance-mode');
+                }
+
+                // 更新全域變數
+                if (window.EXPIRE_SOON_DAYS !== undefined) {
+                    window.EXPIRE_SOON_DAYS = appSettings.expireDays;
+                }
+            };
+
+            // 載入設定到表單
+            const loadAppSettings = () => {
+                const expireDaysEl = doc('setting-expire-days', true);
+                const urgentDaysEl = doc('setting-urgent-days', true);
+                const timelineDaysEl = doc('setting-timeline-days', true);
+                const themeEl = doc('setting-theme', true);
+                const fontSizeEl = doc('setting-font-size', true);
+                const autoBackupEl = doc('setting-auto-backup', true);
+                const backupFrequencyEl = doc('setting-backup-frequency', true);
+                const debugModeEl = doc('setting-debug-mode', true);
+                const performanceModeEl = doc('setting-performance-mode', true);
+
+                if (expireDaysEl) expireDaysEl.value = appSettings.expireDays;
+                if (urgentDaysEl) urgentDaysEl.value = appSettings.urgentDays;
+                if (timelineDaysEl) timelineDaysEl.value = appSettings.timelineDays;
+                if (themeEl) themeEl.value = appSettings.theme;
+                if (fontSizeEl) fontSizeEl.value = appSettings.fontSize;
+                if (autoBackupEl) autoBackupEl.checked = appSettings.autoBackup;
+                if (backupFrequencyEl) backupFrequencyEl.value = appSettings.backupFrequency;
+                if (debugModeEl) debugModeEl.checked = appSettings.debugMode;
+                if (performanceModeEl) performanceModeEl.checked = appSettings.performanceMode;
+
+                // 更新儲存空間資訊
+                updateStorageUsage();
+            };
+
+            // 更新儲存空間使用情況
+            const updateStorageUsage = () => {
+                const usageEl = doc('storage-usage-info', true);
+                if (!usageEl) return;
+
+                try {
+                    let totalSize = 0;
+                    for (let key in localStorage) {
+                        if (localStorage.hasOwnProperty(key)) {
+                            totalSize += localStorage[key].length + key.length;
+                        }
+                    }
+                    
+                    const sizeInKB = (totalSize / 1024).toFixed(2);
+                    const sizeInMB = (totalSize / 1024 / 1024).toFixed(2);
+                    
+                    if (totalSize < 1024 * 1024) {
+                        usageEl.textContent = `${sizeInKB} KB`;
+                    } else {
+                        usageEl.textContent = `${sizeInMB} MB`;
+                    }
+                } catch (e) {
+                    usageEl.textContent = '無法計算';
+                }
+            };
+
+            // 儲存設定按鈕
+            doc('settings-save-btn')?.addEventListener('click', () => {
+                const expireDaysEl = doc('setting-expire-days', true);
+                const urgentDaysEl = doc('setting-urgent-days', true);
+                const timelineDaysEl = doc('setting-timeline-days', true);
+                const themeEl = doc('setting-theme', true);
+                const fontSizeEl = doc('setting-font-size', true);
+                const autoBackupEl = doc('setting-auto-backup', true);
+                const backupFrequencyEl = doc('setting-backup-frequency', true);
+                const debugModeEl = doc('setting-debug-mode', true);
+                const performanceModeEl = doc('setting-performance-mode', true);
+
+                // 驗證輸入
+                const expireDays = parseInt(expireDaysEl?.value || 30);
+                const urgentDays = parseInt(urgentDaysEl?.value || 7);
+
+                if (expireDays < 1 || expireDays > 365) {
+                    showToast('即將到期天數必須在 1-365 之間', 'error');
+                    return;
+                }
+
+                if (urgentDays < 1 || urgentDays > 30) {
+                    showToast('緊急提醒天數必須在 1-30 之間', 'error');
+                    return;
+                }
+
+                if (urgentDays > expireDays) {
+                    showToast('緊急提醒天數不能大於即將到期天數', 'error');
+                    return;
+                }
+
+                // 更新設定
+                appSettings.expireDays = expireDays;
+                appSettings.urgentDays = urgentDays;
+                appSettings.timelineDays = parseInt(timelineDaysEl?.value || 90);
+                appSettings.theme = themeEl?.value || 'dark';
+                appSettings.fontSize = fontSizeEl?.value || 'medium';
+                appSettings.autoBackup = autoBackupEl?.checked || false;
+                appSettings.backupFrequency = parseInt(backupFrequencyEl?.value || 7);
+                appSettings.debugMode = debugModeEl?.checked || false;
+                appSettings.performanceMode = performanceModeEl?.checked || false;
+
+                // 儲存並套用
+                if (saveAppSettings()) {
+                    applySettings();
+                    showToast('設定已儲存', 'success');
+                    
+                    // 如果在儀表板頁面，重新整理
+                    if (uiState.activeTab === 'page-dashboard') {
+                        refreshDashboard();
+                    }
+                } else {
+                    showToast('設定儲存失敗', 'error');
+                }
+            });
+
+            // 重設設定按鈕
+            doc('settings-reset-btn')?.addEventListener('click', () => {
+                if (confirm('確定要重設所有設定為預設值嗎？')) {
+                    appSettings = { ...defaultSettings };
+                    saveAppSettings();
+                    applySettings();
+                    loadAppSettings();
+                    showToast('設定已重設為預設值', 'success');
+                }
+            });
+
+            // 匯出完整備份
+            doc('settings-export-all-btn')?.addEventListener('click', () => {
+                try {
+                    const backup = {
+                        version: '1.0',
+                        timestamp: new Date().toISOString(),
+                        customers: customers,
+                        vatData: vatData,
+                        templates: templateManager.templates,
+                        settings: appSettings,
+                        collectMethods: collectMethods
+                    };
+                    
+                    const dataStr = JSON.stringify(backup, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `complete_backup_${new Date().getTime()}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    showToast('完整備份已匯出', 'success');
+                } catch (e) {
+                    console.error('匯出失敗:', e);
+                    showToast('匯出失敗', 'error');
+                }
+            });
+
+            // 匯入備份
+            doc('settings-import-backup-btn')?.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const backup = JSON.parse(event.target.result);
+                            
+                            if (!backup.version || !backup.customers) {
+                                showToast('備份檔案格式不正確', 'error');
+                                return;
+                            }
+                            
+                            if (confirm('確定要匯入備份嗎？這將覆蓋目前的所有資料。')) {
+                                // 還原資料
+                                if (backup.customers) {
+                                    customers = backup.customers;
+                                    saveCustomersToStorage();
+                                }
+                                if (backup.vatData) {
+                                    vatData = backup.vatData;
+                                    localStorage.setItem('vat-data/v1', JSON.stringify(vatData));
+                                }
+                                if (backup.templates) {
+                                    templateManager.templates = backup.templates;
+                                    templateManager.saveTemplates();
+                                }
+                                if (backup.settings) {
+                                    appSettings = { ...defaultSettings, ...backup.settings };
+                                    saveAppSettings();
+                                    applySettings();
+                                }
+                                if (backup.collectMethods) {
+                                    collectMethods = backup.collectMethods;
+                                    localStorage.setItem('collect-methods/v1', JSON.stringify(collectMethods));
+                                }
+                                
+                                showToast('備份已成功匯入', 'success');
+                                
+                                // 重新載入頁面
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1000);
+                            }
+                        } catch (e) {
+                            console.error('匯入失敗:', e);
+                            showToast('匯入失敗：檔案格式錯誤', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                
+                input.click();
+            });
+
+            // 清除所有資料
+            doc('settings-clear-all-btn')?.addEventListener('click', () => {
+                if (confirm('⚠️ 警告：這將清除所有資料，包括客戶、營業稅、模板和設定。\n\n建議先匯出備份。\n\n確定要繼續嗎？')) {
+                    if (confirm('再次確認：真的要清除所有資料嗎？此操作無法復原！')) {
+                        try {
+                            localStorage.clear();
+                            showToast('所有資料已清除', 'success');
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        } catch (e) {
+                            console.error('清除失敗:', e);
+                            showToast('清除失敗', 'error');
+                        }
+                    }
+                }
+            });
+
+            // 初始化時套用設定
+            applySettings();
+
             // 初始化搜尋和匯出功能
             filteredCustomers = [...customers];
             updateExportInfo();
+
+            // ========================================
+            // patch: 2025-11-09 Dashboard Home Page Functions
+            // ========================================
+
+            // 儀表板資料計算
+            const calculateDashboardStats = () => {
+                const now = new Date();
+                const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+                
+                let expired = 0;
+                let expiring = 0;
+                let active = 0;
+                
+                customers.forEach(customer => {
+                    if (!customer.leaseEndDate) {
+                        active++;
+                        return;
+                    }
+                    
+                    const endDate = new Date(customer.leaseEndDate);
+                    if (endDate < now) {
+                        expired++;
+                    } else if (endDate <= thirtyDaysLater) {
+                        expiring++;
+                    } else {
+                        active++;
+                    }
+                });
+                
+                return {
+                    total: customers.length,
+                    expired,
+                    expiring,
+                    active
+                };
+            };
+
+            // 取得即將到期客戶列表
+            const getExpiringCustomers = (days = 30) => {
+                const now = new Date();
+                const targetDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+                
+                return customers
+                    .filter(c => {
+                        if (!c.leaseEndDate) return false;
+                        const endDate = new Date(c.leaseEndDate);
+                        return endDate >= now && endDate <= targetDate;
+                    })
+                    .map(c => {
+                        const endDate = new Date(c.leaseEndDate);
+                        const daysUntilExpiry = Math.ceil((endDate - now) / (24 * 60 * 60 * 1000));
+                        return {
+                            ...c,
+                            daysUntilExpiry,
+                            urgency: daysUntilExpiry <= 7 ? 'urgent' : 'warning'
+                        };
+                    })
+                    .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+            };
+
+            // 取得時間軸事件
+            const getTimelineEvents = (days = 90) => {
+                const now = new Date();
+                const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+                
+                const events = [];
+                
+                // 租約到期事件
+                customers.forEach(customer => {
+                    if (!customer.leaseEndDate) return;
+                    const leaseEnd = new Date(customer.leaseEndDate);
+                    if (leaseEnd >= now && leaseEnd <= endDate) {
+                        events.push({
+                            date: leaseEnd,
+                            type: 'lease',
+                            icon: '📋',
+                            title: customer.companyName,
+                            detail: `租約到期 - ${customer.contactPerson || ''}`,
+                            customer: customer
+                        });
+                    }
+                });
+                
+                // 營業稅事件（簡化版）
+                const currentYear = new Date().getFullYear() - 1911;
+                const vatPeriods = [
+                    { month: 1, day: 15, period: `${currentYear-1}年11-12月` },
+                    { month: 3, day: 15, period: `${currentYear}年01-02月` },
+                    { month: 5, day: 15, period: `${currentYear}年03-04月` },
+                    { month: 7, day: 15, period: `${currentYear}年05-06月` },
+                    { month: 9, day: 15, period: `${currentYear}年07-08月` },
+                    { month: 11, day: 15, period: `${currentYear}年09-10月` }
+                ];
+                
+                vatPeriods.forEach(vat => {
+                    const vatDate = new Date(currentYear + 1911, vat.month - 1, vat.day);
+                    if (vatDate >= now && vatDate <= endDate) {
+                        events.push({
+                            date: vatDate,
+                            type: 'vat',
+                            icon: '💰',
+                            title: '營業稅申報',
+                            detail: vat.period,
+                            vatPeriod: vat.period
+                        });
+                    }
+                });
+                
+                // 排序事件
+                events.sort((a, b) => a.date - b.date);
+                
+                return events;
+            };
+
+            // 渲染儀表板統計卡片
+            const renderDashboardStats = () => {
+                const stats = calculateDashboardStats();
+                
+                const totalEl = doc('dashboard-total-customers');
+                const expiredEl = doc('dashboard-expired-count');
+                const expiringEl = doc('dashboard-expiring-count');
+                const activeEl = doc('dashboard-active-count');
+                
+                if (totalEl) totalEl.textContent = stats.total;
+                if (expiredEl) expiredEl.textContent = stats.expired;
+                if (expiringEl) expiringEl.textContent = stats.expiring;
+                if (activeEl) activeEl.textContent = stats.active;
+            };
+
+            // 渲染即將到期客戶列表
+            const renderDashboardExpiringList = () => {
+                const listEl = doc('dashboard-expiring-list');
+                if (!listEl) return;
+                
+                const expiringCustomers = getExpiringCustomers(30);
+                
+                if (expiringCustomers.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="dashboard-empty">
+                            <div class="dashboard-empty-icon">✅</div>
+                            <div class="dashboard-empty-text">目前沒有即將到期的客戶</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 只顯示前 10 筆
+                const displayCustomers = expiringCustomers.slice(0, 10);
+                
+                listEl.innerHTML = displayCustomers.map(customer => `
+                    <div class="dashboard-list-item ${customer.urgency}" data-customer-id="${customer.id}">
+                        <div class="dashboard-list-item-header">
+                            <div class="dashboard-list-item-company">${customer.companyName}</div>
+                            <div class="dashboard-list-item-days ${customer.urgency}">
+                                ${customer.daysUntilExpiry} 天
+                            </div>
+                        </div>
+                        <div class="dashboard-list-item-info">
+                            ${customer.contactPerson ? `👤 ${customer.contactPerson}` : ''}
+                            ${customer.phone ? ` | 📞 ${customer.phone}` : ''}
+                            <br>
+                            📅 到期日: ${toROCDate(customer.leaseEndDate)}
+                        </div>
+                    </div>
+                `).join('');
+                
+                // 綁定點擊事件
+                listEl.querySelectorAll('.dashboard-list-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const customerId = item.dataset.customerId;
+                        showPage('page-list');
+                        setTimeout(() => {
+                            const row = document.querySelector(`tr[data-customer-id="${customerId}"]`);
+                            if (row) {
+                                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                row.style.background = 'rgba(212, 175, 55, 0.2)';
+                                setTimeout(() => {
+                                    row.style.background = '';
+                                }, 2000);
+                            }
+                        }, 100);
+                    });
+                });
+            };
+
+            // 渲染營業稅提醒
+            const renderDashboardVatReminders = () => {
+                const vatEl = doc('dashboard-vat-reminders');
+                if (!vatEl) return;
+                
+                const now = new Date();
+                const currentYear = new Date().getFullYear() - 1911;
+                const currentMonth = now.getMonth() + 1;
+                
+                // 找出當前或下一個申報期
+                const vatPeriods = [
+                    { deadline: new Date(currentYear + 1911, 0, 15), period: `${currentYear-1}年11-12月`, months: [11, 12] },
+                    { deadline: new Date(currentYear + 1911, 2, 15), period: `${currentYear}年01-02月`, months: [1, 2] },
+                    { deadline: new Date(currentYear + 1911, 4, 15), period: `${currentYear}年03-04月`, months: [3, 4] },
+                    { deadline: new Date(currentYear + 1911, 6, 15), period: `${currentYear}年05-06月`, months: [5, 6] },
+                    { deadline: new Date(currentYear + 1911, 8, 15), period: `${currentYear}年07-08月`, months: [7, 8] },
+                    { deadline: new Date(currentYear + 1911, 10, 15), period: `${currentYear}年09-10月`, months: [9, 10] }
+                ];
+                
+                const upcomingPeriods = vatPeriods
+                    .filter(p => p.deadline >= now)
+                    .slice(0, 2);
+                
+                if (upcomingPeriods.length === 0) {
+                    vatEl.innerHTML = `
+                        <div class="dashboard-empty">
+                            <div class="dashboard-empty-icon">✅</div>
+                            <div class="dashboard-empty-text">目前無待處理事項</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                vatEl.innerHTML = upcomingPeriods.map(vat => {
+                    const daysUntil = Math.ceil((vat.deadline - now) / (24 * 60 * 60 * 1000));
+                    const isUrgent = daysUntil <= 7;
+                    
+                    return `
+                        <div class="dashboard-vat-item ${isUrgent ? 'urgent' : ''}" data-vat-period="${vat.period}">
+                            <div class="dashboard-vat-item-header">
+                                <div class="dashboard-vat-item-period">${vat.period}</div>
+                                <div class="dashboard-vat-item-badge ${isUrgent ? 'urgent' : 'normal'}">
+                                    ${daysUntil} 天後截止
+                                </div>
+                            </div>
+                            <div class="dashboard-vat-item-info">
+                                📅 截止日期: ${vat.deadline.getFullYear() - 1911}/${String(vat.deadline.getMonth() + 1).padStart(2, '0')}/${String(vat.deadline.getDate()).padStart(2, '0')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // 綁定點擊事件
+                vatEl.querySelectorAll('.dashboard-vat-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        showPage('page-vat');
+                        initVatPage();
+                    });
+                });
+            };
+
+            // 渲染時間軸
+            const renderDashboardTimeline = (days = 90) => {
+                const timelineEl = doc('dashboard-timeline');
+                if (!timelineEl) return;
+                
+                const events = getTimelineEvents(days);
+                
+                if (events.length === 0) {
+                    timelineEl.innerHTML = `
+                        <div class="dashboard-empty">
+                            <div class="dashboard-empty-icon">📅</div>
+                            <div class="dashboard-empty-text">未來 ${days} 天內沒有預定事件</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 按月份分組
+                const eventsByMonth = {};
+                events.forEach(event => {
+                    const monthKey = `${event.date.getFullYear()}/${String(event.date.getMonth() + 1).padStart(2, '0')}`;
+                    if (!eventsByMonth[monthKey]) {
+                        eventsByMonth[monthKey] = [];
+                    }
+                    eventsByMonth[monthKey].push(event);
+                });
+                
+                // 按日期分組
+                const groupEventsByDate = (events) => {
+                    const grouped = {};
+                    events.forEach(event => {
+                        const dateKey = event.date.toISOString().split('T')[0];
+                        if (!grouped[dateKey]) {
+                            grouped[dateKey] = [];
+                        }
+                        grouped[dateKey].push(event);
+                    });
+                    return grouped;
+                };
+                
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                
+                timelineEl.innerHTML = Object.entries(eventsByMonth).map(([month, monthEvents]) => {
+                    const eventsByDate = groupEventsByDate(monthEvents);
+                    
+                    return `
+                        <div class="timeline-month">
+                            <div class="timeline-month-header">${month}</div>
+                            ${Object.entries(eventsByDate).map(([date, dayEvents]) => {
+                                const eventDate = new Date(date);
+                                const rocYear = eventDate.getFullYear() - 1911;
+                                const monthDay = `${rocYear}/${String(eventDate.getMonth() + 1).padStart(2, '0')}/${String(eventDate.getDate()).padStart(2, '0')}`;
+                                const weekday = weekdays[eventDate.getDay()];
+                                
+                                return `
+                                    <div class="timeline-day">
+                                        <div class="timeline-day-header">
+                                            <span class="timeline-day-date">${monthDay}</span>
+                                            <span class="timeline-day-weekday">週${weekday}</span>
+                                            ${dayEvents.length > 1 ? `<span class="timeline-day-count">${dayEvents.length} 個事件</span>` : ''}
+                                        </div>
+                                        <div class="timeline-events">
+                                            ${dayEvents.map(event => `
+                                                <div class="timeline-event" data-event-type="${event.type}">
+                                                    <div class="timeline-event-icon">${event.icon}</div>
+                                                    <div class="timeline-event-content">
+                                                        <div class="timeline-event-title">${event.title}</div>
+                                                        <div class="timeline-event-detail">${event.detail}</div>
+                                                    </div>
+                                                    <span class="timeline-event-type ${event.type}">
+                                                        ${event.type === 'lease' ? '租約' : event.type === 'vat' ? '稅務' : '提醒'}
+                                                    </span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            // 重新整理儀表板
+            const refreshDashboard = () => {
+                renderDashboardStats();
+                renderDashboardExpiringList();
+                renderDashboardVatReminders();
+                renderDashboardTimeline(90);
+            };
+
+            // 儀表板事件監聽
+            doc('dashboard-refresh-btn')?.addEventListener('click', () => {
+                refreshDashboard();
+                showToast('儀表板已更新');
+            });
+
+            // 統計卡片點擊事件
+            document.querySelectorAll('.stat-card.clickable').forEach(card => {
+                card.addEventListener('click', () => {
+                    const filter = card.dataset.filter;
+                    showPage('page-list');
+                    
+                    // 根據篩選條件設定
+                    if (filter === 'expired' || filter === 'expiring' || filter === 'active') {
+                        setTimeout(() => {
+                            const filterSelect = doc('expiring-filter-select');
+                            if (filterSelect) {
+                                filterSelect.value = filter;
+                                filterSelect.dispatchEvent(new Event('change'));
+                            }
+                        }, 100);
+                    }
+                });
+            });
+
+            // 查看全部到期客戶
+            doc('view-all-expiring-btn')?.addEventListener('click', () => {
+                showPage('page-list');
+                setTimeout(() => {
+                    const expiringSection = doc('expiring-customers-section');
+                    if (expiringSection) {
+                        expiringSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }, 100);
+            });
+
+            // 時間軸範圍選擇
+            doc('timeline-range-select')?.addEventListener('change', (e) => {
+                const days = parseInt(e.target.value);
+                renderDashboardTimeline(days);
+            });
+
+            // 快速操作按鈕
+            doc('dashboard-add-customer-btn')?.addEventListener('click', () => {
+                showPage('page-list');
+                setTimeout(() => {
+                    doc('add-customer-btn')?.click();
+                }, 100);
+            });
+
+            doc('dashboard-export-btn')?.addEventListener('click', () => {
+                showPage('page-list');
+                setTimeout(() => {
+                    doc('export-customers-excel-btn')?.click();
+                }, 100);
+            });
+
+            doc('dashboard-search-btn')?.addEventListener('click', () => {
+                doc('global-search-btn')?.click();
+            });
+
+            // 初始化儀表板（預設顯示）
+            refreshDashboard();
         });
     </script>
 </body>
