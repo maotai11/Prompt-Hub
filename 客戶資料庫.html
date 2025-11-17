@@ -8937,6 +8937,8 @@ ${escapeHTML(msg.message)}
 
             // patch: 2025-11-17 每月工作項目資料結構
             const MONTHLY_TASKS_STORAGE_KEY = 'offline-crm-monthly-tasks';
+            const MONTHLY_TASKS_YEAR_KEY = 'offline-crm-monthly-tasks-year';
+            const MONTHLY_TASKS_COLLAPSED_KEY = 'offline-crm-monthly-tasks-collapsed';
 
             // 載入提醒設定
             const loadReminderSettings = () => {
@@ -9344,19 +9346,60 @@ ${escapeHTML(msg.message)}
                 }
             };
 
+            // patch: 2025-11-17 載入/儲存年度選擇
+            const loadSelectedYear = () => {
+                try {
+                    const saved = localStorage.getItem(MONTHLY_TASKS_YEAR_KEY);
+                    return saved ? parseInt(saved) : new Date().getFullYear();
+                } catch {
+                    return new Date().getFullYear();
+                }
+            };
+
+            const saveSelectedYear = (year) => {
+                try {
+                    localStorage.setItem(MONTHLY_TASKS_YEAR_KEY, year.toString());
+                } catch (e) {
+                    console.error('儲存年度失敗:', e);
+                }
+            };
+
+            // patch: 2025-11-17 載入/儲存折疊狀態
+            const loadCollapsedState = () => {
+                try {
+                    const saved = localStorage.getItem(MONTHLY_TASKS_COLLAPSED_KEY);
+                    return saved ? JSON.parse(saved) : {};
+                } catch {
+                    return {};
+                }
+            };
+
+            const saveCollapsedState = (state) => {
+                try {
+                    localStorage.setItem(MONTHLY_TASKS_COLLAPSED_KEY, JSON.stringify(state));
+                } catch (e) {
+                    console.error('儲存折疊狀態失敗:', e);
+                }
+            };
+
             // 初始化每月工作項目頁面
             const initMonthlyTasksPage = () => {
-                const currentYear = new Date().getFullYear();
                 const yearInput = doc('monthly-tasks-year');
-                if (yearInput && !yearInput.value) {
-                    yearInput.value = currentYear;
+
+                // patch: 2025-11-17 載入上次選擇的年度
+                if (yearInput) {
+                    yearInput.value = loadSelectedYear();
                 }
 
                 renderMonthlyTasksPage();
 
                 // 綁定事件（只綁定一次）
                 if (yearInput && !yearInput.dataset.bound) {
-                    yearInput.addEventListener('change', renderMonthlyTasksPage);
+                    yearInput.addEventListener('change', (e) => {
+                        const year = parseInt(e.target.value);
+                        saveSelectedYear(year);
+                        renderMonthlyTasksPage();
+                    });
                     yearInput.dataset.bound = 'true';
                 }
 
@@ -9400,13 +9443,14 @@ ${escapeHTML(msg.message)}
                 if (!container) return;
 
                 const yearInput = doc('monthly-tasks-year');
-                const year = yearInput ? parseInt(yearInput.value) : new Date().getFullYear();
+                const year = yearInput ? parseInt(yearInput.value) : loadSelectedYear();
 
                 const searchTerm = doc('monthly-tasks-search')?.value?.toLowerCase() || '';
                 const filter = doc('monthly-tasks-filter')?.value || 'all';
                 const monthFilter = doc('monthly-tasks-month-filter')?.value || 'all';
 
                 const tasksData = loadMonthlyTasks();
+                const collapsedState = loadCollapsedState();
 
                 // 篩選客戶
                 let filteredCustomers = customers.filter(c => {
@@ -9423,6 +9467,8 @@ ${escapeHTML(msg.message)}
 
                 container.innerHTML = filteredCustomers.map(customer => {
                     const customerTasks = tasksData[customer.id] || [];
+                    const taskCount = customerTasks.length;
+                    const isCollapsed = collapsedState[customer.id] || false;
 
                     // 篩選任務
                     let displayTasks = customerTasks.filter(task => {
@@ -9455,19 +9501,25 @@ ${escapeHTML(msg.message)}
 
                     return `
                         <div class="monthly-task-customer-card">
-                            <div class="monthly-task-customer-header">
-                                <div>
-                                    <div class="monthly-task-customer-name">${escapeHTML(customer.companyName || customer.id)}</div>
-                                    ${customer.contact ? `<div class="monthly-task-customer-info">聯絡人：${escapeHTML(customer.contact)}</div>` : ''}
+                            <div class="monthly-task-customer-header" style="cursor: pointer;" onclick="toggleCustomerCollapse('${customer.id}')">
+                                <div style="flex: 1;">
+                                    <div class="monthly-task-customer-name">
+                                        <span style="margin-right: 0.5rem;">${isCollapsed ? '▶' : '▼'}</span>
+                                        ${escapeHTML(customer.companyName || customer.id)}
+                                        <span style="color: var(--color-accent-gold); font-size: 0.9rem; margin-left: 0.5rem;">(${taskCount})</span>
+                                    </div>
+                                    ${customer.contact ? `<div class="monthly-task-customer-info" style="margin-left: 1.5rem;">聯絡人：${escapeHTML(customer.contact)}</div>` : ''}
                                 </div>
-                                <button class="btn btn-primary monthly-task-add-btn" onclick="showAddTaskDialog('${customer.id}')">
+                                <button class="btn btn-primary monthly-task-add-btn" onclick="event.stopPropagation(); showAddTaskDialog('${customer.id}')">
                                     + 新增工作項目
                                 </button>
                             </div>
-                            ${displayTasks.length === 0 ?
+                            <div id="customer-tasks-${customer.id}" style="display: ${isCollapsed ? 'none' : 'block'};">
+                                ${displayTasks.length === 0 ?
                             '<div style="text-align: center; padding: 2rem; color: var(--color-text-secondary); font-style: italic;">尚無工作項目，點擊上方按鈕新增</div>' :
                             displayTasks.map((task, taskIndex) => renderTaskItem(customer.id, task, taskIndex, year)).join('')
                         }
+                            </div>
                         </div>
                     `;
                 }).filter(html => html).join('');
@@ -9475,6 +9527,21 @@ ${escapeHTML(msg.message)}
                 if (!container.innerHTML.trim()) {
                     container.innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--color-text-secondary); font-style: italic;">沒有符合篩選條件的資料</div>';
                 }
+            };
+
+            // patch: 2025-11-17 切換客戶折疊狀態
+            window.toggleCustomerCollapse = (customerId) => {
+                const collapsedState = loadCollapsedState();
+                collapsedState[customerId] = !collapsedState[customerId];
+                saveCollapsedState(collapsedState);
+
+                const tasksContainer = doc(`customer-tasks-${customerId}`);
+                if (tasksContainer) {
+                    tasksContainer.style.display = collapsedState[customerId] ? 'none' : 'block';
+                }
+
+                // 更新箭頭圖示
+                renderMonthlyTasksPage();
             };
 
             // 渲染單個任務項目
