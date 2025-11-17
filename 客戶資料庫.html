@@ -9616,6 +9616,9 @@ ${escapeHTML(msg.message)}
                 const customer = customers.find(c => c.id === customerId);
                 if (!customer) return;
 
+                // patch: 2025-11-17 取得當前選擇的年度
+                const currentYear = loadSelectedYear();
+
                 const modalHtml = `
                     <div class="modal-overlay" id="add-task-modal">
                         <div class="modal-content" style="max-width: 500px;">
@@ -9632,6 +9635,15 @@ ${escapeHTML(msg.message)}
                                 <label style="display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary);">項目名稱</label>
                                 <input type="text" id="new-task-name" placeholder="例：租金發票、廣告費、報告..."
                                     style="width: 100%; padding: 0.6rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary);">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary);">建立年度</label>
+                                <input type="number" id="new-task-year" min="2020" max="2050" value="${currentYear}"
+                                    style="width: 100%; padding: 0.6rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary); text-align: center;">
+                                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-text-secondary);">
+                                    預設為當前選擇的年度，可修改
+                                </div>
                             </div>
 
                             <div class="modal-actions">
@@ -9656,8 +9668,15 @@ ${escapeHTML(msg.message)}
 
             window.confirmAddTask = (customerId) => {
                 const taskName = doc('new-task-name')?.value?.trim();
+                const taskYear = parseInt(doc('new-task-year')?.value);
+
                 if (!taskName) {
                     showToast('請輸入項目名稱', 'error');
+                    return;
+                }
+
+                if (!taskYear || taskYear < 2020 || taskYear > 2050) {
+                    showToast('請輸入有效的年度 (2020-2050)', 'error');
                     return;
                 }
 
@@ -9666,16 +9685,36 @@ ${escapeHTML(msg.message)}
                     tasksData[customerId] = [];
                 }
 
-                tasksData[customerId].push({
+                // patch: 2025-11-17 建立任務時初始化指定年度的資料
+                const newTask = {
                     name: taskName,
                     months: {},
                     createdAt: new Date().toISOString()
-                });
+                };
+
+                // 初始化該年度的月份資料（全部設為未完成）
+                newTask.months[taskYear] = {};
+                for (let month = 1; month <= 12; month++) {
+                    newTask.months[taskYear][month] = false;
+                }
+
+                tasksData[customerId].push(newTask);
 
                 saveMonthlyTasks(tasksData);
                 closeAddTaskDialog();
+
+                // patch: 2025-11-17 如果新增的年度與當前顯示的年度不同，切換到新年度
+                const currentDisplayYear = loadSelectedYear();
+                if (taskYear !== currentDisplayYear) {
+                    const yearInput = doc('monthly-tasks-year');
+                    if (yearInput) {
+                        yearInput.value = taskYear;
+                        saveSelectedYear(taskYear);
+                    }
+                }
+
                 renderMonthlyTasksPage();
-                showToast('工作項目已新增');
+                showToast(`工作項目已新增至 ${taskYear} 年`);
             };
 
             // 編輯任務
