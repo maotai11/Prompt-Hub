@@ -3359,6 +3359,146 @@
             }
         }
     </style>
+
+    <style>
+        /* patch: 2025-11-17 每月工作項目樣式 */
+        .monthly-task-customer-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .monthly-task-customer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .monthly-task-customer-name {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--color-accent-gold);
+        }
+
+        .monthly-task-customer-info {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.3rem;
+        }
+
+        .monthly-task-add-btn {
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .monthly-task-item {
+            background: var(--color-surface-light);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .monthly-task-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .monthly-task-item-name {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--color-text-primary);
+        }
+
+        .monthly-task-item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .monthly-task-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .monthly-task-cell {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 0.3rem;
+        }
+
+        .monthly-task-cell:hover {
+            background: var(--color-border);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .monthly-task-cell-month {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.2rem;
+        }
+
+        .monthly-task-cell-status {
+            font-size: 1.2rem;
+        }
+
+        .monthly-task-cell.completed {
+            background: rgba(56, 161, 105, 0.2);
+            border-color: #38A169;
+        }
+
+        .monthly-task-cell.completed:hover {
+            background: rgba(56, 161, 105, 0.3);
+        }
+
+        .monthly-task-cell.incomplete {
+            background: rgba(229, 115, 115, 0.1);
+            border-color: rgba(229, 115, 115, 0.3);
+        }
+
+        .monthly-task-summary {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            padding: 0.5rem;
+            background: var(--color-background);
+            border-radius: 4px;
+        }
+
+        .monthly-task-summary-missing {
+            color: #E57373;
+            font-weight: 600;
+        }
+
+        @media (max-width: 1200px) {
+            .monthly-task-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .monthly-task-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -3374,6 +3514,7 @@
             <!-- patch: 2025-11-15 移除儀表板頁籤 -->
             <button id="tab-list" type="button" class="tab-btn active">客戶列表</button>
             <button id="tab-reminders" type="button" class="tab-btn">提醒</button>
+            <button id="tab-monthly-tasks" type="button" class="tab-btn">每月工作項目</button>
             <button id="tab-templates" type="button" class="tab-btn">訊息模板</button>
             <button id="tab-vat" type="button" class="tab-btn">營業稅</button>
         </nav>
@@ -3748,6 +3889,25 @@
         <div id="page-reminders" class="page">
             <h1 class="module-title">提醒事項</h1>
 
+            <!-- patch: 2025-11-17 到期事項區塊 -->
+            <div id="overdue-reminders-section" class="card"
+                style="margin-bottom: 2rem; display: none; background: linear-gradient(135deg, rgba(229, 115, 115, 0.15), rgba(229, 115, 115, 0.05)); border-left: 4px solid #E57373;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="font-family: 'EB Garamond', serif; font-size: 1.5rem; margin: 0; color: #E57373;">
+                        ⚠️ 到期事項
+                    </h2>
+                    <span id="overdue-count" style="font-size: 0.9rem; color: #E57373; font-weight: 600;">
+                        <!-- 動態顯示數量 -->
+                    </span>
+                </div>
+                <div style="color: var(--color-text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                    以下提醒已到期或今日到期，請處理後點選「再次提醒」或「刪除」
+                </div>
+                <div id="overdue-reminders-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- 動態生成到期提醒卡片 -->
+                </div>
+            </div>
+
             <!-- 再次提醒日設定 -->
             <div class="card" style="margin-bottom: 2rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -3796,6 +3956,62 @@
                     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
                     <!-- 提醒卡片將由 JavaScript 動態生成 -->
                 </div>
+            </div>
+        </div>
+
+        <!-- patch: 2025-11-17 Monthly Tasks Page -->
+        <div id="page-monthly-tasks" class="page">
+            <h1 class="module-title">每月工作項目</h1>
+
+            <!-- 年度選擇與控制 -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <label style="color: var(--color-text-secondary); font-weight: 600;">📅 年度：</label>
+                        <input type="number" id="monthly-tasks-year" min="2020" max="2050"
+                            style="width: 100px; padding: 0.6rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary); text-align: center; font-weight: 600;">
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <button id="refresh-monthly-tasks-btn" class="btn btn-secondary">🔄 重新整理</button>
+                        <button id="export-monthly-tasks-btn" class="btn btn-primary">📊 匯出報表</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 篩選控制 -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <input type="text" id="monthly-tasks-search" placeholder="搜尋客戶或項目名稱..."
+                            style="width: 100%; padding: 0.6rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary);">
+                    </div>
+                    <select id="monthly-tasks-filter" class="btn btn-secondary" style="min-width: 150px;">
+                        <option value="all">全部項目</option>
+                        <option value="incomplete">僅未完成</option>
+                        <option value="complete">僅已完成</option>
+                    </select>
+                    <select id="monthly-tasks-month-filter" class="btn btn-secondary" style="min-width: 120px;">
+                        <option value="all">全部月份</option>
+                        <option value="1">1月</option>
+                        <option value="2">2月</option>
+                        <option value="3">3月</option>
+                        <option value="4">4月</option>
+                        <option value="5">5月</option>
+                        <option value="6">6月</option>
+                        <option value="7">7月</option>
+                        <option value="8">8月</option>
+                        <option value="9">9月</option>
+                        <option value="10">10月</option>
+                        <option value="11">11月</option>
+                        <option value="12">12月</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 客戶工作項目列表 -->
+            <div id="monthly-tasks-container">
+                <!-- 動態生成 -->
             </div>
         </div>
 
@@ -6931,7 +7147,8 @@ ${escapeHTML(msg.message)}
                 uiState.activeTab = pageId;
 
                 // patch: 2025-11-15 新增 page-reminders 到頁面列表
-                ['page-list', 'page-form', 'page-notes', 'page-vat', 'page-templates', 'page-reminders', 'page-settings'].forEach(p => {
+                // patch: 2025-11-17 新增 page-monthly-tasks 到頁面列表
+                ['page-list', 'page-form', 'page-notes', 'page-vat', 'page-templates', 'page-reminders', 'page-monthly-tasks', 'page-settings'].forEach(p => {
                     const el = doc(p, true);
                     if (el) el.classList.remove('active');
                 });
@@ -6953,6 +7170,7 @@ ${escapeHTML(msg.message)}
             // patch: 2025-11-15 移除儀表板頁籤事件監聽器
             ui.tabList.addEventListener('click', () => showPage('page-list'));
             doc('tab-reminders')?.addEventListener('click', () => { showPage('page-reminders'); initRemindersPage(); }); // patch: 2025-11-15 提醒頁籤
+            doc('tab-monthly-tasks')?.addEventListener('click', () => { showPage('page-monthly-tasks'); initMonthlyTasksPage(); }); // patch: 2025-11-17 每月工作項目頁籤
             doc('tab-templates')?.addEventListener('click', () => {
                 showPage('page-templates');
                 renderTemplateList();
@@ -8717,6 +8935,9 @@ ${escapeHTML(msg.message)}
             const REMINDERS_STORAGE_KEY = 'offline-crm-reminders';
             const REMINDER_SETTINGS_KEY = 'offline-crm-reminder-settings';
 
+            // patch: 2025-11-17 每月工作項目資料結構
+            const MONTHLY_TASKS_STORAGE_KEY = 'offline-crm-monthly-tasks';
+
             // 載入提醒設定
             const loadReminderSettings = () => {
                 try {
@@ -8773,12 +8994,87 @@ ${escapeHTML(msg.message)}
                 return date.toISOString().split('T')[0];
             };
 
+            // patch: 2025-11-17 渲染單個提醒卡片
+            const renderReminderCard = (reminder, today, showActions = true) => {
+                const customer = customers.find(c => c.id === reminder.customerId);
+                if (!customer) return '';
+
+                // 計算距離提醒日的天數
+                const reminderDate = new Date(reminder.nextReminderDate);
+                reminderDate.setHours(0, 0, 0, 0);
+                const daysUntil = Math.ceil((reminderDate - today) / (1000 * 60 * 60 * 24));
+
+                let dateColor = 'var(--color-text-secondary)';
+                let dateText = '';
+                if (daysUntil < 0) {
+                    dateColor = '#E57373';
+                    dateText = `已逾期 ${Math.abs(daysUntil)} 天`;
+                } else if (daysUntil === 0) {
+                    dateColor = 'var(--color-accent-gold)';
+                    dateText = '今日到期';
+                } else if (daysUntil <= 3) {
+                    dateColor = 'var(--color-accent-gold)';
+                    dateText = `還有 ${daysUntil} 天`;
+                } else {
+                    dateText = `還有 ${daysUntil} 天`;
+                }
+
+                return `
+                    <div class="card" style="padding: 1.5rem; border-left: 3px solid ${daysUntil <= 0 ? '#E57373' : daysUntil === 0 ? 'var(--color-accent-gold)' : 'var(--color-border)'};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.3rem;">${escapeHTML(reminder.customerName)}</div>
+                                ${reminder.contact ? `<div style="font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 0.5rem;">${escapeHTML(reminder.contact)}</div>` : ''}
+                            </div>
+                            ${showActions ? `<button class="btn btn-small btn-secondary" onclick="editReminderFromPage('${reminder.customerId}')" title="編輯提醒">✏️</button>` : ''}
+                        </div>
+                        <div style="background: var(--color-surface-light); padding: 1rem; border-radius: 4px; margin-bottom: 1rem; white-space: pre-wrap; line-height: 1.6;">
+                            ${escapeHTML(reminder.content)}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="font-size: 0.9rem; color: ${dateColor}; font-weight: 600;">
+                                📅 ${reminder.nextReminderDate} (${dateText})
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-small btn-primary" onclick="snoozeReminder('${reminder.customerId}')" title="再次提醒">🔔 再次提醒</button>
+                                <button class="btn btn-small btn-danger" onclick="deleteReminderFromCustomer('${reminder.customerId}')" title="刪除提醒">🗑️ 刪除</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            };
+
             // 渲染提醒列表
             const renderRemindersList = (filter = 'all', searchTerm = '') => {
                 const container = doc('reminders-list');
+                const overdueSection = doc('overdue-reminders-section');
+                const overdueContainer = doc('overdue-reminders-list');
+                const overdueCount = doc('overdue-count');
+
                 if (!container) return;
 
-                let reminders = getAllReminders();
+                let allReminders = getAllReminders();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayStr = today.toISOString().split('T')[0];
+
+                // patch: 2025-11-17 分離到期和未到期的提醒
+                const overdueReminders = allReminders.filter(r => r.nextReminderDate <= todayStr);
+                const upcomingReminders = allReminders.filter(r => r.nextReminderDate > todayStr);
+
+                // 渲染到期事項區塊
+                if (overdueReminders.length > 0 && overdueSection && overdueContainer) {
+                    overdueSection.style.display = 'block';
+                    if (overdueCount) {
+                        overdueCount.textContent = `${overdueReminders.length} 筆待處理`;
+                    }
+                    overdueContainer.innerHTML = overdueReminders.map(r => renderReminderCard(r, today, true)).join('');
+                } else if (overdueSection) {
+                    overdueSection.style.display = 'none';
+                }
+
+                // 處理一般提醒列表的篩選
+                let reminders = upcomingReminders;
 
                 // 搜尋篩選
                 if (searchTerm) {
@@ -8790,15 +9086,13 @@ ${escapeHTML(msg.message)}
                     );
                 }
 
-                // 日期篩選
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayStr = today.toISOString().split('T')[0];
-
+                // 日期篩選（只對未到期的提醒進行篩選）
                 if (filter === 'today') {
-                    reminders = reminders.filter(r => r.nextReminderDate === todayStr);
+                    // 今日到期的已經在上方顯示，這裡不顯示
+                    reminders = [];
                 } else if (filter === 'overdue') {
-                    reminders = reminders.filter(r => r.nextReminderDate < todayStr);
+                    // 已逾期的已經在上方顯示，這裡不顯示
+                    reminders = [];
                 } else if (filter === 'upcoming') {
                     const nextWeek = new Date(today);
                     nextWeek.setDate(nextWeek.getDate() + 7);
@@ -8809,60 +9103,16 @@ ${escapeHTML(msg.message)}
                 // 更新計數
                 const countEl = doc('reminders-count');
                 if (countEl) {
-                    countEl.textContent = `共 ${reminders.length} 筆提醒`;
+                    countEl.textContent = `共 ${reminders.length} 筆即將到期`;
                 }
 
-                // 渲染卡片
+                // 渲染一般提醒卡片
                 if (reminders.length === 0) {
-                    container.innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--color-text-secondary); font-style: italic;">目前沒有提醒事項</div>';
+                    container.innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--color-text-secondary); font-style: italic;">目前沒有即將到期的提醒事項</div>';
                     return;
                 }
 
-                container.innerHTML = reminders.map(reminder => {
-                    const customer = customers.find(c => c.id === reminder.customerId);
-                    if (!customer) return '';
-
-                    // 計算距離提醒日的天數
-                    const reminderDate = new Date(reminder.nextReminderDate);
-                    reminderDate.setHours(0, 0, 0, 0);
-                    const daysUntil = Math.ceil((reminderDate - today) / (1000 * 60 * 60 * 24));
-
-                    let dateColor = 'var(--color-text-secondary)';
-                    let dateText = '';
-                    if (daysUntil < 0) {
-                        dateColor = '#E57373';
-                        dateText = `已逾期 ${Math.abs(daysUntil)} 天`;
-                    } else if (daysUntil === 0) {
-                        dateColor = 'var(--color-accent-gold)';
-                        dateText = '今日到期';
-                    } else if (daysUntil <= 3) {
-                        dateColor = 'var(--color-accent-gold)';
-                        dateText = `還有 ${daysUntil} 天`;
-                    } else {
-                        dateText = `還有 ${daysUntil} 天`;
-                    }
-
-                    return `
-                        <div class="card" style="padding: 1.5rem; border-left: 3px solid ${daysUntil < 0 ? '#E57373' : daysUntil === 0 ? 'var(--color-accent-gold)' : 'var(--color-border)'};">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.3rem;">${escapeHTML(reminder.customerName)}</div>
-                                    ${reminder.contact ? `<div style="font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 0.5rem;">${escapeHTML(reminder.contact)}</div>` : ''}
-                                </div>
-                                <button class="btn btn-small btn-secondary" onclick="editReminderFromPage('${reminder.customerId}')" title="編輯提醒">✏️</button>
-                            </div>
-                            <div style="background: var(--color-surface-light); padding: 1rem; border-radius: 4px; margin-bottom: 1rem; white-space: pre-wrap; line-height: 1.6;">
-                                ${escapeHTML(reminder.content)}
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div style="font-size: 0.9rem; color: ${dateColor}; font-weight: 600;">
-                                    📅 ${reminder.nextReminderDate} (${dateText})
-                                </div>
-                                <button class="btn btn-small btn-danger" onclick="deleteReminderFromCustomer('${reminder.customerId}')" title="刪除提醒">🗑️ 刪除</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                container.innerHTML = reminders.map(r => renderReminderCard(r, today, true)).join('');
             };
 
             // patch: 2025-11-15 從提醒頁面編輯提醒內容
@@ -8916,6 +9166,79 @@ ${escapeHTML(msg.message)}
                 `;
 
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
+            };
+
+            // patch: 2025-11-17 再次提醒功能
+            window.snoozeReminder = (customerId) => {
+                const customer = customers.find(c => c.id === customerId);
+                if (!customer) {
+                    showToast('找不到客戶資料', 'error');
+                    return;
+                }
+
+                const settings = loadReminderSettings();
+                const today = new Date().toISOString().split('T')[0];
+                const nextDate = calculateNextReminderDate(today, settings.defaultDays);
+
+                const modalHtml = `
+                    <div class="modal-overlay" id="snooze-reminder-modal">
+                        <div class="modal-content" style="max-width: 500px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">設定再次提醒</h3>
+                                <button class="modal-close-btn" onclick="closeSnoozeReminderDialog()">×</button>
+                            </div>
+                            
+                            <div style="background: var(--color-surface-light); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                                <div style="font-weight: 600; margin-bottom: 0.3rem;">${escapeHTML(customer.companyName || customer.id)}</div>
+                                ${customer.contact ? `<div style="font-size: 0.9rem; color: var(--color-text-secondary);">${escapeHTML(customer.contact)}</div>` : ''}
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary);">下次提醒日期</label>
+                                <input type="date" id="snooze-reminder-date" value="${nextDate}" 
+                                    style="width: 100%; padding: 0.6rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary);">
+                                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-text-secondary);">
+                                    預設為 ${settings.defaultDays} 天後（${nextDate}）
+                                </div>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button class="btn btn-secondary" onclick="closeSnoozeReminderDialog()">取消</button>
+                                <button class="btn btn-primary" onclick="confirmSnoozeReminder('${customerId}')">確定</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            };
+
+            window.closeSnoozeReminderDialog = () => {
+                const modal = doc('snooze-reminder-modal');
+                if (modal) {
+                    modal.classList.add('closing');
+                    setTimeout(() => modal.remove(), 200);
+                }
+            };
+
+            window.confirmSnoozeReminder = (customerId) => {
+                const newDate = doc('snooze-reminder-date')?.value;
+                if (!newDate) {
+                    showToast('請選擇提醒日期', 'error');
+                    return;
+                }
+
+                const customer = customers.find(c => c.id === customerId);
+                if (!customer) {
+                    showToast('找不到客戶資料', 'error');
+                    return;
+                }
+
+                customer.reminderNextDate = newDate;
+                saveCustomersToStorage();
+                closeSnoozeReminderDialog();
+                renderRemindersList();
+                showToast(`已設定 ${customer.companyName || customer.id} 的下次提醒日期為 ${newDate}`);
             };
 
             // 從客戶刪除提醒
@@ -8999,6 +9322,427 @@ ${escapeHTML(msg.message)}
                     addBtn.addEventListener('click', showAddReminderDialog);
                     addBtn.dataset.bound = 'true';
                 }
+            };
+
+            // patch: 2025-11-17 每月工作項目功能
+            // 載入每月工作項目資料
+            const loadMonthlyTasks = () => {
+                try {
+                    const data = localStorage.getItem(MONTHLY_TASKS_STORAGE_KEY);
+                    return data ? JSON.parse(data) : {};
+                } catch {
+                    return {};
+                }
+            };
+
+            // 儲存每月工作項目資料
+            const saveMonthlyTasks = (data) => {
+                try {
+                    localStorage.setItem(MONTHLY_TASKS_STORAGE_KEY, JSON.stringify(data));
+                } catch (e) {
+                    showToast('儲存失敗：' + e.message, 'error');
+                }
+            };
+
+            // 初始化每月工作項目頁面
+            const initMonthlyTasksPage = () => {
+                const currentYear = new Date().getFullYear();
+                const yearInput = doc('monthly-tasks-year');
+                if (yearInput && !yearInput.value) {
+                    yearInput.value = currentYear;
+                }
+
+                renderMonthlyTasksPage();
+
+                // 綁定事件（只綁定一次）
+                if (yearInput && !yearInput.dataset.bound) {
+                    yearInput.addEventListener('change', renderMonthlyTasksPage);
+                    yearInput.dataset.bound = 'true';
+                }
+
+                const searchInput = doc('monthly-tasks-search');
+                if (searchInput && !searchInput.dataset.bound) {
+                    searchInput.addEventListener('input', renderMonthlyTasksPage);
+                    searchInput.dataset.bound = 'true';
+                }
+
+                const filterSelect = doc('monthly-tasks-filter');
+                if (filterSelect && !filterSelect.dataset.bound) {
+                    filterSelect.addEventListener('change', renderMonthlyTasksPage);
+                    filterSelect.dataset.bound = 'true';
+                }
+
+                const monthFilter = doc('monthly-tasks-month-filter');
+                if (monthFilter && !monthFilter.dataset.bound) {
+                    monthFilter.addEventListener('change', renderMonthlyTasksPage);
+                    monthFilter.dataset.bound = 'true';
+                }
+
+                const refreshBtn = doc('refresh-monthly-tasks-btn');
+                if (refreshBtn && !refreshBtn.dataset.bound) {
+                    refreshBtn.addEventListener('click', () => {
+                        renderMonthlyTasksPage();
+                        showToast('已重新整理');
+                    });
+                    refreshBtn.dataset.bound = 'true';
+                }
+
+                const exportBtn = doc('export-monthly-tasks-btn');
+                if (exportBtn && !exportBtn.dataset.bound) {
+                    exportBtn.addEventListener('click', exportMonthlyTasksReport);
+                    exportBtn.dataset.bound = 'true';
+                }
+            };
+
+            // 渲染每月工作項目頁面
+            const renderMonthlyTasksPage = () => {
+                const container = doc('monthly-tasks-container');
+                if (!container) return;
+
+                const yearInput = doc('monthly-tasks-year');
+                const year = yearInput ? parseInt(yearInput.value) : new Date().getFullYear();
+
+                const searchTerm = doc('monthly-tasks-search')?.value?.toLowerCase() || '';
+                const filter = doc('monthly-tasks-filter')?.value || 'all';
+                const monthFilter = doc('monthly-tasks-month-filter')?.value || 'all';
+
+                const tasksData = loadMonthlyTasks();
+
+                // 篩選客戶
+                let filteredCustomers = customers.filter(c => {
+                    if (!searchTerm) return true;
+                    return (c.companyName || '').toLowerCase().includes(searchTerm) ||
+                        (c.contact || '').toLowerCase().includes(searchTerm) ||
+                        (c.id || '').toLowerCase().includes(searchTerm);
+                });
+
+                if (filteredCustomers.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--color-text-secondary); font-style: italic;">沒有符合條件的客戶</div>';
+                    return;
+                }
+
+                container.innerHTML = filteredCustomers.map(customer => {
+                    const customerTasks = tasksData[customer.id] || [];
+
+                    // 篩選任務
+                    let displayTasks = customerTasks.filter(task => {
+                        if (!searchTerm) return true;
+                        return task.name.toLowerCase().includes(searchTerm);
+                    });
+
+                    // 根據完成狀態篩選
+                    if (filter !== 'all' && monthFilter !== 'all') {
+                        const month = parseInt(monthFilter);
+                        displayTasks = displayTasks.filter(task => {
+                            const status = task.months?.[year]?.[month] || false;
+                            return filter === 'complete' ? status : !status;
+                        });
+                    } else if (filter !== 'all') {
+                        displayTasks = displayTasks.filter(task => {
+                            const yearData = task.months?.[year] || {};
+                            const completedCount = Object.values(yearData).filter(v => v).length;
+                            if (filter === 'complete') {
+                                return completedCount === 12;
+                            } else {
+                                return completedCount < 12;
+                            }
+                        });
+                    }
+
+                    if (displayTasks.length === 0 && customerTasks.length > 0) {
+                        return ''; // 有任務但不符合篩選條件
+                    }
+
+                    return `
+                        <div class="monthly-task-customer-card">
+                            <div class="monthly-task-customer-header">
+                                <div>
+                                    <div class="monthly-task-customer-name">${escapeHTML(customer.companyName || customer.id)}</div>
+                                    ${customer.contact ? `<div class="monthly-task-customer-info">聯絡人：${escapeHTML(customer.contact)}</div>` : ''}
+                                </div>
+                                <button class="btn btn-primary monthly-task-add-btn" onclick="showAddTaskDialog('${customer.id}')">
+                                    + 新增工作項目
+                                </button>
+                            </div>
+                            ${displayTasks.length === 0 ?
+                            '<div style="text-align: center; padding: 2rem; color: var(--color-text-secondary); font-style: italic;">尚無工作項目，點擊上方按鈕新增</div>' :
+                            displayTasks.map((task, taskIndex) => renderTaskItem(customer.id, task, taskIndex, year)).join('')
+                        }
+                        </div>
+                    `;
+                }).filter(html => html).join('');
+
+                if (!container.innerHTML.trim()) {
+                    container.innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--color-text-secondary); font-style: italic;">沒有符合篩選條件的資料</div>';
+                }
+            };
+
+            // 渲染單個任務項目
+            const renderTaskItem = (customerId, task, taskIndex, year) => {
+                const yearData = task.months?.[year] || {};
+                const completedMonths = [];
+                const incompleteMonths = [];
+
+                for (let month = 1; month <= 12; month++) {
+                    if (yearData[month]) {
+                        completedMonths.push(month);
+                    } else {
+                        incompleteMonths.push(month);
+                    }
+                }
+
+                const monthCells = Array.from({ length: 12 }, (_, i) => {
+                    const month = i + 1;
+                    const isCompleted = yearData[month] || false;
+                    const cellClass = isCompleted ? 'completed' : 'incomplete';
+
+                    return `
+                        <div class="monthly-task-cell ${cellClass}" 
+                             onclick="toggleTaskMonth('${customerId}', ${taskIndex}, ${year}, ${month})"
+                             title="${month}月 - ${isCompleted ? '已完成' : '未完成'}">
+                            <div class="monthly-task-cell-month">${month}</div>
+                            <div class="monthly-task-cell-status">${isCompleted ? '✔' : '❌'}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="monthly-task-item">
+                        <div class="monthly-task-item-header">
+                            <div class="monthly-task-item-name">${escapeHTML(task.name)}</div>
+                            <div class="monthly-task-item-actions">
+                                <button class="btn btn-small btn-secondary" onclick="editTask('${customerId}', ${taskIndex})" title="編輯">✏️</button>
+                                <button class="btn btn-small btn-danger" onclick="deleteTask('${customerId}', ${taskIndex})" title="刪除">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="monthly-task-grid">
+                            ${monthCells}
+                        </div>
+                        <div class="monthly-task-summary">
+                            已完成：${completedMonths.length}/12 月
+                            ${incompleteMonths.length > 0 ?
+                        `<span class="monthly-task-summary-missing"> | 缺少：${incompleteMonths.join(', ')} 月</span>` :
+                        ' <span style="color: #38A169;">✓ 全年完成</span>'
+                    }
+                        </div>
+                    </div>
+                `;
+            };
+
+            // 切換月份完成狀態
+            window.toggleTaskMonth = (customerId, taskIndex, year, month) => {
+                const tasksData = loadMonthlyTasks();
+                if (!tasksData[customerId] || !tasksData[customerId][taskIndex]) return;
+
+                const task = tasksData[customerId][taskIndex];
+                if (!task.months) task.months = {};
+                if (!task.months[year]) task.months[year] = {};
+
+                task.months[year][month] = !task.months[year][month];
+
+                saveMonthlyTasks(tasksData);
+                renderMonthlyTasksPage();
+            };
+
+            // 顯示新增任務對話框
+            window.showAddTaskDialog = (customerId) => {
+                const customer = customers.find(c => c.id === customerId);
+                if (!customer) return;
+
+                const modalHtml = `
+                    <div class="modal-overlay" id="add-task-modal">
+                        <div class="modal-content" style="max-width: 500px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">新增工作項目</h3>
+                                <button class="modal-close-btn" onclick="closeAddTaskDialog()">×</button>
+                            </div>
+                            
+                            <div style="background: var(--color-surface-light); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                                <div style="font-weight: 600;">${escapeHTML(customer.companyName || customer.id)}</div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary);">項目名稱</label>
+                                <input type="text" id="new-task-name" placeholder="例：租金發票、廣告費、報告..."
+                                    style="width: 100%; padding: 0.6rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary);">
+                            </div>
+
+                            <div class="modal-actions">
+                                <button class="btn btn-secondary" onclick="closeAddTaskDialog()">取消</button>
+                                <button class="btn btn-primary" onclick="confirmAddTask('${customerId}')">確定新增</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                setTimeout(() => doc('new-task-name')?.focus(), 100);
+            };
+
+            window.closeAddTaskDialog = () => {
+                const modal = doc('add-task-modal');
+                if (modal) {
+                    modal.classList.add('closing');
+                    setTimeout(() => modal.remove(), 200);
+                }
+            };
+
+            window.confirmAddTask = (customerId) => {
+                const taskName = doc('new-task-name')?.value?.trim();
+                if (!taskName) {
+                    showToast('請輸入項目名稱', 'error');
+                    return;
+                }
+
+                const tasksData = loadMonthlyTasks();
+                if (!tasksData[customerId]) {
+                    tasksData[customerId] = [];
+                }
+
+                tasksData[customerId].push({
+                    name: taskName,
+                    months: {},
+                    createdAt: new Date().toISOString()
+                });
+
+                saveMonthlyTasks(tasksData);
+                closeAddTaskDialog();
+                renderMonthlyTasksPage();
+                showToast('工作項目已新增');
+            };
+
+            // 編輯任務
+            window.editTask = (customerId, taskIndex) => {
+                const tasksData = loadMonthlyTasks();
+                const task = tasksData[customerId]?.[taskIndex];
+                if (!task) return;
+
+                const customer = customers.find(c => c.id === customerId);
+
+                const modalHtml = `
+                    <div class="modal-overlay" id="edit-task-modal">
+                        <div class="modal-content" style="max-width: 500px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">編輯工作項目</h3>
+                                <button class="modal-close-btn" onclick="closeEditTaskDialog()">×</button>
+                            </div>
+                            
+                            <div style="background: var(--color-surface-light); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                                <div style="font-weight: 600;">${escapeHTML(customer?.companyName || customerId)}</div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary);">項目名稱</label>
+                                <input type="text" id="edit-task-name" value="${escapeHTML(task.name)}"
+                                    style="width: 100%; padding: 0.6rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary);">
+                            </div>
+
+                            <div class="modal-actions">
+                                <button class="btn btn-secondary" onclick="closeEditTaskDialog()">取消</button>
+                                <button class="btn btn-primary" onclick="confirmEditTask('${customerId}', ${taskIndex})">確定更新</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                setTimeout(() => doc('edit-task-name')?.focus(), 100);
+            };
+
+            window.closeEditTaskDialog = () => {
+                const modal = doc('edit-task-modal');
+                if (modal) {
+                    modal.classList.add('closing');
+                    setTimeout(() => modal.remove(), 200);
+                }
+            };
+
+            window.confirmEditTask = (customerId, taskIndex) => {
+                const taskName = doc('edit-task-name')?.value?.trim();
+                if (!taskName) {
+                    showToast('請輸入項目名稱', 'error');
+                    return;
+                }
+
+                const tasksData = loadMonthlyTasks();
+                if (tasksData[customerId]?.[taskIndex]) {
+                    tasksData[customerId][taskIndex].name = taskName;
+                    saveMonthlyTasks(tasksData);
+                    closeEditTaskDialog();
+                    renderMonthlyTasksPage();
+                    showToast('工作項目已更新');
+                }
+            };
+
+            // 刪除任務
+            window.deleteTask = (customerId, taskIndex) => {
+                const tasksData = loadMonthlyTasks();
+                const task = tasksData[customerId]?.[taskIndex];
+                if (!task) return;
+
+                if (confirm(`確定要刪除工作項目「${task.name}」嗎？\n此操作將刪除所有月份的完成記錄。`)) {
+                    tasksData[customerId].splice(taskIndex, 1);
+                    if (tasksData[customerId].length === 0) {
+                        delete tasksData[customerId];
+                    }
+                    saveMonthlyTasks(tasksData);
+                    renderMonthlyTasksPage();
+                    showToast('工作項目已刪除');
+                }
+            };
+
+            // 匯出每月工作項目報表
+            const exportMonthlyTasksReport = () => {
+                const yearInput = doc('monthly-tasks-year');
+                const year = yearInput ? parseInt(yearInput.value) : new Date().getFullYear();
+                const tasksData = loadMonthlyTasks();
+
+                const rows = [];
+                rows.push(['客戶名稱', '聯絡人', '工作項目', '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月', '完成數', '缺少月份']);
+
+                customers.forEach(customer => {
+                    const customerTasks = tasksData[customer.id] || [];
+                    if (customerTasks.length === 0) return;
+
+                    customerTasks.forEach(task => {
+                        const yearData = task.months?.[year] || {};
+                        const monthStatuses = [];
+                        const incompleteMonths = [];
+                        let completedCount = 0;
+
+                        for (let month = 1; month <= 12; month++) {
+                            const isCompleted = yearData[month] || false;
+                            monthStatuses.push(isCompleted ? '✔' : '❌');
+                            if (isCompleted) {
+                                completedCount++;
+                            } else {
+                                incompleteMonths.push(month);
+                            }
+                        }
+
+                        rows.push([
+                            customer.companyName || customer.id,
+                            customer.contact || '',
+                            task.name,
+                            ...monthStatuses,
+                            `${completedCount}/12`,
+                            incompleteMonths.length > 0 ? incompleteMonths.join(', ') : '全部完成'
+                        ]);
+                    });
+                });
+
+                if (rows.length === 1) {
+                    showToast('沒有資料可匯出', 'error');
+                    return;
+                }
+
+                const csvContent = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `每月工作項目_${year}年_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                showToast('報表已匯出');
             };
 
             // 顯示新增提醒對話框
