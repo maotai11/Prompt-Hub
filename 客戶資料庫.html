@@ -3487,6 +3487,118 @@
             font-weight: 600;
         }
 
+        /* patch: 2025-11-24 客戶標題缺少月份統計 */
+        .customer-missing-months-summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: 1rem;
+            padding: 0.3rem 0.8rem;
+            background: rgba(229, 115, 115, 0.1);
+            border: 1px solid rgba(229, 115, 115, 0.3);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #E57373;
+            font-weight: 500;
+            max-width: 600px;
+            position: relative;
+            cursor: help;
+        }
+
+        .customer-missing-months-summary .summary-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 550px;
+        }
+
+        /* patch: 2025-11-24 Tooltip 顯示完整內容 */
+        .customer-missing-months-summary .full-text-tooltip {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 0.5rem;
+            padding: 0.8rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-accent-gold);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 600px;
+            white-space: normal;
+            word-wrap: break-word;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .customer-missing-months-summary:hover .full-text-tooltip {
+            display: block;
+        }
+
+        .customer-missing-months-summary .copy-btn {
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            background: transparent;
+            border: 1px solid rgba(229, 115, 115, 0.5);
+            color: #E57373;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .customer-missing-months-summary .copy-btn:hover {
+            background: rgba(229, 115, 115, 0.2);
+            border-color: #E57373;
+        }
+
+        /* patch: 2025-11-24 批量操作樣式 */
+        .monthly-task-batch-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.8rem;
+            padding: 0.8rem;
+            background: rgba(212, 175, 55, 0.05);
+            border-radius: 4px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .monthly-task-amount {
+            font-size: 0.9rem;
+            color: var(--color-accent-gold);
+            margin-left: 0.5rem;
+            font-weight: 600;
+        }
+
+        .monthly-task-item.achieved {
+            border-left: 4px solid #38A169;
+        }
+
+        .monthly-task-item.not-achieved {
+            border-left: 4px solid #E57373;
+        }
+
+        .monthly-task-achievement-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .monthly-task-achievement-badge.achieved {
+            background: rgba(56, 161, 105, 0.2);
+            color: #38A169;
+        }
+
+        .monthly-task-achievement-badge.not-achieved {
+            background: rgba(229, 115, 115, 0.2);
+            color: #E57373;
+        }
+
         @media (max-width: 1200px) {
             .monthly-task-grid {
                 grid-template-columns: repeat(6, 1fr);
@@ -4657,35 +4769,29 @@
                     let result = template;
                     const tagRegex = /\{\{(\w+)\}\}/g;
 
-                    // patch: 2025-11-09 除錯日誌
-                    console.log('=== replaceTagsInTemplate 開始 ===');
-                    console.log('this.vatData:', this.vatData);
-                    console.log('customer:', customer);
-                    console.log('vatRow:', vatRow);
-                    console.log('template:', template);
+                    // patch: 2025-11-24 簡化日誌，只在有問題時輸出
+                    const hasVatTags = /\{\{vat_/.test(template);
+                    if (hasVatTags && !this.vatData) {
+                        console.warn('⚠️ 模板包含營業稅標籤但 vatData 為 null');
+                        console.log('template:', template);
+                        console.log('customer:', customer?.companyName || customer?.id);
+                    }
 
                     result = result.replace(tagRegex, (match, fieldName) => {
-                        console.log(`處理標籤: ${match}, fieldName: ${fieldName}`);
-
                         // 優先處理客戶欄位
-                        if (customer.hasOwnProperty(fieldName)) {
+                        if (customer && customer.hasOwnProperty(fieldName)) {
                             const value = customer[fieldName];
-                            console.log(`  -> 客戶欄位: ${fieldName} = ${value}`);
                             return value !== null && value !== undefined ? String(value) : '';
                         }
 
                         // patch: 2025-11-08 處理營業稅欄位
                         if (fieldName.startsWith('vat_')) {
-                            console.log(`  -> 營業稅欄位: ${fieldName}`);
-                            console.log(`  -> this.vatData 存在: ${!!this.vatData}`);
-
                             if (!this.vatData) {
-                                console.warn(`  -> this.vatData 為 null，無法替換 ${fieldName}`);
+                                console.warn(`⚠️ 無法替換 ${match}：vatData 為 null`);
                                 return match;
                             }
 
                             const vatField = fieldName.replace('vat_', '');
-                            console.log(`  -> vatField: ${vatField}`);
 
                             switch (vatField) {
                                 case 'period':
@@ -4698,74 +4804,49 @@
                                         5: '09-10月',
                                         6: '11-12月'
                                     };
-                                    const periodValue = this.vatData.period ? (periodToMonths[this.vatData.period] || `${this.vatData.period}`) : '';
-                                    console.log(`  -> period 值: ${periodValue}`);
-                                    return periodValue;
+                                    return this.vatData.period ? (periodToMonths[this.vatData.period] || `${this.vatData.period}`) : '';
                                 case 'year':
-                                    const yearValue = this.vatData.year ? `${this.vatData.year}` : '';
-                                    console.log(`  -> year 值: ${yearValue}`);
-                                    return yearValue;
+                                    return this.vatData.year ? `${this.vatData.year}` : '';
                                 case 'deadline':
-                                    const deadlineValue = this.vatData.last_collect_deadline || '';
-                                    console.log(`  -> deadline 值: ${deadlineValue}`);
-                                    return deadlineValue;
+                                    return this.vatData.last_collect_deadline || '';
                                 case 'deadline_minus2':
-                                    const deadline2Value = this.vatData.last_collect_deadline ? getDateMinus2(this.vatData.last_collect_deadline) : '';
-                                    console.log(`  -> deadline_minus2 值: ${deadline2Value}`);
-                                    return deadline2Value;
+                                    return this.vatData.last_collect_deadline ? getDateMinus2(this.vatData.last_collect_deadline) : '';
                                 case 'collect_method':
-                                    const methodValue = vatRow ? (vatRow.collect_method || '') : '';
-                                    console.log(`  -> collect_method 值: ${methodValue}`);
-                                    return methodValue;
+                                    return vatRow ? (vatRow.collect_method || '') : '';
                                 case 'planned_date':
-                                    const dateValue = vatRow ? (vatRow.planned_collect_date || '') : '';
-                                    console.log(`  -> planned_date 值: ${dateValue}`);
-                                    return dateValue;
+                                    return vatRow ? (vatRow.planned_collect_date || '') : '';
                                 case 'income':
                                     // patch: 2025-11-15 新增收入欄位
-                                    const incomeValue = vatRow ? (vatRow.income || '') : '';
-                                    console.log(`  -> income 值: ${incomeValue}`);
-                                    return incomeValue;
+                                    return vatRow ? (vatRow.income || '') : '';
                                 case 'tax_amount':
-                                    const taxValue = vatRow ? (vatRow.tax_amount || '') : '';
-                                    console.log(`  -> tax_amount 值: ${taxValue}`);
-                                    return taxValue;
+                                    return vatRow ? (vatRow.tax_amount || '') : '';
                                 case 'note_invoice':
-                                    const invoiceValue = vatRow ? (vatRow.note_invoice || '') : '';
-                                    console.log(`  -> note_invoice 值: ${invoiceValue}`);
-                                    return invoiceValue;
+                                    return vatRow ? (vatRow.note_invoice || '') : '';
                                 case 'note_reminder':
-                                    const reminderValue = vatRow ? (vatRow.note_reminder ? `\n${vatRow.note_reminder}` : '') : '';
-                                    console.log(`  -> note_reminder 值: ${reminderValue}`);
-                                    return reminderValue;
+                                    return vatRow ? (vatRow.note_reminder ? `\n${vatRow.note_reminder}` : '') : '';
                                 default:
-                                    console.log(`  -> 未知的營業稅欄位: ${vatField}`);
+                                    console.warn(`⚠️ 未知的營業稅欄位: ${vatField}`);
                                     return match;
                             }
                         }
 
-                        console.log(`  -> 未處理的標籤: ${match}`);
+                        // 未處理的標籤保持原樣
                         return match;
                     });
-
-                    console.log('=== replaceTagsInTemplate 結束 ===');
-                    console.log('result:', result);
-                    console.log('');
-
 
                     return result;
                 }
 
                 generateMessages(template, customers, vatRows = null) {
-                    // patch: 2025-11-09 確保 this 綁定正確
-                    console.log('generateMessages - this.vatData:', this.vatData);
+                    // patch: 2025-11-24 簡化日誌
+                    const hasVatTags = /\{\{vat_/.test(template);
+                    if (hasVatTags) {
+                        console.log(`📝 產生訊息（包含營業稅標籤）- vatData: ${this.vatData ? '✓' : '✗'}`);
+                    }
 
                     return customers.map((customer) => {
                         // patch: 2025-11-08 尋找對應的營業稅資料
                         const vatRow = vatRows ? vatRows.find(row => row.customer_id === customer.id) : null;
-
-                        console.log('generateMessages - 處理客戶:', customer.companyName || customer.id);
-                        console.log('generateMessages - this.vatData (map 內):', this.vatData);
 
                         return {
                             customer: customer,
@@ -5873,10 +5954,12 @@ ${escapeHTML(msg.message)}
                     subjectMessages = tagSystem.generateMessages(template.subject, selectedCustomers);
                 }
 
-                // patch: 2025-11-09 預覽完成後，如果是營業稅模板，清除模擬資料
+                // patch: 2025-11-24 延遲清除模擬資料，確保渲染完成
                 if (template.category === 'vat') {
-                    console.log('預覽完成，清除營業稅模擬資料');
-                    tagSystem.vatData = null;
+                    setTimeout(() => {
+                        console.log('預覽完成，清除營業稅模擬資料');
+                        tagSystem.vatData = null;
+                    }, 100);
                 }
 
                 const html = messages.map((msg, index) => {
@@ -9470,6 +9553,50 @@ ${escapeHTML(msg.message)}
                     const taskCount = customerTasks.length;
                     const isCollapsed = collapsedState[customer.id] || false;
 
+                    // patch: 2025-11-24 計算每個項目的缺少月份
+                    const taskMissingInfo = [];
+                    customerTasks.forEach(task => {
+                        const yearData = task.months?.[year] || {};
+                        const missingMonths = [];
+                        for (let m = 1; m <= 12; m++) {
+                            if (!yearData[m]) {
+                                missingMonths.push(m);
+                            }
+                        }
+                        if (missingMonths.length > 0) {
+                            taskMissingInfo.push({
+                                name: task.name,
+                                months: missingMonths
+                            });
+                        }
+                    });
+
+                    // patch: 2025-11-24 格式化月份範圍（連續月份顯示為範圍）
+                    const formatMonthRanges = (months) => {
+                        if (!months || months.length === 0) return '';
+                        if (months.length === 1) return `${months[0]}月`;
+
+                        const ranges = [];
+                        let start = months[0];
+                        let end = months[0];
+
+                        for (let i = 1; i < months.length; i++) {
+                            if (months[i] === end + 1) {
+                                end = months[i];
+                            } else {
+                                ranges.push(start === end ? `${start}月` : `${start}-${end}月`);
+                                start = end = months[i];
+                            }
+                        }
+                        ranges.push(start === end ? `${start}月` : `${start}-${end}月`);
+                        return ranges.join(',');
+                    };
+
+                    // 生成顯示文字：項目A-缺少1-3月 項目B-缺少5,7月
+                    const missingMonthsText = taskMissingInfo.map(info =>
+                        `${info.name}-缺少${formatMonthRanges(info.months)}`
+                    ).join(' ');
+
                     // 篩選任務
                     let displayTasks = customerTasks.filter(task => {
                         if (!searchTerm) return true;
@@ -9507,6 +9634,12 @@ ${escapeHTML(msg.message)}
                                         <span style="margin-right: 0.5rem;">${isCollapsed ? '▶' : '▼'}</span>
                                         ${escapeHTML(customer.companyName || customer.id)}
                                         <span style="color: var(--color-accent-gold); font-size: 0.9rem; margin-left: 0.5rem;">(${taskCount})</span>
+                                        ${taskMissingInfo.length > 0 ?
+                            `<span class="customer-missing-months-summary" title="點擊複製或 hover 查看完整內容">
+                                            <span class="summary-text">${escapeHTML(missingMonthsText)}</span>
+                                            <div class="full-text-tooltip">${escapeHTML(missingMonthsText)}</div>
+                                            <button class="copy-btn" onclick="event.stopPropagation(); copyMissingMonths('${escapeHTML(missingMonthsText)}')" title="複製缺少月份">📋</button>
+                                        </span>` : ''}
                                     </div>
                                     ${customer.contact ? `<div class="monthly-task-customer-info" style="margin-left: 1.5rem;">聯絡人：${escapeHTML(customer.contact)}</div>` : ''}
                                 </div>
@@ -9621,7 +9754,7 @@ ${escapeHTML(msg.message)}
 
                 const modalHtml = `
                     <div class="modal-overlay" id="add-task-modal">
-                        <div class="modal-content" style="max-width: 500px;">
+                        <div class="modal-content" style="max-width: 600px;">
                             <div class="modal-header">
                                 <h3 class="modal-title">新增工作項目</h3>
                                 <button class="modal-close-btn" onclick="closeAddTaskDialog()">×</button>
@@ -9632,9 +9765,15 @@ ${escapeHTML(msg.message)}
                             </div>
 
                             <div class="form-group" style="margin-bottom: 1.5rem;">
-                                <label style="display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary);">項目名稱</label>
-                                <input type="text" id="new-task-name" placeholder="例：租金發票、廣告費、報告..."
-                                    style="width: 100%; padding: 0.6rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary);">
+                                <label style="display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary);">
+                                    項目名稱
+                                    <span style="color: var(--color-accent-gold); font-size: 0.85rem; margin-left: 0.5rem;">（支援批量新增，每行一個項目）</span>
+                                </label>
+                                <textarea id="new-task-names" rows="6" placeholder="每行輸入一個項目名稱，例如：&#10;租金發票&#10;廣告費&#10;報告&#10;水電費"
+                                    style="width: 100%; padding: 0.8rem; background: var(--color-surface-light); border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-primary); font-family: 'Inter', sans-serif; resize: vertical;"></textarea>
+                                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-text-secondary);">
+                                    💡 提示：可以一次輸入多個項目，每行一個
+                                </div>
                             </div>
 
                             <div class="form-group" style="margin-bottom: 1.5rem;">
@@ -9655,7 +9794,7 @@ ${escapeHTML(msg.message)}
                 `;
 
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
-                setTimeout(() => doc('new-task-name')?.focus(), 100);
+                setTimeout(() => doc('new-task-names')?.focus(), 100);
             };
 
             window.closeAddTaskDialog = () => {
@@ -9667,10 +9806,11 @@ ${escapeHTML(msg.message)}
             };
 
             window.confirmAddTask = (customerId) => {
-                const taskName = doc('new-task-name')?.value?.trim();
+                // patch: 2025-11-24 支援批量新增
+                const taskNamesInput = doc('new-task-names')?.value?.trim();
                 const taskYear = parseInt(doc('new-task-year')?.value);
 
-                if (!taskName) {
+                if (!taskNamesInput) {
                     showToast('請輸入項目名稱', 'error');
                     return;
                 }
@@ -9680,25 +9820,40 @@ ${escapeHTML(msg.message)}
                     return;
                 }
 
+                // 分割多行輸入，過濾空行
+                const taskNames = taskNamesInput.split('\n')
+                    .map(name => name.trim())
+                    .filter(name => name.length > 0);
+
+                if (taskNames.length === 0) {
+                    showToast('請輸入至少一個項目名稱', 'error');
+                    return;
+                }
+
                 const tasksData = loadMonthlyTasks();
                 if (!tasksData[customerId]) {
                     tasksData[customerId] = [];
                 }
 
-                // patch: 2025-11-17 建立任務時初始化指定年度的資料
-                const newTask = {
-                    name: taskName,
-                    months: {},
-                    createdAt: new Date().toISOString()
-                };
+                // 批量建立任務
+                let addedCount = 0;
+                taskNames.forEach(taskName => {
+                    // patch: 2025-11-17 建立任務時初始化指定年度的資料
+                    const newTask = {
+                        name: taskName,
+                        months: {},
+                        createdAt: new Date().toISOString()
+                    };
 
-                // 初始化該年度的月份資料（全部設為未完成）
-                newTask.months[taskYear] = {};
-                for (let month = 1; month <= 12; month++) {
-                    newTask.months[taskYear][month] = false;
-                }
+                    // 初始化該年度的月份資料（全部設為未完成）
+                    newTask.months[taskYear] = {};
+                    for (let month = 1; month <= 12; month++) {
+                        newTask.months[taskYear][month] = false;
+                    }
 
-                tasksData[customerId].push(newTask);
+                    tasksData[customerId].push(newTask);
+                    addedCount++;
+                });
 
                 saveMonthlyTasks(tasksData);
                 closeAddTaskDialog();
@@ -9714,7 +9869,7 @@ ${escapeHTML(msg.message)}
                 }
 
                 renderMonthlyTasksPage();
-                showToast(`工作項目已新增至 ${taskYear} 年`);
+                showToast(`已新增 ${addedCount} 個工作項目至 ${taskYear} 年`);
             };
 
             // 編輯任務
@@ -9778,6 +9933,42 @@ ${escapeHTML(msg.message)}
                     renderMonthlyTasksPage();
                     showToast('工作項目已更新');
                 }
+            };
+
+            // patch: 2025-11-24 複製缺少月份資訊
+            window.copyMissingMonths = (monthsText) => {
+                if (!monthsText) return;
+
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(monthsText).then(() => {
+                            showToast('已複製到剪貼簿', 'success');
+                        }).catch(() => {
+                            fallbackCopy(monthsText);
+                        });
+                    } else {
+                        fallbackCopy(monthsText);
+                    }
+                } catch (err) {
+                    fallbackCopy(monthsText);
+                }
+            };
+
+            // patch: 2025-11-24 備用複製方法
+            const fallbackCopy = (text) => {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('已複製到剪貼簿', 'success');
+                } catch (err) {
+                    showToast('複製失敗', 'error');
+                }
+                document.body.removeChild(textarea);
             };
 
             // 刪除任務
