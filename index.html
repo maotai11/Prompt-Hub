@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能離線檔案整理工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); min-height: 100vh; color: #e0e0e0; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; padding: 20px; background: linear-gradient(90deg, #00d2ff, #3a7bd5, #f093fb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.2rem; text-shadow: 0 0 30px rgba(102, 126, 234, 0.3); }
+        .subtitle { text-align: center; color: #888; margin-bottom: 20px; font-size: 14px; }
+        
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .btn-info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #1a1a2e; }
+        .btn-ai { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); color: white; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 175, 25, 0.4); } 50% { box-shadow: 0 0 0 10px rgba(245, 175, 25, 0); } }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        input[type="file"] { display: none; }
+        
+        .search-box { flex: 1; min-width: 200px; padding: 10px 15px; border: 2px solid #3a3a5a; border-radius: 8px; background: #1a1a2e; color: #e0e0e0; font-size: 14px; }
+        .search-box:focus { outline: none; border-color: #667eea; box-shadow: 0 0 10px rgba(102, 126, 234, 0.3); }
+        
+        .panels { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+        .panel { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .panel h2 { font-size: 1.1rem; margin-bottom: 15px; color: #a0a0ff; border-bottom: 1px solid #3a3a5a; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        
+        .file-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .file-table th, .file-table td { padding: 10px; text-align: left; border-bottom: 1px solid #2a2a4a; }
+        .file-table th { background: rgba(102, 126, 234, 0.2); position: sticky; top: 0; z-index: 10; }
+        .file-table tr:hover { background: rgba(102, 126, 234, 0.1); }
+        .file-table input { width: 100%; padding: 6px 8px; border: 1px solid #3a3a5a; border-radius: 4px; background: #1a1a2e; color: #e0e0e0; font-size: 12px; }
+        .file-table input:focus { outline: none; border-color: #667eea; }
+        .table-container { max-height: 550px; overflow-y: auto; }
+        
+        .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; margin: 2px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .tag.tag-auto { background: linear-gradient(135deg, #f5af19, #f12711); }
+        
+        .rule-item { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .rule-item input, .rule-item select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #3a3a5a; border-radius: 6px; background: #1a1a2e; color: #e0e0e0; font-size: 12px; }
+        .rule-item label { font-size: 12px; color: #a0a0a0; display: block; margin-top: 8px; }
+        .rule-item label:first-child { margin-top: 0; }
+        .rule-actions { display: flex; gap: 5px; margin-top: 10px; }
+        .rule-actions .btn { padding: 5px 10px; font-size: 11px; }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: rgba(102, 126, 234, 0.15); padding: 15px; border-radius: 10px; text-align: center; border: 1px solid rgba(102, 126, 234, 0.3); transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); background: rgba(102, 126, 234, 0.25); }
+        .stat-card .number { font-size: 1.8rem; font-weight: bold; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .stat-card .label { font-size: 12px; color: #a0a0a0; margin-top: 5px; }
+        
+        .progress-bar { height: 6px; background: #2a2a4a; border-radius: 3px; margin: 10px 0; overflow: hidden; }
+        .progress-bar .fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2, #f093fb); transition: width 0.3s; }
+        
+        .checkbox-col { width: 30px; text-align: center !important; }
+        .type-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .type-pdf { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .type-docx { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .type-xlsx { background: linear-gradient(135deg, #27ae60, #1e8449); }
+        .type-txt { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .type-html { background: linear-gradient(135deg, #f39c12, #d68910); }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 30px; border-radius: 16px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); }
+        .modal-content h3 { margin-bottom: 20px; color: #667eea; }
+        .modal-content pre { background: #0a0a1a; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+        .close-btn { float: right; cursor: pointer; font-size: 28px; color: #a0a0a0; line-height: 1; }
+        .close-btn:hover { color: #fff; }
+        
+        .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid #667eea; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .preview-text { max-height: 60px; overflow: hidden; font-size: 11px; color: #666; cursor: pointer; transition: color 0.3s; line-height: 1.4; }
+        .preview-text:hover { color: #aaa; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #555; }
+        .empty-state svg { width: 100px; height: 100px; margin-bottom: 20px; opacity: 0.3; }
+        .empty-state p { margin-top: 10px; font-size: 14px; }
+        
+        .smart-section { background: linear-gradient(135deg, rgba(245, 175, 25, 0.1), rgba(241, 39, 17, 0.1)); border: 1px solid rgba(245, 175, 25, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+        .smart-section h3 { color: #f5af19; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .smart-options { display: flex; flex-wrap: wrap; gap: 8px; }
+        .smart-options label { display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; padding: 5px 10px; background: rgba(0,0,0,0.2); border-radius: 6px; transition: all 0.3s; }
+        .smart-options label:hover { background: rgba(245, 175, 25, 0.2); }
+        .smart-options input[type="checkbox"] { accent-color: #f5af19; }
+        
+        .ai-badge { background: linear-gradient(135deg, #f5af19, #f12711); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+        
+        .filename-preview { font-size: 11px; color: #888; margin-top: 3px; word-break: break-all; }
+        
+        /* 副檔名篩選樣式 */
+        .ext-filter-section { background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 254, 0.1)); border: 1px solid rgba(79, 172, 254, 0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
+        .ext-filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .ext-filter-header h3 { color: #4facfe; font-size: 14px; margin: 0; }
+        .ext-filter-actions { display: flex; gap: 8px; }
+        .btn-sm { padding: 6px 12px; font-size: 11px; }
+        .ext-filter-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ext-filter-item { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(0,0,0,0.3); border-radius: 8px; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; user-select: none; }
+        .ext-filter-item:hover { background: rgba(79, 172, 254, 0.2); }
+        .ext-filter-item.selected { border-color: #4facfe; background: rgba(79, 172, 254, 0.15); }
+        .ext-filter-item input[type="checkbox"] { accent-color: #4facfe; width: 16px; height: 16px; cursor: pointer; }
+        .ext-filter-item .ext-name { font-weight: 600; text-transform: uppercase; font-size: 12px; }
+        .ext-filter-item .ext-count { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-size: 11px; color: #aaa; }
+        .ext-filter-item .ext-size { font-size: 10px; color: #888; }
+        .ext-filter-summary { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: #aaa; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .ext-priority-hint { font-size: 11px; color: #f5af19; }
+        
+        @media (max-width: 1200px) { .panels { grid-template-columns: 1fr; } }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; }
+        ::-webkit-scrollbar-thumb { background: #3a3a5a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4a4a6a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 智能離線檔案整理工具</h1>
+        <p class="subtitle">支援 PDF / Word / Excel / TXT / HTML 自動解析、智能打標、批次重命名</p>
+        
+        <div class="stats">
+            <div class="stat-card"><div class="number" id="totalFiles">0</div><div class="label">總檔案數</div></div>
+            <div class="stat-card"><div class="number" id="pdfCount">0</div><div class="label">PDF</div></div>
+            <div class="stat-card"><div class="number" id="docxCount">0</div><div class="label">Word</div></div>
+            <div class="stat-card"><div class="number" id="xlsxCount">0</div><div class="label">Excel</div></div>
+            <div class="stat-card"><div class="number" id="txtCount">0</div><div class="label">TXT/HTML</div></div>
+            <div class="stat-card"><div class="number" id="taggedCount">0</div><div class="label">已標記</div></div>
+            <div class="stat-card"><div class="number" id="renamedCount">0</div><div class="label">已重命名</div></div>
+        </div>
+
+        <div class="toolbar">
+            <label class="btn btn-primary">
+                📂 選擇資料夾
+                <input type="file" id="folderInput" webkitdirectory directory multiple>
+            </label>
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜尋檔名、內容、標籤...">
+            <button class="btn btn-ai" id="smartAnalyzeBtn" disabled>🧠 智能分析</button>
+            <button class="btn btn-success" id="applyRulesBtn" disabled>🏷️ 套用規則</button>
+            <button class="btn btn-info" id="selectAllBtn">☑️ 全選</button>
+            <button class="btn btn-warning" id="exportBatBtn" disabled>📤 匯出 BAT</button>
+            <button class="btn btn-info" id="previewBatBtn" disabled>👁️ 預覽</button>
+        </div>
+
+        <div class="progress-bar"><div class="fill" id="progressFill" style="width: 0%"></div></div>
+        <div id="statusText" style="font-size: 12px; color: #888; margin-bottom: 15px; min-height: 18px;"></div>
+
+        <!-- 副檔名篩選區域 -->
+        <div id="extFilterSection" class="ext-filter-section" style="display:none;">
+            <div class="ext-filter-header">
+                <h3>📁 副檔名篩選</h3>
+                <div class="ext-filter-actions">
+                    <button class="btn btn-info btn-sm" id="extSelectAll">全選</button>
+                    <button class="btn btn-warning btn-sm" id="extDeselectAll">取消全選</button>
+                    <button class="btn btn-success btn-sm" id="extApplyFilter">✓ 套用篩選</button>
+                </div>
+            </div>
+            <div class="ext-filter-list" id="extFilterList"></div>
+            <div class="ext-filter-summary" id="extFilterSummary"></div>
+        </div>
+
+        <div class="panels">
+            <div class="panel">
+                <h2>📄 檔案清單 <span style="font-size:12px;color:#888;font-weight:normal;">(<span id="fileCountDisplay">0</span> 個)</span></h2>
+                <div class="table-container">
+                    <table class="file-table">
+                        <thead>
+                            <tr>
+                                <th class="checkbox-col"><input type="checkbox" id="checkAll"></th>
+                                <th style="width:70px">類型</th>
+                                <th style="width:200px">原始檔名</th>
+                                <th style="width:250px">建議檔名</th>
+                                <th style="width:150px">目標資料夾</th>
+                                <th>標籤</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fileTableBody">
+                            <tr><td colspan="6" class="empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                </svg>
+                                <div>請選擇資料夾以開始分析檔案</div>
+                                <p>支援 PDF、Word、Excel、TXT、HTML 格式</p>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🧠 智能分析設定</h2>
+                <div class="smart-section">
+                    <h3>✨ 自動偵測項目 <button class="btn btn-success" id="addDetectItemBtn" style="padding:3px 10px;font-size:11px;margin-left:auto;">➕ 新增</button></h3>
+                    <div class="smart-options" id="builtinDetectOptions">
+                        <label><input type="checkbox" id="detectDate" checked> 日期</label>
+                        <label><input type="checkbox" id="detectCompany" checked> 公司名稱</label>
+                    </div>
+                    <div class="smart-options" id="documentTypeOptions" style="margin-top:8px;">
+                        <label><input type="checkbox" data-type="invoice" checked> 發票/收據</label>
+                        <label><input type="checkbox" data-type="contract" checked> 合約</label>
+                        <label><input type="checkbox" data-type="report" checked> 報告</label>
+                        <label><input type="checkbox" data-type="meeting" checked> 會議</label>
+                        <label><input type="checkbox" data-type="resume" checked> 履歷</label>
+                        <label><input type="checkbox" data-type="quotation" checked> 報價單</label>
+                        <label><input type="checkbox" data-type="financial" checked> 財務</label>
+                        <label><input type="checkbox" data-type="legal" checked> 法律</label>
+                    </div>
+                    <div id="customDetectItems" style="margin-top:10px;"></div>
+                </div>
+
+                <h2 style="margin-top:15px;">⚙️ 自訂規則</h2>
+                <div id="rulesContainer">
+                    <div class="rule-item">
+                        <label>關鍵字（逗號分隔）</label>
+                        <input type="text" class="rule-keyword" placeholder="例如：合約, contract, 協議">
+                        <label>標籤</label>
+                        <input type="text" class="rule-tag" placeholder="例如：合約文件">
+                        <label>目標資料夾</label>
+                        <input type="text" class="rule-folder" placeholder="例如：01_合約">
+                        <label>檔名格式</label>
+                        <input type="text" class="rule-format" placeholder="例如：[合約] {date}_{company}_{original}">
+                        <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
+                        <div class="rule-actions">
+                            <button class="btn btn-warning remove-rule">✖ 刪除</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-success" id="addRuleBtn" style="width:100%; margin-top:10px;">➕ 新增規則</button>
+                
+                <h2 style="margin-top: 20px;">💾 規則管理</h2>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-info" id="saveRulesBtn" style="flex:1;">💾 儲存</button>
+                    <button class="btn btn-primary" id="loadRulesBtn" style="flex:1;">📂 載入</button>
+                    <button class="btn btn-warning" id="clearRulesBtn" style="flex:1;">🗑️ 清除</button>
+                </div>
+                <input type="file" id="loadRulesInput" accept=".json" style="display:none">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="batPreviewModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeBatPreview()">&times;</span>
+            <h3>📄 BAT 批次檔預覽</h3>
+            <pre id="batPreviewContent"></pre>
+            <div style="display:flex;gap:10px;margin-top:15px;">
+                <button class="btn btn-success" style="flex:1;" onclick="downloadBat()">⬇️ 下載 BAT 檔案</button>
+                <button class="btn btn-info" style="flex:1;" onclick="copyBat()">📋 複製內容</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="contentModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeContentModal()">&times;</span>
+            <h3 id="contentModalTitle">📄 檔案內容預覽</h3>
+            <pre id="contentPreview"></pre>
+        </div>
+    </div>
+
+    <div class="modal" id="addDetectModal">
+        <div class="modal-content" style="max-width:500px;">
+            <span class="close-btn" onclick="closeAddDetectModal()">&times;</span>
+            <h3>✨ 新增自訂偵測項目</h3>
+            <div class="rule-item" style="margin-top:15px;">
+                <label>項目名稱 *</label>
+                <input type="text" id="newDetectName" placeholder="例如：訂單">
+                <label>關鍵字（逗號分隔）*</label>
+                <input type="text" id="newDetectKeywords" placeholder="例如：訂單, order, 採購單, PO">
+                <label>標籤</label>
+                <input type="text" id="newDetectTag" placeholder="例如：訂單">
+                <label>目標資料夾</label>
+                <input type="text" id="newDetectFolder" placeholder="例如：09_訂單">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button class="btn btn-success" style="flex:1;" onclick="saveCustomDetectItem()">✅ 新增</button>
+                <button class="btn btn-warning" style="flex:1;" onclick="closeAddDetectModal()">❌ 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============ 智能文字提取器 ============
+    const TextExtractor = {
+        // 從二進位資料中提取可讀文字
+        extractReadableText(bytes) {
+            const chunks = [];
+            let currentChunk = '';
+            
+            for (let i = 0; i < bytes.length; i++) {
+                const byte = bytes[i];
+                // 可列印 ASCII 字元
+                if (byte >= 32 && byte <= 126) {
+                    currentChunk += String.fromCharCode(byte);
+                }
+                // 中文 UTF-8 (3 bytes: 0xE4-0xE9 開頭)
+                else if (byte >= 0xE4 && byte <= 0xE9 && i + 2 < bytes.length) {
+                    try {
+                        const char = new TextDecoder('utf-8').decode(bytes.slice(i, i + 3));
+                        if (char && !char.includes('�')) {
+                            currentChunk += char;
+                            i += 2;
+                        }
+                    } catch (e) {}
+                }
+                // 空白/換行
+                else if (byte === 10 || byte === 13 || byte === 9) {
+                    if (currentChunk.length > 0) {
+                        currentChunk += ' ';
+                    }
+                }
+                // 其他字元 - 檢查是否需要斷開
+                else if (currentChunk.length > 2) {
+                    chunks.push(currentChunk.trim());
+                    currentChunk = '';
+                }
+            }
+            
+            if (currentChunk.length > 2) {
+                chunks.push(currentChunk.trim());
+            }
+            
+            // 過濾並連接有意義的文字片段
+            return chunks
+                .filter(c => c.length > 3 && !/^[^a-zA-Z\u4e00-\u9fff]*$/.test(c))
+                .join(' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+    };
+
+    // ============ PDF 解析器 ============
+    const PDFParser = {
+        async parse(arrayBuffer) {
+            try {
+                const bytes = new Uint8Array(arrayBuffer);
+                let extractedText = '';
+                
+                // 方法1: 尋找文字物件
+                const textObjects = this.findTextObjects(bytes);
+                if (textObjects.length > 0) {
+                    extractedText = textObjects.join(' ');
+                }
+                
+                // 方法2: 解壓縮流並提取
+                if (extractedText.length < 50) {
+                    const streamTexts = await this.extractFromStreams(bytes);
+                    if (streamTexts.length > extractedText.length) {
+                        extractedText = streamTexts;
+                    }
+                }
+                
+                // 方法3: 直接提取可讀文字
+                if (extractedText.length < 50) {
+                    extractedText = TextExtractor.extractReadableText(bytes);
+                }
+                
+                // 清理文字
+                extractedText = this.cleanText(extractedText);
+                
+                return extractedText || '[PDF 內容無法提取 - 可能是掃描檔或加密檔案]';
+            } catch (e) {
+                console.error('PDF parse error:', e);
+                return '[PDF 解析錯誤]';
+            }
+        },
+        
+        findTextObjects(bytes) {
+            const texts = [];
+            const str = new TextDecoder('latin1').decode(bytes);
+            
+            // 尋找 BT...ET 文字區塊
+            const btEtPattern = /BT\s*([\s\S]*?)\s*ET/g;
+            let match;
+            
+            while ((match = btEtPattern.exec(str)) !== null) {
+                const block = match[1];
+                
+                // 提取 Tj 操作符的文字
+                const tjMatches = block.matchAll(/\(([^)]*)\)\s*Tj/g);
+                for (const tj of tjMatches) {
+                    const decoded = this.decodeString(tj[1]);
+                    if (decoded) texts.push(decoded);
+                }
+                
+                // 提取 TJ 陣列中的文字
+                const tjArrayMatches = block.matchAll(/\[((?:[^[\]]*|\([^)]*\))*)\]\s*TJ/gi);
+                for (const tja of tjArrayMatches) {
+                    const innerMatches = tja[1].matchAll(/\(([^)]*)\)/g);
+                    for (const inner of innerMatches) {
+                        const decoded = this.decodeString(inner[1]);
+                        if (decoded) texts.push(decoded);
+                    }
+                }
+                
+                // 提取 ' 和 " 操作符
+                const quoteMatches = block.matchAll(/\(([^)]*)\)\s*['"]/g);
+                for (const qm of quoteMatches) {
+                    const decoded = this.decodeString(qm[1]);
+                    if (decoded) texts.push(decoded);
+                }
+            }
+            
+            return texts;
+        },
+        
+        async extractFromStreams(bytes) {
+            const str = new TextDecoder('latin1').decode(bytes);
+            const texts = [];
+            
+            // 尋找 stream...endstream
+            const streamPattern = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+            let match;
+            
+            while ((match = streamPattern.exec(str)) !== null) {
+                const streamData = match[1];
+                const streamBytes = new Uint8Array(streamData.length);
+                for (let i = 0; i < streamData.length; i++) {
+                    streamBytes[i] = streamData.charCodeAt(i);
+                }
+                
+                // 嘗試解壓縮 (FlateDecode)
+                try {
+                    if (typeof DecompressionStream !== 'undefined') {
+                        const decompressed = await this.inflate(streamBytes);
+                        if (decompressed) {
+                            const text = this.extractTextFromDecompressed(decompressed);
+                            if (text) texts.push(text);
+                        }
+                    }
+                } catch (e) {
+                    // 解壓縮失敗,嘗試直接提取
+                    const directText = TextExtractor.extractReadableText(streamBytes);
+                    if (directText.length > 10) texts.push(directText);
+                }
+            }
+            
+            return texts.join(' ');
+        },
+        
+        async inflate(data) {
+            try {
+                // 檢查 zlib header (78 01, 78 5E, 78 9C, 78 DA)
+                let streamData = data;
+                if (data[0] === 0x78) {
+                    streamData = data.slice(2); // 跳過 zlib header
+                }
+                
+                const ds = new DecompressionStream('deflate-raw');
+                const writer = ds.writable.getWriter();
+                writer.write(streamData);
+                writer.close();
+                
+                const reader = ds.readable.getReader();
+                const chunks = [];
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                }
+                
+                const totalLength = chunks.reduce((a, c) => a + c.length, 0);
+                const result = new Uint8Array(totalLength);
+                let offset = 0;
+                for (const chunk of chunks) {
+                    result.set(chunk, offset);
+                    offset += chunk.length;
+                }
+                
+                return result;
+            } catch (e) {
+                return null;
+            }
+        },
+        
+        extractTextFromDecompressed(bytes) {
+            const str = new TextDecoder('latin1').decode(bytes);
+            const texts = [];
+            
+            // 從解壓縮的內容中提取文字
+            const tjMatches = str.matchAll(/\(([^)]*)\)\s*Tj/g);
+            for (const tj of tjMatches) {
+                const decoded = this.decodeString(tj[1]);
+                if (decoded) texts.push(decoded);
+            }
+            
+            const tjArrayMatches = str.matchAll(/\[((?:[^[\]]*|\([^)]*\))*)\]\s*TJ/gi);
+            for (const tja of tjArrayMatches) {
+                const innerMatches = tja[1].matchAll(/\(([^)]*)\)/g);
+                for (const inner of innerMatches) {
+                    const decoded = this.decodeString(inner[1]);
+                    if (decoded) texts.push(decoded);
+                }
+            }
+            
+            if (texts.length === 0) {
+                // 備用: 提取可讀字元
+                return TextExtractor.extractReadableText(bytes);
+            }
+            
+            return texts.join(' ');
+        },
+        
+        decodeString(str) {
+            if (!str) return '';
+            
+            // 處理跳脫字元
+            let result = str
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '')
+                .replace(/\\t/g, ' ')
+                .replace(/\\\(/g, '(')
+                .replace(/\\\)/g, ')')
+                .replace(/\\\\/g, '\\');
+            
+            // 處理八進位跳脫 \nnn
+            result = result.replace(/\\([0-7]{1,3})/g, (match, oct) => {
+                return String.fromCharCode(parseInt(oct, 8));
+            });
+            
+            // 過濾控制字元
+            result = result.replace(/[\x00-\x1f]/g, ' ');
+            
+            return result.trim();
+        },
+        
+        cleanText(text) {
+            if (!text) return '';
+            
+            return text
+                .replace(/[\x00-\x1f]/g, ' ')  // 移除控制字元
+                .replace(/[^\u0020-\u007e\u00a0-\u00ff\u4e00-\u9fff\u3400-\u4dbf\uf000-\ufaff\n]/g, ' ')  // 保留常用字元
+                .replace(/\s+/g, ' ')  // 合併空白
+                .trim()
+                .substring(0, 8000);  // 限制長度
+        }
+    };
+
+    // ============ DOCX 解析器 ============
+    const DOCXParser = {
+        async parse(arrayBuffer) {
+            try {
+                const zip = await this.unzip(new Uint8Array(arrayBuffer));
+                
+                // 優先讀取 document.xml
+                let documentContent = zip['word/document.xml'];
+                if (!documentContent) {
+                    // 嘗試其他可能的路徑
+                    for (const key of Object.keys(zip)) {
+                        if (key.includes('document') && key.endsWith('.xml')) {
+                            documentContent = zip[key];
+                            break;
+                        }
+                    }
+                }
+                
+                if (!documentContent) {
+                    return '[無法找到 Word 文件內容]';
+                }
+                
+                const decoder = new TextDecoder('utf-8');
+                const xmlContent = decoder.decode(documentContent);
+                
+                // 提取所有文字節點
+                let text = '';
+                
+                // 移除 XML 標籤但保留段落結構
+                text = xmlContent
+                    .replace(/<w:p[^>]*>/g, '\n')  // 段落換行
+                    .replace(/<w:br[^>]*>/g, '\n')  // 換行符
+                    .replace(/<w:tab[^>]*>/g, '\t')  // Tab
+                    .replace(/<w:t[^>]*>([^<]*)<\/w:t>/g, '$1')  // 提取文字
+                    .replace(/<[^>]+>/g, '')  // 移除其他標籤
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&amp;/g, '&')
+                    .replace(/&quot;/g, '"')
+                    .replace(/&apos;/g, "'")
+                    .replace(/&#(\d+);/g, (m, code) => String.fromCharCode(code))
+                    .replace(/\n\s*\n/g, '\n')  // 移除多餘空行
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                
+                return text.substring(0, 8000) || '[Word 文件為空]';
+            } catch (e) {
+                console.error('DOCX parse error:', e);
+                return '[DOCX 解析錯誤: ' + e.message + ']';
+            }
+        },
+        
+        async unzip(bytes) {
+            const files = {};
+            let pos = 0;
+            
+            while (pos < bytes.length - 4) {
+                // 本地檔案頭標記 0x04034B50
+                if (bytes[pos] === 0x50 && bytes[pos+1] === 0x4B && 
+                    bytes[pos+2] === 0x03 && bytes[pos+3] === 0x04) {
+                    
+                    const view = new DataView(bytes.buffer, bytes.byteOffset + pos);
+                    const compressionMethod = view.getUint16(8, true);
+                    const compressedSize = view.getUint32(18, true);
+                    const fileNameLength = view.getUint16(26, true);
+                    const extraLength = view.getUint16(28, true);
+                    
+                    const fileName = new TextDecoder().decode(
+                        bytes.slice(pos + 30, pos + 30 + fileNameLength)
+                    );
+                    
+                    const dataStart = pos + 30 + fileNameLength + extraLength;
+                    const dataEnd = dataStart + compressedSize;
+                    
+                    if (dataEnd <= bytes.length) {
+                        const fileData = bytes.slice(dataStart, dataEnd);
+                        
+                        if (compressionMethod === 0) {
+                            // 無壓縮
+                            files[fileName] = fileData;
+                        } else if (compressionMethod === 8) {
+                            // Deflate 壓縮
+                            try {
+                                const decompressed = await this.inflateRaw(fileData);
+                                files[fileName] = decompressed;
+                            } catch (e) {
+                                files[fileName] = fileData;
+                            }
+                        }
+                        
+                        pos = dataEnd;
+                    } else {
+                        break;
+                    }
+                } else {
+                    pos++;
+                }
+            }
+            
+            return files;
+        },
+        
+        async inflateRaw(data) {
+            const ds = new DecompressionStream('deflate-raw');
+            const writer = ds.writable.getWriter();
+            writer.write(data);
+            writer.close();
+            
+            const reader = ds.readable.getReader();
+            const chunks = [];
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+            }
+            
+            const totalLength = chunks.reduce((a, c) => a + c.length, 0);
+            const result = new Uint8Array(totalLength);
+            let offset = 0;
+            for (const chunk of chunks) {
+                result.set(chunk, offset);
+                offset += chunk.length;
+            }
+            
+            return result;
+        }
+    };
+
+    // ============ XLSX 解析器 ============
+    const XLSXParser = {
+        async parse(arrayBuffer) {
+            try {
+                const zip = await DOCXParser.unzip(new Uint8Array(arrayBuffer));
+                let allText = [];
+                
+                // 讀取共享字串
+                const sharedStrings = [];
+                const ssFile = zip['xl/sharedStrings.xml'];
+                if (ssFile) {
+                    const decoder = new TextDecoder('utf-8');
+                    const ssXml = decoder.decode(ssFile);
+                    
+                    // 提取 <t> 標籤中的文字
+                    const tMatches = ssXml.matchAll(/<t[^>]*>([^<]*)<\/t>/g);
+                    for (const m of tMatches) {
+                        let text = m[1]
+                            .replace(/&lt;/g, '<')
+                            .replace(/&gt;/g, '>')
+                            .replace(/&amp;/g, '&')
+                            .replace(/&quot;/g, '"');
+                        sharedStrings.push(text);
+                    }
+                }
+                
+                // 讀取所有工作表
+                for (const [name, content] of Object.entries(zip)) {
+                    if (name.match(/xl\/worksheets\/sheet\d+\.xml/)) {
+                        const decoder = new TextDecoder('utf-8');
+                        const sheetXml = decoder.decode(content);
+                        
+                        // 提取儲存格
+                        const cellPattern = /<c[^>]*>([\s\S]*?)<\/c>/g;
+                        let cellMatch;
+                        
+                        while ((cellMatch = cellPattern.exec(sheetXml)) !== null) {
+                            const cellTag = cellMatch[0];
+                            const cellContent = cellMatch[1];
+                            
+                            // 取得值
+                            const valueMatch = cellContent.match(/<v>([^<]*)<\/v>/);
+                            if (valueMatch) {
+                                const value = valueMatch[1];
+                                
+                                // 檢查是否是共享字串
+                                if (cellTag.includes('t="s"')) {
+                                    const idx = parseInt(value);
+                                    if (sharedStrings[idx]) {
+                                        allText.push(sharedStrings[idx]);
+                                    }
+                                } else if (cellTag.includes('t="inlineStr"')) {
+                                    // 內聯字串
+                                    const tMatch = cellContent.match(/<t[^>]*>([^<]*)<\/t>/);
+                                    if (tMatch) allText.push(tMatch[1]);
+                                } else {
+                                    allText.push(value);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                const result = allText.join(' ').replace(/\s+/g, ' ').trim();
+                return result.substring(0, 8000) || '[Excel 工作表為空]';
+            } catch (e) {
+                console.error('XLSX parse error:', e);
+                return '[XLSX 解析錯誤: ' + e.message + ']';
+            }
+        }
+    };
+
+    // ============ 智能分析引擎 ============
+    const SmartAnalyzer = {
+        // 日期模式
+        datePatterns: [
+            /(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})[日號]?/g,
+            /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g,
+            /(\d{4})(\d{2})(\d{2})/g,
+            /(民國)?(\d{2,3})年(\d{1,2})月(\d{1,2})日/g
+        ],
+        
+        // 公司名稱模式
+        companyPatterns: [
+            /([^\s,，。]{2,15})(股份有限公司|有限公司|公司|企業|集團|Corp\.?|Inc\.?|Ltd\.?|LLC)/gi,
+            /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\s+(Corporation|Company|Inc|Ltd)/gi
+        ],
+        
+        // 文件類型關鍵字
+        documentTypes: {
+            invoice: {
+                keywords: ['發票', '統一發票', 'invoice', '收據', 'receipt', '電子發票', '三聯式'],
+                folder: '01_發票收據',
+                tag: '發票'
+            },
+            contract: {
+                keywords: ['合約', '契約', 'contract', 'agreement', '協議書', '合同', '服務條款'],
+                folder: '02_合約文件',
+                tag: '合約'
+            },
+            report: {
+                keywords: ['報告', 'report', '分析', 'analysis', '研究', '調查', '評估', '報表'],
+                folder: '03_報告文件',
+                tag: '報告'
+            },
+            meeting: {
+                keywords: ['會議', 'meeting', '議程', 'agenda', '紀錄', 'minutes', '討論'],
+                folder: '04_會議資料',
+                tag: '會議'
+            },
+            resume: {
+                keywords: ['履歷', '簡歷', 'resume', 'cv', 'curriculum vitae', '個人資料', '工作經歷'],
+                folder: '05_履歷資料',
+                tag: '履歷'
+            },
+            quotation: {
+                keywords: ['報價', '報價單', 'quotation', 'quote', '估價', '價目', 'proposal'],
+                folder: '06_報價單',
+                tag: '報價'
+            },
+            financial: {
+                keywords: ['財務', '財報', '資產負債', '損益', '現金流', 'financial', 'balance sheet'],
+                folder: '07_財務資料',
+                tag: '財務'
+            },
+            legal: {
+                keywords: ['法律', '律師', '訴訟', '判決', '法規', 'legal', 'law', '條例'],
+                folder: '08_法律文件',
+                tag: '法律'
+            }
+        },
+        
+        analyze(file) {
+            const result = {
+                dates: [],
+                companies: [],
+                documentType: null,
+                tags: [],
+                suggestedName: file.name,
+                suggestedFolder: ''
+            };
+            
+            const searchText = (file.name + ' ' + file.content).toLowerCase();
+            const originalText = file.name + ' ' + file.content;
+            
+            // 提取日期
+            if (document.getElementById('detectDate')?.checked) {
+                for (const pattern of this.datePatterns) {
+                    const matches = originalText.matchAll(new RegExp(pattern.source, pattern.flags));
+                    for (const match of matches) {
+                        let dateStr = this.normalizeDate(match);
+                        if (dateStr && !result.dates.includes(dateStr)) {
+                            result.dates.push(dateStr);
+                        }
+                    }
+                }
+            }
+            
+            // 提取公司名稱
+            if (document.getElementById('detectCompany')?.checked) {
+                for (const pattern of this.companyPatterns) {
+                    const matches = originalText.matchAll(new RegExp(pattern.source, pattern.flags));
+                    for (const match of matches) {
+                        let company = match[0].trim();
+                        // 過濾太短或太長的
+                        if (company.length >= 4 && company.length <= 30) {
+                            if (!result.companies.some(c => c.includes(company) || company.includes(c))) {
+                                result.companies.push(company);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 識別文件類型
+            for (const [type, config] of Object.entries(this.documentTypes)) {
+                const checkboxId = 'detect' + type.charAt(0).toUpperCase() + type.slice(1);
+                const checkbox = document.getElementById(checkboxId);
+                
+                if (checkbox && !checkbox.checked) continue;
+                
+                const matched = config.keywords.some(kw => searchText.includes(kw.toLowerCase()));
+                if (matched) {
+                    if (!result.documentType) {
+                        result.documentType = type;
+                        result.suggestedFolder = config.folder;
+                    }
+                    if (!result.tags.includes(config.tag)) {
+                        result.tags.push(config.tag);
+                    }
+                }
+            }
+            
+            // 生成建議檔名
+            result.suggestedName = this.generateFileName(file, result);
+            
+            return result;
+        },
+        
+        normalizeDate(match) {
+            try {
+                const str = match[0];
+                let year, month, day;
+                
+                // 民國年
+                if (str.includes('民國') || /^\d{2,3}年/.test(str)) {
+                    const m = str.match(/(\d{2,3})年(\d{1,2})月(\d{1,2})/);
+                    if (m) {
+                        year = parseInt(m[1]) + (parseInt(m[1]) < 200 ? 1911 : 0);
+                        month = m[2].padStart(2, '0');
+                        day = m[3].padStart(2, '0');
+                    }
+                }
+                // 西元年
+                else if (match[1] && match[1].length === 4) {
+                    year = match[1];
+                    month = (match[2] || '01').padStart(2, '0');
+                    day = (match[3] || '01').padStart(2, '0');
+                }
+                // 其他格式
+                else if (match[3] && match[3].length === 4) {
+                    year = match[3];
+                    month = (match[1] || '01').padStart(2, '0');
+                    day = (match[2] || '01').padStart(2, '0');
+                }
+                // YYYYMMDD
+                else if (/^\d{8}$/.test(str)) {
+                    year = str.substring(0, 4);
+                    month = str.substring(4, 6);
+                    day = str.substring(6, 8);
+                }
+                
+                if (year && parseInt(year) >= 1990 && parseInt(year) <= 2100) {
+                    return `${year}${month}${day}`;
+                }
+            } catch (e) {}
+            return null;
+        },
+        
+        generateFileName(file, analysis) {
+            const ext = '.' + file.name.split('.').pop();
+            const baseName = file.name.replace(/\.[^.]+$/, '');
+            
+            let parts = [];
+            
+            // 添加文件類型標籤
+            if (analysis.documentType) {
+                const typeConfig = this.documentTypes[analysis.documentType];
+                parts.push(`[${typeConfig.tag}]`);
+            }
+            
+            // 添加日期
+            if (analysis.dates.length > 0) {
+                parts.push(analysis.dates[0]);
+            }
+            
+            // 添加公司名稱（簡化）
+            if (analysis.companies.length > 0) {
+                let company = analysis.companies[0];
+                // 簡化公司名稱
+                company = company.replace(/(股份有限公司|有限公司)$/, '');
+                if (company.length > 10) company = company.substring(0, 10);
+                parts.push(company);
+            }
+            
+            // 如果沒有提取到任何資訊，保留原檔名
+            if (parts.length === 0) {
+                return file.name;
+            }
+            
+            // 添加原始檔名的簡化版本
+            let shortName = baseName
+                .replace(/[\[\]【】\(\)（）]/g, '')
+                .replace(/\s+/g, '_')
+                .substring(0, 20);
+            
+            if (shortName && !parts.some(p => shortName.includes(p) || p.includes(shortName))) {
+                parts.push(shortName);
+            }
+            
+            return parts.join('_') + ext;
+        }
+    };
+
+    // ============ 主程式 ============
+    let files = [];
+    let filteredFiles = [];
+    let generatedBat = '';
+
+    // DOM 元素
+    const folderInput = document.getElementById('folderInput');
+    const searchBox = document.getElementById('searchBox');
+    const fileTableBody = document.getElementById('fileTableBody');
+    const applyRulesBtn = document.getElementById('applyRulesBtn');
+    const exportBatBtn = document.getElementById('exportBatBtn');
+    const previewBatBtn = document.getElementById('previewBatBtn');
+    const smartAnalyzeBtn = document.getElementById('smartAnalyzeBtn');
+    const addRuleBtn = document.getElementById('addRuleBtn');
+    const rulesContainer = document.getElementById('rulesContainer');
+    const progressFill = document.getElementById('progressFill');
+    const statusText = document.getElementById('statusText');
+    const checkAll = document.getElementById('checkAll');
+
+    // 選擇資料夾
+    folderInput.addEventListener('change', async (e) => {
+        const fileList = Array.from(e.target.files);
+        const supportedTypes = ['.pdf', '.docx', '.xlsx', '.xls', '.txt', '.html', '.htm', '.xml', '.csv'];
+        
+        files = fileList.filter(f => {
+            const ext = '.' + f.name.split('.').pop().toLowerCase();
+            return supportedTypes.includes(ext) && !f.name.startsWith('.');
+        }).map(f => ({
+            file: f,
+            name: f.name,
+            path: f.webkitRelativePath,
+            type: f.name.split('.').pop().toLowerCase(),
+            size: f.size,
+            content: '',
+            suggestedName: f.name,
+            suggestedFolder: '',
+            tags: [],
+            selected: true,
+            analyzed: false
+        }));
+
+        if (files.length === 0) {
+            statusText.textContent = '未找到支援的檔案格式';
+            return;
+        }
+
+        updateStats();
+        
+        // 解析檔案內容
+        statusText.innerHTML = '<span class="loading"></span> 正在解析檔案內容...';
+        
+        for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            progressFill.style.width = ((i + 1) / files.length * 100) + '%';
+            statusText.innerHTML = `<span class="loading"></span> 解析中: ${f.name} (${i + 1}/${files.length})`;
+            
+            try {
+                const arrayBuffer = await f.file.arrayBuffer();
+                
+                switch (f.type) {
+                    case 'pdf':
+                        f.content = await PDFParser.parse(arrayBuffer);
+                        break;
+                    case 'docx':
+                        f.content = await DOCXParser.parse(arrayBuffer);
+                        break;
+                    case 'xlsx':
+                    case 'xls':
+                        f.content = await XLSXParser.parse(arrayBuffer);
+                        break;
+                    case 'txt':
+                    case 'html':
+                    case 'htm':
+                    case 'xml':
+                    case 'csv':
+                        // 嘗試不同編碼
+                        let text = '';
+                        try {
+                            text = new TextDecoder('utf-8').decode(arrayBuffer);
+                            if (text.includes('�')) {
+                                text = new TextDecoder('big5').decode(arrayBuffer);
+                            }
+                        } catch (e) {
+                            text = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuffer);
+                        }
+                        // 移除 HTML 標籤
+                        if (f.type === 'html' || f.type === 'htm') {
+                            text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                                       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                                       .replace(/<[^>]+>/g, ' ')
+                                       .replace(/&nbsp;/g, ' ')
+                                       .replace(/\s+/g, ' ');
+                        }
+                        f.content = text.substring(0, 8000);
+                        break;
+                }
+            } catch (err) {
+                console.error('Parse error for', f.name, err);
+                f.content = '[解析錯誤: ' + err.message + ']';
+            }
+            
+            // 讓 UI 有機會更新
+            if (i % 5 === 0) {
+                await new Promise(r => setTimeout(r, 10));
+            }
+        }
+        
+        statusText.textContent = `✅ 完成！已載入 ${files.length} 個檔案，可開始智能分析`;
+        progressFill.style.width = '100%';
+        
+        filteredFiles = [...files];
+        renderTable();
+        
+        smartAnalyzeBtn.disabled = false;
+        applyRulesBtn.disabled = false;
+        exportBatBtn.disabled = false;
+        previewBatBtn.disabled = false;
+    });
+
+    // 智能分析
+    smartAnalyzeBtn.addEventListener('click', async () => {
+        statusText.innerHTML = '<span class="loading"></span> 正在進行智能分析...';
+        smartAnalyzeBtn.disabled = true;
+        
+        await new Promise(r => setTimeout(r, 50));
+        
+        for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            const analysis = SmartAnalyzer.analyze(f);
+            
+            f.tags = [...new Set([...f.tags, ...analysis.tags])];
+            
+            if (analysis.suggestedName !== f.name) {
+                f.suggestedName = analysis.suggestedName;
+            }
+            
+            if (analysis.suggestedFolder && !f.suggestedFolder) {
+                f.suggestedFolder = analysis.suggestedFolder;
+            }
+            
+            f.analyzed = true;
+            f.analysisResult = analysis;
+            
+            progressFill.style.width = ((i + 1) / files.length * 100) + '%';
+        }
+        
+        filteredFiles = [...files];
+        renderTable();
+        updateStats();
+        
+        statusText.textContent = `🧠 智能分析完成！已處理 ${files.length} 個檔案`;
+        smartAnalyzeBtn.disabled = false;
+    });
+
+    // 搜尋功能
+    searchBox.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) {
+            filteredFiles = [...files];
+        } else {
+            filteredFiles = files.filter(f => 
+                f.name.toLowerCase().includes(query) ||
+                f.content.toLowerCase().includes(query) ||
+                f.tags.some(t => t.toLowerCase().includes(query)) ||
+                f.suggestedName.toLowerCase().includes(query) ||
+                f.suggestedFolder.toLowerCase().includes(query)
+            );
+        }
+        renderTable();
+    });
+
+    // 渲染表格
+    function renderTable() {
+        if (filteredFiles.length === 0) {
+            fileTableBody.innerHTML = `<tr><td colspan="6" class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                </svg>
+                <div>${files.length > 0 ? '沒有找到符合的檔案' : '請選擇資料夾以開始分析'}</div>
+            </td></tr>`;
+            document.getElementById('fileCountDisplay').textContent = '0';
+            return;
+        }
+
+        fileTableBody.innerHTML = filteredFiles.map((f, idx) => {
+            const globalIdx = files.indexOf(f);
+            const previewText = f.content.substring(0, 80).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const isRenamed = f.suggestedName !== f.name;
+            
+            return `
+            <tr data-idx="${globalIdx}">
+                <td class="checkbox-col">
+                    <input type="checkbox" class="file-check" ${f.selected ? 'checked' : ''}>
+                </td>
+                <td>
+                    <span class="type-badge type-${f.type}">${f.type}</span>
+                </td>
+                <td title="${escapeHtml(f.path)}">
+                    <div style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">
+                        ${escapeHtml(f.name)}
+                    </div>
+                    <div class="preview-text" onclick="showContent(${globalIdx})">${previewText}...</div>
+                </td>
+                <td>
+                    <input type="text" value="${escapeHtml(f.suggestedName)}" class="suggested-name" 
+                           style="${isRenamed ? 'border-color:#f5af19;background:rgba(245,175,25,0.1);' : ''}">
+                    ${f.analyzed ? '<span class="ai-badge">AI</span>' : ''}
+                </td>
+                <td>
+                    <input type="text" value="${escapeHtml(f.suggestedFolder)}" class="suggested-folder"
+                           placeholder="目標資料夾" style="${f.suggestedFolder ? 'border-color:#38ef7d;' : ''}">
+                </td>
+                <td>
+                    ${f.tags.map(t => `<span class="tag ${f.analyzed ? 'tag-auto' : ''}">${escapeHtml(t)}</span>`).join('')}
+                </td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('fileCountDisplay').textContent = filteredFiles.length;
+        
+        // 綁定事件
+        document.querySelectorAll('.file-check').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const idx = parseInt(this.closest('tr').dataset.idx);
+                files[idx].selected = this.checked;
+                updateStats();
+            });
+        });
+        
+        document.querySelectorAll('.suggested-name').forEach(input => {
+            input.addEventListener('change', function() {
+                const idx = parseInt(this.closest('tr').dataset.idx);
+                files[idx].suggestedName = this.value;
+                updateStats();
+            });
+        });
+        
+        document.querySelectorAll('.suggested-folder').forEach(input => {
+            input.addEventListener('change', function() {
+                const idx = parseInt(this.closest('tr').dataset.idx);
+                files[idx].suggestedFolder = this.value;
+            });
+        });
+
+        updateStats();
+    }
+
+    // 顯示內容
+    function showContent(idx) {
+        const f = files[idx];
+        document.getElementById('contentModalTitle').textContent = '📄 ' + f.name;
+        
+        let content = f.content;
+        if (f.analysisResult) {
+            content = `【智能分析結果】\n`;
+            content += `日期: ${f.analysisResult.dates.join(', ') || '未偵測'}\n`;
+            content += `公司: ${f.analysisResult.companies.join(', ') || '未偵測'}\n`;
+            content += `類型: ${f.analysisResult.documentType || '未分類'}\n`;
+            content += `標籤: ${f.analysisResult.tags.join(', ') || '無'}\n`;
+            content += `\n${'─'.repeat(40)}\n\n`;
+            content += `【檔案內容】\n${f.content}`;
+        }
+        
+        document.getElementById('contentPreview').textContent = content;
+        document.getElementById('contentModal').classList.add('active');
+    }
+    window.showContent = showContent;
+
+    function closeContentModal() {
+        document.getElementById('contentModal').classList.remove('active');
+    }
+    window.closeContentModal = closeContentModal;
+
+    // 全選
+    checkAll.addEventListener('change', () => {
+        filteredFiles.forEach(f => f.selected = checkAll.checked);
+        renderTable();
+    });
+
+    document.getElementById('selectAllBtn').addEventListener('click', () => {
+        const allSelected = filteredFiles.every(f => f.selected);
+        filteredFiles.forEach(f => f.selected = !allSelected);
+        checkAll.checked = !allSelected;
+        renderTable();
+    });
+
+    // 更新統計
+    function updateStats() {
+        document.getElementById('totalFiles').textContent = files.length;
+        document.getElementById('pdfCount').textContent = files.filter(f => f.type === 'pdf').length;
+        document.getElementById('docxCount').textContent = files.filter(f => f.type === 'docx').length;
+        document.getElementById('xlsxCount').textContent = files.filter(f => ['xlsx', 'xls'].includes(f.type)).length;
+        document.getElementById('txtCount').textContent = files.filter(f => ['txt', 'html', 'htm', 'xml', 'csv'].includes(f.type)).length;
+        document.getElementById('taggedCount').textContent = files.filter(f => f.tags.length > 0).length;
+        document.getElementById('renamedCount').textContent = files.filter(f => f.suggestedName !== f.name).length;
+    }
+
+    // 取得規則
+    function getRules() {
+        const rules = [];
+        document.querySelectorAll('.rule-item').forEach(item => {
+            const keyword = item.querySelector('.rule-keyword')?.value?.trim();
+            const tag = item.querySelector('.rule-tag')?.value?.trim();
+            const folder = item.querySelector('.rule-folder')?.value?.trim();
+            const format = item.querySelector('.rule-format')?.value?.trim();
+            
+            if (keyword) {
+                rules.push({ keyword, tag, folder, format });
+            }
+        });
+        return rules;
+    }
+
+    // 套用自訂規則
+    applyRulesBtn.addEventListener('click', () => {
+        const rules = getRules();
+        let matchCount = 0;
+        
+        files.forEach(f => {
+            const searchText = (f.name + ' ' + f.content).toLowerCase();
+            
+            rules.forEach(rule => {
+                const keywords = rule.keyword.split(',').map(k => k.trim().toLowerCase());
+                const matched = keywords.some(kw => kw && searchText.includes(kw));
+                
+                if (matched) {
+                    matchCount++;
+                    
+                    if (rule.tag && !f.tags.includes(rule.tag)) {
+                        f.tags.push(rule.tag);
+                    }
+                    
+                    if (rule.folder) {
+                        f.suggestedFolder = rule.folder;
+                    }
+                    
+                    if (rule.format) {
+                        f.suggestedName = applyNameFormat(f, rule.format);
+                    }
+                }
+            });
+        });
+        
+        filteredFiles = [...files];
+        if (searchBox.value) {
+            searchBox.dispatchEvent(new Event('input'));
+        } else {
+            renderTable();
+        }
+        
+        statusText.textContent = `✅ 規則已套用！匹配 ${matchCount} 次`;
+    });
+
+    // 套用檔名格式
+    function applyNameFormat(file, format) {
+        const ext = '.' + file.name.split('.').pop();
+        const baseName = file.name.replace(/\.[^.]+$/, '');
+        
+        let result = format;
+        
+        // 替換變數
+        const analysis = file.analysisResult || SmartAnalyzer.analyze(file);
+        
+        result = result.replace(/\{date\}/gi, analysis.dates[0] || '');
+        result = result.replace(/\{company\}/gi, (analysis.companies[0] || '').replace(/(股份有限公司|有限公司)$/, ''));
+        result = result.replace(/\{original\}/gi, baseName);
+        result = result.replace(/\{type\}/gi, file.type.toUpperCase());
+        
+        // 清理
+        result = result.replace(/_+/g, '_').replace(/^_|_$/g, '');
+        
+        if (!result.includes('.')) {
+            result += ext;
+        }
+        
+        return result;
+    }
+
+    // 新增規則
+    addRuleBtn.addEventListener('click', () => {
+        const ruleHtml = `
+            <div class="rule-item">
+                <label>關鍵字（逗號分隔）</label>
+                <input type="text" class="rule-keyword" placeholder="例如：合約, contract, 協議">
+                <label>標籤</label>
+                <input type="text" class="rule-tag" placeholder="例如：合約文件">
+                <label>目標資料夾</label>
+                <input type="text" class="rule-folder" placeholder="例如：01_合約">
+                <label>檔名格式</label>
+                <input type="text" class="rule-format" placeholder="例如：[合約] {date}_{company}_{original}">
+                <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
+                <div class="rule-actions">
+                    <button class="btn btn-warning remove-rule">✖ 刪除</button>
+                </div>
+            </div>
+        `;
+        rulesContainer.insertAdjacentHTML('beforeend', ruleHtml);
+        bindRuleEvents();
+    });
+
+    // 綁定規則刪除事件
+    function bindRuleEvents() {
+        document.querySelectorAll('.remove-rule').forEach(btn => {
+            btn.onclick = function() {
+                if (document.querySelectorAll('.rule-item').length > 1) {
+                    this.closest('.rule-item').remove();
+                }
+            };
+        });
+    }
+    bindRuleEvents();
+
+    // 規則管理
+    document.getElementById('saveRulesBtn').addEventListener('click', () => {
+        const rules = getRules();
+        const blob = new Blob([JSON.stringify(rules, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'file-organize-rules.json';
+        a.click();
+        statusText.textContent = '💾 規則已儲存';
+    });
+
+    document.getElementById('loadRulesBtn').addEventListener('click', () => {
+        document.getElementById('loadRulesInput').click();
+    });
+
+    document.getElementById('loadRulesInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const rules = JSON.parse(text);
+            
+            rulesContainer.innerHTML = '';
+            rules.forEach(rule => {
+                const ruleHtml = `
+                    <div class="rule-item">
+                        <label>關鍵字（逗號分隔）</label>
+                        <input type="text" class="rule-keyword" value="${escapeHtml(rule.keyword || '')}">
+                        <label>標籤</label>
+                        <input type="text" class="rule-tag" value="${escapeHtml(rule.tag || '')}">
+                        <label>目標資料夾</label>
+                        <input type="text" class="rule-folder" value="${escapeHtml(rule.folder || '')}">
+                        <label>檔名格式</label>
+                        <input type="text" class="rule-format" value="${escapeHtml(rule.format || rule.prefix || '')}">
+                        <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
+                        <div class="rule-actions">
+                            <button class="btn btn-warning remove-rule">✖ 刪除</button>
+                        </div>
+                    </div>
+                `;
+                rulesContainer.insertAdjacentHTML('beforeend', ruleHtml);
+            });
+            bindRuleEvents();
+            statusText.textContent = '📂 規則已載入';
+        } catch (err) {
+            statusText.textContent = '❌ 規則檔案格式錯誤';
+        }
+        e.target.value = '';
+    });
+
+    document.getElementById('clearRulesBtn').addEventListener('click', () => {
+        if (confirm('確定要清除所有自訂規則嗎？')) {
+            rulesContainer.innerHTML = `
+                <div class="rule-item">
+                    <label>關鍵字（逗號分隔）</label>
+                    <input type="text" class="rule-keyword" placeholder="例如：合約, contract, 協議">
+                    <label>標籤</label>
+                    <input type="text" class="rule-tag" placeholder="例如：合約文件">
+                    <label>目標資料夾</label>
+                    <input type="text" class="rule-folder" placeholder="例如：01_合約">
+                    <label>檔名格式</label>
+                    <input type="text" class="rule-format" placeholder="例如：[合約] {date}_{company}_{original}">
+                    <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
+                    <div class="rule-actions">
+                        <button class="btn btn-warning remove-rule">✖ 刪除</button>
+                    </div>
+                </div>
+            `;
+            bindRuleEvents();
+            statusText.textContent = '🗑️ 規則已清除';
+        }
+    });
+
+    // 產生 BAT
+    function generateBat() {
+        const selectedFiles = files.filter(f => f.selected);
+        if (selectedFiles.length === 0) {
+            alert('請至少選擇一個檔案！');
+            return '';
+        }
+
+        let bat = '@echo off\r\n';
+        bat += 'chcp 65001 > nul\r\n';
+        bat += 'setlocal enabledelayedexpansion\r\n\r\n';
+        bat += 'echo ╔════════════════════════════════════════════╗\r\n';
+        bat += 'echo ║         智能檔案整理批次處理工具           ║\r\n';
+        bat += 'echo ╠════════════════════════════════════════════╣\r\n';
+        bat += 'echo ║  產生時間: ' + new Date().toLocaleString('zh-TW').padEnd(31) + '║\r\n';
+        bat += 'echo ║  檔案數量: ' + (selectedFiles.length + ' 個').padEnd(31) + '║\r\n';
+        bat += 'echo ╚════════════════════════════════════════════╝\r\n';
+        bat += 'echo.\r\n\r\n';
+        
+        bat += 'set "BASE_DIR=%~dp0"\r\n';
+        bat += 'cd /d "%BASE_DIR%"\r\n\r\n';
+
+        // 收集所有資料夾
+        const folders = new Set();
+        selectedFiles.forEach(f => {
+            if (f.suggestedFolder) {
+                // 支援巢狀資料夾
+                const parts = f.suggestedFolder.split(/[\/\\]/).filter(p => p);
+                let path = '';
+                parts.forEach(part => {
+                    path = path ? path + '\\' + part : part;
+                    folders.add(path);
+                });
+            }
+        });
+
+        // 建立資料夾
+        if (folders.size > 0) {
+            bat += 'echo [Step 1/3] 建立資料夾結構...\r\n';
+            bat += 'echo.\r\n';
+            [...folders].sort().forEach(folder => {
+                bat += `if not exist "${folder}" (\r\n`;
+                bat += `    mkdir "${folder}"\r\n`;
+                bat += `    echo   [+] 建立: ${folder}\r\n`;
+                bat += `)\r\n`;
+            });
+            bat += 'echo.\r\n\r\n';
+        }
+
+        // 處理檔案
+        bat += 'echo [Step 2/3] 處理檔案...\r\n';
+        bat += 'echo.\r\n';
+        bat += 'set /a SUCCESS=0\r\n';
+        bat += 'set /a FAILED=0\r\n\r\n';
+
+        selectedFiles.forEach((f, i) => {
+            const sourcePath = f.path.replace(/\//g, '\\');
+            const newName = f.suggestedName.replace(/[<>:"|?*]/g, '_'); // 移除非法字元
+            const targetFolder = f.suggestedFolder ? f.suggestedFolder.replace(/\//g, '\\') : '';
+            
+            bat += `echo [${i + 1}/${selectedFiles.length}] ${f.name}\r\n`;
+            
+            if (targetFolder && newName !== f.name) {
+                // 移動並重命名
+                bat += `if exist "${sourcePath}" (\r\n`;
+                bat += `    copy /Y "${sourcePath}" "${targetFolder}\\${newName}" > nul 2>&1\r\n`;
+                bat += `    if !errorlevel! == 0 (\r\n`;
+                bat += `        del /Q "${sourcePath}" > nul 2>&1\r\n`;
+                bat += `        echo       → ${targetFolder}\\${newName}\r\n`;
+                bat += `        set /a SUCCESS+=1\r\n`;
+                bat += `    ) else (\r\n`;
+                bat += `        echo       [!] 處理失敗\r\n`;
+                bat += `        set /a FAILED+=1\r\n`;
+                bat += `    )\r\n`;
+                bat += `) else (\r\n`;
+                bat += `    echo       [!] 找不到檔案\r\n`;
+                bat += `    set /a FAILED+=1\r\n`;
+                bat += `)\r\n\r\n`;
+            } else if (targetFolder) {
+                // 只移動
+                bat += `if exist "${sourcePath}" (\r\n`;
+                bat += `    move /Y "${sourcePath}" "${targetFolder}\\" > nul 2>&1\r\n`;
+                bat += `    if !errorlevel! == 0 (\r\n`;
+                bat += `        echo       → ${targetFolder}\\\r\n`;
+                bat += `        set /a SUCCESS+=1\r\n`;
+                bat += `    ) else (\r\n`;
+                bat += `        echo       [!] 移動失敗\r\n`;
+                bat += `        set /a FAILED+=1\r\n`;
+                bat += `    )\r\n`;
+                bat += `) else (\r\n`;
+                bat += `    echo       [!] 找不到檔案\r\n`;
+                bat += `    set /a FAILED+=1\r\n`;
+                bat += `)\r\n\r\n`;
+            } else if (newName !== f.name) {
+                // 只重命名
+                const dir = sourcePath.includes('\\') ? sourcePath.substring(0, sourcePath.lastIndexOf('\\') + 1) : '';
+                bat += `if exist "${sourcePath}" (\r\n`;
+                bat += `    ren "${sourcePath}" "${newName}" > nul 2>&1\r\n`;
+                bat += `    if !errorlevel! == 0 (\r\n`;
+                bat += `        echo       → ${newName}\r\n`;
+                bat += `        set /a SUCCESS+=1\r\n`;
+                bat += `    ) else (\r\n`;
+                bat += `        echo       [!] 重命名失敗\r\n`;
+                bat += `        set /a FAILED+=1\r\n`;
+                bat += `    )\r\n`;
+                bat += `) else (\r\n`;
+                bat += `    echo       [!] 找不到檔案\r\n`;
+                bat += `    set /a FAILED+=1\r\n`;
+                bat += `)\r\n\r\n`;
+            } else {
+                bat += `echo       (無變更)\r\n\r\n`;
+            }
+        });
+        
+        bat += 'echo.\r\n';
+        bat += 'echo [Step 3/3] 完成！\r\n';
+        bat += 'echo.\r\n';
+        bat += 'echo ════════════════════════════════════════════\r\n';
+        bat += 'echo   成功: %SUCCESS% 個  /  失敗: %FAILED% 個\r\n';
+        bat += 'echo ════════════════════════════════════════════\r\n';
+        bat += 'echo.\r\n';
+        bat += 'pause\r\n';
+        bat += 'endlocal\r\n';
+
+        return bat;
+    }
+
+    // 預覽 BAT
+    previewBatBtn.addEventListener('click', () => {
+        generatedBat = generateBat();
+        if (generatedBat) {
+            document.getElementById('batPreviewContent').textContent = generatedBat;
+            document.getElementById('batPreviewModal').classList.add('active');
+        }
+    });
+
+    function closeBatPreview() {
+        document.getElementById('batPreviewModal').classList.remove('active');
+    }
+    window.closeBatPreview = closeBatPreview;
+
+    // 匯出 BAT
+    exportBatBtn.addEventListener('click', () => {
+        generatedBat = generateBat();
+        if (generatedBat) {
+            downloadBat();
+        }
+    });
+
+    function downloadBat() {
+        if (!generatedBat) generatedBat = generateBat();
+        if (!generatedBat) return;
+        
+        // 使用 BOM 確保 Windows 正確識別 UTF-8
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + generatedBat], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'organize-files-' + new Date().toISOString().slice(0,10) + '.bat';
+        a.click();
+        closeBatPreview();
+        statusText.textContent = '✅ BAT 檔案已下載！請將檔案放到資料夾根目錄執行';
+    }
+    window.downloadBat = downloadBat;
+
+    function copyBat() {
+        if (!generatedBat) return;
+        navigator.clipboard.writeText(generatedBat).then(() => {
+            statusText.textContent = '📋 已複製到剪貼簿';
+        });
+    }
+    window.copyBat = copyBat;
+
+    // 工具函數
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // 自動儲存規則到 localStorage
+    setInterval(() => {
+        try {
+            const rules = getRules();
+            if (rules.length > 0) {
+                localStorage.setItem('smartFileOrganizerRules', JSON.stringify(rules));
+            }
+        } catch (e) {}
+    }, 5000);
+
+    // 載入儲存的規則
+    window.addEventListener('load', () => {
+        try {
+            const saved = localStorage.getItem('smartFileOrganizerRules');
+            if (saved) {
+                const rules = JSON.parse(saved);
+                if (rules.length > 0) {
+                    rulesContainer.innerHTML = '';
+                    rules.forEach(rule => {
+                        const ruleHtml = `
+                            <div class="rule-item">
+                                <label>關鍵字（逗號分隔）</label>
+                                <input type="text" class="rule-keyword" value="${escapeHtml(rule.keyword || '')}">
+                                <label>標籤</label>
+                                <input type="text" class="rule-tag" value="${escapeHtml(rule.tag || '')}">
+                                <label>目標資料夾</label>
+                                <input type="text" class="rule-folder" value="${escapeHtml(rule.folder || '')}">
+                                <label>檔名格式</label>
+                                <input type="text" class="rule-format" value="${escapeHtml(rule.format || '')}">
+                                <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
+                                <div class="rule-actions">
+                                    <button class="btn btn-warning remove-rule">✖ 刪除</button>
+                                </div>
+                            </div>
+                        `;
+                        rulesContainer.insertAdjacentHTML('beforeend', ruleHtml);
+                    });
+                    bindRuleEvents();
+                }
+            }
+        } catch (e) {}
+    });
+
+    // 拖放支援
+    document.body.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    document.body.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (e.dataTransfer.items) {
+            // 提示用戶使用選擇資料夾按鈕
+            statusText.textContent = '⚠️ 請使用「選擇資料夾」按鈕來載入檔案';
+        }
+    });
+
+    // ============ 自訂偵測項目功能 ============
+    let customDetectItems = [];
+    let customDetectCounter = 0;
+
+    // 開啟新增偵測項目 Modal
+    document.getElementById('addDetectItemBtn').addEventListener('click', () => {
+        document.getElementById('newDetectName').value = '';
+        document.getElementById('newDetectKeywords').value = '';
+        document.getElementById('newDetectTag').value = '';
+        document.getElementById('newDetectFolder').value = '';
+        document.getElementById('addDetectModal').classList.add('active');
+    });
+
+    function closeAddDetectModal() {
+        document.getElementById('addDetectModal').classList.remove('active');
+    }
+    window.closeAddDetectModal = closeAddDetectModal;
+
+    // 儲存自訂偵測項目
+    function saveCustomDetectItem() {
+        const name = document.getElementById('newDetectName').value.trim();
+        const keywords = document.getElementById('newDetectKeywords').value.trim();
+        const tag = document.getElementById('newDetectTag').value.trim() || name;
+        const folder = document.getElementById('newDetectFolder').value.trim();
+
+        if (!name || !keywords) {
+            alert('請填寫項目名稱和關鍵字！');
+            return;
+        }
+
+        const itemId = 'customDetect_' + (++customDetectCounter);
+        const keywordArray = keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
+
+        // 加入自訂項目列表
+        const customItem = {
+            id: itemId,
+            name: name,
+            keywords: keywordArray,
+            tag: tag,
+            folder: folder,
+            enabled: true
+        };
+        customDetectItems.push(customItem);
+
+        // 動態添加到 SmartAnalyzer.documentTypes
+        SmartAnalyzer.documentTypes[itemId] = {
+            keywords: keywordArray,
+            folder: folder,
+            tag: tag,
+            isCustom: true
+        };
+
+        // 渲染自訂項目 UI
+        renderCustomDetectItems();
+        
+        // 儲存到 localStorage
+        saveCustomDetectItemsToStorage();
+
+        closeAddDetectModal();
+        statusText.textContent = `✅ 已新增偵測項目：${name}`;
+    }
+    window.saveCustomDetectItem = saveCustomDetectItem;
+
+    // 渲染自訂偵測項目
+    function renderCustomDetectItems() {
+        const container = document.getElementById('customDetectItems');
+        
+        if (customDetectItems.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="font-size:11px;color:#888;margin-bottom:5px;">📌 自訂項目：</div>
+            <div class="smart-options">
+                ${customDetectItems.map(item => `
+                    <label style="position:relative;padding-right:25px;" data-custom-id="${item.id}">
+                        <input type="checkbox" data-custom-type="${item.id}" ${item.enabled ? 'checked' : ''}>
+                        ${escapeHtml(item.name)}
+                        <span class="custom-detect-delete" onclick="deleteCustomDetectItem('${item.id}')" 
+                              style="position:absolute;right:5px;top:50%;transform:translateY(-50%);
+                                     cursor:pointer;color:#f5576c;font-weight:bold;font-size:14px;"
+                              title="刪除此項目">×</span>
+                    </label>
+                `).join('')}
+            </div>
+        `;
+
+        // 綁定 checkbox 事件
+        container.querySelectorAll('input[data-custom-type]').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const itemId = this.dataset.customType;
+                const item = customDetectItems.find(i => i.id === itemId);
+                if (item) {
+                    item.enabled = this.checked;
+                    saveCustomDetectItemsToStorage();
+                }
+            });
+        });
+    }
+
+    // 刪除自訂偵測項目
+    function deleteCustomDetectItem(itemId) {
+        if (!confirm('確定要刪除此偵測項目嗎？')) return;
+
+        // 從列表移除
+        customDetectItems = customDetectItems.filter(i => i.id !== itemId);
+
+        // 從 SmartAnalyzer 移除
+        delete SmartAnalyzer.documentTypes[itemId];
+
+        // 重新渲染
+        renderCustomDetectItems();
+        
+        // 儲存到 localStorage
+        saveCustomDetectItemsToStorage();
+
+        statusText.textContent = '🗑️ 已刪除偵測項目';
+    }
+    window.deleteCustomDetectItem = deleteCustomDetectItem;
+
+    // 儲存自訂項目到 localStorage
+    function saveCustomDetectItemsToStorage() {
+        try {
+            localStorage.setItem('customDetectItems', JSON.stringify(customDetectItems));
+        } catch (e) {}
+    }
+
+    // 從 localStorage 載入自訂項目
+    function loadCustomDetectItemsFromStorage() {
+        try {
+            const saved = localStorage.getItem('customDetectItems');
+            if (saved) {
+                customDetectItems = JSON.parse(saved);
+                customDetectItems.forEach(item => {
+                    // 還原到 SmartAnalyzer
+                    SmartAnalyzer.documentTypes[item.id] = {
+                        keywords: item.keywords,
+                        folder: item.folder,
+                        tag: item.tag,
+                        isCustom: true
+                    };
+                    customDetectCounter = Math.max(customDetectCounter, parseInt(item.id.split('_')[1]) || 0);
+                });
+                renderCustomDetectItems();
+            }
+        } catch (e) {}
+    }
+
+    // 修改 SmartAnalyzer.analyze 以支援自訂項目和新的 checkbox 結構
+    const originalAnalyze = SmartAnalyzer.analyze.bind(SmartAnalyzer);
+    SmartAnalyzer.analyze = function(file) {
+        const result = {
+            dates: [],
+            companies: [],
+            documentType: null,
+            tags: [],
+            suggestedName: file.name,
+            suggestedFolder: ''
+        };
+        
+        const searchText = (file.name + ' ' + file.content).toLowerCase();
+        const originalText = file.name + ' ' + file.content;
+        
+        // 提取日期
+        if (document.getElementById('detectDate')?.checked) {
+            for (const pattern of this.datePatterns) {
+                const matches = originalText.matchAll(new RegExp(pattern.source, pattern.flags));
+                for (const match of matches) {
+                    let dateStr = this.normalizeDate(match);
+                    if (dateStr && !result.dates.includes(dateStr)) {
+                        result.dates.push(dateStr);
+                    }
+                }
+            }
+        }
+        
+        // 提取公司名稱
+        if (document.getElementById('detectCompany')?.checked) {
+            for (const pattern of this.companyPatterns) {
+                const matches = originalText.matchAll(new RegExp(pattern.source, pattern.flags));
+                for (const match of matches) {
+                    let company = match[0].trim();
+                    if (company.length >= 4 && company.length <= 30) {
+                        if (!result.companies.some(c => c.includes(company) || company.includes(c))) {
+                            result.companies.push(company);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 識別文件類型 - 使用新的 checkbox 結構
+        for (const [type, config] of Object.entries(this.documentTypes)) {
+            let isEnabled = false;
+            
+            // 檢查是否啟用
+            if (config.isCustom) {
+                // 自訂項目
+                const cb = document.querySelector(`input[data-custom-type="${type}"]`);
+                isEnabled = cb ? cb.checked : false;
+            } else {
+                // 內建項目
+                const cb = document.querySelector(`input[data-type="${type}"]`);
+                isEnabled = cb ? cb.checked : true;
+            }
+            
+            if (!isEnabled) continue;
+            
+            const matched = config.keywords.some(kw => searchText.includes(kw.toLowerCase()));
+            if (matched) {
+                if (!result.documentType) {
+                    result.documentType = type;
+                    result.suggestedFolder = config.folder;
+                }
+                if (!result.tags.includes(config.tag)) {
+                    result.tags.push(config.tag);
+                }
+            }
+        }
+        
+        // 生成建議檔名
+        result.suggestedName = this.generateFileName(file, result);
+        
+        return result;
+    };
+
+    // 頁面載入時載入自訂項目
+    window.addEventListener('load', () => {
+        loadCustomDetectItemsFromStorage();
+    });
+
+    // ============ 副檔名篩選功能 ============
+    let allRawFiles = []; // 儲存原始檔案列表（未篩選）
+    let extFilter = {}; // 副檔名篩選狀態
+    
+    // 格式化檔案大小
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    
+    // 分析副檔名統計
+    function analyzeExtensions(fileList) {
+        const stats = {};
+        fileList.forEach(f => {
+            const ext = f.name.split('.').pop().toLowerCase();
+            if (!stats[ext]) {
+                stats[ext] = { count: 0, size: 0, files: [] };
+            }
+            stats[ext].count++;
+            stats[ext].size += f.size;
+            stats[ext].files.push(f);
+        });
+        return stats;
+    }
+    
+    // 渲染副檔名篩選區域
+    function renderExtFilter(extStats) {
+        const section = document.getElementById('extFilterSection');
+        const list = document.getElementById('extFilterList');
+        const summary = document.getElementById('extFilterSummary');
+        
+        // 依檔案數量排序
+        const sortedExts = Object.entries(extStats)
+            .sort((a, b) => b[1].count - a[1].count);
+        
+        // 初始化所有副檔名為勾選
+        extFilter = {};
+        sortedExts.forEach(([ext]) => {
+            extFilter[ext] = true;
+        });
+        
+        // 類型顏色對應
+        const typeColors = {
+            pdf: '#e74c3c',
+            docx: '#3498db', doc: '#3498db',
+            xlsx: '#27ae60', xls: '#27ae60',
+            txt: '#9b59b6',
+            html: '#f39c12', htm: '#f39c12',
+            xml: '#1abc9c',
+            csv: '#e67e22'
+        };
+        
+        list.innerHTML = sortedExts.map(([ext, data]) => {
+            const color = typeColors[ext] || '#667eea';
+            return `
+                <label class="ext-filter-item selected" data-ext="${ext}" style="border-left: 3px solid ${color};">
+                    <input type="checkbox" data-ext-filter="${ext}" checked>
+                    <span class="ext-name" style="color:${color}">.${ext}</span>
+                    <span class="ext-count">${data.count} 個</span>
+                    <span class="ext-size">${formatFileSize(data.size)}</span>
+                </label>
+            `;
+        }).join('');
+        
+        // 更新摘要
+        updateExtFilterSummary();
+        
+        // 綁定事件
+        list.querySelectorAll('input[data-ext-filter]').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const ext = this.dataset.extFilter;
+                extFilter[ext] = this.checked;
+                this.closest('.ext-filter-item').classList.toggle('selected', this.checked);
+                updateExtFilterSummary();
+            });
+        });
+        
+        // 點擊整個項目也能切換
+        list.querySelectorAll('.ext-filter-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (e.target.type !== 'checkbox') {
+                    const cb = this.querySelector('input[type="checkbox"]');
+                    cb.checked = !cb.checked;
+                    cb.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+        
+        section.style.display = 'block';
+    }
+    
+    // 更新副檔名篩選摘要
+    function updateExtFilterSummary() {
+        const summary = document.getElementById('extFilterSummary');
+        const selectedExts = Object.entries(extFilter).filter(([_, v]) => v).map(([k]) => k);
+        const totalExts = Object.keys(extFilter).length;
+        
+        let selectedCount = 0;
+        let selectedSize = 0;
+        allRawFiles.forEach(f => {
+            const ext = f.name.split('.').pop().toLowerCase();
+            if (extFilter[ext]) {
+                selectedCount++;
+                selectedSize += f.size;
+            }
+        });
+        
+        summary.innerHTML = `
+            <div>
+                <strong>已選擇:</strong> ${selectedExts.length}/${totalExts} 種類型，
+                共 <strong>${selectedCount}</strong> 個檔案 (${formatFileSize(selectedSize)})
+            </div>
+            <div class="ext-priority-hint">
+                💡 取消勾選不需要處理的檔案類型，可加快處理速度
+            </div>
+        `;
+    }
+    
+    // 副檔名全選
+    document.getElementById('extSelectAll').addEventListener('click', () => {
+        Object.keys(extFilter).forEach(ext => extFilter[ext] = true);
+        document.querySelectorAll('input[data-ext-filter]').forEach(cb => {
+            cb.checked = true;
+            cb.closest('.ext-filter-item').classList.add('selected');
+        });
+        updateExtFilterSummary();
+    });
+    
+    // 副檔名取消全選
+    document.getElementById('extDeselectAll').addEventListener('click', () => {
+        Object.keys(extFilter).forEach(ext => extFilter[ext] = false);
+        document.querySelectorAll('input[data-ext-filter]').forEach(cb => {
+            cb.checked = false;
+            cb.closest('.ext-filter-item').classList.remove('selected');
+        });
+        updateExtFilterSummary();
+    });
+    
+    // 套用副檔名篩選
+    document.getElementById('extApplyFilter').addEventListener('click', async () => {
+        const selectedExts = Object.entries(extFilter).filter(([_, v]) => v).map(([k]) => k);
+        
+        if (selectedExts.length === 0) {
+            alert('請至少選擇一種檔案類型！');
+            return;
+        }
+        
+        // 過濾檔案
+        const filteredRawFiles = allRawFiles.filter(f => {
+            const ext = f.name.split('.').pop().toLowerCase();
+            return extFilter[ext];
+        });
+        
+        // 開始處理
+        files = filteredRawFiles.map(f => ({
+            file: f,
+            name: f.name,
+            path: f.webkitRelativePath,
+            type: f.name.split('.').pop().toLowerCase(),
+            size: f.size,
+            content: '',
+            suggestedName: f.name,
+            suggestedFolder: '',
+            tags: [],
+            selected: true,
+            analyzed: false
+        }));
+        
+        if (files.length === 0) {
+            statusText.textContent = '未選擇任何檔案';
+            return;
+        }
+        
+        updateStats();
+        
+        // 隱藏篩選區域，開始解析
+        document.getElementById('extFilterSection').style.display = 'none';
+        
+        // 解析檔案內容
+        statusText.innerHTML = '<span class="loading"></span> 正在解析檔案內容...';
+        
+        for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            progressFill.style.width = ((i + 1) / files.length * 100) + '%';
+            statusText.innerHTML = `<span class="loading"></span> 解析中: ${f.name} (${i + 1}/${files.length})`;
+            
+            try {
+                const arrayBuffer = await f.file.arrayBuffer();
+                
+                switch (f.type) {
+                    case 'pdf':
+                        f.content = await PDFParser.parse(arrayBuffer);
+                        break;
+                    case 'docx':
+                        f.content = await DOCXParser.parse(arrayBuffer);
+                        break;
+                    case 'xlsx':
+                    case 'xls':
+                        f.content = await XLSXParser.parse(arrayBuffer);
+                        break;
+                    case 'txt':
+                    case 'html':
+                    case 'htm':
+                    case 'xml':
+                    case 'csv':
+                        let text = '';
+                        try {
+                            text = new TextDecoder('utf-8').decode(arrayBuffer);
+                            if (text.includes('�')) {
+                                text = new TextDecoder('big5').decode(arrayBuffer);
+                            }
+                        } catch (e) {
+                            text = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuffer);
+                        }
+                        if (f.type === 'html' || f.type === 'htm') {
+                            text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                                       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                                       .replace(/<[^>]+>/g, ' ')
+                                       .replace(/&nbsp;/g, ' ')
+                                       .replace(/\s+/g, ' ');
+                        }
+                        f.content = text.substring(0, 8000);
+                        break;
+                }
+            } catch (err) {
+                console.error('Parse error for', f.name, err);
+                f.content = '[解析錯誤: ' + err.message + ']';
+            }
+            
+            if (i % 5 === 0) {
+                await new Promise(r => setTimeout(r, 10));
+            }
+        }
+        
+        statusText.textContent = `✅ 完成！已載入 ${files.length} 個檔案，可開始智能分析`;
+        progressFill.style.width = '100%';
+        
+        filteredFiles = [...files];
+        renderTable();
+        
+        smartAnalyzeBtn.disabled = false;
+        applyRulesBtn.disabled = false;
+        exportBatBtn.disabled = false;
+        previewBatBtn.disabled = false;
+    });
+
+    // 修改原始的資料夾選擇事件
+    const originalFolderHandler = folderInput.onchange;
+    folderInput.removeEventListener('change', originalFolderHandler);
+    
+    folderInput.addEventListener('change', (e) => {
+        const fileList = Array.from(e.target.files);
+        const supportedTypes = ['.pdf', '.docx', '.xlsx', '.xls', '.txt', '.html', '.htm', '.xml', '.csv'];
+        
+        // 儲存所有支援的原始檔案
+        allRawFiles = fileList.filter(f => {
+            const ext = '.' + f.name.split('.').pop().toLowerCase();
+            return supportedTypes.includes(ext) && !f.name.startsWith('.');
+        });
+
+        if (allRawFiles.length === 0) {
+            statusText.textContent = '未找到支援的檔案格式';
+            document.getElementById('extFilterSection').style.display = 'none';
+            return;
+        }
+
+        // 分析副檔名並顯示篩選區域
+        const extStats = analyzeExtensions(allRawFiles);
+        renderExtFilter(extStats);
+        
+        // 重置檔案列表和按鈕狀態
+        files = [];
+        filteredFiles = [];
+        fileTableBody.innerHTML = `<tr><td colspan="6" class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+            </svg>
+            <div>請選擇要處理的檔案類型，然後點擊「✓ 套用篩選」</div>
+            <p>共偵測到 ${allRawFiles.length} 個支援的檔案</p>
+        </td></tr>`;
+        
+        document.getElementById('fileCountDisplay').textContent = '0';
+        document.getElementById('totalFiles').textContent = allRawFiles.length;
+        
+        smartAnalyzeBtn.disabled = true;
+        applyRulesBtn.disabled = true;
+        exportBatBtn.disabled = true;
+        previewBatBtn.disabled = true;
+        
+        progressFill.style.width = '0%';
+        statusText.textContent = `📁 偵測到 ${allRawFiles.length} 個檔案，請選擇要處理的檔案類型`;
+    });
+    </script>
+</body>
+</html>
