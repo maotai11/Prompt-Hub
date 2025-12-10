@@ -1,0 +1,218 @@
+{
+  "project_meta": {
+    "name": "Client Control Board v2.0",
+    "description": "本地端客戶 × 期別控制面板，整合基本資料、營業稅期別資訊、備註與批次訊息模板，一鍵產出 Line / Mail 內容。",
+    "target_clients_count": 50,
+    "max_clients": 70,
+    "offline_first": true
+  },
+  "core_goals": [
+    "一眼掌握本期所有客戶的處理狀態（未處理 / 處理中 / 完成 / 需追蹤）。",
+    "集中管理每個客戶的基本資料、營業稅期別資料與備註。",
+    "提供變數化訊息模板，一鍵生成 Line / Mail 文字並複製。",
+    "所有資料儲存在本地（IndexedDB），可匯出 / 匯入備份。",
+    "具備簡單 Undo / 歷史快照功能，避免全域編輯誤操作。",
+    "UI 具呼吸感、操作步驟短（2 步內完成主要動作）。"
+  ],
+  "data_model": {
+    "clients": {
+      "description": "客戶主檔，一筆代表一個客戶。",
+      "fields": [
+        { "name": "id", "type": "string", "role": "primary_key", "note": "系統自動產生的唯一 ID。" },
+        { "name": "code", "type": "string", "role": "business_key", "note": "客戶代號，可用於排序與快速搜尋。" },
+        { "name": "name", "type": "string", "note": "客戶名稱（公司或個人）。" },
+        { "name": "tax_id", "type": "string", "note": "統一編號 / 身分證字號（可選）。" },
+        { "name": "contact_person", "type": "string", "note": "主要聯絡人姓名。" },
+        { "name": "contact_phone", "type": "string", "note": "電話（可選）。" },
+        { "name": "contact_email", "type": "string", "note": "Email，用於 Mail 模板。" },
+        { "name": "contact_line", "type": "string", "note": "Line ID 或群組描述，用於 Line 模板。" },
+        { "name": "industry", "type": "string", "note": "行業別（可用於篩選）。" },
+        { "name": "tags", "type": "string[]", "note": "自訂標籤，如「租金」「加盟」「網路費」等。" },
+        { "name": "note_summary", "type": "string", "note": "概括性備註（如合約條件），非備註 log。" },
+        { "name": "is_active", "type": "boolean", "note": "是否為目前有效客戶。" },
+        { "name": "created_at", "type": "datetime" },
+        { "name": "updated_at", "type": "datetime" }
+      ]
+    },
+    "periods": {
+      "description": "期別定義，如 2025-01、2025-02 或 2025-雙月申報。",
+      "fields": [
+        { "name": "id", "type": "string", "role": "primary_key" },
+        { "name": "year", "type": "number" },
+        { "name": "month", "type": "number", "nullable": true, "note": "如需雙月申報可改用 period_code。" },
+        { "name": "period_code", "type": "string", "note": "自訂期別代號（例如 2025M01, 2025B01）。" },
+        { "name": "label", "type": "string", "note": "顯示用文字，例如「2025 年 01 月」。" },
+        { "name": "is_closed", "type": "boolean", "note": "期別是否已整體結束（全客戶）。" }
+      ]
+    },
+    "client_period_data": {
+      "description": "某個客戶在某一期的營業稅相關資料與狀態。",
+      "fields": [
+        { "name": "id", "type": "string", "role": "primary_key" },
+        { "name": "client_id", "type": "string", "ref": "clients.id" },
+        { "name": "period_id", "type": "string", "ref": "periods.id" },
+        { "name": "revenue", "type": "number", "note": "本期營業額（含稅 / 未稅可在設定中定義）。" },
+        { "name": "expected_invoice_amount", "type": "number", "note": "預計開立發票總金額。" },
+        { "name": "expected_invoice_count", "type": "number", "note": "預計開立發票張數。" },
+        { "name": "status", "type": "string", "enum": ["not_started", "in_progress", "done", "to_follow_up"], "note": "本期處理狀態。" },
+        { "name": "status_note", "type": "string", "note": "與本期狀態相關的短註記（例如「等客戶回覆」）。" },
+        { "name": "last_updated_at", "type": "datetime" }
+      ],
+      "unique_constraints": ["client_id + period_id"]
+    },
+    "notes": {
+      "description": "備註 log，可掛在客戶層級或客戶＋期別層級。",
+      "fields": [
+        { "name": "id", "type": "string", "role": "primary_key" },
+        { "name": "client_id", "type": "string", "ref": "clients.id" },
+        { "name": "period_id", "type": "string", "ref": "periods.id", "nullable": true, "note": "若為 general 備註可為 null。" },
+        { "name": "content", "type": "string", "note": "備註內容。" },
+        { "name": "created_at", "type": "datetime" },
+        { "name": "created_by", "type": "string", "note": "可先留著，單人使用時可固定值。" }
+      ]
+    },
+    "templates": {
+      "description": "訊息模板，支援 Line / Mail。",
+      "fields": [
+        { "name": "id", "type": "string", "role": "primary_key" },
+        { "name": "name", "type": "string", "note": "模板名稱，例如「本期營業額通知」。" },
+        { "name": "channel", "type": "string", "enum": ["line", "mail", "both"] },
+        { "name": "body", "type": "string", "note": "模板內容，包含變數 placeholder，如 {client_name}、{period_label}、{revenue}。" },
+        { "name": "available_variables", "type": "string[]", "note": "此模板使用到的變數列表，用於前端標記與驗證。" },
+        { "name": "created_at", "type": "datetime" },
+        { "name": "updated_at", "type": "datetime" }
+      ]
+    },
+    "settings": {
+      "description": "全域設定與系統層級資訊。",
+      "fields": [
+        { "name": "id", "type": "string", "role": "singleton_key" },
+        { "name": "current_period_id", "type": "string", "ref": "periods.id" },
+        { "name": "display_density", "type": "string", "enum": ["comfortable", "compact"] },
+        { "name": "theme", "type": "string", "note": "顏色 / 呼吸感設定（例如 light / dark）。" },
+        { "name": "schema_version", "type": "string" }
+      ]
+    },
+    "history": {
+      "description": "簡易 Undo / 快照紀錄。",
+      "fields": [
+        { "name": "id", "type": "string", "role": "primary_key" },
+        { "name": "created_at", "type": "datetime" },
+        { "name": "description", "type": "string", "note": "例如「2025-01 月度狀態批次更新」" },
+        { "name": "snapshot_type", "type": "string", "enum": ["manual", "auto"] },
+        { "name": "data", "type": "json", "note": "必要時儲存部分或全部資料，用於回復。" }
+      ]
+    }
+  },
+  "views_and_flows": {
+    "main_views": [
+      {
+        "name": "monthly_board",
+        "label": "月度雷達板",
+        "description": "進系統第一畫面，顯示目前選定期別下所有客戶的處理狀態。",
+        "key_elements": [
+          "期別切換（dropdown 或左右切換）",
+          "客戶列表（每 row = 一個客戶）",
+          "欄位：客戶代號、名稱、tags 部分展示、本期 revenue、status、是否有新備註圖示",
+          "篩選：只看未完成、只看有營業額、只看特定 tag",
+          "批次操作：勾選多個客戶，套用模板產生訊息列表"
+        ],
+        "core_actions": [
+          "點選客戶 row → 開啟右側滑出 panel 編輯本期 client_period_data + 備註",
+          "切換期別 → 自動重新查詢本期資料",
+          "一鍵切到模板生成視圖"
+        ]
+      },
+      {
+        "name": "client_detail",
+        "label": "客戶詳情",
+        "description": "集中檢視單一客戶的所有關鍵資料。",
+        "sections": [
+          "上方：客戶主檔（名稱、代號、聯絡方式、行業、tags）",
+          "中段：期別時間軸（最近 6 期的營業額、status，以條形或小卡呈現）",
+          "下方：備註 timeline（按時間排序，可篩選全體 / 指定期別）"
+        ],
+        "core_actions": [
+          "新增 / 編輯客戶主檔",
+          "在特定期別卡片上直接更新 status、revenue 等",
+          "新增備註（可選擇是否掛在某期別上）"
+        ]
+      },
+      {
+        "name": "templates_and_settings",
+        "label": "模板與全域設定",
+        "description": "管理變數模板、顯示設定與備份。",
+        "sections": [
+          "訊息模板列表 + 編輯畫面",
+          "可用變數一覽（例如 client_name, period_label, revenue, status）",
+          "全域顯示設定（密度、主題）",
+          "備份 / 匯出 JSON、匯入 JSON",
+          "歷史快照列表（可查看、選擇回復）"
+        ]
+      }
+    ]
+  },
+  "messaging_engine": {
+    "variable_mapping_examples": [
+      { "variable": "{client_name}", "source": "clients.name" },
+      { "variable": "{client_code}", "source": "clients.code" },
+      { "variable": "{period_label}", "source": "periods.label" },
+      { "variable": "{revenue}", "source": "client_period_data.revenue" },
+      { "variable": "{invoice_amount}", "source": "client_period_data.expected_invoice_amount" },
+      { "variable": "{invoice_count}", "source": "client_period_data.expected_invoice_count" },
+      { "variable": "{status}", "source": "client_period_data.status" }
+    ],
+    "sample_template": {
+      "name": "本期營業額與發票通知",
+      "channel": "both",
+      "body": "您好，這裡是貴公司的會計。\n本期【{period_label}】之營業額為【{revenue}】元，預計為您開立【{invoice_count}】張發票，總金額【{invoice_amount}】元。\n若資料有任何需要調整之處，請於三日內回覆，謝謝【{client_name}】的配合。"
+    },
+    "batch_flow": [
+      "在月度雷達板勾選多個客戶",
+      "選擇模板",
+      "系統生成多則訊息 → 每則顯示對應客戶與內容",
+      "提供「複製訊息」按鈕，方便貼到 Line 或 Mail 用戶端"
+    ]
+  },
+  "storage_and_resilience": {
+    "storage": {
+      "engine": "IndexedDB",
+      "db_name": "client_control_board",
+      "stores": ["clients", "periods", "client_period_data", "notes", "templates", "settings", "history"]
+    },
+    "undo_and_history": {
+      "strategy": "快照 + 行為記錄混合",
+      "trigger": [
+        "批次更新本期狀態",
+        "匯入外部資料",
+        "刪除客戶或大量刪除期別資料"
+      ]
+    },
+    "backup": {
+      "export": "將所有 store 資料打包成一份 JSON 檔供下載。",
+      "import": "可選擇覆蓋模式 / 合併模式，匯入 JSON。",
+      "reminder": "可在設定中開關『每 X 天提醒備份』。"
+    }
+  },
+  "ux_principles": {
+    "breathing_space": [
+      "列表行距與字級採『舒適模式』為預設，可切換為『緊湊模式』。",
+      "關鍵數字（revenue、status）採高對比顏色，但避免過度花俏。"
+    ],
+    "interaction": [
+      "核心操作保持兩步內完成（定位客戶 → 編輯 / 產生訊息）。",
+      "滑出 panel 編輯，避免跳轉多頁。",
+      "提供鍵盤快速操作（上下移動、Enter 編輯、Ctrl+S 儲存）。"
+    ],
+    "onboarding": [
+      "首次使用時預先建立幾個範例客戶與期別，並內建一個範例模板。",
+      "以引導提示教使用者如何從『月度雷達板』開始工作。"
+    ]
+  },
+  "open_questions": [
+    "期別設計是否要預設為『月』或『雙月申報』？",
+    "發票欄位是否需要區分不同稅率類別？",
+    "是否需要簡單的『提醒功能』（例如顯示連續兩期無營業額）？",
+    "未來是否要支援多裝置同步（例如透過檔案雲端同步）？"
+  ]
+}
