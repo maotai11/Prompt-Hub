@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>扣繳助手（114）｜離線版</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: rgba(255,255,255,.04);
+    --card: rgba(0,0,0,.18);
+    --text: rgba(255,255,255,.92);
+    --muted: rgba(255,255,255,.62);
+    --line: rgba(255,255,255,.10);
+    --soft: rgba(255,255,255,.06);
+    --accent: rgba(138,180,255,.50);
+    --accent2: rgba(138,180,255,.15);
+    --good: #39d98a;
+    --warn: #ffcc66;
+    --bad:  #ff5c5c;
+    --radius: 18px;
+    --shadow: 0 16px 40px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0;
+    background: radial-gradient(1200px 700px at 8% 0%, #0f1a2b 0%, var(--bg) 55%, #070a0e 100%);
+    color: var(--text);
+    font: 14px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial;
+    letter-spacing: .2px;
+  }
+  .wrap { max-width: 1180px; margin: 26px auto 52px; padding: 0 18px; }
+  header { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom: 16px; }
+  h1 { margin:0; font-size: 20px; font-weight: 780; letter-spacing:.4px; }
+  .sub { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  .pillbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+  .pill {
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.03);
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: var(--muted);
+    display:flex; gap:8px; align-items:center;
+  }
+  .pill b { color: var(--text); font-weight: 720; }
+  .dot { width:8px; height:8px; border-radius:50%; background: var(--muted); }
+  .dot.good { background: var(--good); }
+  .dot.warn { background: var(--warn); }
+  .dot.bad { background: var(--bad); }
+  .grid { display:grid; grid-template-columns: 1.12fr .88fr; gap: 16px; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .tabs {
+    display:flex; gap: 6px; flex-wrap:wrap;
+    padding: 10px;
+    background: rgba(0,0,0,.18);
+    border-bottom: 1px solid var(--line);
+  }
+  .tab {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    padding: 10px 12px;
+    border-radius: 999px;
+    cursor:pointer;
+    transition: .18s ease;
+    font-weight: 720;
+  }
+  .tab[aria-selected="true"] {
+    color: var(--text);
+    background: var(--accent2);
+    border-color: rgba(138,180,255,.35);
+  }
+  .content { padding: 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .card + .card { margin-top: 12px; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+  label { display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  input, select, textarea {
+    width:100%;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.03);
+    color: var(--text);
+    padding: 10px 11px;
+    border-radius: 12px;
+    outline: none;
+  }
+  textarea { min-height: 92px; resize: vertical; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top: 10px; }
+  button {
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor:pointer;
+    font-weight: 750;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text);
+  }
+  button.primary {
+    background: rgba(138,180,255,.18);
+    border-color: rgba(138,180,255,.40);
+  }
+  button.danger {
+    background: rgba(255,92,92,.14);
+    border-color: rgba(255,92,92,.35);
+  }
+  .sep { height: 1px; background: var(--line); margin: 14px 0; }
+  .flex { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .badge {
+    display:inline-flex; gap:8px; align-items:center;
+    border: 1px solid var(--line);
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.18);
+    color: var(--muted);
+  }
+  .hint { color: var(--muted); font-size: 12px; }
+  .kpi { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 740px) { .kpi { grid-template-columns: 1fr; } }
+  .kpi .box {
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.02);
+    border-radius: 16px;
+    padding: 12px;
+  }
+  .kpi .num { font-size: 20px; font-weight: 860; letter-spacing:.3px; margin-top: 2px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  .right { text-align:right; }
+  .hide { display:none !important; }
+  .table {
+    width:100%;
+    border-collapse: collapse;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    overflow:hidden;
+  }
+  .table th, .table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--soft);
+    text-align:left;
+    vertical-align: top;
+  }
+  .table th {
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(0,0,0,.22);
+  }
+  .table tr:hover td { background: rgba(255,255,255,.02); }
+  .toast {
+    position: fixed;
+    right: 16px; bottom: 16px;
+    max-width: 340px;
+    padding: 12px 12px;
+    background: rgba(0,0,0,.72);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    display:none;
+  }
+  .toast.show { display:block; }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>扣繳助手（114）｜離線版</h1>
+        <div class="sub">計算｜身分/情境判斷（留痕）｜一致性檢核｜對外解釋稿（資料僅存本機）</div>
+      </div>
+      <div class="pillbar">
+        <div class="pill"><span class="dot good"></span><b>114</b><span>年度</span></div>
+        <div class="pill"><span class="dot warn"></span><span>起扣點</span><b>80,001</b></div>
+        <div class="pill"><span class="dot"></span><span>Storage</span><b>Local</b></div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" data-tab="calc" aria-selected="true">計算</button>
+          <button class="tab" role="tab" data-tab="judge" aria-selected="false">身分/情境判斷</button>
+          <button class="tab" role="tab" data-tab="check" aria-selected="false">一致性檢核</button>
+          <button class="tab" role="tab" data-tab="explain" aria-selected="false">對外解釋稿</button>
+          <button class="tab" role="tab" data-tab="help" aria-selected="false">說明</button>
+        </div>
+
+        <div class="content">
+          <!-- 計算 -->
+          <section id="tab-calc">
+            <div class="card">
+              <div class="row">
+                <div>
+                  <label>給付日期</label>
+                  <input id="f_date" type="date" />
+                </div>
+                <div>
+                  <label>所得類型</label>
+                  <select id="f_income">
+                    <option value="salary_monthly">薪資｜按月給付</option>
+                    <option value="salary_nonmonthly">薪資｜兼職/非每月</option>
+                    <option value="commission">佣金/仲介/介紹費</option>
+                    <option value="rent">租賃收入</option>
+                    <option value="royalty">權利金</option>
+                    <option value="interest">利息</option>
+                    <option value="professional">執行業務/稿費/顧問等</option>
+                    <option value="prize">獎金/競賽/抽獎</option>
+                    <option value="dividend">股利/盈餘（重點：非居住者）</option>
+                    <option value="other">其他（自訂）</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div>
+                  <label>給付金額（新臺幣）</label>
+                  <input id="f_amount" type="number" min="0" step="1" placeholder="例如 120000" />
+                </div>
+                <div>
+                  <label>所得人身分</label>
+                  <select id="f_payee_type">
+                    <option value="resident_individual">居住者｜個人</option>
+                    <option value="resident_business_fixed">境內有固定營業場所｜營利事業</option>
+                    <option value="nonresident_individual">非居住者｜個人（<183天）</option>
+                    <option value="nonresident_business_nofixed">境內無固定營業場所｜營利事業</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div>
+                  <label>所得人姓名/名稱</label>
+                  <input id="f_payee_name" placeholder="留存追溯" />
+                </div>
+                <div>
+                  <label>所得人統編/身分證/護照號</label>
+                  <input id="f_payee_id" placeholder="可留空，但建議填" />
+                </div>
+              </div>
+
+              <div id="salaryBox" class="card" style="margin-top:12px;">
+                <div class="flex">
+                  <div class="badge"><span class="dot"></span><span>薪資設定</span></div>
+                  <div class="hint">表格/公式雙軌（自動切換）</div>
+                </div>
+
+                <div class="row" style="margin-top:10px;">
+                  <div id="salary_form_box">
+                    <label>免稅額申報表</label>
+                    <select id="f_salary_form">
+                      <option value="yes">已填（可用稅額表）</option>
+                      <option value="no">未填（按5%）</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>配偶+受扶養親屬（人）</label>
+                    <input id="f_dep_count" type="number" min="0" max="30" step="1" value="0" />
+                  </div>
+                </div>
+
+                <div class="row" style="margin-top:10px;">
+                  <div>
+                    <label>計算方式</label>
+                    <select id="f_salary_mode">
+                      <option value="auto">自動（表格→超出改公式）</option>
+                      <option value="table">稅額表</option>
+                      <option value="flat5">全月總額 5%</option>
+                      <option value="formula">公式</option>
+                    </select>
+                  </div>
+                  <div id="nonmonthlyFlags" class="hide">
+                    <label>兼職/非每月｜免扣繳情形</label>
+                    <select id="f_nonmonthly_flag">
+                      <option value="none">無</option>
+                      <option value="below_start">未達起扣點</option>
+                      <option value="daily_temp">按日計算並按日給付之臨時工</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div id="otherRuleBox" class="card" style="margin-top:12px;">
+                <div class="flex">
+                  <div class="badge"><span class="dot"></span><span>例外/補充</span></div>
+                  <div class="hint">需要才填</div>
+                </div>
+                <div class="row" style="margin-top:10px;">
+                  <div>
+                    <label>分離課稅（小額免扣繳不適用）</label>
+                    <select id="f_separate_tax">
+                      <option value="no">否</option>
+                      <option value="yes">是</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>營利事業依法開立統一發票（佣金/租賃/權利金）</label>
+                    <select id="f_uniform_invoice_exempt">
+                      <option value="no">否</option>
+                      <option value="yes">是（免扣繳）</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="primary" id="btn_calc">計算結果</button>
+                <button id="btn_save">儲存到清單</button>
+                <button id="btn_reset">清空</button>
+              </div>
+            </div>
+
+            <div class="card" id="resultCard">
+              <div class="flex">
+                <div class="badge"><span class="dot" id="resDot"></span><span id="resTitle">結果</span></div>
+                <div class="hint mono" id="resKey">—</div>
+              </div>
+
+              <div class="kpi" style="margin-top:10px;">
+                <div class="box">
+                  <div class="hint">應扣繳稅額</div>
+                  <div class="num mono" id="k_tax">—</div>
+                  <div class="hint" id="k_method">—</div>
+                </div>
+                <div class="box">
+                  <div class="hint">免扣繳 / 免列單 / 免填發</div>
+                  <div class="num mono" id="k_flags">—</div>
+                  <div class="hint" id="k_flags_hint">—</div>
+                </div>
+                <div class="box">
+                  <div class="hint">期限（提示）</div>
+                  <div class="num mono" id="k_deadline">—</div>
+                  <div class="hint" id="k_deadline_hint">—</div>
+                </div>
+              </div>
+
+              <div class="sep"></div>
+
+              <div class="row">
+                <div>
+                  <label>留痕（規則命中）</label>
+                  <textarea id="res_log" class="mono" readonly></textarea>
+                  <div class="actions">
+                    <button id="btn_copy_log">複製留痕</button>
+                  </div>
+                </div>
+                <div>
+                  <label>備註</label>
+                  <textarea id="f_note" placeholder="可留空"></textarea>
+                  <div class="actions">
+                    <button id="btn_copy_result">複製摘要</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 身分/情境判斷 -->
+          <section id="tab-judge" class="hide">
+            <div class="card">
+              <div class="row">
+                <div>
+                  <label>帶入來源</label>
+                  <select id="j_source">
+                    <option value="current">使用「計算」頁目前輸入</option>
+                    <option value="pick">從已儲存清單選一筆</option>
+                  </select>
+                </div>
+                <div id="j_pick_box" class="hide">
+                  <label>選擇紀錄</label>
+                  <select id="j_pick"></select>
+                </div>
+              </div>
+
+              <div class="sep"></div>
+
+              <div class="row">
+                <div>
+                  <label>免填發憑單（94-1）條件（勾選）</label>
+                  <div class="card" style="padding:12px;">
+                    <div class="row">
+                      <div>
+                        <label>已依期限申報</label>
+                        <select id="j_filed_on_time">
+                          <option value="no">否</option>
+                          <option value="yes">是</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label>符合對象</label>
+                        <select id="j_eligible_taxpayer">
+                          <option value="no">否</option>
+                          <option value="yes">是</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="row" style="margin-top:10px;">
+                      <div>
+                        <label>資料已納入查詢服務</label>
+                        <select id="j_in_query_service">
+                          <option value="no">否</option>
+                          <option value="yes">是</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label>納稅義務人要求仍需填發</label>
+                        <select id="j_request_issue">
+                          <option value="no">否</option>
+                          <option value="yes">是</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label>判斷結果（含留痕）</label>
+                  <textarea id="j_out" class="mono" readonly></textarea>
+                  <div class="actions">
+                    <button class="primary" id="btn_judge">生成判斷</button>
+                    <button id="btn_copy_judge">複製</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 一致性檢核 -->
+          <section id="tab-check" class="hide">
+            <div class="card">
+              <div class="flex">
+                <div class="badge"><span class="dot warn"></span><span>申報前一致性檢核</span></div>
+                <div class="actions">
+                  <button class="primary" id="btn_run_check">跑檢核</button>
+                  <button id="btn_export_json">匯出JSON</button>
+                  <button id="btn_import_json">匯入JSON</button>
+                  <button class="danger" id="btn_clear_all">清空全部資料</button>
+                </div>
+              </div>
+
+              <div class="sep"></div>
+
+              <div class="row">
+                <div>
+                  <label>篩選年度（民國）</label>
+                  <input id="c_year" type="number" min="100" max="200" value="114" />
+                </div>
+                <div>
+                  <label>篩選月份（1-12；留空=全部）</label>
+                  <input id="c_month" type="number" min="1" max="12" placeholder="例如 1" />
+                </div>
+              </div>
+
+              <div class="sep"></div>
+
+              <div class="row">
+                <div>
+                  <label>檢核結果</label>
+                  <textarea id="c_out" class="mono" readonly></textarea>
+                </div>
+                <div>
+                  <label>儲存清單</label>
+                  <div style="max-height:320px; overflow:auto; border-radius:14px; border:1px solid var(--line);">
+                    <table class="table" id="recordsTable">
+                      <thead>
+                        <tr>
+                          <th style="width:110px;">日期</th>
+                          <th>所得類型</th>
+                          <th>所得人</th>
+                          <th class="right">金額</th>
+                          <th class="right">稅額</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                  <div class="actions" style="margin-top:10px;">
+                    <button id="btn_load_to_calc">載入到「計算」</button>
+                    <button id="btn_delete_one">刪除選取</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input id="fileInput" type="file" accept="application/json" class="hide" />
+          </section>
+
+          <!-- 對外解釋稿 -->
+          <section id="tab-explain" class="hide">
+            <div class="card">
+              <div class="row">
+                <div>
+                  <label>選擇資料</label>
+                  <select id="e_source">
+                    <option value="current">使用「計算」頁目前輸入</option>
+                    <option value="pick">從已儲存清單選一筆</option>
+                  </select>
+                </div>
+                <div id="e_pick_box" class="hide">
+                  <label>選擇紀錄</label>
+                  <select id="e_pick"></select>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:10px;">
+                <div>
+                  <label>語氣</label>
+                  <select id="e_tone">
+                    <option value="friendly">耐心版</option>
+                    <option value="formal">正式版</option>
+                  </select>
+                </div>
+                <div>
+                  <label>長度</label>
+                  <select id="e_len">
+                    <option value="short">短</option>
+                    <option value="long">長（含追溯摘要）</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="actions" style="margin-top:10px;">
+                <button class="primary" id="btn_gen_explain">一鍵產生</button>
+                <button id="btn_copy_explain">複製</button>
+              </div>
+
+              <div class="sep"></div>
+
+              <label>解釋稿</label>
+              <textarea id="e_out" class="mono" readonly></textarea>
+            </div>
+          </section>
+
+          <!-- 說明 -->
+          <section id="tab-help" class="hide">
+            <div class="card">
+              <div class="flex">
+                <div class="badge"><span class="dot"></span><span>說明</span></div>
+                <div class="actions">
+                  <button id="btn_save_settings">儲存設定</button>
+                </div>
+              </div>
+
+              <div class="sep"></div>
+
+              <div class="row">
+                <div>
+                  <label>公式參數（可調）</label>
+                  <div class="row">
+                    <div>
+                      <label>免稅額（每人/年）</label>
+                      <input id="s_exemption" type="number" value="97000" />
+                    </div>
+                    <div>
+                      <label>標準扣除額（年）</label>
+                      <input id="s_std_ded" type="number" value="262000" />
+                    </div>
+                  </div>
+
+                  <div class="row" style="margin-top:10px;">
+                    <div>
+                      <label>薪資特別扣除額（年）</label>
+                      <input id="s_salary_ded" type="number" value="218000" />
+                    </div>
+                    <div>
+                      <label>基本工資（非居住者 6%/18%）</label>
+                      <input id="s_min_wage" type="number" value="28590" />
+                    </div>
+                  </div>
+
+                  <div class="sep"></div>
+
+                  <label>綜所稅級距（上限,稅率,累進差額；上限=0 表示無上限）</label>
+                  <textarea id="s_brackets" class="mono"></textarea>
+                </div>
+
+                <div>
+                  <label>工具說明（集中放這裡）</label>
+                  <textarea id="helpText" class="mono" readonly></textarea>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- side panel -->
+      <div class="panel">
+        <div class="content">
+          <div class="card">
+            <div class="flex">
+              <div class="badge"><span class="dot"></span><span>快速狀態</span></div>
+              <div class="hint" id="sideStatus">—</div>
+            </div>
+            <div class="sep"></div>
+
+            <div class="row">
+              <div>
+                <label>已儲存筆數</label>
+                <div class="num mono" id="sideCount">0</div>
+              </div>
+              <div>
+                <label>114累計稅額</label>
+                <div class="num mono" id="sideTaxSum">0</div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+            <div class="actions">
+              <button id="btn_quick_check">快速檢核（本月）</button>
+              <button id="btn_quick_explain">快速解釋稿</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="badge"><span class="dot warn"></span><span>備份</span></div>
+            <div class="sep"></div>
+            <div class="hint">建議用「匯出JSON」定期備份。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
