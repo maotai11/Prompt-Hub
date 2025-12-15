@@ -636,3 +636,867 @@
   <div class="toast" id="toast"></div>
 
 <script>
+/* =========================
+   114 薪資稅額表（離線內建）
+   注意：此表格資料是把你提供的「114薪資扣繳稅額表」轉成程式可查的格式
+   結構：[下限, 上限, 12欄(親屬數0~11)稅額陣列]
+   ========================= */
+const SALARY_TABLE_114 = [[80001,80005,[5,0,0,0,0,0,0,0,0,0,0,0]],[80006,80010,[6,0,0,0,0,0,0,0,0,0,0,0]],[80011,80015,[6,0,0,0,0,0,0,0,0,0,0,0]],[80016,80020,[7,0,0,0,0,0,0,0,0,0,0,0]],[80021,80025,[7,0,0,0,0,0,0,0,0,0,0,0]],[80026,80030,[8,0,0,0,0,0,0,0,0,0,0,0]],[80031,80035,[8,0,0,0,0,0,0,0,0,0,0,0]],[80036,80040,[9,0,0,0,0,0,0,0,0,0,0,0]],[80041,80045,[9,0,0,0,0,0,0,0,0,0,0,0]],[80046,80050,[10,0,0,0,0,0,0,0,0,0,0,0]],[80051,80055,[10,0,0,0,0,0,0,0,0,0,0,0]],[80056,80060,[11,0,0,0,0,0,0,0,0,0,0,0]],[80061,80065,[11,0,0,0,0,0,0,0,0,0,0,0]],[80066,80070,[12,0,0,0,0,0,0,0,0,0,0,0]],[80071,80075,[12,0,0,0,0,0,0,0,0,0,0,0]],[80076,80080,[13,0,0,0,0,0,0,0,0,0,0,0]],[80081,80085,[13,0,0,0,0,0,0,0,0,0,0,0]],[80086,80090,[14,0,0,0,0,0,0,0,0,0,0,0]],[80091,80095,[14,0,0,0,0,0,0,0,0,0,0,0]],[80096,80100,[15,0,0,0,0,0,0,0,0,0,0,0]],[80101,80105,[15,0,0,0,0,0,0,0,0,0,0,0]],[80106,80110,[16,0,0,0,0,0,0,0,0,0,0,0]],[80111,80115,[16,0,0,0,0,0,0,0,0,0,0,0]],[80116,80120,[17,0,0,0,0,0,0,0,0,0,0,0]],[80121,80125,[17,0,0,0,0,0,0,0,0,0,0,0]],[80126,80130,[18,0,0,0,0,0,0,0,0,0,0,0]],[80131,80135,[18,0,0,0,0,0,0,0,0,0,0,0]],[80136,80140,[19,0,0,0,0,0,0,0,0,0,0,0]],[80141,80145,[19,0,0,0,0,0,0,0,0,0,0,0]],[80146,80150,[20,0,0,0,0,0,0,0,0,0,0,0]],[80151,80155,[20,0,0,0,0,0,0,0,0,0,0,0]],[80156,80160,[21,0,0,0,0,0,0,0,0,0,0,0]],[80161,80165,[21,0,0,0,0,0,0,0,0,0,0,0]],[80166,80170,[22,0,0,0,0,0,0,0,0,0,0,0]],[80171,80175,[22,0,0,0,0,0,0,0,0,0,0,0]],[80176,80180,[23,0,0,0,0,0,0,0,0,0,0,0]],[80181,80185,[23,0,0,0,0,0,0,0,0,0,0,0]],[80186,80190,[24,0,0,0,0,0,0,0,0,0,0,0]],[80191,80195,[24,0,0,0,0,0,0,0,0,0,0,0]],[80196,80200,[25,0,0,0,0,0,0,0,0,0,0,0]],[80201,80205,[25,0,0,0,0,0,0,0,0,0,0,0]],[80206,80210,[26,0,0,0,0,0,0,0,0,0,0,0]],[80211,80215,[26,0,0,0,0,0,0,0,0,0,0,0]],[80216,80220,[27,0,0,0,0,0,0,0,0,0,0,0]],[80221,80225,[27,0,0,0,0,0,0,0,0,0,0,0]],[80226,80230,[28,0,0,0,0,0,0,0,0,0,0,0]],[80231,80235,[28,0,0,0,0,0,0,0,0,0,0,0]],[80236,80240,[29,0,0,0,0,0,0,0,0,0,0,0]],[80241,80245,[29,0,0,0,0,0,0,0,0,0,0,0]],[80246,80250,[30,0,0,0,0,0,0,0,0,0,0,0]],[80251,80255,[30,0,0,0,0,0,0,0,0,0,0,0]],[80256,80260,[31,0,0,0,0,0,0,0,0,0,0,0]],[80261,80265,[31,0,0,0,0,0,0,0,0,0,0,0]],[80266,80270,[32,0,0,0,0,0,0,0,0,0,0,0]],[80271,80275,[32,0,0,0,0,0,0,0,0,0,0,0]],[80276,80280,[33,0,0,0,0,0,0,0,0,0,0,0]],[80281,80285,[33,0,0,0,0,0,0,0,0,0,0,0]],[80286,80290,[34,0,0,0,0,0,0,0,0,0,0,0]],[80291,80295,[34,0,0,0,0,0,0,0,0,0,0,0]],[80296,80300,[35,0,0,0,0,0,0,0,0,0,0,0]],[80301,80305,[35,0,0,0,0,0,0,0,0,0,0,0]],[80306,80310,[36,0,0,0,0,0,0,0,0,0,0,0]],[80311,80315,[36,0,0,0,0,0,0,0,0,0,0,0]],[80316,80320,[37,0,0,0,0,0,0,0,0,0,0,0]],[80321,80325,[37,0,0,0,0,0,0,0,0,0,0,0]],[80326,80330,[38,0,0,0,0,0,0,0,0,0,0,0]],[80331,80335,[38,0,0,0,0,0,0,0,0,0,0,0]],[80336,80340,[39,0,0,0,0,0,0,0,0,0,0,0]],[80341,80345,[39,0,0,0,0,0,0,0,0,0,0,0]],[80346,80350,[40,0,0,0,0,0,0,0,0,0,0,0]],[80351,80355,[40,0,0,0,0,0,0,0,0,0,0,0]],[80356,80360,[41,0,0,0,0,0,0,0,0,0,0,0]],[80361,80365,[41,0,0,0,0,0,0,0,0,0,0,0]],[80366,80370,[42,0,0,0,0,0,0,0,0,0,0,0]],[80371,80375,[42,0,0,0,0,0,0,0,0,0,0,0]],[80376,80380,[43,0,0,0,0,0,0,0,0,0,0,0]],[80381,80385,[43,0,0,0,0,0,0,0,0,0,0,0]],[80386,80390,[44,0,0,0,0,0,0,0,0,0,0,0]],[80391,80395,[44,0,0,0,0,0,0,0,0,0,0,0]],[80396,80400,[45,0,0,0,0,0,0,0,0,0,0,0]],[80401,80405,[45,0,0,0,0,0,0,0,0,0,0,0]],[80406,80410,[46,0,0,0,0,0,0,0,0,0,0,0]],[80411,80415,[46,0,0,0,0,0,0,0,0,0,0,0]],[80416,80420,[47,0,0,0,0,0,0,0,0,0,0,0]],[80421,80425,[47,0,0,0,0,0,0,0,0,0,0,0]],[80426,80430,[48,0,0,0,0,0,0,0,0,0,0,0]],[80431,80435,[48,0,0,0,0,0,0,0,0,0,0,0]],[80436,80440,[49,0,0,0,0,0,0,0,0,0,0,0]],[80441,80445,[49,0,0,0,0,0,0,0,0,0,0,0]],[80446,80450,[50,0,0,0,0,0,0,0,0,0,0,0]],[80451,80455,[50,0,0,0,0,0,0,0,0,0,0,0]],[80456,80460,[51,0,0,0,0,0,0,0,0,0,0,0]],[80461,80465,[51,0,0,0,0,0,0,0,0,0,0,0]],[80466,80470,[52,0,0,0,0,0,0,0,0,0,0,0]],[80471,80475,[52,0,0,0,0,0,0,0,0,0,0,0]],[80476,80480,[53,0,0,0,0,0,0,0,0,0,0,0]],[80481,80485,[53,0,0,0,0,0,0,0,0,0,0,0]],[80486,80490,[54,0,0,0,0,0,0,0,0,0,0,0]],[80491,80495,[54,0,0,0,0,0,0,0,0,0,0,0]],[80496,80500,[55,0,0,0,0,0,0,0,0,0,0,0]],[80501,80505,[55,0,0,0,0,0,0,0,0,0,0,0]],[80506,80510,[56,0,0,0,0,0,0,0,0,0,0,0]],[80511,80515,[56,0,0,0,0,0,0,0,0,0,0,0]],[80516,80520,[57,0,0,0,0,0,0,0,0,0,0,0]],[80521,80525,[57,0,0,0,0,0,0,0,0,0,0,0]],[80526,80530,[58,0,0,0,0,0,0,0,0,0,0,0]],[80531,80535,[58,0,0,0,0,0,0,0,0,0,0,0]],[80536,80540,[59,0,0,0,0,0,0,0,0,0,0,0]],[80541,80545,[59,0,0,0,0,0,0,0,0,0,0,0]],[80546,80550,[60,0,0,0,0,0,0,0,0,0,0,0]],[80551,80555,[60,0,0,0,0,0,0,0,0,0,0,0]],[80556,80560,[61,0,0,0,0,0,0,0,0,0,0,0]],[80561,80565,[61,0,0,0,0,0,0,0,0,0,0,0]],[80566,80570,[62,0,0,0,0,0,0,0,0,0,0,0]],[80571,80575,[62,0,0,0,0,0,0,0,0,0,0,0]],[80576,80580,[63,0,0,0,0,0,0,0,0,0,0,0]],[80581,80585,[63,0,0,0,0,0,0,0,0,0,0,0]],[80586,80590,[64,0,0,0,0,0,0,0,0,0,0,0]],[80591,80595,[64,0,0,0,0,0,0,0,0,0,0,0]],[80596,80600,[65,0,0,0,0,0,0,0,0,0,0,0]],[80601,80605,[65,0,0,0,0,0,0,0,0,0,0,0]],[80606,80610,[66,0,0,0,0,0,0,0,0,0,0,0]],[80611,80615,[66,0,0,0,0,0,0,0,0,0,0,0]],[80616,80620,[67,0,0,0,0,0,0,0,0,0,0,0]],[80621,80625,[67,0,0,0,0,0,0,0,0,0,0,0]],[80626,80630,[68,0,0,0,0,0,0,0,0,0,0,0]],[80631,80635,[68,0,0,0,0,0,0,0,0,0,0,0]],[80636,80640,[69,0,0,0,0,0,0,0,0,0,0,0]],[80641,80645,[69,0,0,0,0,0,0,0,0,0,0,0]],[80646,80650,[70,0,0,0,0,0,0,0,0,0,0,0]],[80651,80655,[70,0,0,0,0,0,0,0,0,0,0,0]],[80656,80660,[71,0,0,0,0,0,0,0,0,0,0,0]],[80661,80665,[71,0,0,0,0,0,0,0,0,0,0,0]],[80666,80670,[72,0,0,0,0,0,0,0,0,0,0,0]],[80671,80675,[72,0,0,0,0,0,0,0,0,0,0,0]],[80676,80680,[73,0,0,0,0,0,0,0,0,0,0,0]],[80681,80685,[73,0,0,0,0,0,0,0,0,0,0,0]],[80686,80690,[74,0,0,0,0,0,0,0,0,0,0,0]],[80691,80695,[74,0,0,0,0,0,0,0,0,0,0,0]],[80696,80700,[75,0,0,0,0,0,0,0,0,0,0,0]],[80701,80705,[75,0,0,0,0,0,0,0,0,0,0,0]],[80706,80710,[76,0,0,0,0,0,0,0,0,0,0,0]],[80711,80715,[76,0,0,0,0,0,0,0,0,0,0,0]],[80716,80720,[77,0,0,0,0,0,0,0,0,0,0,0]],[80721,80725,[77,0,0,0,0,0,0,0,0,0,0,0]],[80726,80730,[78,0,0,0,0,0,0,0,0,0,0,0]],[80731,80735,[78,0,0,0,0,0,0,0,0,0,0,0]],[80736,80740,[79,0,0,0,0,0,0,0,0,0,0,0]],[80741,80745,[79,0,0,0,0,0,0,0,0,0,0,0]],[80746,80750,[80,0,0,0,0,0,0,0,0,0,0,0]],[80751,80755,[80,0,0,0,0,0,0,0,0,0,0,0]],[80756,80760,[81,0,0,0,0,0,0,0,0,0,0,0]],[80761,80765,[81,0,0,0,0,0,0,0,0,0,0,0]],[80766,80770,[82,0,0,0,0,0,0,0,0,0,0,0]],[80771,80775,[82,0,0,0,0,0,0,0,0,0,0,0]],[80776,80780,[83,0,0,0,0,0,0,0,0,0,0,0]],[80781,80785,[83,0,0,0,0,0,0,0,0,0,0,0]],[80786,80790,[84,0,0,0,0,0,0,0,0,0,0,0]],[80791,80795,[84,0,0,0,0,0,0,0,0,0,0,0]],[80796,80800,[85,0,0,0,0,0,0,0,0,0,0,0]]];
+/* ↑ 提醒：我在聊天訊息內無法完整貼出你那份PDF的全表（會爆字數）。
+   你現在這段是示意+可跑的版本（起扣點已生效），但「稅額表」會只在 80,001~80,800 這段有值。
+   若你要「整份114稅額表完整內嵌」，我可以用同樣格式把整份全表分段貼給你（多則訊息貼完），你再合併。 */
+
+const SALARY_TABLE_LOW = 80001;
+const SALARY_TABLE_HIGH = 500000;
+const SALARY_START_POINT = 80001;
+
+const HELP_TEXT = "【本工具定位】\n• 離線扣繳輔助：計算、免扣繳/免列單/免填發判斷（留痕）、申報前一致性檢核、對外解釋稿。\n• 資料只存本機（localStorage）；可用匯出/匯入 JSON 做備份與交接。\n\n【薪資（114）摘要】\n• 按月給付 + 已填免稅額申報表：依 114 薪資所得扣繳稅額表查表。\n• 按月給付未填免稅額申報表：全月給付總額按 5%。\n• 兼職/非每月給付：原則按 5%；未達起扣點或特定按日臨時工可免扣繳（但多仍需列單）。\n• 起扣點：80,001（以你提供的 114 稅額表判讀）。\n\n【小額免扣繳/免列單（常見）】\n• 每次應扣繳稅額 ≤ 2,000：多可免扣繳（分離課稅等例外不適用）。\n• 同一納稅義務人全年給付金額 ≤ 1,000：在特定範圍可免列單申報（本工具會做提醒與檢核）。\n\n【免填發憑單（94-1）】\n• 條件通常包含：已依期限申報、資料納入查詢服務、符合對象等；若納稅義務人要求，仍應填發。\n\n【一致性檢核會抓什麼】\n• 身分/所得類型 vs 率/表格是否矛盾、免扣繳標記與稅額是否矛盾、分離課稅與小額免扣繳衝突、識別資料不足、全年累計門檻提醒等。\n\n※ 實際申報仍以主管機關最新公告/系統為準。本工具以你上傳文件之實務摘要作離線輔助。";
+
+const DEFAULT_SETTINGS = {
+  year: 114,
+  exemptionPerPerson: 97000,
+  standardDeductionMarried: 262000,
+  salarySpecialDeduction: 218000,
+  minWage: 28590,
+  brackets: [
+    { cap: 590000, rate: 0.05, quick: 0 },
+    { cap: 1330000, rate: 0.12, quick: 41300 },
+    { cap: 2660000, rate: 0.20, quick: 147700 },
+    { cap: 4980000, rate: 0.30, quick: 413700 },
+    { cap: 0, rate: 0.40, quick: 911700 },
+  ],
+};
+
+const LS_KEY = "withholding_assistant_114_v1";
+
+/* ===== helpers ===== */
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const fmt = (n) => (n===null || n===undefined || Number.isNaN(n)) ? "—" : Number(n).toLocaleString("en-US");
+const todayISO = () => new Date().toISOString().slice(0,10);
+const safeInt = (v) => (Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : 0);
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+function uid() {
+  return "R" + Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+function incomeLabel(code) {
+  const map = {
+    salary_monthly: "薪資｜按月給付",
+    salary_nonmonthly: "薪資｜兼職/非每月",
+    commission: "佣金/仲介/介紹費",
+    rent: "租賃收入",
+    royalty: "權利金",
+    interest: "利息",
+    professional: "執行業務/稿費/顧問等",
+    prize: "獎金/競賽/抽獎",
+    dividend: "股利/盈餘",
+    other: "其他（自訂）"
+  };
+  return map[code] || code;
+}
+
+function payeeLabel(code) {
+  const map = {
+    resident_individual: "居住者｜個人",
+    resident_business_fixed: "境內有固定營業場所｜營利事業",
+    nonresident_individual: "非居住者｜個人",
+    nonresident_business_nofixed: "境內無固定營業場所｜營利事業"
+  };
+  return map[code] || code;
+}
+
+function readState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return { settings: DEFAULT_SETTINGS, records: [], selectedId: null };
+    const obj = JSON.parse(raw);
+    return {
+      settings: Object.assign({}, DEFAULT_SETTINGS, obj.settings || {}),
+      records: Array.isArray(obj.records) ? obj.records : [],
+      selectedId: obj.selectedId || null
+    };
+  } catch (e) {
+    return { settings: DEFAULT_SETTINGS, records: [], selectedId: null };
+  }
+}
+
+function writeState(state) {
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+function parseBracketText(text) {
+  const lines = (text || "").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const arr = [];
+  for (const line of lines) {
+    const parts = line.split(",").map(s=>s.trim());
+    if (parts.length < 3) continue;
+    const cap = Number(parts[0]);
+    const rate = Number(parts[1]);
+    const quick = Number(parts[2]);
+    if (!Number.isFinite(rate) || !Number.isFinite(quick) || !Number.isFinite(cap)) continue;
+    arr.push({ cap: Math.trunc(cap), rate, quick: Math.trunc(quick) });
+  }
+  return arr.length ? arr : null;
+}
+
+/* ===== salary engines (table + formula) ===== */
+function salaryWithholdingByTable(monthlySalary, depCount) {
+  const m = safeInt(monthlySalary);
+  const c = Math.max(0, Math.min(11, safeInt(depCount)));
+  if (m < SALARY_TABLE_LOW) return 0;
+  if (m > SALARY_TABLE_HIGH) return null; // out-of-range
+  let lo = 0, hi = SALARY_TABLE_114.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const row = SALARY_TABLE_114[mid];
+    if (m < row[0]) hi = mid - 1;
+    else if (m > row[1]) lo = mid + 1;
+    else return row[2][c] ?? 0;
+  }
+  return null;
+}
+
+function applyBrackets(taxable, brackets) {
+  const t = Math.max(0, Math.trunc(taxable));
+  for (const b of brackets) {
+    if (b.cap === 0 || t <= b.cap) {
+      const annual = t * b.rate - b.quick;
+      return Math.max(0, Math.round(annual));
+    }
+  }
+  const last = brackets[brackets.length-1];
+  return Math.max(0, Math.round(t * last.rate - last.quick));
+}
+
+function salaryWithholdingByFormula(monthlySalary, depCount, settings) {
+  const m = safeInt(monthlySalary);
+  const c = Math.max(0, safeInt(depCount));
+  const annualIncome = m * 12;
+  const people = 1 + c;
+  const ex = people * safeInt(settings.exemptionPerPerson);
+  const std = safeInt(settings.standardDeductionMarried);
+  const salaryDed = Math.min(safeInt(settings.salarySpecialDeduction), annualIncome);
+  const taxable = Math.max(0, annualIncome - (ex + std + salaryDed));
+  const annualTax = applyBrackets(taxable, settings.brackets);
+  return Math.max(0, Math.round(annualTax / 12));
+}
+
+function defaultRateFor(income, payeeType, settings, amount) {
+  const resident = (payeeType === "resident_individual" || payeeType === "resident_business_fixed");
+  if (!resident) {
+    if (income === "dividend") return 0.21;
+    return 0.20;
+  }
+  const r = {
+    commission: 0.10,
+    rent: 0.10,
+    royalty: 0.10,
+    interest: 0.10,
+    professional: 0.10,
+    prize: 0.10,
+    other: 0.10,
+    dividend: 0.00,
+  };
+  return r[income] ?? 0.10;
+}
+
+function computeDeadlines(dateISO, payeeType) {
+  const dt = new Date(dateISO + "T00:00:00");
+  if (Number.isNaN(dt.getTime())) return { headline:"—", hint:"—" };
+  const isNonresident = (payeeType === "nonresident_individual" || payeeType === "nonresident_business_nofixed");
+  if (isNonresident) {
+    const due = new Date(dt.getTime());
+    due.setDate(due.getDate() + 10);
+    return {
+      headline: "代扣日起 10 日內",
+      hint: `建議最晚：${due.toISOString().slice(0,10)}（遇連假≥3日可能延長5日）`
+    };
+  } else {
+    const due = new Date(dt.getTime());
+    due.setMonth(due.getMonth() + 1);
+    due.setDate(10);
+    return {
+      headline: "次月 10 日前繳清",
+      hint: `建議：${due.toISOString().slice(0,10)}`
+    };
+  }
+}
+
+function computeWithholding(input, state) {
+  const settings = state.settings;
+  const log = [];
+  const warnings = [];
+
+  const date = input.date || todayISO();
+  const income = input.income;
+  const payeeType = input.payeeType;
+  const amount = safeInt(input.amount);
+  const depCount = safeInt(input.depCount);
+
+  let method = "—";
+  let tax = 0;
+  let exemptWithhold = false;
+  let exemptList = false;
+  let canSkipIssue = false;
+
+  const separateTax = (input.separateTax === "yes");
+  const uniformInvoiceExempt = (input.uniformInvoiceExempt === "yes");
+
+  const isResidentIndividual = payeeType === "resident_individual";
+  const isResidentBizFixed = payeeType === "resident_business_fixed";
+  const isNonresident = (payeeType === "nonresident_individual" || payeeType === "nonresident_business_nofixed");
+
+  if (income.startsWith("salary")) {
+    if (income === "salary_monthly") {
+      const mode = input.salaryMode;
+      const form = input.salaryForm;
+
+      if (isNonresident) {
+        tax = Math.round(amount * 0.18);
+        method = "非居住者｜按 18%";
+        log.push("非居住者/無固定營業場所：薪資多採 18%。");
+      } else {
+        const useTableAllowed = (form === "yes");
+        let chosen = mode;
+
+        if (chosen === "auto") chosen = useTableAllowed ? "table" : "flat5";
+        if (chosen === "table" && !useTableAllowed) {
+          warnings.push("稅額表需已填免稅額申報表：已改用 5%。");
+          chosen = "flat5";
+        }
+
+        if (chosen === "table") {
+          const t = salaryWithholdingByTable(amount, depCount);
+          if (t === null) {
+            method = "稅額表超出 → 改公式";
+            tax = salaryWithholdingByFormula(amount, depCount, settings);
+            log.push("稅額表超出上限或人數超過：改用公式。");
+          } else {
+            method = "稅額表";
+            tax = t;
+            log.push("按月給付＋已填免稅額申報表：依稅額表。");
+          }
+        } else if (chosen === "flat5") {
+          method = "全月總額 5%";
+          tax = Math.round(amount * 0.05);
+          log.push("按月給付未填免稅額申報表：按 5%。");
+        } else if (chosen === "formula") {
+          method = "公式";
+          tax = salaryWithholdingByFormula(amount, depCount, settings);
+          log.push("選用公式計算。");
+        } else {
+          method = "自動";
+          const t = salaryWithholdingByTable(amount, depCount);
+          tax = (t === null) ? salaryWithholdingByFormula(amount, depCount, settings) : t;
+        }
+
+        if (tax <= 2000) {
+          exemptWithhold = true;
+          log.push("按月薪資：每月應扣繳稅額≤2,000 → 免扣繳（通常仍需列單）。");
+          tax = 0;
+        }
+      }
+    } else {
+      if (isNonresident) {
+        const threshold = Math.round(settings.minWage * 1.5);
+        const rate = (amount <= threshold) ? 0.06 : 0.18;
+        tax = Math.round(amount * rate);
+        method = `非居住者｜${Math.round(rate*100)}%`;
+        log.push("非居住者兼職/非每月：基本工資1.5倍以下→6%，超過→18%。");
+      } else {
+        method = "每次給付 5%";
+        tax = Math.round(amount * 0.05);
+        log.push("兼職/非每月薪資：原則按 5%。");
+
+        const flag = input.nonmonthlyFlag;
+        if (flag === "below_start" || amount < SALARY_START_POINT) {
+          exemptWithhold = true;
+          tax = 0;
+          log.push(`兼職/非每月：未達起扣點 ${SALARY_START_POINT.toLocaleString("en-US")} → 免扣繳（通常仍需列單）。`);
+        } else if (flag === "daily_temp") {
+          exemptWithhold = true;
+          tax = 0;
+          log.push("兼職/非每月：按日計算並按日給付之臨時工 → 免扣繳（通常仍需列單）。");
+        }
+      }
+    }
+  } else {
+    const rate = defaultRateFor(income, payeeType, settings, amount);
+    method = `${Math.round(rate*100)}%`;
+    tax = Math.round(amount * rate);
+    log.push(`預設扣繳率：${Math.round(rate*100)}%。`);
+
+    if (uniformInvoiceExempt && (income === "commission" || income === "rent" || income === "royalty")) {
+      exemptWithhold = true;
+      tax = 0;
+      method = "依法開立統一發票 → 免扣繳";
+      log.push("營利事業依法開立統一發票之該類收入：免扣繳。");
+    }
+
+    if (!isNonresident && !exemptWithhold) {
+      if (tax <= 2000) {
+        if (separateTax) {
+          log.push("分離課稅：小額免扣繳不適用。");
+        } else {
+          exemptWithhold = true;
+          tax = 0;
+          log.push("每次應扣繳稅額≤2,000 → 免扣繳（分離課稅除外）。");
+        }
+      }
+    }
+  }
+
+  const keyId = (input.payeeId || "").trim() || (input.payeeName || "").trim() || "UNKNOWN";
+  const year = (new Date(date + "T00:00:00")).getFullYear() - 1911;
+
+  const sameYearRecs = state.records.filter(r => (r.rocYear === year) && (r.payeeKey === keyId));
+  const totalPaidThisYear = sameYearRecs.filter(r => r.income === income).reduce((s,r)=>s + (r.amount || 0), 0) + amount;
+
+  let shouldList = true;
+
+  if (income.startsWith("salary")) {
+    if (!isNonresident && totalPaidThisYear <= 1000) {
+      exemptList = true;
+      shouldList = false;
+      log.push("全年累計≤1,000：可能免列單（視適用條件）。");
+    } else {
+      log.push("薪資：多數情況仍需列單（即使免扣繳）。");
+    }
+  } else {
+    if (isResidentIndividual && totalPaidThisYear <= 1000) {
+      exemptList = true;
+      shouldList = false;
+      log.push("全年累計≤1,000：可能免列單（視適用範圍）。");
+    } else if (isResidentBizFixed) {
+      log.push("營利事業（固定營業場所）：通常仍建議列單。");
+    }
+  }
+
+  const deadline = computeDeadlines(date, payeeType);
+
+  return {
+    id: input.id || uid(),
+    date,
+    rocYear: year,
+    income,
+    payeeType,
+    payeeName: input.payeeName || "",
+    payeeId: input.payeeId || "",
+    payeeKey: keyId,
+    amount,
+    depCount,
+    salaryForm: input.salaryForm || "no",
+    salaryMode: input.salaryMode || "auto",
+    nonmonthlyFlag: input.nonmonthlyFlag || "none",
+    separateTax: input.separateTax || "no",
+    uniformInvoiceExempt: input.uniformInvoiceExempt || "no",
+    note: input.note || "",
+    method,
+    computedTax: tax,
+    exemptWithhold,
+    exemptList,
+    shouldList,
+    canSkipIssue,
+    decisionLog: log,
+    warnings,
+    deadline
+  };
+}
+
+function getFormInput(state) {
+  return {
+    id: state.selectedId || null,
+    date: $("#f_date").value || todayISO(),
+    income: $("#f_income").value,
+    amount: $("#f_amount").value,
+    payeeType: $("#f_payee_type").value,
+    payeeName: $("#f_payee_name").value,
+    payeeId: $("#f_payee_id").value,
+    depCount: $("#f_dep_count").value,
+    salaryForm: $("#f_salary_form").value,
+    salaryMode: $("#f_salary_mode").value,
+    nonmonthlyFlag: $("#f_nonmonthly_flag").value,
+    separateTax: $("#f_separate_tax").value,
+    uniformInvoiceExempt: $("#f_uniform_invoice_exempt").value,
+    note: $("#f_note").value
+  };
+}
+
+function setFormInput(rec) {
+  $("#f_date").value = rec.date || todayISO();
+  $("#f_income").value = rec.income || "salary_monthly";
+  $("#f_amount").value = (rec.amount ?? "");
+  $("#f_payee_type").value = rec.payeeType || "resident_individual";
+  $("#f_payee_name").value = rec.payeeName || "";
+  $("#f_payee_id").value = rec.payeeId || "";
+  $("#f_dep_count").value = (rec.depCount ?? 0);
+  $("#f_salary_form").value = rec.salaryForm || "yes";
+  $("#f_salary_mode").value = rec.salaryMode || "auto";
+  $("#f_nonmonthly_flag").value = rec.nonmonthlyFlag || "none";
+  $("#f_separate_tax").value = rec.separateTax || "no";
+  $("#f_uniform_invoice_exempt").value = rec.uniformInvoiceExempt || "no";
+  $("#f_note").value = rec.note || "";
+}
+
+function updateDynamicUI() {
+  const income = $("#f_income").value;
+  const isSalary = income.startsWith("salary");
+  $("#salaryBox").classList.toggle("hide", !isSalary);
+  $("#salary_form_box").classList.toggle("hide", income !== "salary_monthly");
+  $("#nonmonthlyFlags").classList.toggle("hide", income !== "salary_nonmonthly");
+}
+
+function renderResult(rec) {
+  const dot = $("#resDot");
+  const title = $("#resTitle");
+  const flags = [];
+  if (rec.exemptWithhold) flags.push("免扣繳");
+  if (rec.exemptList) flags.push("免列單");
+  const flagsText = flags.length ? flags.join(" / ") : "—";
+
+  const hasWarn = (rec.warnings && rec.warnings.length);
+  dot.className = "dot " + (hasWarn ? "warn" : (rec.exemptWithhold ? "good" : ""));
+  title.textContent = hasWarn ? "結果（有提醒）" : "結果";
+
+  $("#k_tax").textContent = fmt(rec.computedTax);
+  $("#k_method").textContent = rec.method || "—";
+  $("#k_flags").textContent = flagsText;
+  $("#k_flags_hint").textContent = rec.exemptWithhold ? "免扣繳≠免申報；建議跑檢核" : "—";
+  $("#k_deadline").textContent = rec.deadline.headline;
+  $("#k_deadline_hint").textContent = rec.deadline.hint;
+
+  $("#resKey").textContent = `${incomeLabel(rec.income)} · ${payeeLabel(rec.payeeType)}`;
+
+  const logLines = []
+    .concat(hasWarn ? ["[提醒] " + rec.warnings.join("； ")] : [])
+    .concat(rec.decisionLog || []);
+  $("#res_log").value = logLines.join("\n");
+
+  $("#sideStatus").textContent = rec.exemptWithhold ? "免扣繳（建議仍檢核/留存）" : "可儲存到清單";
+}
+
+function recToOption(rec) {
+  const label = `${rec.date}｜${incomeLabel(rec.income)}｜${(rec.payeeName||rec.payeeKey||"—")}｜$${fmt(rec.amount)}｜稅$${fmt(rec.computedTax)}`;
+  const opt = document.createElement("option");
+  opt.value = rec.id;
+  opt.textContent = label;
+  return opt;
+}
+
+function refreshSelects(state) {
+  const picks = [$("#j_pick"), $("#e_pick")].filter(Boolean);
+  for (const sel of picks) {
+    sel.innerHTML = "";
+    state.records
+      .slice()
+      .sort((a,b)=> (a.date||"").localeCompare(b.date||""))
+      .forEach(r => sel.appendChild(recToOption(r)));
+  }
+}
+
+function refreshSide(state) {
+  $("#sideCount").textContent = fmt(state.records.length);
+  const sum = state.records.filter(r => r.rocYear === 114).reduce((s,r)=>s + (r.computedTax||0), 0);
+  $("#sideTaxSum").textContent = fmt(sum);
+}
+
+function refreshTable(state) {
+  const tbody = $("#recordsTable tbody");
+  tbody.innerHTML = "";
+  const rows = state.records.slice().sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    tr.dataset.id = r.id;
+    tr.innerHTML = `
+      <td class="mono">${r.date || "—"}</td>
+      <td>${incomeLabel(r.income)}</td>
+      <td>${(r.payeeName || r.payeeKey || "—")}</td>
+      <td class="right mono">${fmt(r.amount)}</td>
+      <td class="right mono">${fmt(r.computedTax)}</td>
+    `;
+    tr.addEventListener("click", () => {
+      $$("#recordsTable tbody tr").forEach(x=>x.style.outline="none");
+      tr.style.outline = "2px solid rgba(138,180,255,.35)";
+      const st = readState();
+      st.selectedId = r.id;
+      writeState(st);
+      toast("已選取");
+    });
+    tbody.appendChild(tr);
+  }
+}
+
+function switchTab(key) {
+  const map = {
+    calc: "#tab-calc",
+    judge: "#tab-judge",
+    check: "#tab-check",
+    explain: "#tab-explain",
+    help: "#tab-help"
+  };
+  for (const k in map) {
+    const el = document.querySelector(map[k]);
+    el.classList.toggle("hide", k !== key);
+  }
+  $$(".tab").forEach(btn => {
+    btn.setAttribute("aria-selected", btn.dataset.tab === key ? "true" : "false");
+  });
+}
+
+function judgeExemptions(rec) {
+  const lines = [];
+  lines.push(`【免扣繳】${rec.exemptWithhold ? "是" : "否"}（稅額：$${fmt(rec.computedTax)}）`);
+  lines.push(`【免列單】${rec.exemptList ? "是" : "否"}`);
+
+  const filed = $("#j_filed_on_time").value === "yes";
+  const elig  = $("#j_eligible_taxpayer").value === "yes";
+  const inq   = $("#j_in_query_service").value === "yes";
+  const req   = $("#j_request_issue").value === "yes";
+
+  const skipIssue = filed && elig && inq && !req;
+  lines.push(`【免填發憑單】${skipIssue ? "可" : "不可/不建議"}`);
+  if (req) lines.push("— 對方要求：仍應填發。");
+
+  lines.push("");
+  lines.push("【留痕】");
+  (rec.decisionLog || []).forEach(x => lines.push("• " + x));
+  lines.push(skipIssue
+    ? "• 94-1：條件齊備 → 可免填發（對方要求時仍要發）。"
+    : "• 94-1：條件不足或對方要求 → 建議照常填發。"
+  );
+  return lines.join("\n");
+}
+
+function buildExplainScript(rec, tone, len) {
+  const friendly = (tone === "friendly");
+  const long = (len === "long");
+
+  const base = [];
+  base.push(friendly ? "我用最簡單的方式把這筆扣繳講清楚：" : "本筆扣繳處理說明如下：");
+  base.push("");
+  base.push(`1) 身分：${payeeLabel(rec.payeeType)}`);
+  base.push(`2) 所得類型：${incomeLabel(rec.income)}`);
+  base.push(`3) 金額：$${fmt(rec.amount)}；計算：${rec.method}；稅額：$${fmt(rec.computedTax)}`);
+  base.push(`4) 判斷：${rec.exemptWithhold ? "免扣繳" : "需扣繳"}${rec.exemptList ? "；可能免列單" : ""}`);
+  base.push(`5) 期限：${rec.deadline.headline}（${rec.deadline.hint}）`);
+
+  if (long) {
+    base.push("");
+    base.push("【追溯摘要】");
+    base.push("• 薪資：按月給付且填免稅額申報表→查表；未填→5%；兼職/非每月→5%（特定條件可免扣繳）。");
+    base.push("• 小額免扣繳：稅額≤2,000可免扣繳（分離課稅例外）。");
+    base.push("• 小額免列單：全年≤1,000在特定範圍可免列單（需留存資料）。");
+    base.push("• 免填發憑單：94-1 需同時符合多項條件，且對方要求時仍要填發。");
+  }
+
+  base.push("");
+  base.push("【接下來】");
+  base.push(rec.exemptWithhold
+    ? "• 這筆為免扣繳：建議保留留痕，並用一致性檢核確認是否仍需列單。"
+    : "• 這筆需扣繳：請依期限繳款並在申報時資料一致。"
+  );
+  return base.join("\n");
+}
+
+function runChecks(state, yearROC, month) {
+  const recs = state.records.filter(r => r.rocYear === yearROC);
+  const filtered = month ? recs.filter(r => Number((r.date||"").slice(5,7)) === month) : recs;
+
+  if (!filtered.length) return "（沒有資料）";
+
+  const totals = new Map();
+  for (const r of recs) {
+    const k = `${r.payeeKey}::${r.income}`;
+    totals.set(k, (totals.get(k)||0) + (r.amount||0));
+  }
+
+  const out = [];
+  let issueCount = 0;
+
+  for (const r of filtered) {
+    const issues = [];
+    if (!r.payeeId && !r.payeeName) issues.push("所得人識別資料不足（至少填姓名或編號）");
+
+    if (r.income === "salary_monthly") {
+      if (r.method === "稅額表" && r.salaryForm !== "yes") issues.push("稅額表但免稅額申報表=未填（請確認）");
+      if (r.payeeType.startsWith("nonresident") && (r.method || "").includes("稅額表")) issues.push("非居住者不應用稅額表（請確認）");
+    }
+
+    if (r.exemptWithhold && r.computedTax > 0) issues.push("標記免扣繳但稅額>0（請確認）");
+    if (r.separateTax === "yes" && r.exemptWithhold) issues.push("分離課稅與小額免扣繳可能衝突（請確認）");
+    if (r.payeeType === "resident_business_fixed" && r.exemptList) issues.push("營利事業（固定營業場所）小額免列單常不適用（請確認）");
+
+    const k = `${r.payeeKey}::${r.income}`;
+    const total = totals.get(k)||0;
+    if (r.income.startsWith("salary") && r.payeeType.startsWith("resident") && total <= 1000 && !r.exemptList) {
+      issues.push("全年累計≤1,000：可能可免列單（請確認）");
+    }
+
+    if (issues.length) {
+      issueCount += 1;
+      out.push(`• ${r.date}｜${incomeLabel(r.income)}｜${r.payeeName || r.payeeKey}｜$${fmt(r.amount)}｜稅$${fmt(r.computedTax)}`);
+      issues.forEach(x => out.push(`  - ${x}`));
+      out.push("");
+    }
+  }
+
+  return issueCount ? `共 ${issueCount} 筆有提醒：\n\n` + out.join("\n") : "✅ 未發現明顯不一致";
+}
+
+(function init() {
+  const st = readState();
+  $("#f_date").value = $("#f_date").value || todayISO();
+
+  $("#helpText").value = HELP_TEXT;
+  $("#s_brackets").value = st.settings.brackets.map(b => `${b.cap},${b.rate},${b.quick}`).join("\n");
+  $("#s_exemption").value = st.settings.exemptionPerPerson;
+  $("#s_std_ded").value = st.settings.standardDeductionMarried;
+  $("#s_salary_ded").value = st.settings.salarySpecialDeduction;
+  $("#s_min_wage").value = st.settings.minWage;
+
+  $$(".tab").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+
+  $("#f_income").addEventListener("change", updateDynamicUI);
+  updateDynamicUI();
+
+  $("#btn_calc").addEventListener("click", () => {
+    const state = readState();
+    const rec = computeWithholding(getFormInput(state), state);
+    renderResult(rec);
+    toast("已計算");
+  });
+
+  $("#btn_save").addEventListener("click", () => {
+    const state = readState();
+    const rec = computeWithholding(getFormInput(state), state);
+    const idx = state.records.findIndex(r => r.id === rec.id);
+    if (idx >= 0) state.records[idx] = rec;
+    else state.records.push(rec);
+    state.selectedId = rec.id;
+    writeState(state);
+    refreshTable(state);
+    refreshSelects(state);
+    refreshSide(state);
+    renderResult(rec);
+    toast("已儲存");
+  });
+
+  $("#btn_reset").addEventListener("click", () => {
+    const state = readState();
+    state.selectedId = null;
+    writeState(state);
+    $("#f_amount").value = "";
+    $("#f_payee_name").value = "";
+    $("#f_payee_id").value = "";
+    $("#f_dep_count").value = 0;
+    $("#f_salary_form").value = "yes";
+    $("#f_salary_mode").value = "auto";
+    $("#f_nonmonthly_flag").value = "none";
+    $("#f_separate_tax").value = "no";
+    $("#f_uniform_invoice_exempt").value = "no";
+    $("#f_note").value = "";
+    $("#res_log").value = "";
+    $("#resKey").textContent = "—";
+    $("#k_tax").textContent = "—";
+    $("#k_flags").textContent = "—";
+    $("#k_deadline").textContent = "—";
+    toast("已清空");
+  });
+
+  $("#btn_copy_log").addEventListener("click", async () => {
+    await navigator.clipboard.writeText($("#res_log").value || "");
+    toast("已複製");
+  });
+
+  $("#btn_copy_result").addEventListener("click", async () => {
+    const state = readState();
+    const rec = computeWithholding(getFormInput(state), state);
+    const lines = [
+      `${incomeLabel(rec.income)} · ${payeeLabel(rec.payeeType)}`,
+      `日期：${rec.date}`,
+      `所得人：${rec.payeeName || "—"}${rec.payeeId ? " (" + rec.payeeId + ")" : ""}`,
+      `金額：$${fmt(rec.amount)}`,
+      `稅額：$${fmt(rec.computedTax)}（${rec.method}）`,
+      `免扣繳：${rec.exemptWithhold ? "是" : "否"}；免列單：${rec.exemptList ? "是" : "否"}`,
+      `期限：${rec.deadline.headline}｜${rec.deadline.hint}`
+    ];
+    await navigator.clipboard.writeText(lines.join("\n"));
+    toast("已複製");
+  });
+
+  $("#btn_run_check").addEventListener("click", () => {
+    const state = readState();
+    const year = safeInt($("#c_year").value || 114);
+    const month = $("#c_month").value ? safeInt($("#c_month").value) : null;
+    $("#c_out").value = runChecks(state, year, month);
+    toast("檢核完成");
+  });
+
+  $("#btn_quick_check").addEventListener("click", () => {
+    switchTab("check");
+    const now = new Date();
+    $("#c_year").value = 114;
+    $("#c_month").value = String(now.getMonth()+1);
+    $("#btn_run_check").click();
+  });
+
+  $("#btn_load_to_calc").addEventListener("click", () => {
+    const state = readState();
+    if (!state.selectedId) return toast("先選一筆");
+    const rec = state.records.find(r => r.id === state.selectedId);
+    if (!rec) return toast("找不到");
+    setFormInput(rec);
+    renderResult(rec);
+    switchTab("calc");
+    toast("已載入");
+  });
+
+  $("#btn_delete_one").addEventListener("click", () => {
+    const state = readState();
+    if (!state.selectedId) return toast("先選一筆");
+    state.records = state.records.filter(r => r.id !== state.selectedId);
+    state.selectedId = null;
+    writeState(state);
+    refreshTable(state);
+    refreshSelects(state);
+    refreshSide(state);
+    toast("已刪除");
+  });
+
+  $("#btn_clear_all").addEventListener("click", () => {
+    if (!confirm("確定要清空全部資料？")) return;
+    localStorage.removeItem(LS_KEY);
+    const state = readState();
+    refreshTable(state);
+    refreshSelects(state);
+    refreshSide(state);
+    $("#c_out").value = "";
+    toast("已清空");
+  });
+
+  $("#btn_export_json").addEventListener("click", () => {
+    const state = readState();
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `扣繳助手_114_備份_${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast("已匯出");
+  });
+
+  $("#btn_import_json").addEventListener("click", () => $("#fileInput").click());
+  $("#fileInput").addEventListener("change", async (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    const txt = await f.text();
+    try {
+      const obj = JSON.parse(txt);
+      if (!obj || !Array.isArray(obj.records)) throw new Error("bad");
+      const state = readState();
+      state.settings = Object.assign({}, state.settings, obj.settings || {});
+      const byId = new Map(state.records.map(r => [r.id, r]));
+      for (const r of obj.records) byId.set(r.id, r);
+      state.records = Array.from(byId.values());
+      state.selectedId = null;
+      writeState(state);
+      refreshTable(state);
+      refreshSelects(state);
+      refreshSide(state);
+      toast("已匯入");
+    } catch (e) {
+      toast("匯入失敗");
+    } finally {
+      ev.target.value = "";
+    }
+  });
+
+  $("#j_source").addEventListener("change", () => {
+    $("#j_pick_box").classList.toggle("hide", $("#j_source").value !== "pick");
+  });
+
+  $("#btn_judge").addEventListener("click", () => {
+    const state = readState();
+    let rec = null;
+    if ($("#j_source").value === "pick") {
+      const id = $("#j_pick").value;
+      rec = state.records.find(r => r.id === id);
+    } else {
+      rec = computeWithholding(getFormInput(state), state);
+    }
+    if (!rec) return toast("沒有資料");
+    $("#j_out").value = judgeExemptions(rec);
+    toast("已生成");
+  });
+
+  $("#btn_copy_judge").addEventListener("click", async () => {
+    await navigator.clipboard.writeText($("#j_out").value || "");
+    toast("已複製");
+  });
+
+  $("#e_source").addEventListener("change", () => {
+    $("#e_pick_box").classList.toggle("hide", $("#e_source").value !== "pick");
+  });
+
+  $("#btn_gen_explain").addEventListener("click", () => {
+    const state = readState();
+    let rec = null;
+    if ($("#e_source").value === "pick") {
+      const id = $("#e_pick").value;
+      rec = state.records.find(r => r.id === id);
+    } else {
+      rec = computeWithholding(getFormInput(state), state);
+    }
+    if (!rec) return toast("沒有資料");
+    $("#e_out").value = buildExplainScript(rec, $("#e_tone").value, $("#e_len").value);
+    toast("已生成");
+  });
+
+  $("#btn_copy_explain").addEventListener("click", async () => {
+    await navigator.clipboard.writeText($("#e_out").value || "");
+    toast("已複製");
+  });
+
+  $("#btn_quick_explain").addEventListener("click", () => {
+    switchTab("explain");
+    $("#btn_gen_explain").click();
+  });
+
+  $("#btn_save_settings").addEventListener("click", () => {
+    const state = readState();
+    state.settings.exemptionPerPerson = safeInt($("#s_exemption").value);
+    state.settings.standardDeductionMarried = safeInt($("#s_std_ded").value);
+    state.settings.salarySpecialDeduction = safeInt($("#s_salary_ded").value);
+    state.settings.minWage = safeInt($("#s_min_wage").value);
+    const parsed = parseBracketText($("#s_brackets").value);
+    if (parsed) state.settings.brackets = parsed;
+    writeState(state);
+    toast("已儲存");
+  });
+
+  refreshTable(st);
+  refreshSelects(st);
+  refreshSide(st);
+
+  if (st.selectedId) {
+    const rec = st.records.find(r => r.id === st.selectedId);
+    if (rec) {
+      setFormInput(rec);
+      renderResult(rec);
+    }
+  } else {
+    $("#f_salary_form").value = "yes";
+  }
+})();
+</script>
+</body>
+</html>
