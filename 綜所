@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>綜所稅試算（114年度｜115申報）— 離線單檔 v2</title>
+  <style>
+    :root{
+      --bg:#0b0e14;
+      --panel: rgba(15,21,32,.62);
+      --card: rgba(16,22,34,.58);
+      --line: rgba(152,162,179,.16);
+      --line2: rgba(152,162,179,.22);
+      --text:#e7ebf3;
+      --muted:#99a3b3;
+      --accent:#8bd5ff;
+      --good:#7CFFB2;
+      --warn:#FFCC66;
+      --bad:#FF6B6B;
+      --r:18px;
+      --r2:14px;
+      --shadow: 0 12px 36px rgba(0,0,0,.35);
+      --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      --sans: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",Arial,sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; color:var(--text); font-family:var(--sans);
+      background:
+        radial-gradient(1200px 600px at 15% 8%, rgba(139,213,255,.11), transparent 60%),
+        radial-gradient(900px 560px at 86% 0%, rgba(124,255,178,.07), transparent 55%),
+        radial-gradient(980px 680px at 74% 92%, rgba(255,204,102,.06), transparent 55%),
+        var(--bg);
+    }
+    .wrap{max-width:1160px; margin:0 auto; padding:18px 14px 30px;}
+    .top{display:flex; gap:12px; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; margin-bottom:12px;}
+    .title h1{margin:0; font-size:18px; letter-spacing:.2px}
+    .title .sub{margin-top:6px; color:var(--muted); font-size:13px; line-height:1.45}
+    .meta{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px; white-space:nowrap;
+      border:1px solid var(--line); background: rgba(15,21,32,.55);
+      padding:8px 10px; border-radius:999px; color:var(--muted); font-size:12px;
+    }
+    .pill b{color:var(--text)}
+    .bar{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      border:1px solid var(--line); background: rgba(15,21,32,.62);
+      border-radius: var(--r); padding:10px; box-shadow: var(--shadow);
+      margin-bottom:14px;
+    }
+    button{
+      border:1px solid rgba(152,162,179,.18);
+      background: rgba(152,162,179,.08);
+      color:var(--text);
+      padding:10px 12px; border-radius: 14px;
+      cursor:pointer; font-weight:900;
+    }
+    button:hover{border-color: rgba(152,162,179,.26)}
+    button.active{background: rgba(139,213,255,.12); border-color: rgba(139,213,255,.35);}
+    button.primary{background: linear-gradient(180deg, rgba(139,213,255,.20), rgba(139,213,255,.08)); border-color: rgba(139,213,255,.35);}
+    button.danger{background: rgba(255,107,107,.10); border-color: rgba(255,107,107,.22);}
+    button.ghost{background: transparent; border-color: rgba(152,162,179,.20); color: var(--muted);}
+    .spacer{flex:1}
+    .grid{display:grid; grid-template-columns: 1fr 1fr; gap:14px;}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr;} }
+
+    .panel{
+      border:1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--r);
+      padding:14px;
+      box-shadow: var(--shadow);
+    }
+    .panel h2{margin:0 0 10px 0; font-size:14px;}
+    .hint{color:var(--muted); font-size:12px; line-height:1.5; margin-top:-6px; margin-bottom:10px;}
+    .hr{height:1px; background: rgba(152,162,179,.14); margin:12px 0;}
+    .rows{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+    .rows.one{grid-template-columns:1fr;}
+    .field{
+      border:1px solid rgba(152,162,179,.14);
+      background: rgba(16,22,34,.55);
+      border-radius: var(--r2);
+      padding:10px;
+    }
+    .field label{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      color:var(--muted); font-size:12px; margin-bottom:6px;
+    }
+    .field .mini{font-size:11px; color: rgba(152,162,179,.75)}
+    input[type="text"],input[type="number"],select,textarea{
+      width:100%;
+      border-radius: 12px;
+      border:1px solid rgba(152,162,179,.18);
+      background: rgba(11,14,20,.55);
+      color:var(--text);
+      padding:10px;
+      outline:none;
+      font-size:14px;
+    }
+    textarea{min-height:92px; resize:vertical}
+    .kpi{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+    .k{
+      border:1px solid rgba(152,162,179,.14);
+      background: rgba(16,22,34,.55);
+      border-radius: var(--r2);
+      padding:12px;
+    }
+    .k .n{color:var(--muted); font-size:12px}
+    .k .v{font-weight:1000; font-size:18px; margin-top:6px}
+    .k .v small{font-weight:700; font-size:12px; color:var(--muted)}
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid rgba(152,162,179,.18);
+      background: rgba(152,162,179,.07);
+      border-radius:999px; padding:6px 8px;
+      font-size:12px; color:var(--muted);
+    }
+    .badge.good{border-color: rgba(124,255,178,.35); background: rgba(124,255,178,.08); color:var(--good)}
+    .badge.warn{border-color: rgba(255,204,102,.35); background: rgba(255,204,102,.08); color:var(--warn)}
+    .badge.bad{border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.08); color:var(--bad)}
+    .inline{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .mono{font-family:var(--mono)}
+    .muted{color:var(--muted)}
+    .hide{display:none !important}
+
+    .toast{
+      position:fixed; right:16px; bottom:16px; z-index:999;
+      border:1px solid rgba(152,162,179,.18);
+      background: rgba(15,21,32,.92);
+      border-radius: 14px;
+      padding:10px 12px;
+      box-shadow: var(--shadow);
+      max-width:380px;
+      display:none;
+    }
+    .toast .t{font-weight:900; font-size:13px}
+    .toast .m{color:var(--muted); font-size:12px; margin-top:3px; line-height:1.35}
+
+    .subcard{
+      border:1px solid rgba(152,162,179,.12);
+      background: rgba(11,14,20,.32);
+      border-radius: var(--r2);
+      padding:12px;
+    }
+    .subcard h3{
+      margin:0 0 8px 0; font-size:13px; letter-spacing:.2px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .subcard h3 .tag{font-size:12px; color:var(--muted); font-weight:800}
+    .capline{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px;}
+    .capline .mono{font-size:12px}
+    .right{margin-left:auto}
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="title">
+      <h1>綜所稅試算（114年度｜115申報）— 離線單檔 v2</h1>
+      <div class="sub">舒適作業流：薪資分人輸入＋列舉扣除拆項；參數可調、可匯入匯出 JSON、完全離線。</div>
+    </div>
+    <div class="meta">
+      <span class="pill">年度：<b id="pillYear">114</b></span>
+      <span class="pill">最後保存：<b id="pillSaved">—</b></span>
+      <span class="pill">版本：<b>v2.0</b></span>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button class="active" data-tab="t_basic">① 基本</button>
+    <button data-tab="t_income">② 所得</button>
+    <button data-tab="t_ded">③ 扣除</button>
+    <button data-tab="t_result">④ 結果</button>
+    <button data-tab="t_params">⑤ 參數</button>
+    <span class="spacer"></span>
+    <button class="primary" id="btnExport">匯出JSON</button>
+    <button id="btnImport">匯入JSON</button>
+    <button class="danger" id="btnReset">清空此案</button>
+  </div>
+
+  <!-- ① BASIC -->
+  <section id="t_basic">
+    <div class="grid">
+      <div class="panel">
+        <h2>基本資料</h2>
+        <div class="hint">只放必填；說明集中到「參數」頁（保持呼吸感）。</div>
+
+        <div class="rows">
+          <div class="field">
+            <label>案件名稱</label>
+            <input id="f_caseName" type="text" placeholder="例：王小明 114綜所"/>
+          </div>
+          <div class="field">
+            <label>所得年度</label>
+            <select id="f_incomeYear">
+              <option value="114">114（115年申報）</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>申報型態</label>
+            <select id="f_filingType">
+              <option value="single">單身（無配偶）</option>
+              <option value="married">有配偶（全戶合併）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>股利課稅方式</label>
+            <select id="f_dividendMode">
+              <option value="merge">合併計稅（8.5%抵減，上限8萬）</option>
+              <option value="separate">分開計稅（股利28%）</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>納稅義務人年滿70？</label>
+            <select id="f_taxpayer70"><option value="no">否</option><option value="yes">是</option></select>
+          </div>
+          <div class="field" id="row_spouse70">
+            <label>配偶年滿70？</label>
+            <select id="f_spouse70"><option value="no">否</option><option value="yes">是</option></select>
+          </div>
+
+          <div class="field">
+            <label>受扶養親屬（未滿70）</label>
+            <input id="f_depU70" type="number" min="0" step="1"/>
+          </div>
+          <div class="field">
+            <label>受扶養尊親屬（滿70）</label>
+            <input id="f_dep70" type="number" min="0" step="1"/>
+          </div>
+
+          <div class="field">
+            <label>身心障礙人數（含本人/配偶/扶養）</label>
+            <input id="f_disabilityCount" type="number" min="0" step="1"/>
+          </div>
+          <div class="field">
+            <label>內部備註</label>
+            <textarea id="f_notes" placeholder="例如：扶養佐證、特殊扣除資格、易被問點…"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>快速預覽</h2>
+        <div class="hint">免稅額/基本生活費依參數（可改）。</div>
+
+        <div class="kpi">
+          <div class="k"><div class="n">申報戶人數</div><div class="v" id="k_family">—</div></div>
+          <div class="k"><div class="n">免稅額合計</div><div class="v" id="k_ex">—</div></div>
+          <div class="k"><div class="n">基本生活費總額</div><div class="v" id="k_basic">—</div></div>
+          <div class="k"><div class="n">狀態</div><div class="v"><small id="k_hint">—</small></div></div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="inline">
+          <span class="badge" id="badgeWarn">—</span>
+          <span class="spacer"></span>
+          <button id="btnRecalc" class="ghost">重新計算</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② INCOME -->
+  <section id="t_income" class="hide">
+    <div class="grid">
+      <div class="panel">
+        <h2>所得輸入</h2>
+        <div class="hint">薪資改成「分本人/配偶」；其他所得先用全戶合計（你要分人我也能再加）。</div>
+
+        <div class="subcard">
+          <h3>薪資所得（分人） <span class="tag">影響：薪資特別扣除額</span></h3>
+          <div class="rows">
+            <div class="field">
+              <label>本人薪資所得</label>
+              <input id="i_salary_tp" class="money" type="text" inputmode="numeric" placeholder="0"/>
+            </div>
+            <div class="field" id="row_salary_sp">
+              <label>配偶薪資所得</label>
+              <input id="i_salary_sp" class="money" type="text" inputmode="numeric" placeholder="0"/>
+            </div>
+          </div>
+          <div class="capline">
+            <span class="badge" id="b_salaryDed">—</span>
+            <span class="spacer"></span>
+            <span class="muted mono" id="t_salaryTip">—</span>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="subcard">
+          <h3>其他所得（全戶合計） <span class="tag">先求快、可再細分</span></h3>
+          <div class="rows">
+            <div class="field"><label>執行業務/營利所得</label><input id="i_business" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+            <div class="field"><label>利息所得</label><input id="i_interest" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+            <div class="field"><label>股利所得</label><input id="i_dividends" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+            <div class="field"><label>租賃所得</label><input id="i_rent" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+            <div class="field"><label>其他所得</label><input id="i_other" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+            <div class="field">
+              <label>備註（例如：房地合一、海外所得…）</label>
+              <input id="i_specialNotes" type="text" placeholder="這裡只備註；最低稅負調整項請到扣除頁"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>所得摘要</h2>
+        <div class="hint">即時顯示總額與股利模式影響。</div>
+
+        <div class="kpi">
+          <div class="k"><div class="n">綜合所得總額</div><div class="v" id="k_gross">—</div></div>
+          <div class="k"><div class="n">薪資合計</div><div class="v" id="k_salarySum">—</div></div>
+          <div class="k"><div class="n">股利抵減（合併）</div><div class="v" id="k_divCredit">—</div></div>
+          <div class="k"><div class="n">股利稅額（分開）</div><div class="v" id="k_divSepTax">—</div></div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="field">
+          <label>提示</label>
+          <textarea id="k_incomeHint" class="mono" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ DED -->
+  <section id="t_ded" class="hide">
+    <div class="grid">
+      <div class="panel">
+        <h2>扣除額選擇</h2>
+        <div class="hint">標準/列舉二擇一。列舉已拆項（你可用參數調整上限/比率）。</div>
+
+        <div class="rows">
+          <div class="field">
+            <label>扣除方式</label>
+            <select id="d_mode">
+              <option value="standard">標準扣除額</option>
+              <option value="itemized">列舉扣除額</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>自動建議</label>
+            <div class="inline">
+              <button id="btnPickLarger" class="ghost">一鍵選較大者</button>
+              <span class="muted" id="t_pickInfo">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="subcard" id="card_itemized">
+          <h3>列舉扣除（拆項） <span class="tag">系統會算「可扣」</span></h3>
+
+          <div class="rows">
+            <div class="field">
+              <label>捐贈 <span class="mini">系統：依總額×比率上限</span></label>
+              <input id="it_donation" class="money" type="text" inputmode="numeric" placeholder="0"/>
+            </div>
+            <div class="field">
+              <label>保險費 <span class="mini">系統：依人數×每人上限</span></label>
+              <input id="it_insurance" class="money" type="text" inputmode="numeric" placeholder="0"/>
+            </div>
+            <div class="field">
+              <label>醫藥及生育費 <span class="mini">提醒：請扣除保險理賠後</span></label>
+              <input id="it_medical" class="money" type="text" inputmode="numeric" placeholder="0"/>
+            </div>
+            <div class="field">
+              <label>自用住宅購屋借款利息 <span class="mini">系統：可設上限</span></label>
+              <input id="it_mortgage" class="money" type="text" inputmode="numeric" placeholder="0"/>
+            </div>
+            <div class="field">
+              <label>災害損失 <span class="mini">提醒：需證明與核定</span></label>
+              <input id="it_disaster" class="money" type="text" inputmode="numeric" placeholder="0"/>
+            </div>
+            <div class="field">
+              <label>列舉可扣合計（系統）</label>
+              <input id="it_totalDed" type="text" readonly class="mono"/>
+            </div>
+          </div>
+
+          <div class="capline">
+            <span class="badge" id="b_itemizedCap">—</span>
+            <span class="spacer"></span>
+            <span class="mono muted" id="t_itemizedCapDetail">—</span>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <h2>特別扣除額（常用）</h2>
+        <div class="hint">薪資特扣已由「分人薪資」自動推算。其餘依資格與參數上限。</div>
+
+        <div class="rows">
+          <div class="field">
+            <label>儲蓄投資特扣（覆蓋值）<span class="mini">留空＝用利息所得</span></label>
+            <input id="s_savingsOverride" class="money" type="text" inputmode="numeric" placeholder="留空＝自動"/>
+          </div>
+          <div class="field">
+            <label>教育學費：符合人數</label>
+            <input id="s_eduCount" type="number" min="0" step="1"/>
+          </div>
+          <div class="field">
+            <label>幼兒學前：符合子女人數</label>
+            <input id="s_preschoolCount" type="number" min="0" step="1"/>
+          </div>
+          <div class="field">
+            <label>長照特扣：符合人數</label>
+            <input id="s_ltcCount" type="number" min="0" step="1"/>
+          </div>
+          <div class="field">
+            <label>房租特扣：符合？</label>
+            <select id="s_rentEligible"><option value="no">否</option><option value="yes">是</option></select>
+          </div>
+          <div class="field">
+            <label>房租可扣金額（符合才算）</label>
+            <input id="s_rentAmount" class="money" type="text" inputmode="numeric" placeholder="0"/>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <h2>最低稅負（簡化）</h2>
+        <div class="hint">若你有基本所得額底稿，可直接把「調整項合計」貼進來。</div>
+        <div class="rows">
+          <div class="field"><label>基本所得額調整項合計</label><input id="amt_add" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+          <div class="field"><label>海外已納稅額可扣抵（簡化）</label><input id="amt_fc" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>扣除摘要（覆核用）</h2>
+        <div class="hint">含：基本生活費差額、扣除方式比較、可扣合計。</div>
+
+        <div class="kpi">
+          <div class="k"><div class="n">標準扣除額</div><div class="v" id="k_stdDed">—</div></div>
+          <div class="k"><div class="n">列舉可扣合計</div><div class="v" id="k_itDed">—</div></div>
+          <div class="k"><div class="n">特別扣除額合計</div><div class="v" id="k_specDed">—</div></div>
+          <div class="k"><div class="n">基本生活費差額</div><div class="v" id="k_basicDiff">—</div></div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="kpi">
+          <div class="k"><div class="n">免稅額</div><div class="v" id="k_ex2">—</div></div>
+          <div class="k"><div class="n">可減除合計</div><div class="v" id="k_reduceTotal">—</div></div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="field">
+          <label>提醒（內控用）</label>
+          <textarea id="k_risk" class="mono" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ④ RESULT -->
+  <section id="t_result" class="hide">
+    <div class="grid">
+      <div class="panel">
+        <h2>結果</h2>
+        <div class="hint">應補/可退取決於扣繳與扣抵；可在此輸入。</div>
+
+        <div class="kpi">
+          <div class="k"><div class="n">綜合所得總額</div><div class="v" id="r_gross">—</div></div>
+          <div class="k"><div class="n">綜合所得淨額</div><div class="v" id="r_net">—</div></div>
+          <div class="k"><div class="n">一般所得稅額（含股利方式）</div><div class="v" id="r_tax">—</div></div>
+          <div class="k"><div class="n">最低稅負補稅（估）</div><div class="v" id="r_amtExtra">—</div></div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="rows">
+          <div class="field"><label>扣繳稅額合計</label><input id="r_withheld" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+          <div class="field"><label>其他可扣抵稅額</label><input id="r_credit" class="money" type="text" inputmode="numeric" placeholder="0"/></div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="kpi">
+          <div class="k"><div class="n">應納稅額（含最低稅負）</div><div class="v" id="r_totalTax">—</div></div>
+          <div class="k"><div class="n">預估：應補/可退</div><div class="v" id="r_pay">—</div></div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="inline">
+          <span class="badge" id="r_badge">—</span>
+          <span class="spacer"></span>
+          <button id="btnCopyExplain" class="primary">複製對客戶解釋稿</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>拆解（覆核）</h2>
+        <div class="field">
+          <label>計算拆解</label>
+          <textarea id="r_breakdown" class="mono" readonly></textarea>
+        </div>
+        <div class="field">
+          <label>對客戶解釋稿</label>
+          <textarea id="r_explain" class="mono" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ PARAMS -->
+  <section id="t_params" class="hide">
+    <div class="grid">
+      <div class="panel">
+        <h2>參數（可改）</h2>
+        <div class="hint">你可改免稅額、標扣、列舉上限/比率、特扣上限、級距、基本生活費、最低稅負等。改完按「套用」。</div>
+
+        <div class="field">
+          <label>參數 JSON</label>
+          <textarea id="p_json" class="mono"></textarea>
+        </div>
+
+        <div class="inline">
+          <button class="primary" id="btnApplyParams">套用參數</button>
+          <button id="btnResetParams" class="ghost">還原預設</button>
+          <span class="spacer"></span>
+          <span class="badge" id="p_badge">—</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>極簡說明</h2>
+        <div class="hint mono">
+【扣除額】標準 vs 列舉二擇一（本頁支援「一鍵選較大者」）<br/>
+【列舉拆項】捐贈/保險費/醫藥生育/房貸利息/災害損失（可扣與上限會即時顯示；上限可在參數調整）<br/><br/>
+【提醒】本工具提供「試算與內控流」：資格與憑證仍需依當年度公告與你事務所底稿判斷；參數可隨年度更新。<br/>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast">
+  <div class="t" id="toastT">—</div>
+  <div class="m" id="toastM">—</div>
+</div>
+
+<script>
+/* =========================
+   DEFAULT PARAMS（114年度｜115申報）
+   你可在參數頁調整。
+========================= */
+const DEFAULT_PARAMS = {
+  version: "114-115Filing-OffLine-v2",
+  year: 114,
+  money_round: 1,
+
+  exemptions: { normal: 97000, age70: 145500 },
+  standard_deduction: { single: 131000, married: 262000 },
+
+  // 特別扣除額
+  special_deductions: {
+    salary_cap_per_person: 218000,
+    disability_per_person: 218000,
+    savings_invest_cap_per_household: 270000,
+    education_per_person_cap: 25000,
+    preschool_first: 150000,
+    preschool_additional: 225000,
+    ltc_per_person: 180000,
+    rent_cap_per_household: 180000
+  },
+
+  // 列舉扣除額：上限/比率（可改）
+  itemized: {
+    donation_cap_rate_of_gross: 0.20,        // 捐贈：上限=綜合所得總額×比率（常見規則；可改）
+    insurance_cap_per_person: 24000,         // 保險費：上限=人數×每人上限（若你不同，直接改）
+    mortgage_interest_cap_per_household: 300000, // 房貸利息：上限（若你不同，改）
+    medical_cap: null,                       // 醫藥生育：通常無固定上限（可留 null=不限）
+    disaster_cap: null                       // 災害損失：通常依核定（可留 null=不限）
+  },
+
+  basic_living_per_person: 213000,
+
+  progressive: [
+    { up_to: 590000,  rate: 0.05, quick: 0 },
+    { up_to: 1330000, rate: 0.12, quick: 41300 },
+    { up_to: 2660000, rate: 0.20, quick: 147700 },
+    { up_to: 4980000, rate: 0.30, quick: 413700 },
+    { up_to: null,    rate: 0.40, quick: 911700 }
+  ],
+
+  dividends: { credit_rate: 0.085, credit_cap: 80000, separate_rate: 0.28 },
+
+  amt: { exemption: 7500000, rate: 0.20 }
+};
+
+const KEY_CASE = "tw_iti_114_v2_case";
+const KEY_PARAMS = "tw_iti_114_v2_params";
+
+/* ========= utils ========= */
+const $ = (id)=>document.getElementById(id);
+const $$ = (q)=>Array.from(document.querySelectorAll(q));
+function clone(x){ return JSON.parse(JSON.stringify(x)); }
+function nowISO(){
+  const d=new Date(); const p=(n)=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function toast(t,m){
+  $("toastT").textContent=t; $("toastM").textContent=m||"";
+  const el=$("toast"); el.style.display="block";
+  clearTimeout(toast._t); toast._t=setTimeout(()=>el.style.display="none",2400);
+}
+function parseMoney(v){
+  if (v==null) return 0;
+  if (typeof v==="number") return v;
+  const s=String(v).replace(/[^\d\-]/g,"");
+  if (!s || s==="-" ) return 0;
+  return Number(s);
+}
+function fmt(n){
+  n=Number(n||0);
+  const r=params.money_round||1;
+  n=Math.round(n/r)*r;
+  return n.toLocaleString("en-US");
+}
+function setMoney(el,n){ el.value=fmt(n); }
+function setText(el,n){ el.value = (n==null) ? "" : String(n); }
+
+/* ========= state ========= */
+let params = loadParams();
+let state  = loadCase();
+
+function defaultCase(){
+  return {
+    saved_at: nowISO(),
+    caseName: "新案件",
+    incomeYear: 114,
+    filingType: "single",
+    dividendMode: "merge",
+    taxpayer70: "no",
+    spouse70: "no",
+    depU70: 0,
+    dep70: 0,
+    disabilityCount: 0,
+    notes: "",
+
+    income: {
+      salary_tp: 0,
+      salary_sp: 0,
+      business: 0,
+      interest: 0,
+      dividends: 0,
+      rent: 0,
+      other: 0,
+      specialNotes: ""
+    },
+
+    ded: {
+      mode: "standard",
+
+      // 列舉拆項（輸入）
+      it_donation: 0,
+      it_insurance: 0,
+      it_medical: 0,
+      it_mortgage: 0,
+      it_disaster: 0,
+
+      // 特別扣除
+      savingsOverride: null,
+      eduCount: 0,
+      preschoolCount: 0,
+      ltcCount: 0,
+      rentEligible: false,
+      rentAmount: 0,
+
+      // 最低稅負
+      amtAdd: 0,
+      amtFC: 0
+    },
+
+    result: { withheld: 0, credit: 0 }
+  };
+}
+
+/* ========= storage ========= */
+function loadParams(){
+  try{
+    const raw=localStorage.getItem(KEY_PARAMS);
+    if(!raw) return clone(DEFAULT_PARAMS);
+    return Object.assign(clone(DEFAULT_PARAMS), JSON.parse(raw));
+  }catch(e){ return clone(DEFAULT_PARAMS); }
+}
+function saveParams(){ localStorage.setItem(KEY_PARAMS, JSON.stringify(params)); }
+
+function loadCase(){
+  try{
+    const raw=localStorage.getItem(KEY_CASE);
+    if(!raw) return defaultCase();
+    const obj=JSON.parse(raw);
+    return Object.assign(defaultCase(), obj);
+  }catch(e){ return defaultCase(); }
+}
+function saveCase(){
+  state.saved_at = nowISO();
+  localStorage.setItem(KEY_CASE, JSON.stringify(state));
+  $("pillSaved").textContent = state.saved_at;
+}
+
+/* ========= derived ========= */
+function isMarried(){ return state.filingType==="married"; }
+function familySize(){
+  const spouse = isMarried()?1:0;
+  return 1 + spouse + (state.depU70||0) + (state.dep70||0);
+}
+function exemptionsTotal(){
+  let t=0;
+  t += (state.taxpayer70==="yes") ? params.exemptions.age70 : params.exemptions.normal;
+  if (isMarried()){
+    t += (state.spouse70==="yes") ? params.exemptions.age70 : params.exemptions.normal;
+  }
+  t += (state.depU70||0) * params.exemptions.normal;
+  t += (state.dep70||0) * params.exemptions.age70;
+  return t;
+}
+function salarySum(){
+  return (state.income.salary_tp||0) + (isMarried() ? (state.income.salary_sp||0) : 0);
+}
+function grossIncome(){
+  const i=state.income;
+  return salarySum() + (i.business||0) + (i.interest||0) + (i.dividends||0) + (i.rent||0) + (i.other||0);
+}
+function standardDeduction(){
+  return isMarried()? params.standard_deduction.married : params.standard_deduction.single;
+}
+
+/* ========= itemized deduction ========= */
+function capOrInfinity(x){ return (x==null || x==="") ? Infinity : Number(x); }
+function itemizedCalc(){
+  const it=params.itemized;
+  const g=grossIncome();
+  const fam=familySize();
+
+  const donation_in = state.ded.it_donation||0;
+  const donation_cap = Math.max(0, g * (it.donation_cap_rate_of_gross||0));
+  const donation_ded = Math.min(donation_in, donation_cap);
+
+  const ins_in = state.ded.it_insurance||0;
+  const ins_cap = Math.max(0, fam * (it.insurance_cap_per_person||0));
+  const ins_ded = Math.min(ins_in, ins_cap);
+
+  const med_in = state.ded.it_medical||0;
+  const med_cap = capOrInfinity(it.medical_cap);
+  const med_ded = Math.min(med_in, med_cap);
+
+  const mort_in = state.ded.it_mortgage||0;
+  const mort_cap = capOrInfinity(it.mortgage_interest_cap_per_household);
+  const mort_ded = Math.min(mort_in, mort_cap);
+
+  const dis_in = state.ded.it_disaster||0;
+  const dis_cap = capOrInfinity(it.disaster_cap);
+  const dis_ded = Math.min(dis_in, dis_cap);
+
+  const total = donation_ded + ins_ded + med_ded + mort_ded + dis_ded;
+
+  return {
+    donation:{in:donation_in, cap:donation_cap, ded:donation_ded},
+    insurance:{in:ins_in, cap:ins_cap, ded:ins_ded},
+    medical:{in:med_in, cap:med_cap, ded:med_ded},
+    mortgage:{in:mort_in, cap:mort_cap, ded:mort_ded},
+    disaster:{in:dis_in, cap:dis_cap, ded:dis_ded},
+    total
+  };
+}
+
+/* ========= special deductions ========= */
+function salarySpecialDeduction(){
+  const cap=params.special_deductions.salary_cap_per_person||0;
+  const tp = Math.min(state.income.salary_tp||0, cap);
+  const sp = isMarried() ? Math.min(state.income.salary_sp||0, cap) : 0;
+  return { tp, sp, total: tp+sp, cap };
+}
+function specialDeductions(){
+  const i=state.income, d=state.ded, p=params.special_deductions;
+
+  const sal = salarySpecialDeduction();
+  const disability = (state.disabilityCount||0) * p.disability_per_person;
+
+  const savingsBase = (d.savingsOverride==null) ? (i.interest||0) : (d.savingsOverride||0);
+  const savings = Math.min(Math.max(0,savingsBase), p.savings_invest_cap_per_household);
+
+  const edu = (d.eduCount||0) * p.education_per_person_cap;
+  const pc = Math.max(0, d.preschoolCount||0);
+  const preschool = pc<=0 ? 0 : (pc===1 ? p.preschool_first : p.preschool_first + (pc-1)*p.preschool_additional);
+
+  const ltc = (d.ltcCount||0) * p.ltc_per_person;
+  const rent = d.rentEligible ? Math.min(Math.max(0,d.rentAmount||0), p.rent_cap_per_household) : 0;
+
+  return {
+    salary: sal.total,
+    salary_detail: sal,
+    disability, savings, edu, preschool, ltc, rent,
+    total: sal.total + disability + savings + edu + preschool + ltc + rent
+  };
+}
+
+function basicLivingDiff(ex, mainDed, specTotal){
+  const fam = familySize();
+  const basic = fam * params.basic_living_per_person;
+  return Math.max(0, basic - (ex + mainDed + specTotal));
+}
+
+/* ========= tax ========= */
+function pickBracket(net){
+  net=Math.max(0,net);
+  for(const b of params.progressive){
+    if (b.up_to==null) return b;
+    if (net<=b.up_to) return b;
+  }
+  return params.progressive[params.progressive.length-1];
+}
+function calcNormalTax(net){
+  const b=pickBracket(net);
+  const tax=Math.max(0, net*b.rate - b.quick);
+  return { tax, bracket:b };
+}
+function dividendCredit(){
+  if(state.dividendMode!=="merge") return 0;
+  const raw = (state.income.dividends||0) * params.dividends.credit_rate;
+  return Math.min(raw, params.dividends.credit_cap);
+}
+function dividendSeparateTax(){
+  if(state.dividendMode!=="separate") return 0;
+  return (state.income.dividends||0) * params.dividends.separate_rate;
+}
+function calcAMT(generalTax){
+  const base = Math.max(0, grossIncome()); // v2：仍是簡化 proxy
+  const basicIncome = base + (state.ded.amtAdd||0);
+  const basicTax = Math.max(0, (basicIncome - params.amt.exemption) * params.amt.rate) - Math.max(0, state.ded.amtFC||0);
+  const extra = Math.max(0, basicTax - Math.max(0, generalTax));
+  return { basicIncome, basicTax:Math.max(0,basicTax), extra };
+}
+
+/* ========= UI sync ========= */
+function readForm(){
+  state.caseName = $("f_caseName").value.trim() || "未命名案件";
+  state.incomeYear = Number($("f_incomeYear").value||114);
+  state.filingType = $("f_filingType").value;
+  state.dividendMode = $("f_dividendMode").value;
+  state.taxpayer70 = $("f_taxpayer70").value;
+  state.spouse70 = $("f_spouse70").value;
+  state.depU70 = Number($("f_depU70").value||0);
+  state.dep70 = Number($("f_dep70").value||0);
+  state.disabilityCount = Number($("f_disabilityCount").value||0);
+  state.notes = $("f_notes").value||"";
+
+  state.income.salary_tp = parseMoney($("i_salary_tp").value);
+  state.income.salary_sp = parseMoney($("i_salary_sp").value);
+  state.income.business  = parseMoney($("i_business").value);
+  state.income.interest  = parseMoney($("i_interest").value);
+  state.income.dividends = parseMoney($("i_dividends").value);
+  state.income.rent      = parseMoney($("i_rent").value);
+  state.income.other     = parseMoney($("i_other").value);
+  state.income.specialNotes = $("i_specialNotes").value||"";
+
+  state.ded.mode = $("d_mode").value;
+
+  state.ded.it_donation  = parseMoney($("it_donation").value);
+  state.ded.it_insurance = parseMoney($("it_insurance").value);
+  state.ded.it_medical   = parseMoney($("it_medical").value);
+  state.ded.it_mortgage  = parseMoney($("it_mortgage").value);
+  state.ded.it_disaster  = parseMoney($("it_disaster").value);
+
+  const ov = $("s_savingsOverride").value.trim();
+  state.ded.savingsOverride = ov ? parseMoney(ov) : null;
+  state.ded.eduCount = Number($("s_eduCount").value||0);
+  state.ded.preschoolCount = Number($("s_preschoolCount").value||0);
+  state.ded.ltcCount = Number($("s_ltcCount").value||0);
+  state.ded.rentEligible = ($("s_rentEligible").value==="yes");
+  state.ded.rentAmount = parseMoney($("s_rentAmount").value);
+
+  state.ded.amtAdd = parseMoney($("amt_add").value);
+  state.ded.amtFC  = parseMoney($("amt_fc").value);
+
+  state.result.withheld = parseMoney($("r_withheld").value);
+  state.result.credit   = parseMoney($("r_credit").value);
+}
+
+function writeForm(){
+  $("pillYear").textContent = String(state.incomeYear||114);
+  $("pillSaved").textContent = state.saved_at || "—";
+
+  $("f_caseName").value = state.caseName||"";
+  $("f_incomeYear").value = String(state.incomeYear||114);
+  $("f_filingType").value = state.filingType||"single";
+  $("f_dividendMode").value = state.dividendMode||"merge";
+  $("f_taxpayer70").value = state.taxpayer70||"no";
+  $("f_spouse70").value = state.spouse70||"no";
+  $("f_depU70").value = state.depU70??0;
+  $("f_dep70").value = state.dep70??0;
+  $("f_disabilityCount").value = state.disabilityCount??0;
+  $("f_notes").value = state.notes||"";
+
+  setMoney($("i_salary_tp"), state.income.salary_tp||0);
+  setMoney($("i_salary_sp"), state.income.salary_sp||0);
+  setMoney($("i_business"), state.income.business||0);
+  setMoney($("i_interest"), state.income.interest||0);
+  setMoney($("i_dividends"), state.income.dividends||0);
+  setMoney($("i_rent"), state.income.rent||0);
+  setMoney($("i_other"), state.income.other||0);
+  $("i_specialNotes").value = state.income.specialNotes||"";
+
+  $("d_mode").value = state.ded.mode||"standard";
+  setMoney($("it_donation"), state.ded.it_donation||0);
+  setMoney($("it_insurance"), state.ded.it_insurance||0);
+  setMoney($("it_medical"), state.ded.it_medical||0);
+  setMoney($("it_mortgage"), state.ded.it_mortgage||0);
+  setMoney($("it_disaster"), state.ded.it_disaster||0);
+
+  $("s_savingsOverride").value = (state.ded.savingsOverride==null) ? "" : fmt(state.ded.savingsOverride);
+  $("s_eduCount").value = state.ded.eduCount??0;
+  $("s_preschoolCount").value = state.ded.preschoolCount??0;
+  $("s_ltcCount").value = state.ded.ltcCount??0;
+  $("s_rentEligible").value = state.ded.rentEligible ? "yes":"no";
+  setMoney($("s_rentAmount"), state.ded.rentAmount||0);
+
+  setMoney($("amt_add"), state.ded.amtAdd||0);
+  setMoney($("amt_fc"), state.ded.amtFC||0);
+
+  setMoney($("r_withheld"), state.result.withheld||0);
+  setMoney($("r_credit"), state.result.credit||0);
+
+  $("p_json").value = JSON.stringify(params,null,2);
+}
+
+/* ========= UX toggles ========= */
+function refreshMarriageUI(){
+  const m=isMarried();
+  $("row_spouse70").classList.toggle("hide", !m);
+  $("row_salary_sp").classList.toggle("hide", !m);
+}
+
+/* ========= main calc ========= */
+function recalc(){
+  readForm();
+  refreshMarriageUI();
+
+  const fam = familySize();
+  const ex = exemptionsTotal();
+  const gross = grossIncome();
+
+  // itemized
+  const it = itemizedCalc();
+  setText($("it_totalDed"), fmt(it.total));
+
+  const stdDed = standardDeduction();
+
+  // main deduction depends on mode
+  const mainDed = (state.ded.mode==="itemized") ? it.total : stdDed;
+
+  // special
+  const spec = specialDeductions();
+  const diff = basicLivingDiff(ex, mainDed, spec.total);
+  const net = Math.max(0, gross - ex - mainDed - spec.total - diff);
+
+  // normal tax (dividend modes)
+  let normal, generalTax, bracketText;
+  if(state.dividendMode==="separate"){
+    const grossNoDiv = gross - (state.income.dividends||0);
+    // 這裡仍以同樣扣除估算（快速近似）
+    const netNoDiv = Math.max(0, grossNoDiv - ex - mainDed - spec.total - basicLivingDiff(ex,mainDed,spec.total));
+    normal = calcNormalTax(netNoDiv);
+    generalTax = normal.tax + dividendSeparateTax();
+    bracketText = `分開：一般稅率依不含股利淨額 ${fmt(netNoDiv)}`;
+  }else{
+    normal = calcNormalTax(net);
+    generalTax = Math.max(0, normal.tax - dividendCredit());
+    bracketText = `合併：一般稅率依淨額 ${fmt(net)}`;
+  }
+
+  const amt = calcAMT(generalTax);
+  const totalTax = generalTax + amt.extra;
+
+  const payable = totalTax - (state.result.withheld||0) - (state.result.credit||0);
+
+  // BASIC KPIs
+  $("k_family").textContent = fmt(fam);
+  $("k_ex").textContent = fmt(ex);
+  $("k_basic").textContent = fmt(fam*params.basic_living_per_person);
+  $("k_hint").textContent = isMarried() ? "有配偶：免稅額含配偶；薪資特扣分人" : "單身：本人+扶養";
+
+  // INCOME KPIs
+  $("k_gross").textContent = fmt(gross);
+  $("k_salarySum").textContent = fmt(salarySum());
+  $("k_divCredit").textContent = fmt(dividendCredit());
+  $("k_divSepTax").textContent = fmt(dividendSeparateTax());
+  $("k_incomeHint").value =
+    `薪資特扣：本人 ${fmt(spec.salary_detail.tp)}、配偶 ${fmt(spec.salary_detail.sp)}（每人上限 ${fmt(spec.salary_detail.cap)}）\n`+
+    `股利方式：${state.dividendMode==="merge" ? "合併抵減（上限8萬）" : "分開28%"}\n`+
+    `備註：${state.income.specialNotes||"—"}`;
+
+  // Salary badge
+  const salD = spec.salary_detail;
+  $("b_salaryDed").textContent = `✔ 薪資特扣合計 ${fmt(salD.total)}（本人 ${fmt(salD.tp)} / 配偶 ${fmt(salD.sp)}）`;
+  $("b_salaryDed").className = "badge good";
+  $("t_salaryTip").textContent = isMarried() ? "配偶未填=0；若分戶/特殊情形請在備註記錄" : "單身：只計本人";
+
+  // Itemized cap details
+  const over = (x)=>Math.max(0, x.in - x.ded);
+  const capDesc = [
+    `捐贈 可扣 ${fmt(it.donation.ded)} / 輸入 ${fmt(it.donation.in)} / 上限 ${fmt(it.donation.cap)}`,
+    `保險費 可扣 ${fmt(it.insurance.ded)} / 輸入 ${fmt(it.insurance.in)} / 上限 ${fmt(it.insurance.cap)}（人數 ${fmt(fam)}）`,
+    `醫藥生育 可扣 ${fmt(it.medical.ded)} / 輸入 ${fmt(it.medical.in)} / 上限 ${it.medical.cap===Infinity?"不限":fmt(it.medical.cap)}`,
+    `房貸利息 可扣 ${fmt(it.mortgage.ded)} / 輸入 ${fmt(it.mortgage.in)} / 上限 ${it.mortgage.cap===Infinity?"不限":fmt(it.mortgage.cap)}`,
+    `災害損失 可扣 ${fmt(it.disaster.ded)} / 輸入 ${fmt(it.disaster.in)} / 上限 ${it.disaster.cap===Infinity?"不限":fmt(it.disaster.cap)}`
+  ];
+  $("t_itemizedCapDetail").textContent = capDesc.join(" ｜ ");
+  const anyOver = (over(it.donation)+over(it.insurance)+over(it.medical)+over(it.mortgage)+over(it.disaster))>0;
+  $("b_itemizedCap").textContent = anyOver ? "⚠ 有超過上限部分（已自動只扣可扣額）" : "✔ 未見超過上限（或未設定上限=不限）";
+  $("b_itemizedCap").className = "badge " + (anyOver ? "warn":"good");
+
+  // Pick larger info
+  $("k_stdDed").textContent = fmt(stdDed);
+  $("k_itDed").textContent = fmt(it.total);
+  const larger = (it.total>stdDed) ? "列舉較大" : (it.total<stdDed) ? "標準較大" : "兩者相同";
+  $("t_pickInfo").textContent = `目前：${larger}`;
+
+  // Ded KPIs
+  $("k_specDed").textContent = fmt(spec.total);
+  $("k_basicDiff").textContent = fmt(diff);
+  $("k_ex2").textContent = fmt(ex);
+  $("k_reduceTotal").textContent = fmt(ex + mainDed + spec.total + diff);
+
+  // Risk hints
+  const risks=[];
+  if(!isMarried() && (state.income.salary_sp||0)>0) risks.push("⚠ 申報型態=單身，但配偶薪資>0（請確認是否誤填）");
+  if(isMarried() && (state.income.salary_sp||0)===0) risks.push("⚠ 有配偶但配偶薪資=0（若確實無薪資可忽略）");
+  if(state.ded.mode==="itemized" && it.total===0) risks.push("⚠ 已選列舉但列舉可扣=0（請確認是否應改標準扣除）");
+  if(state.ded.mode==="standard" && it.total>stdDed) risks.push("⚠ 目前列舉可扣大於標準扣除（可按「一鍵選較大者」）");
+  if(state.ded.rentEligible && (state.ded.rentAmount||0)===0) risks.push("⚠ 勾房租特扣但金額=0（若只是先勾資格可忽略）");
+  if(!risks.length) risks.push("—");
+  $("badgeWarn").textContent = risks[0]==="—" ? "✔ 無明顯提醒" : "⚠ 有提醒";
+  $("badgeWarn").className = "badge " + (risks[0]==="—" ? "good":"warn");
+  $("k_risk").value = risks.join("\n");
+
+  // Result KPIs
+  $("r_gross").textContent = fmt(gross);
+  $("r_net").textContent = fmt(net);
+  $("r_tax").textContent = fmt(generalTax);
+  $("r_amtExtra").textContent = fmt(amt.extra);
+  $("r_totalTax").textContent = fmt(totalTax);
+  $("r_pay").textContent = payable>0 ? `應補 ${fmt(payable)}` : `可退 ${fmt(Math.abs(payable))}`;
+  $("r_badge").textContent = payable>0 ? `⚠ 預估應補 ${fmt(payable)}` : `✔ 預估可退 ${fmt(Math.abs(payable))}`;
+  $("r_badge").className = "badge " + (payable>0 ? "warn":"good");
+
+  // breakdown
+  const b=normal.bracket;
+  const upTo=(b.up_to==null)?"以上":`≤ ${fmt(b.up_to)}`;
+  const lines=[];
+  lines.push(`【所得】綜所總額=${fmt(gross)}（薪資 本人${fmt(state.income.salary_tp)} 配偶${fmt(isMarried()?state.income.salary_sp:0)}；其餘所得合計）`);
+  lines.push(`【免稅額】=${fmt(ex)}；【扣除額】=${fmt(mainDed)}（${state.ded.mode==="itemized"?"列舉":"標準"}）`);
+  if(state.ded.mode==="itemized"){
+    lines.push(`【列舉拆項可扣】捐贈${fmt(it.donation.ded)} 保險${fmt(it.insurance.ded)} 醫藥${fmt(it.medical.ded)} 房貸${fmt(it.mortgage.ded)} 災損${fmt(it.disaster.ded)} 合計${fmt(it.total)}`);
+  }
+  lines.push(`【特扣】=${fmt(spec.total)}（薪資${fmt(spec.salary)} 身障${fmt(spec.disability)} 儲投${fmt(spec.savings)} 學費${fmt(spec.edu)} 幼兒${fmt(spec.preschool)} 長照${fmt(spec.ltc)} 房租${fmt(spec.rent)}）`);
+  lines.push(`【基本生活費差額】=${fmt(diff)}；【淨額】=${fmt(net)}`);
+  lines.push(`【級距】${Math.round(b.rate*100)}%（${upTo}；速算差額${fmt(b.quick)}）`);
+  lines.push(`【一般稅額(計算基礎)】${bracketText}；一般稅額=${fmt(normal.tax)}`);
+  if(state.dividendMode==="separate"){
+    lines.push(`【股利分開】股利稅額=${fmt(dividendSeparateTax())}；一般稅額合計=${fmt(generalTax)}`);
+  }else{
+    lines.push(`【股利合併】可抵減=${fmt(dividendCredit())}；扣抵後一般稅額=${fmt(generalTax)}`);
+  }
+  lines.push(`【最低稅負(估)】基本所得額=${fmt(amt.basicIncome)}；基本稅額=${fmt(amt.basicTax)}；補稅差額=${fmt(amt.extra)}`);
+  lines.push(`【應納稅額】=${fmt(totalTax)}；扣繳=${fmt(state.result.withheld)}；扣抵=${fmt(state.result.credit)}；=> ${payable>0?"應補":"可退"} ${fmt(Math.abs(payable))}`);
+  $("r_breakdown").value = lines.join("\n");
+
+  // explain
+  const exps=[];
+  exps.push(`【${state.caseName}｜114年度綜所試算（離線工具）】`);
+  exps.push(`綜合所得總額：${fmt(gross)} 元（薪資分本人/配偶輸入，其餘為全戶合計）。`);
+  exps.push(`免稅額：${fmt(ex)} 元。`);
+  exps.push(`扣除額：${fmt(mainDed)} 元（${state.ded.mode==="itemized"?"列舉":"標準"}）。`);
+  if(state.ded.mode==="itemized"){
+    exps.push(`列舉拆項可扣：捐贈 ${fmt(it.donation.ded)}、保險費 ${fmt(it.insurance.ded)}、醫藥生育 ${fmt(it.medical.ded)}、房貸利息 ${fmt(it.mortgage.ded)}、災害損失 ${fmt(it.disaster.ded)}（合計 ${fmt(it.total)}）。`);
+  }
+  exps.push(`特別扣除額：${fmt(spec.total)} 元（含薪資特扣分人計算）。`);
+  exps.push(`基本生活費差額：${fmt(diff)} 元。`);
+  exps.push(`綜合所得淨額：${fmt(net)} 元。`);
+  if(state.dividendMode==="separate"){
+    exps.push(`股利採分開計稅：股利稅額 ${fmt(dividendSeparateTax())} 元；一般稅額合計 ${fmt(generalTax)} 元。`);
+  }else{
+    exps.push(`股利採合併計稅：股利可抵減 ${fmt(dividendCredit())} 元；一般稅額（扣抵後）${fmt(generalTax)} 元。`);
+  }
+  exps.push(`最低稅負（估）：補稅差額 ${fmt(amt.extra)} 元。`);
+  exps.push(`應納稅額（含最低稅負）：${fmt(totalTax)} 元。`);
+  exps.push(`已知扣繳/扣抵：扣繳 ${fmt(state.result.withheld)}、其他扣抵 ${fmt(state.result.credit)}。`);
+  exps.push(`預估結果：${payable>0?"應補":"可退"} ${fmt(Math.abs(payable))} 元（依目前輸入資料試算）。`);
+  exps.push(`備註：列舉扣除與各項特扣資格/憑證，仍需依當年度公告與實際文件核對；本工具上限/比率可於參數頁調整。`);
+  $("r_explain").value = exps.join("\n");
+
+  // itemized card show/hide
+  $("card_itemized").classList.toggle("hide", state.ded.mode!=="itemized");
+
+  saveCase();
+}
+
+/* ========= tabs ========= */
+function showTab(id){
+  ["t_basic","t_income","t_ded","t_result","t_params"].forEach(x=>$(x).classList.add("hide"));
+  $(id).classList.remove("hide");
+  $$("button[data-tab]").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
+}
+
+/* ========= bind ========= */
+function bind(){
+  $$("button[data-tab]").forEach(b=>b.addEventListener("click", ()=>showTab(b.dataset.tab)));
+
+  // money fields format on blur
+  $$(".money").forEach(el=>{
+    el.addEventListener("blur", ()=>{
+      el.value = fmt(parseMoney(el.value));
+      recalc();
+    });
+  });
+
+  // general inputs
+  const ids=[
+    "f_caseName","f_incomeYear","f_filingType","f_dividendMode","f_taxpayer70","f_spouse70","f_depU70","f_dep70","f_disabilityCount","f_notes",
+    "i_specialNotes","d_mode","s_eduCount","s_preschoolCount","s_ltcCount","s_rentEligible"
+  ];
+  ids.forEach(id=>{
+    $(id).addEventListener("change", recalc);
+    $(id).addEventListener("blur", recalc);
+  });
+
+  $("btnRecalc").addEventListener("click", ()=>{recalc(); toast("已重新計算","結果已更新");});
+
+  $("btnPickLarger").addEventListener("click", ()=>{
+    readForm();
+    const it=itemizedCalc().total;
+    const std=standardDeduction();
+    state.ded.mode = (it>std) ? "itemized" : "standard";
+    writeForm(); recalc();
+    toast("已套用建議","已選較大者");
+  });
+
+  $("btnExport").addEventListener("click", ()=>{
+    readForm();
+    const blob = new Blob([JSON.stringify({params, case:state},null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download = `${(state.caseName||"case").replace(/[\\\/:*?"<>|]+/g,"_")}_114綜所_v2.json`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0);
+    toast("已匯出JSON","可備份/轉移");
+  });
+
+  $("btnImport").addEventListener("click", ()=>{
+    const inp=document.createElement("input");
+    inp.type="file"; inp.accept="application/json";
+    inp.onchange=async()=>{
+      const f=inp.files&&inp.files[0]; if(!f) return;
+      const text=await f.text();
+      try{
+        const obj=JSON.parse(text);
+        if(obj.params){ params = Object.assign(clone(DEFAULT_PARAMS), obj.params); saveParams(); }
+        if(obj.case){ state = Object.assign(defaultCase(), obj.case); }
+        writeForm(); recalc();
+        toast("匯入成功","已套用");
+      }catch(e){ alert("匯入失敗：JSON格式不正確"); }
+    };
+    inp.click();
+  });
+
+  $("btnReset").addEventListener("click", ()=>{
+    if(!confirm("確定清空此案？（本機資料會被重置）")) return;
+    state = defaultCase();
+    writeForm(); recalc();
+    toast("已清空","已重置為新案件");
+  });
+
+  $("btnApplyParams").addEventListener("click", ()=>{
+    try{
+      const obj=JSON.parse($("p_json").value);
+      params = Object.assign(clone(DEFAULT_PARAMS), obj);
+      saveParams();
+      $("p_badge").textContent="✔ 已套用";
+      $("p_badge").className="badge good";
+      recalc();
+      toast("參數已套用","已重新計算");
+    }catch(e){
+      $("p_badge").textContent="✖ JSON錯誤";
+      $("p_badge").className="badge bad";
+      toast("JSON錯誤","請修正後再套用");
+    }
+  });
+
+  $("btnResetParams").addEventListener("click", ()=>{
+    if(!confirm("確定還原參數預設？")) return;
+    params = clone(DEFAULT_PARAMS);
+    saveParams();
+    $("p_json").value = JSON.stringify(params,null,2);
+    $("p_badge").textContent="✔ 已還原";
+    $("p_badge").className="badge good";
+    recalc();
+  });
+
+  $("btnCopyExplain").addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText($("r_explain").value);
+      toast("已複製","可貼到LINE/信件/對帳說明");
+    }catch(e){
+      alert("此環境不允許剪貼簿，請手動選取複製。");
+    }
+  });
+}
+
+/* ========= boot ========= */
+function boot(){
+  writeForm();
+  refreshMarriageUI();
+  bind();
+  showTab("t_basic");
+  recalc();
+}
+boot();
+</script>
+</body>
+</html>
