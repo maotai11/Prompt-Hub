@@ -1,0 +1,2542 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 全離線發票 OCR 系統 - 進階版</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --cost-color: #8b5cf6;
+            --expense-color: #ec4899;
+            --card-radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        nav {
+            padding: 1rem 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            color: var(--accent-color);
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* 修正下拉選單樣式 */
+        select,
+        input[type="text"] {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        select option {
+            background-color: #1e293b;
+            color: white;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* 頁籤系統 */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem 2rem 0;
+            background: var(--glass-bg);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            padding: 1rem;
+            overflow: auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 統計儀表板 */
+        .stats-bar {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            border: 1px solid var(--glass-border);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stats-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stats-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .stats-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        /* Excel 風格表格 - 修正滾動與寬度 */
+        .excel-container {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            border: 1px solid var(--glass-border);
+            overflow: auto;
+            /* 允許雙向滾動 */
+            max-height: calc(100vh - 250px);
+            position: relative;
+        }
+
+        .excel-table {
+            min-width: 100%;
+            width: max-content;
+            /* 允許內容撐開 */
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.85rem;
+            table-layout: fixed;
+        }
+
+        .excel-table thead {
+            position: sticky;
+            top: 0;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 10;
+        }
+
+        .excel-table th {
+            text-align: left;
+            padding: 0.75rem;
+            border-right: 1px solid var(--glass-border);
+            border-bottom: 2px solid var(--accent-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+            white-space: nowrap;
+            position: relative;
+            user-select: none;
+        }
+
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 5px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 1;
+        }
+
+        .resize-handle:hover {
+            background: var(--accent-color);
+        }
+
+        .excel-table td {
+            padding: 0.75rem;
+            border-right: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border);
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .excel-table tbody tr:hover {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .excel-table tbody tr.warning {
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .excel-table tbody tr.duplicate {
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .excel-table tbody tr.cost-type {
+            background: rgba(139, 92, 246, 0.03);
+        }
+
+        .excel-table tbody tr.expense-type {
+            background: rgba(236, 72, 153, 0.03);
+        }
+
+        .thumbnail {
+            width: 50px;
+            height: 35px;
+            background: #1e293b;
+            border-radius: 4px;
+            cursor: zoom-in;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .thumbnail img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+
+        .hover-preview {
+            position: fixed;
+            z-index: 1000;
+            width: 500px;
+            height: auto;
+            background: #000;
+            border: 3px solid var(--accent-color);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+            display: none;
+            pointer-events: none;
+        }
+
+        .hover-preview img {
+            width: 100%;
+            display: block;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-done {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .status-duplicate {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .status-processing {
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .editable {
+            cursor: text;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .editable:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .editable:focus {
+            outline: 2px solid var(--accent-color);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .action-link {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .action-link:hover {
+            text-decoration: underline;
+        }
+
+        /* 模態對話框 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        /* 會計項目管理 */
+        .category-list {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .category-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-item.cost {
+            border-left: 3px solid var(--cost-color);
+        }
+
+        .category-item.expense {
+            border-left: 3px solid var(--expense-color);
+        }
+
+        .category-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-cost {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--cost-color);
+        }
+
+        .badge-expense {
+            background: rgba(236, 72, 153, 0.2);
+            color: var(--expense-color);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Toast 通知系統 */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid var(--glass-border);
+            border-left: 4px solid var(--accent-color);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            min-width: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast.info {
+            border-left-color: var(--accent-color);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Toast 容器 -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <nav>
+        <div class="logo">
+            <span>📊 OCR</span> 離線發票管理系統 - 進階版
+        </div>
+        <div class="toolbar">
+            <label style="color: var(--text-secondary);">當前客戶：</label>
+            <select id="clientSelect"></select>
+            <button class="btn-secondary" onclick="showAddClientModal()">➕ 新增客戶</button>
+            <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">📁 匯入檔案</button>
+            <button class="btn-primary" onclick="exportToExcel()">📥 匯出 XLSX</button>
+            <input type="file" id="fileInput" multiple accept="image/*,.pdf" style="display: none;">
+        </div>
+    </nav>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('invoices')">📋 發票明細</button>
+        <button class="tab" onclick="switchTab('audit')">🧾 核對中心</button>
+        <button class="tab" onclick="switchTab('categories')">🏷️ 會計項目管理</button>
+        <button class="tab" onclick="switchTab('reports')">📊 統計報表</button>
+    </div>
+
+    <!-- 發票明細頁籤 -->
+    <div id="tab-invoices" class="tab-content active">
+        <div class="stats-bar">
+            <div class="stats-item">
+                <div class="stats-label">總筆數</div>
+                <div class="stats-value" id="totalCount">0</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-label">未稅總計</div>
+                <div class="stats-value" id="totalUntaxedDisplay">$0</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-label">稅額總計</div>
+                <div class="stats-value" id="totalTaxDisplay">$0</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-label">含稅總計</div>
+                <div class="stats-value" id="totalAmountDisplay">$0</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-label">成本總計</div>
+                <div class="stats-value" style="color: var(--cost-color);" id="totalCost">$0</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-label">費用總計</div>
+                <div class="stats-value" style="color: var(--expense-color);" id="totalExpense">$0</div>
+            </div>
+        </div>
+
+        <div class="excel-container">
+            <table class="excel-table" id="mainTable">
+                <thead>
+                    <tr id="headerRow">
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)"
+                                style="cursor: pointer; width: 16px; height: 16px;">
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 60px;">預覽<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 180px;">檔案名稱<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 120px;">發票號碼<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 100px;">日期<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 200px;">品項/品名<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 150px;">會計科目<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 100px;">成本/費用<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 100px;">賣方統編<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 100px;">買方統編<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 90px;">未稅額<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 90px;">稅額<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 90px;">含稅總計<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 120px;">狀態<div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 100px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody"></tbody>
+                <tfoot
+                    style="position: sticky; bottom: 0; background: rgba(15, 23, 42, 0.98); border-top: 3px solid var(--accent-color);">
+                    <tr>
+                        <td colspan="10" style="text-align: right; font-weight: bold; padding: 1rem;">📊 加總：</td>
+                        <td style="font-weight: bold; color: var(--accent-color);" id="footerUntaxed">$0</td>
+                        <td style="font-weight: bold; color: var(--accent-color);" id="footerTax">$0</td>
+                        <td style="font-weight: bold; color: var(--accent-color); font-size: 1.1rem;" id="footerTotal">
+                            $0</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+        <!-- 核對中心頁籤 -->
+    <div id="tab-audit" class="tab-content">
+        <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; margin-bottom: 1rem;">
+            <h2 style="margin-right:auto;">核對中心</h2>
+            <button class="btn-secondary" onclick="setAuditFilter('all')">全部</button>
+            <button class="btn-secondary" onclick="setAuditFilter('need')">需確認</button>
+            <button class="btn-secondary" onclick="setAuditFilter('dup')">疑似重複</button>
+            <button class="btn-secondary" onclick="setAuditFilter('id_mismatch')">統編不符</button>
+            <button class="btn-secondary" onclick="setAuditFilter('amount_mismatch')">金額不一致</button>
+            <button class="btn-primary" onclick="batchLockSelected()">✅ 批次鎖定為已確認</button>
+            <button class="btn-danger" onclick="batchDeleteSelected()">🗑️ 批次刪除</button>
+        </div>
+
+        <div class="stats-bar" style="margin-bottom: 1rem;">
+            <div class="stats-item"><div class="stats-label">需確認</div><div class="stats-value" id="auditNeedCount">0</div></div>
+            <div class="stats-item"><div class="stats-label">疑似重複</div><div class="stats-value" id="auditDupCount">0</div></div>
+            <div class="stats-item"><div class="stats-label">統編不符</div><div class="stats-value" id="auditIdMismatchCount">0</div></div>
+            <div class="stats-item"><div class="stats-label">金額不一致</div><div class="stats-value" id="auditAmtMismatchCount">0</div></div>
+            <div class="stats-item"><div class="stats-label">已鎖定</div><div class="stats-value" id="auditLockedCount">0</div></div>
+        </div>
+
+        <div class="excel-container" style="max-height: calc(100vh - 320px);">
+            <table class="excel-table" id="auditTable">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="auditSelectAll" onclick="toggleSelectAllAudit(this)"
+                                style="cursor:pointer; width:16px; height:16px;">
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th style="width: 60px;">預覽<div class="resize-handle"></div></th>
+                        <th style="width: 140px;">發票號碼<div class="resize-handle"></div></th>
+                        <th style="width: 100px;">日期<div class="resize-handle"></div></th>
+                        <th style="width: 110px;">買方統編<div class="resize-handle"></div></th>
+                        <th style="width: 110px;">賣方統編<div class="resize-handle"></div></th>
+                        <th style="width: 110px;">未稅<div class="resize-handle"></div></th>
+                        <th style="width: 90px;">稅額<div class="resize-handle"></div></th>
+                        <th style="width: 110px;">含稅總計<div class="resize-handle"></div></th>
+                        <th style="width: 240px;">警示原因<div class="resize-handle"></div></th>
+                        <th style="width: 120px;">狀態<div class="resize-handle"></div></th>
+                        <th style="width: 140px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+<!-- 會計項目管理頁籤 -->
+    <div id="tab-categories" class="tab-content">
+        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+            <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                <h2 style="margin:0;">會計項目資料庫</h2>
+                <div style="display:flex; gap:0.5rem; flex-wrap: wrap;">
+                    <button id="scopeClientBtn" class="btn-primary" onclick="setCategoryScope('client')">此客戶資料庫（優先）</button>
+                    <button id="scopeGlobalBtn" class="btn-secondary" onclick="setCategoryScope('global')">共用資料庫</button>
+                </div>
+            </div>
+            <button class="btn-primary" onclick="showAddCategoryModal()">➕ 新增會計項目</button>
+        </div>
+        <div class="category-list" id="categoryList"></div>
+    </div>
+
+    <!-- 統計報表頁籤 -->
+    <div id="tab-reports" class="tab-content">
+        <h2>統計報表（開發中）</h2>
+        <p style="color: var(--text-secondary); margin-top: 1rem;">此功能將提供詳細的成本費用分析、趨勢圖表等。</p>
+    </div>
+
+    <!-- 懸浮預覽 -->
+    <div id="hoverPreview" class="hover-preview">
+        <img id="hoverImage" src="" alt="預覽">
+    </div>
+
+    <!-- 新增客戶模態框 -->
+    <div id="addClientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">新增客戶</div>
+            <div class="form-group">
+                <label>客戶名稱</label>
+                <input type="text" id="clientName" placeholder="例如：台積電">
+            </div>
+            <div class="form-group">
+                <label>統一編號</label>
+                <input type="text" id="clientTaxId" placeholder="8 碼數字" maxlength="8">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal('addClientModal')">取消</button>
+                <button class="btn-primary" onclick="addClient()">確認新增</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增會計項目模態框 -->
+    <div id="addCategoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">新增會計項目</div>
+            <div class="form-group">
+                <label>項目名稱</label>
+                <input type="text" id="categoryName" placeholder="例如：辦公用品費">
+            </div>
+            <div class="form-group">
+                <label>性質分類</label>
+                <select id="categoryType">
+                    <option value="cost">成本</option>
+                    <option value="expense">費用</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>儲存到</label>
+                <select id="categoryScope">
+                    <option value="client">此客戶資料庫（優先）</option>
+                    <option value="global">共用資料庫</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>關鍵字（用逗號分隔）</label>
+                <input type="text" id="categoryKeywords" placeholder="例如：文具,紙張,筆">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal('addCategoryModal')">取消</button>
+                <button class="btn-primary" onclick="addCategory()">確認新增</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Offline libs (place files locally) -->
+    <script src="./lib/pdf.min.js"></script>
+    <script src="./lib/tesseract.min.js"></script>
+    <script src="./lib/jsqr.js"></script>
+
+    
+    <script>
+/**
+ * Offline Invoice OCR+QR+PDF System (Production-usable v4)
+ * - PDF.js: render each page to canvas
+ * - jsQR: QR-first (rotation attempts)
+ * - Tesseract.js: OCR fallback (chi_tra)
+ * - Semantic parsing (NOT max-value): anchors for amounts & buyer/seller tax IDs
+ * - Field-level source/confidence/lock + audit warnings
+ * - Per-client accounting categories DB + shared DB
+ *
+ * NOTE: Requires local files:
+ *   ./lib/pdf.min.js
+ *   ./lib/pdf.worker.min.js
+ *   ./lib/jsqr.js
+ *   ./lib/tesseract.min.js (and its worker/wasm if needed by your build)
+ *   ./tessdata/chi_tra.traineddata
+ */
+
+'use strict';
+
+// ========== Globals / Data ==========
+let invoices = [];
+let clients = [];
+let currentClientId = null;
+let currentTab = 'invoices';
+
+// ===== IndexedDB（縮圖/原檔） =====
+const IDB_NAME = 'invoice_ocr_db_v1';
+const IDB_VER = 1;
+let idbPromise = null;
+const thumbCache = new Map(); // fileId -> dataUrl
+
+function openIdb(){
+  if (idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('files')){
+        const s = db.createObjectStore('files', { keyPath: 'fileId' });
+        s.createIndex('byHash', 'fileHash', { unique:false });
+      }
+      if (!db.objectStoreNames.contains('thumbs')){
+        db.createObjectStore('thumbs', { keyPath: 'fileId' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return idbPromise;
+}
+async function idbPutThumb(fileId, dataUrl){
+  try{
+    const db = await openIdb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('thumbs','readwrite');
+      tx.objectStore('thumbs').put({ fileId, dataUrl, updatedAt: Date.now() });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    thumbCache.set(fileId, dataUrl);
+  }catch(e){ console.warn('IDB put thumb failed', e); }
+}
+async function idbGetThumb(fileId){
+  if (!fileId) return null;
+  if (thumbCache.has(fileId)) return thumbCache.get(fileId);
+  try{
+    const db = await openIdb();
+    const rec = await new Promise((resolve, reject) => {
+      const tx = db.transaction('thumbs','readonly');
+      const req = tx.objectStore('thumbs').get(fileId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+    if (rec?.dataUrl){
+      thumbCache.set(fileId, rec.dataUrl);
+      return rec.dataUrl;
+    }
+  }catch(e){ console.warn('IDB get thumb failed', e); }
+  return null;
+}
+async function idbPutFile(fileId, fileHash, blob, meta){
+  try{
+    const db = await openIdb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('files','readwrite');
+      tx.objectStore('files').put({ fileId, fileHash, blob, meta: meta||{}, updatedAt: Date.now() });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ console.warn('IDB put file failed', e); }
+}
+async function idbGetFile(fileId){
+  if (!fileId) return null;
+  try{
+    const db = await openIdb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction('files','readonly');
+      const req = tx.objectStore('files').get(fileId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }catch(e){ console.warn('IDB get file failed', e); }
+  return null;
+}
+function placeholderThumbSvg(label){
+  const safe = encodeURIComponent(String(label||'FILE').slice(0,12));
+  return `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' fill='%231e293b'/%3E%3Ctext x='50' y='70' fill='%2394a3b8' font-family='sans-serif' font-size='12' text-anchor='middle' dominant-baseline='middle'%3E${safe}%3C/text%3E%3C/svg%3E`;
+}
+
+// ===== 核對中心狀態 =====
+let auditFilter = 'need';
+
+
+
+// categories: shared + per-client
+let sharedCategories = [];
+let clientCategories = []; // current client
+
+// processing
+let isProcessing = false;
+
+// ========== Utilities ==========
+function nowId(prefix='ID'){ return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+function toIntSafe(s){
+  if (s === null || s === undefined) return null;
+  const v = String(s).replace(/[^\d\-]/g,'');
+  if (v === '' || v === '-' ) return null;
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
+}
+function normText(s){
+  return (s||'')
+    .replace(/[\uFF01-\uFF5E]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)) // fullwidth -> halfwidth
+    .replace(/[，、]/g, ',')
+    .replace(/[：]/g, ':')
+    .replace(/[（）]/g, m => (m==='（'?'(' : ')'))
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function isValidTaxId(s){ return /^\d{8}$/.test(String(s||'').trim()); }
+function isValidInvoiceNo(s){
+  const t = String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  return /^[A-Z]{2}\d{8}$/.test(t);
+}
+function normalizeInvoiceNo(s){
+  const t = String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (/^[A-Z]{2}\d{8}$/.test(t)) return t;
+  // allow patterns like "AB-12345678"
+  const m = t.match(/^([A-Z]{2})\D?(\d{8})$/);
+  return m ? (m[1]+m[2]) : '';
+}
+function parseTaiwanDate(s){
+  // Accept: YYYY-MM-DD, YYYY/MM/DD, 民國YYY/MM/DD, YYY/MM/DD (>=100 treated as ROC)
+  const t = normText(s).replace(/[.]/g,'/').replace(/-/g,'/').toUpperCase();
+  // yyyy/mm/dd
+  let m = t.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if (m){
+    const yyyy = parseInt(m[1],10), mm=parseInt(m[2],10), dd=parseInt(m[3],10);
+    if (yyyy>=1900 && mm>=1 && mm<=12 && dd>=1 && dd<=31){
+      return `${yyyy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    }
+  }
+  // ROC like 112/12/31
+  m = t.match(/(^|[^\d])(\d{2,3})\/(\d{1,2})\/(\d{1,2})([^\d]|$)/);
+  if (m){
+    const roc = parseInt(m[2],10), mm=parseInt(m[3],10), dd=parseInt(m[4],10);
+    const yyyy = roc + 1911;
+    if (yyyy>=1912 && yyyy<=2099 && mm>=1 && mm<=12 && dd>=1 && dd<=31){
+      return `${yyyy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    }
+  }
+  return '';
+}
+
+function sha1Hex(str){
+  // lightweight hash for dedupe key (not crypto-grade)
+  let h1=0x811c9dc5;
+  for (let i=0;i<str.length;i++){
+    h1 ^= str.charCodeAt(i);
+    h1 = (h1 + ((h1<<1)+(h1<<4)+(h1<<7)+(h1<<8)+(h1<<24))) >>> 0;
+  }
+  return ('00000000'+h1.toString(16)).slice(-8);
+}
+
+// ========== Toast ==========
+function showToast(message, type='info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <span>${message}</span>
+    <button onclick="this.parentElement.remove()" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'fadeOut 0.3s ease-out forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// ========== Local Storage Keys ==========
+const LS_KEYS = {
+  clients: 'clients_v4',
+  currentClientId: 'currentClientId_v4',
+  invoices: 'invoices_v4',
+  sharedCats: 'accountingCategories_shared_v4',
+  clientCatsPrefix: 'accountingCategories_client_v4_' // + clientId
+};
+
+// ========== Default Categories (shared) ==========
+const defaultCategories = [
+  { name: '原物料成本', type: 'cost', keywords: ['原料','材料','零件','配件','耗材'] },
+  { name: '商品成本', type: 'cost', keywords: ['商品','貨品','存貨','進貨'] },
+  { name: '製造成本', type: 'cost', keywords: ['製造','生產','加工','代工'] },
+
+  { name: '辦公用品費', type: 'expense', keywords: ['文具','筆','紙張','A4','影印紙','碳粉','墨水'] },
+  { name: '郵電費', type: 'expense', keywords: ['郵資','電話費','網路費','快遞','宅配'] },
+  { name: '水電費', type: 'expense', keywords: ['電費','水費','瓦斯費','台電','自來水'] },
+  { name: '伙食費', type: 'expense', keywords: ['便當','午餐','晚餐','餐盒','咖啡','飲料'] },
+  { name: '交際費', type: 'expense', keywords: ['餐廳','聚餐','尾牙','春酒','禮品','招待'] },
+  { name: '訓練費', type: 'expense', keywords: ['訓練','課程','培訓','研習','講座'] },
+  { name: '交通費', type: 'expense', keywords: ['計程車','高鐵','停車費','車票','捷運'] },
+  { name: '油料費', type: 'expense', keywords: ['油費','加油','汽油','柴油','中油'] },
+  { name: '租金支出', type: 'expense', keywords: ['租金','房租','店租','辦公室'] },
+  { name: '保險費', type: 'expense', keywords: ['保險','勞保','健保','團保'] },
+  { name: '修繕費', type: 'expense', keywords: ['維修','修理','保養'] },
+  { name: '清潔費', type: 'expense', keywords: ['清潔','打掃'] },
+  { name: '廣告費', type: 'expense', keywords: ['廣告','行銷','宣傳','FB','Google','Meta'] },
+  { name: '印刷費', type: 'expense', keywords: ['印刷','名片','海報','傳單'] },
+  { name: '顧問費', type: 'expense', keywords: ['顧問','諮詢'] },
+  { name: '會計師費', type: 'expense', keywords: ['會計師','記帳','簽證'] },
+  { name: '律師費', type: 'expense', keywords: ['律師','法律'] },
+  { name: '資訊設備', type: 'expense', keywords: ['電腦','筆電','滑鼠','鍵盤','螢幕','相機'] },
+  { name: '軟體費', type: 'expense', keywords: ['軟體','授權','Office','Windows','Adobe','訂閱'] },
+  { name: '差旅費', type: 'expense', keywords: ['飯店','住宿','機票','出差'] },
+  { name: '雜項支出', type: 'expense', keywords: ['雜支','雜費','其他'] },
+  { name: '手續費', type: 'expense', keywords: ['銀行','手續費','匯費','刷卡'] }
+];
+
+// ========== Init ==========
+function init() {
+  ensureLibs();
+  loadClients();
+  loadCategories();
+  loadInvoices();
+
+  setupResizableColumns();
+  bindFileInput();
+  renderClientSelect();
+  renderCategoryList();
+  updateStats();
+  renderTable();
+
+  showToast('系統已就緒（離線版 v4）', 'success');
+}
+
+function ensureLibs(){
+  // pdf.js worker path
+  if (window.pdfjsLib && pdfjsLib.GlobalWorkerOptions){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = './lib/pdf.worker.min.js';
+  }
+  // Basic reminders if opened via file:// (some browsers block workers)
+  if (location.protocol === 'file:') {
+    showToast('提醒：若遇到 PDF/OCR 無法執行，請用本機 http server 開啟（仍可離線）。', 'info');
+  }
+}
+
+function bindFileInput(){
+  const fileInput = document.getElementById('fileInput');
+  fileInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (isProcessing) { showToast('正在處理中，請稍後再匯入。', 'warning'); return; }
+    isProcessing = true;
+    try{
+      showToast(`開始處理 ${files.length} 個檔案…（QR 優先，OCR 補強）`, 'info');
+      await processFiles(files);
+      saveInvoices();
+      updateStats();
+      renderTable();
+      showToast(`✅ 已完成匯入與解析：${files.length} 個檔案`, 'success');
+    }catch(err){
+      console.error(err);
+      showToast(`❌ 匯入失敗：${err?.message || err}`, 'error');
+    }finally{
+      isProcessing = false;
+      fileInput.value = '';
+    }
+  });
+}
+
+// ========== Tabs ==========
+function switchTab(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tabName).classList.add('active');
+            if (tabName === 'audit') { renderAuditView(); }
+
+  if (tabName === 'categories') renderCategoryList();
+  if (tabName === 'invoices') { updateStats(); renderTable(); }
+}
+
+// ========== Clients ==========
+function loadClients() {
+  const saved = localStorage.getItem(LS_KEYS.clients);
+  clients = saved ? JSON.parse(saved) : [
+    { id: 'C001', name: '預設客戶A', taxId: '12345678' },
+    { id: 'C002', name: '預設客戶B', taxId: '23456789' }
+  ];
+  currentClientId = localStorage.getItem(LS_KEYS.currentClientId) || clients[0]?.id || null;
+  localStorage.setItem(LS_KEYS.clients, JSON.stringify(clients));
+  localStorage.setItem(LS_KEYS.currentClientId, currentClientId || '');
+}
+
+function renderClientSelect() {
+  const select = document.getElementById('clientSelect');
+  select.innerHTML = clients.map(c =>
+    `<option value="${c.id}" ${c.id === currentClientId ? 'selected' : ''}>${c.name} (${c.taxId})</option>`
+  ).join('');
+  select.onchange = (e) => {
+    currentClientId = e.target.value;
+    localStorage.setItem(LS_KEYS.currentClientId, currentClientId);
+    loadCategories(); // switch categories DB
+    renderCategoryList();
+    updateStats();
+    renderTable();
+  };
+}
+
+function showAddClientModal() {
+  document.getElementById('addClientModal').classList.add('active');
+}
+function addClient() {
+  const name = document.getElementById('clientName').value.trim();
+  const taxId = document.getElementById('clientTaxId').value.trim();
+  if (!name || !taxId) { alert('請填寫完整資料'); return; }
+  if (!isValidTaxId(taxId)) { alert('統一編號必須為 8 碼數字'); return; }
+  const newClient = { id: 'C' + Date.now(), name, taxId };
+  clients.push(newClient);
+  localStorage.setItem(LS_KEYS.clients, JSON.stringify(clients));
+  currentClientId = newClient.id;
+  localStorage.setItem(LS_KEYS.currentClientId, currentClientId);
+  renderClientSelect();
+  loadCategories();
+  renderCategoryList();
+  closeModal('addClientModal');
+  document.getElementById('clientName').value = '';
+  document.getElementById('clientTaxId').value = '';
+}
+
+// ========== Categories (shared + per-client) ==========
+function loadCategories(){
+  const savedShared = localStorage.getItem(LS_KEYS.sharedCats);
+  sharedCategories = savedShared ? JSON.parse(savedShared) : defaultCategories.slice();
+  localStorage.setItem(LS_KEYS.sharedCats, JSON.stringify(sharedCategories));
+
+  const ck = LS_KEYS.clientCatsPrefix + (currentClientId || 'NONE');
+  const savedClient = localStorage.getItem(ck);
+  clientCategories = savedClient ? JSON.parse(savedClient) : []; // start empty per client
+  localStorage.setItem(ck, JSON.stringify(clientCategories));
+}
+function saveCategories(){
+  localStorage.setItem(LS_KEYS.sharedCats, JSON.stringify(sharedCategories));
+  const ck = LS_KEYS.clientCatsPrefix + (currentClientId || 'NONE');
+  localStorage.setItem(ck, JSON.stringify(clientCategories));
+}
+
+let categoryScope = 'client'; // 'client' | 'shared'
+function showAddCategoryModal() {
+  document.getElementById('addCategoryModal').classList.add('active');
+  // set dropdown to current scope
+  const scopeSel = document.getElementById('categoryScope');
+  if (scopeSel) scopeSel.value = categoryScope;
+}
+function setCategoryScope(scope){
+  categoryScope = scope;
+  renderCategoryList();
+}
+
+function addCategory() {
+  const name = document.getElementById('categoryName').value.trim();
+  const type = document.getElementById('categoryType').value;
+  const keywords = document.getElementById('categoryKeywords').value.trim();
+  const scope = document.getElementById('categoryScope')?.value || categoryScope;
+
+  if (!name || !keywords) { alert('請填寫完整資料'); return; }
+
+  const newCategory = { name, type, keywords: keywords.split(',').map(k => k.trim()).filter(Boolean) };
+  if (scope === 'shared') sharedCategories.push(newCategory);
+  else clientCategories.push(newCategory);
+
+  saveCategories();
+  renderCategoryList();
+  closeModal('addCategoryModal');
+  document.getElementById('categoryName').value = '';
+  document.getElementById('categoryKeywords').value = '';
+}
+
+function deleteCategory(scope, index) {
+  if (!confirm('確定要刪除此會計項目？')) return;
+  if (scope === 'shared') sharedCategories.splice(index, 1);
+  else clientCategories.splice(index, 1);
+  saveCategories();
+  renderCategoryList();
+}
+
+function renderCategoryList(){
+  const list = document.getElementById('categoryList');
+  const currentClient = clients.find(c=>c.id===currentClientId);
+
+  const scopeBar = `
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+      <span style="color: var(--text-secondary);">資料庫：</span>
+      <button class="btn-secondary" onclick="setCategoryScope('client')" style="${categoryScope==='client'?'border-color: var(--accent-color);':''}">此客戶（${currentClient?.name || '未選'}）</button>
+      <button class="btn-secondary" onclick="setCategoryScope('shared')" style="${categoryScope==='shared'?'border-color: var(--accent-color);':''}">共用</button>
+      <span style="color: var(--text-secondary); font-size:0.85rem;">（分類時：此客戶優先，再共用補足）</span>
+    </div>
+  `;
+
+  const cats = (categoryScope==='shared') ? sharedCategories : clientCategories;
+
+  const items = cats.map((cat, index) => `
+    <div class="category-item ${cat.type}">
+      <div>
+        <strong>${cat.name}</strong>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+          關鍵字：${(cat.keywords||[]).join(', ')}
+        </div>
+      </div>
+      <div style="display:flex; gap:1rem; align-items:center;">
+        <span class="category-badge badge-${cat.type}">
+          ${cat.type === 'cost' ? '成本' : '費用'}
+        </span>
+        <a class="action-link" onclick="deleteCategory('${categoryScope}', ${index})">刪除</a>
+      </div>
+    </div>
+  `).join('');
+
+  list.innerHTML = scopeBar + (items || `<div style="color: var(--text-secondary); padding: 12px;">此資料庫目前沒有會計項目。</div>`);
+}
+
+// ========== Classification (client first, shared second) ==========
+function classifyItem(itemName) {
+  const raw = normText(itemName || '');
+  if (!raw) return { category: '未分類', type: 'expense', confidence: 0 };
+
+  // simple OCR-noise tolerant match
+  const scoreAgainst = (cat) => {
+    let s = 0;
+    (cat.keywords||[]).forEach(k => {
+      const kw = normText(k);
+      if (!kw) return;
+      if (raw.includes(kw)) s += 10;
+      else {
+        // fuzzy: allow 1-char difference for short keywords (<=3)
+        if (kw.length <= 3) {
+          for (let i=0;i<=raw.length-kw.length;i++){
+            const sub = raw.slice(i, i+kw.length);
+            let diff=0;
+            for (let j=0;j<kw.length;j++) if (sub[j]!==kw[j]) diff++;
+            if (diff===1) { s += 5; break; }
+          }
+        }
+      }
+    });
+    return s;
+  };
+
+  let best = { category:'未分類', type:'expense', score:0, confidence:0 };
+
+  // client first
+  clientCategories.forEach(cat => {
+    const s = scoreAgainst(cat);
+    if (s > best.score) best = { category: cat.name, type: cat.type, score: s, confidence: clamp(s/20, 0, 1) };
+  });
+  // shared second
+  sharedCategories.forEach(cat => {
+    const s = scoreAgainst(cat);
+    if (s > best.score) best = { category: cat.name, type: cat.type, score: s, confidence: clamp(s/20, 0, 1) };
+  });
+
+  return { category: best.category, type: best.type, confidence: best.confidence };
+}
+
+// ========== Invoices storage ==========
+function loadInvoices(){
+  const saved = localStorage.getItem('invoices');
+  invoices = saved ? JSON.parse(saved) : [];
+  invoices = invoices.map(upgradeInvoiceShape);
+}
+
+function saveInvoices(){
+  const slim = invoices.map(inv => {
+    const c = JSON.parse(JSON.stringify(inv));
+    c.thumbnail = '';
+    return c;
+  });
+  localStorage.setItem('invoices', JSON.stringify(slim));
+}
+
+
+function newInvoiceBase(fileMeta){
+  return upgradeInvoiceShape({
+    id: nowId('INV'),
+    fileId: fileMeta?.fileId || '',
+    filename: fileMeta?.filename || '',
+    fileType: fileMeta?.fileType || 'image',
+    fileHash: fileMeta?.fileHash || '',
+    page: fileMeta?.page || null,
+    thumbnail: fileMeta?.thumbnail || '',
+    clientId: currentClientId,
+    createdAt: new Date().toISOString(),
+    status: 'processing',
+    warnings: [],
+    fields: {
+      invoiceNo: { value:'', confidence:0, source:'', locked:false },
+      date: { value:'', confidence:0, source:'', locked:false },
+      sellerTaxId: { value:'', confidence:0, source:'', locked:false },
+      buyerTaxId: { value:'', confidence:0, source:'', locked:false },
+      amountUntaxed: { value:null, confidence:0, source:'', locked:false },
+      tax: { value:null, confidence:0, source:'', locked:false },
+      amountTotal: { value:null, confidence:0, source:'', locked:false },
+      itemName: { value:'', confidence:0, source:'', locked:false },
+      accountCategory: { value:'未分類', confidence:0, source:'system', locked:false },
+      categoryType: { value:'expense', confidence:0, source:'system', locked:false }
+    }
+  });
+}
+function upgradeInvoiceShape(inv){
+  const v = inv || {};
+  if (!v.fileId) v.fileId = '';
+  if (!v.fields) v.fields = {};
+  const f = v.fields;
+  const ensure = (k, def) => { if (!f[k]) f[k] = def; };
+  ensure('invoiceNo', { value:'', confidence:0, source:'', locked:false });
+  ensure('date', { value:'', confidence:0, source:'', locked:false });
+  ensure('sellerTaxId', { value:'', confidence:0, source:'', locked:false });
+  ensure('buyerTaxId', { value:'', confidence:0, source:'', locked:false });
+  ensure('amountUntaxed', { value:null, confidence:0, source:'', locked:false });
+  ensure('tax', { value:null, confidence:0, source:'', locked:false });
+  ensure('amountTotal', { value:null, confidence:0, source:'', locked:false });
+  ensure('itemName', { value:'', confidence:0, source:'', locked:false });
+  ensure('accountCategory', { value: f.accountCategory?.value || v.accountCategory || '未分類', confidence: f.accountCategory?.confidence || 0, source: f.accountCategory?.source || 'system', locked: !!f.accountCategory?.locked });
+  ensure('categoryType', { value: f.categoryType?.value || v.categoryType || 'expense', confidence: f.categoryType?.confidence || 0, source: f.categoryType?.source || 'system', locked: !!f.categoryType?.locked });
+
+  v.warnings = Array.isArray(v.warnings) ? v.warnings : [];
+  v.status = v.status || 'done';
+  return v;
+}
+
+function setField(inv, fieldKey, value, confidence, source){
+  const fld = inv.fields[fieldKey];
+  if (fld.locked && source !== 'manual') return; // don't overwrite locked fields unless manual
+  fld.value = value;
+  fld.confidence = clamp(confidence ?? 0, 0, 1);
+  fld.source = source || '';
+}
+
+function lockField(inv, fieldKey){
+  inv.fields[fieldKey].locked = true;
+}
+
+function applyClassification(inv){
+  const item = inv.fields.itemName.value || '';
+  const cls = classifyItem(item);
+  if (!inv.fields.accountCategory.locked){
+    inv.fields.accountCategory.value = cls.category;
+    inv.fields.accountCategory.confidence = cls.confidence;
+    inv.fields.accountCategory.source = 'system';
+  }
+  if (!inv.fields.categoryType.locked){
+    inv.fields.categoryType.value = cls.type;
+    inv.fields.categoryType.confidence = cls.confidence;
+    inv.fields.categoryType.source = 'system';
+  }
+}
+
+// ========== Validation / Audit ==========
+function validateInvoice(inv){
+  const warnings = [];
+  const client = clients.find(c=>c.id===currentClientId);
+
+  // invoice no basic
+  const invNo = normalizeInvoiceNo(inv.fields.invoiceNo.value || '');
+  if (invNo) inv.fields.invoiceNo.value = invNo;
+  if (invNo && !isValidInvoiceNo(invNo)) warnings.push('發票號碼格式疑慮');
+  if (!invNo) warnings.push('缺少發票號碼');
+
+  // date
+  const d = parseTaiwanDate(inv.fields.date.value || '');
+  if (d) inv.fields.date.value = d;
+  if (!inv.fields.date.value) warnings.push('缺少日期');
+
+  // buyer tax id check
+  const buyer = (inv.fields.buyerTaxId.value||'').trim();
+  if (buyer && !isValidTaxId(buyer)) warnings.push('買方統編格式疑慮');
+  if (client && buyer && buyer !== client.taxId) warnings.push('買方統編不符當前客戶');
+  if (client && !buyer) warnings.push('缺少買方統編');
+
+  // seller tax id basic
+  const seller = (inv.fields.sellerTaxId.value||'').trim();
+  if (seller && !isValidTaxId(seller)) warnings.push('賣方統編格式疑慮');
+  if (!seller) warnings.push('缺少賣方統編');
+
+  // amounts
+  const untaxed = inv.fields.amountUntaxed.value;
+  const tax = inv.fields.tax.value;
+  const total = inv.fields.amountTotal.value;
+
+  if (total === null) warnings.push('缺少含稅總計');
+  if (untaxed === null) warnings.push('缺少未稅金額');
+  if (tax === null) warnings.push('缺少稅額');
+
+  // cross checks if present
+  if (untaxed !== null && tax !== null && total !== null){
+    if (Math.abs((untaxed + tax) - total) > 1) warnings.push('金額不一致（未稅+稅 ≠ 含稅）');
+    const expectTax = Math.round(untaxed * 0.05);
+    // allow small rounding difference
+    if (Math.abs(expectTax - tax) > 1) warnings.push('稅額疑似非 5%（需確認稅率/品項）');
+    if (total < untaxed) warnings.push('含稅小於未稅（異常）');
+  }
+
+  // low confidence flags
+  const low = (k, th=0.6) => (inv.fields[k].source === 'ocr' && inv.fields[k].confidence < th);
+  if (low('amountTotal', 0.65)) warnings.push('含稅總計 OCR 信心偏低');
+  if (low('buyerTaxId', 0.75)) warnings.push('買方統編 OCR 信心偏低');
+  if (low('sellerTaxId', 0.75)) warnings.push('賣方統編 OCR 信心偏低');
+
+  // duplicates
+  const key = dedupeKey(inv);
+  const dup = invoices.some(x => x.id !== inv.id && dedupeKey(x) === key);
+  if (dup) warnings.push('疑似重複（同號碼/日期/賣方/總計）');
+
+  inv.warnings = Array.from(new Set(warnings));
+  inv.status = inv.warnings.length ? (inv.warnings.includes('疑似重複（同號碼/日期/賣方/總計）') ? 'duplicate' : 'warning') : 'done';
+}
+
+function dedupeKey(inv){
+  const invNo = normalizeInvoiceNo(inv.fields.invoiceNo.value||'');
+  const date = inv.fields.date.value||'';
+  const seller = (inv.fields.sellerTaxId.value||'').trim();
+  const total = inv.fields.amountTotal.value ?? '';
+  return sha1Hex([invNo,date,seller,total].join('|'));
+}
+
+// ========== PDF / Image Processing ==========
+async function processFiles(files){
+  for (const file of files){
+    const name = file.name || 'unnamed';
+    if (name.toLowerCase().endsWith('.pdf')){
+      if (!window.pdfjsLib) throw new Error('找不到 pdf.js（請放置 ./lib/pdf.min.js 與 worker）');
+      await processPdfFile(file);
+    } else if (file.type && file.type.startsWith('image/')){
+      await processImageFile(file, { page: null });
+    } else {
+      showToast(`略過不支援檔案：${name}`, 'warning');
+    }
+  }
+}
+
+async function processPdfFile(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const totalPages = pdf.numPages;
+
+  for (let p=1; p<=totalPages; p++){
+    showToast(`PDF 解析：${file.name}（第 ${p}/${totalPages} 頁）`, 'info');
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png', 0.92));
+    const imgFile = new File([blob], `${file.name.replace(/\.pdf$/i,'')}_p${String(p).padStart(3,'0')}.png`, { type:'image/png' });
+    await processImageFile(imgFile, { page: p, pdfName: file.name });
+  }
+}
+
+async function processImageFile(file, opts){
+  const ab = await file.arrayBuffer();
+  const bytes = new Uint8Array(ab);
+  // quick hash for metadata/dedupe
+  let h=0; for (let i=0;i<bytes.length;i+= Math.max(1, Math.floor(bytes.length/2000))) h = (h*31 + bytes[i]) >>> 0;
+  const fileHash = ('00000000'+h.toString(16)).slice(-8);
+  const fileId = `IMG_${fileHash}_${Date.now()}`;
+
+  const img = await loadImageFromArrayBuffer(ab);
+  const thumb = makeThumbnailDataUrl(img);
+    const fileId = `PDF_${sha1Hex(file.name)}_${p}`;
+    const blob = await new Promise(res=>canvas.toBlob(res,'image/png',0.92));
+    await idbPutThumb(fileId, thumb);
+    await idbPutFile(fileId, sha1Hex(file.name), blob, { filename: file.name, page: p, type: 'application/pdf' });
+  await idbPutThumb(fileId, thumb);
+  await idbPutFile(fileId, fileHash, file, { filename: file.name, type: file.type });
+
+  const inv = newInvoiceBase({
+    filename: file.name,
+    fileType: 'image',
+    fileHash,
+    page: opts?.page ?? null,
+    fileId,
+    thumbnail: ''
+  });
+  invoices.unshift(inv); // show newest first
+  renderTable(); updateStats();
+
+  // Pipeline: QR-first -> OCR fallback -> parse -> classify -> validate
+  try{
+    inv.status = 'processing';
+    inv.warnings = [];
+    renderTable();
+
+    const qrRes = await tryDecodeInvoiceQr(img);
+    if (qrRes && qrRes.ok){
+      applyQrToInvoice(inv, qrRes);
+    }
+
+    // OCR fallback if missing critical fields
+    const needOcr = !normalizeInvoiceNo(inv.fields.invoiceNo.value) ||
+                    !inv.fields.date.value ||
+                    inv.fields.amountTotal.value === null ||
+                    !isValidTaxId(inv.fields.buyerTaxId.value) ||
+                    !isValidTaxId(inv.fields.sellerTaxId.value);
+
+    if (needOcr){
+      const ocrRes = await runOcr(img);
+      await applyOcrToInvoice(inv, ocrRes, img);
+    }
+
+    // classify (based on itemName if present)
+    applyClassification(inv);
+
+    // validate + set status
+    validateInvoice(inv);
+
+    saveInvoices();
+    updateStats();
+    renderTable();
+  } catch(err){
+    console.error(err);
+    inv.status = 'warning';
+    inv.warnings = [`解析失敗：${err?.message || err}`];
+    saveInvoices();
+    updateStats();
+    renderTable();
+  }
+}
+
+function loadImageFromArrayBuffer(ab){
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([ab]);
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = (e) => { URL.revokeObjectURL(url); reject(new Error('圖片載入失敗')); };
+    img.src = url;
+  });
+}
+function makeThumbnailDataUrl(img){
+  const maxW = 140, maxH = 100;
+  const scale = Math.min(maxW/img.width, maxH/img.height, 1);
+  const w = Math.max(1, Math.floor(img.width*scale));
+  const h = Math.max(1, Math.floor(img.height*scale));
+  const c = document.createElement('canvas');
+  c.width=w; c.height=h;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0,0,w,h);
+  return c.toDataURL('image/jpeg', 0.75);
+}
+
+// ========== QR Decode (rotation attempts) ==========
+async function tryDecodeInvoiceQr(img){
+  if (!window.jsQR) return null;
+
+  const rotations = [0, 90, 180, 270];
+  for (const deg of rotations){
+    const c = renderToCanvas(img, 1.5, deg);
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    const imageData = ctx.getImageData(0,0,c.width,c.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+    if (code && code.data){
+      const parsed = parseTaiwanEInvoiceQr(code.data);
+      if (parsed.ok) return parsed;
+      // even if not ok, still return raw for debug
+      return { ok:false, raw: code.data, reason: '非台灣電子發票 QR 格式或解析未涵蓋' };
+    }
+  }
+  return null;
+}
+
+function renderToCanvas(img, scale=1.0, rotateDeg=0){
+  const c = document.createElement('canvas');
+  const w = Math.floor(img.width*scale);
+  const h = Math.floor(img.height*scale);
+  const rad = rotateDeg * Math.PI / 180;
+  if (rotateDeg % 180 === 0){
+    c.width = w; c.height = h;
+  } else {
+    c.width = h; c.height = w;
+  }
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.save();
+  ctx.translate(c.width/2, c.height/2);
+  ctx.rotate(rad);
+  ctx.drawImage(img, -w/2, -h/2, w, h);
+  ctx.restore();
+  return c;
+}
+
+// Taiwan e-invoice QR parsing (common format):
+// 1st QR often: AA1234567811201XXXXXXXX... plus fields separated by ':'
+// This format varies; we implement a robust-ish parser for key fields.
+function parseTaiwanEInvoiceQr(raw){
+  const s = (raw||'').trim();
+  // common start: 2 letters + 8 digits + 7 digits date (ROC yyyMMdd)
+  const head = s.slice(0, 17);
+  const m = head.match(/^([A-Z]{2})(\d{8})(\d{3})(\d{2})(\d{2})$/);
+  if (!m) return { ok:false, raw:s, reason:'header 不符合常見格式' };
+
+  const invoiceNo = (m[1]+m[2]).toUpperCase();
+  const rocY = parseInt(m[3],10), mm=parseInt(m[4],10), dd=parseInt(m[5],10);
+  const date = `${rocY+1911}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+
+  // Many formats contain colon-separated numeric fields later:
+  // ...:salesAmount:totalAmount:random...
+  const parts = s.split(':');
+  // heuristic: find two consecutive ints (sales, total) near start of parts list
+  let sales=null, total=null;
+  for (let i=1;i<parts.length-1;i++){
+    const a = toIntSafe(parts[i]);
+    const b = toIntSafe(parts[i+1]);
+    if (a!==null && b!==null){
+      // plausible range
+      if (a>=0 && b>=0 && b>=a && b<=999999999){
+        sales=a; total=b; break;
+      }
+    }
+  }
+
+  // buyer/seller tax ids sometimes appear as 8-digit blocks in later parts
+  const taxIds = (s.match(/\d{8}/g) || []).filter(x=>isValidTaxId(x));
+  // not enough to assign roles reliably from QR raw; we will prefer OCR semantic parsing for roles.
+  // Still, if only one tax id equals current client, set buyer; else leave empty.
+  let buyerTaxId = '';
+  const client = clients.find(c=>c.id===currentClientId);
+  if (client && taxIds.includes(client.taxId)) buyerTaxId = client.taxId;
+
+  return {
+    ok: true,
+    raw: s,
+    invoiceNo,
+    date,
+    sales,
+    total,
+    buyerTaxId
+  };
+}
+
+function applyQrToInvoice(inv, qr){
+  if (!qr?.ok) return;
+  setField(inv, 'invoiceNo', qr.invoiceNo || '', 0.98, 'qr');
+  setField(inv, 'date', qr.date || '', 0.98, 'qr');
+  if (qr.buyerTaxId) setField(inv, 'buyerTaxId', qr.buyerTaxId, 0.95, 'qr');
+  if (typeof qr.sales === 'number') setField(inv, 'amountUntaxed', qr.sales, 0.90, 'qr');
+  if (typeof qr.total === 'number') setField(inv, 'amountTotal', qr.total, 0.90, 'qr');
+  if (typeof qr.sales === 'number' && typeof qr.total === 'number'){
+    setField(inv, 'tax', (qr.total - qr.sales), 0.85, 'qr');
+  }
+}
+
+// ========== OCR ==========
+async function runOcr(img){
+  if (!window.Tesseract) throw new Error('找不到 Tesseract.js（請放置 ./lib/tesseract.min.js）');
+  const canvas = preprocessForOcr(img);
+  const dataUrl = canvas.toDataURL('image/png');
+  showToast('OCR 辨識中（繁中 chi_tra）…', 'info');
+
+  const worker = await Tesseract.createWorker({
+    langPath: './tessdata', // directory
+    cachePath: './tessdata',
+    logger: m => {
+      // optional: show progress occasionally
+      if (m.status === 'recognizing text' && typeof m.progress === 'number'){
+        const p = Math.round(m.progress*100);
+        if (p % 25 === 0) showToast(`OCR 進度：${p}%`, 'info');
+      }
+    }
+  });
+
+  await worker.loadLanguage('chi_tra');
+  await worker.initialize('chi_tra');
+  // try to improve numeric stability by setting params
+  await worker.setParameters({
+    tessedit_pageseg_mode: '6' // assume a block of text
+  });
+
+  const { data } = await worker.recognize(dataUrl);
+  await worker.terminate();
+
+  const text = data?.text || '';
+  const lines = (text||'').split('\n').map(l=>normText(l)).filter(Boolean);
+
+  return {
+    text,
+    lines,
+    confidence: clamp((data?.confidence || 0)/100, 0, 1),
+    words: data?.words || []
+  };
+}
+
+
+// ===== Amount Crop OCR helpers =====
+function wordText(w){ return normText(w?.text || ''); }
+function wordBox(w){ return w?.bbox || w?.boundingBox || null; }
+
+function findKeywordWord(words, keywords){
+  for (const w of words){
+    const t = wordText(w);
+    if (!t) continue;
+    for (const k of keywords){
+      if (!k) continue;
+      if (t.includes(k) || k.includes(t)) return w;
+    }
+  }
+  return null;
+}
+
+function cropCanvasFromImage(img, rect){
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.floor(rect.w));
+  c.height = Math.max(1, Math.floor(rect.h));
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
+  return c;
+}
+
+async function ocrDigitsFromCanvas(canvas){
+  const dataUrl = canvas.toDataURL('image/png');
+  const worker = await Tesseract.createWorker({ langPath:'./tessdata', cachePath:'./tessdata' });
+  await worker.loadLanguage('chi_tra');
+  await worker.initialize('chi_tra');
+  await worker.setParameters({
+    tessedit_char_whitelist: '0123456789,-.',
+    tessedit_pageseg_mode: '7'
+  });
+  const { data } = await worker.recognize(dataUrl);
+  await worker.terminate();
+  const text = normText(data?.text || '');
+  const m = text.match(/-?\d[\d,]{0,15}/);
+  const n = m ? toIntSafe(m[0]) : null;
+  const conf = clamp((data?.confidence||0)/100, 0, 1);
+  return { n, conf, raw: text };
+}
+
+async function refineAmountsByCrop(img, words){
+  const TOTAL_KEYS = ['合計','總計','價稅合計','應付','實付','總額','應付金額'];
+  const UNTAXED_KEYS = ['未稅','銷售額','小計','金額'];
+  const TAX_KEYS = ['稅額','營業稅','稅金'];
+  const W = img.width, H = img.height;
+  const pad = 30;
+
+  async function scanFor(keys){
+    const kw = findKeywordWord(words, keys);
+    if (!kw) return { n:null, conf:0 };
+    const b = wordBox(kw);
+    if (!b) return { n:null, conf:0 };
+    const x = clamp(Math.min(b.x1 + 10, W-1), 0, W-1);
+    const y = clamp(b.y0 - pad, 0, H-1);
+    const w = clamp(W - x, 40, W);
+    const h = clamp((b.y1 - b.y0) + pad*2, 40, H);
+    const crop = cropCanvasFromImage(img, { x, y, w, h });
+
+    // preprocess for digits
+    const ctx = crop.getContext('2d', { willReadFrequently:true });
+    const id = ctx.getImageData(0,0,crop.width,crop.height);
+    const d = id.data;
+    let sum=0;
+    for (let i=0;i<d.length;i+=4){
+      const yv = Math.round(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]);
+      d[i]=d[i+1]=d[i+2]=yv; sum += yv;
+    }
+    const mean = sum/(d.length/4);
+    const thr = mean*0.9;
+    for (let i=0;i<d.length;i+=4){
+      const v = d[i] > thr ? 255 : 0;
+      d[i]=d[i+1]=d[i+2]=v;
+    }
+    ctx.putImageData(id,0,0);
+
+    const r = await ocrDigitsFromCanvas(crop);
+    return { n:r.n, conf:r.conf };
+  }
+
+  const totalR = await scanFor(TOTAL_KEYS);
+  const untaxedR = await scanFor(UNTAXED_KEYS);
+  const taxR = await scanFor(TAX_KEYS);
+
+  return {
+    total: totalR.n, totalConf: totalR.conf,
+    untaxed: untaxedR.n, untaxedConf: untaxedR.conf,
+    tax: taxR.n, taxConf: taxR.conf
+  };
+}
+
+
+function preprocessForOcr(img){
+  // Basic contrast + grayscale + binarize
+  const c = renderToCanvas(img, 2.0, 0);
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const imgData = ctx.getImageData(0,0,c.width,c.height);
+  const d = imgData.data;
+
+  // grayscale + contrast
+  let sum=0;
+  for (let i=0;i<d.length;i+=4){
+    const r=d[i], g=d[i+1], b=d[i+2];
+    const y = Math.round(0.299*r + 0.587*g + 0.114*b);
+    sum += y;
+    d[i]=d[i+1]=d[i+2]=y;
+  }
+  const mean = sum / (d.length/4);
+  // adaptive-ish threshold around mean
+  const thr = mean * 0.92;
+  for (let i=0;i<d.length;i+=4){
+    const y = d[i];
+    const v = y > thr ? 255 : 0;
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  ctx.putImageData(imgData, 0,0);
+  return c;
+}
+
+// ========== Semantic Parsing (Anchors) ==========
+const KEYS = {
+  buyer: ['買方','買受人','買方統編','買方統一編號','買受人統編','統一編號(買方)','統編(買方)'],
+  seller:['賣方','銷售人','賣方統編','賣方統一編號','銷售人統編','統一編號(賣方)','統編(賣方)'],
+  untaxed:['未稅','未税','銷售額','销项金额','銷項金額','金額','小計','金额'],
+  tax:   ['稅額','税额','營業稅','营业税','稅金','税金'],
+  total: ['合計','总计','總計','價稅合計','应付','應付','應付金額','應付總額','應收','付款金額','实付','實付']
+};
+
+function findTaxIdAfterKeyword(lines, keywords){
+  for (let i=0;i<lines.length;i++){
+    const line = lines[i];
+    if (keywords.some(k=>line.includes(k))){
+      // search on same line then next line
+      const joined = line + ' ' + (lines[i+1]||'');
+      const m = joined.match(/(\d{8})/);
+      if (m && isValidTaxId(m[1])) return { value:m[1], confidence:0.78 };
+    }
+  }
+  return null;
+}
+
+function findAmountAfterKeyword(lines, keywords){
+  // returns best candidate with line proximity
+  const candidates = [];
+  for (let i=0;i<lines.length;i++){
+    const line = lines[i];
+    if (keywords.some(k=>line.includes(k))){
+      const m = line.match(/(-?\d[\d,]{0,15})/g) || [];
+      for (const token of m){
+        const n = toIntSafe(token);
+        if (n!==null) candidates.push({ n, i, line });
+      }
+      // if nothing on same line, check next line
+      if (!m.length && lines[i+1]){
+        const m2 = lines[i+1].match(/(-?\d[\d,]{0,15})/g) || [];
+        for (const token of m2){
+          const n = toIntSafe(token);
+          if (n!==null) candidates.push({ n, i:i+1, line: lines[i+1] });
+        }
+      }
+    }
+  }
+  if (!candidates.length) return null;
+  // choose the last occurrence (often totals near bottom) with plausible range
+  const plausible = candidates.filter(c=>c.n>=0 && c.n<=999999999);
+  const pick = (plausible.length ? plausible : candidates)[candidates.length-1];
+  return { value: pick.n, confidence:0.72 };
+}
+
+function extractInvoiceNo(lines){
+  // search for pattern AA12345678 in any line
+  for (const line of lines){
+    const t = normalizeInvoiceNo(line);
+    if (t && isValidInvoiceNo(t)) return { value:t, confidence:0.80 };
+    // if separated like AB-12345678
+    const m = line.toUpperCase().match(/([A-Z]{2})\s*[-:]?\s*(\d{8})/);
+    if (m){
+      const v = (m[1]+m[2]).toUpperCase();
+      if (isValidInvoiceNo(v)) return { value:v, confidence:0.78 };
+    }
+  }
+  return null;
+}
+
+function extractDate(lines){
+  for (const line of lines){
+    // prefer lines that contain '日期'
+    if (line.includes('日期') || line.includes('開立') || line.includes('开立')){
+      const d = parseTaiwanDate(line);
+      if (d) return { value:d, confidence:0.78 };
+    }
+  }
+  // fallback: any date-like
+  for (const line of lines){
+    const d = parseTaiwanDate(line);
+    if (d) return { value:d, confidence:0.70 };
+  }
+  return null;
+}
+
+function extractItemName(lines){
+  // naive: find first line containing '品名' or '品項' then take following non-empty line segment
+  for (let i=0;i<lines.length;i++){
+    const line = lines[i];
+    if (line.includes('品名') || line.includes('品項') || line.includes('品目') || line.includes('項目')){
+      const next = (lines[i+1]||'').trim();
+      if (next && next.length<=40) return { value: next, confidence:0.55 };
+      // or extract after colon
+      const m = line.match(/(品名|品項|項目)[:：]\s*(.+)$/);
+      if (m && m[2]) return { value: m[2].trim().slice(0,40), confidence:0.55 };
+    }
+  }
+  return null;
+}
+
+async function applyOcrToInvoice(inv, ocr, img){
+  const lines = ocr.lines || [];
+  // invoice no
+  if (!normalizeInvoiceNo(inv.fields.invoiceNo.value)){
+    const r = extractInvoiceNo(lines);
+    if (r) setField(inv,'invoiceNo', r.value, r.confidence, 'ocr');
+  }
+  // date
+  if (!inv.fields.date.value){
+    const r = extractDate(lines);
+    if (r) setField(inv,'date', r.value, r.confidence, 'ocr');
+  }
+
+  // buyer/seller by keyword anchoring
+  if (!isValidTaxId(inv.fields.buyerTaxId.value)){
+    const r = findTaxIdAfterKeyword(lines, KEYS.buyer);
+    if (r) setField(inv,'buyerTaxId', r.value, r.confidence, 'ocr');
+  }
+  if (!isValidTaxId(inv.fields.sellerTaxId.value)){
+    const r = findTaxIdAfterKeyword(lines, KEYS.seller);
+    if (r) setField(inv,'sellerTaxId', r.value, r.confidence, 'ocr');
+  }
+
+  // amounts by keyword anchoring (NOT max-value)
+  if (inv.fields.amountTotal.value === null){
+    const r = findAmountAfterKeyword(lines, KEYS.total);
+    if (r) setField(inv,'amountTotal', r.value, r.confidence, 'ocr');
+  }
+  if (inv.fields.amountUntaxed.value === null){
+    const r = findAmountAfterKeyword(lines, KEYS.untaxed);
+    if (r) setField(inv,'amountUntaxed', r.value, r.confidence, 'ocr');
+  }
+  if (inv.fields.tax.value === null){
+    const r = findAmountAfterKeyword(lines, KEYS.tax);
+    if (r) setField(inv,'tax', r.value, r.confidence, 'ocr');
+  }
+
+
+  // Amount refinement by region-crop + digits-only OCR (if needed)
+  const needRefine = (inv.fields.amountTotal.value===null || inv.fields.amountTotal.confidence < 0.75 ||
+                      inv.fields.amountUntaxed.value===null || inv.fields.amountUntaxed.confidence < 0.75 ||
+                      inv.fields.tax.value===null || inv.fields.tax.confidence < 0.75);
+  if (needRefine && img && (ocr.words||[]).length){
+    try{
+      const refined = await refineAmountsByCrop(img, ocr.words);
+      if (refined.total !== null) setField(inv,'amountTotal', refined.total, refined.totalConf, 'ocr_crop');
+      if (refined.untaxed !== null) setField(inv,'amountUntaxed', refined.untaxed, refined.untaxedConf, 'ocr_crop');
+      if (refined.tax !== null) setField(inv,'tax', refined.tax, refined.taxConf, 'ocr_crop');
+    }catch(e){ console.warn('refineAmountsByCrop failed', e); }
+  }
+
+  // arithmetic fill if partially missing and not locked
+  const u = inv.fields.amountUntaxed.value;
+  const t = inv.fields.tax.value;
+  const tot = inv.fields.amountTotal.value;
+  if (u!==null && tot!==null && t===null) setField(inv,'tax', tot-u, 0.55, 'calc');
+  if (t!==null && tot!==null && u===null) setField(inv,'amountUntaxed', tot-t, 0.55, 'calc');
+  if (u!==null && t!==null && tot===null) setField(inv,'amountTotal', u+t, 0.55, 'calc');
+
+  // item name (optional)
+  if (!inv.fields.itemName.value){
+    const r = extractItemName(lines);
+    if (r) setField(inv,'itemName', r.value, r.confidence, 'ocr');
+  }
+}
+
+// ========== Table Rendering / Editing ==========
+function renderTable() {
+  const tbody = document.getElementById('dataTableBody');
+  const filtered = invoices.filter(inv =>
+    !currentClientId || inv.clientId === currentClientId || inv.status === 'warning'
+  );
+
+  tbody.innerHTML = filtered.map(inv => {
+    const typeVal = inv.fields.categoryType.value;
+    const typeClass = typeVal === 'cost' ? 'cost-type' : 'expense-type';
+
+    const warnTitle = (inv.warnings||[]).join('；');
+    const statusHtml =
+      inv.status === 'done' ? `<span class="status-badge status-done" title="已核對">● 已確認</span>` :
+      inv.status === 'duplicate' ? `<span class="status-badge status-duplicate" title="${escapeHtml(warnTitle)}">⚠ 疑似重複</span>` :
+      `<span class="status-badge status-warning" title="${escapeHtml(warnTitle)}">⚠ 需確認</span>`;
+
+    const f = inv.fields;
+    const fmtMoney = (n) => (n===null || n===undefined) ? '' : Number(n).toLocaleString();
+    const cellClass = (fieldKey) => {
+      const fld = f[fieldKey];
+      const low = fld.source==='ocr' && fld.confidence < 0.65;
+      const locked = fld.locked;
+      return `${locked ? 'locked' : ''} ${low ? 'lowconf' : ''}`.trim();
+    };
+    const sourceTag = (fieldKey) => {
+      const s = f[fieldKey].source || '';
+      if (!s) return '';
+      const map = { qr:'QR', ocr:'OCR', manual:'手動', calc:'計算', system:'系統' };
+      return `<span style="color: var(--text-secondary); font-size: 0.72rem;">${map[s] || s}</span>`;
+    };
+    const confTag = (fieldKey) => {
+      const fld = f[fieldKey];
+      if (!fld.source) return '';
+      const c = Math.round((fld.confidence||0)*100);
+      return `<span style="color: var(--text-secondary); font-size: 0.72rem;">${c}%</span>`;
+    };
+
+    return `
+      <tr data-invoice-id="${inv.id}" class="${inv.status === 'warning' ? 'warning' : ''} ${inv.status === 'duplicate' ? 'duplicate' : ''} ${typeClass}" data-id="${inv.id}">
+        <td><input type="checkbox" class="row-checkbox" data-id="${inv.id}"></td>
+        <td>
+          <div class="thumbnail" onmouseenter="showPreview(event, '${inv.thumbnail}')" onmouseleave="hidePreview()" onmousemove="movePreview(event)">
+            <img src="${placeholderThumbSvg(inv.fileId||inv.filename||'FILE')}" data-fileid="${inv.fileId||''}" class="thumb-img">
+          </div>
+        </td>
+        <td title="${escapeHtml(inv.filename)}">${escapeHtml(inv.filename)}</td>
+
+        <td class="editable ${cellClass('invoiceNo')}" contenteditable data-field="invoiceNo" title="${escapeHtml((f.invoiceNo.source||'')+' '+Math.round(f.invoiceNo.confidence*100)+'%')}">
+          ${escapeHtml(f.invoiceNo.value||'')}
+          <div style="display:flex; justify-content:space-between;">${sourceTag('invoiceNo')}${confTag('invoiceNo')}</div>
+        </td>
+
+        <td class="editable ${cellClass('date')}" contenteditable data-field="date">
+          ${escapeHtml(f.date.value||'')}
+          <div style="display:flex; justify-content:space-between;">${sourceTag('date')}${confTag('date')}</div>
+        </td>
+
+        <td class="editable ${cellClass('itemName')}" contenteditable data-field="itemName" title="${escapeHtml(f.itemName.value||'')}">
+          ${escapeHtml(f.itemName.value||'')}
+          <div style="display:flex; justify-content:space-between;">${sourceTag('itemName')}${confTag('itemName')}</div>
+        </td>
+
+        <td>
+          <select class="editable" data-field="accountCategory" onchange="updateInvoiceCategory('${inv.id}', this.value)"
+            style="width: 100%; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
+            ${allCategoriesForSelect().map(cat =>
+              `<option value="${escapeHtml(cat.name)}" ${cat.name === f.accountCategory.value ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`
+            ).join('')}
+          </select>
+          <div style="display:flex; justify-content:space-between; padding-top:4px;">
+            <span style="color: var(--text-secondary); font-size:0.72rem;">${f.accountCategory.source||''}</span>
+            <span style="color: var(--text-secondary); font-size:0.72rem;">${Math.round((f.accountCategory.confidence||0)*100)}%</span>
+          </div>
+        </td>
+
+        <td>
+          <span class="category-badge badge-${f.categoryType.value}">
+            ${f.categoryType.value === 'cost' ? '成本' : '費用'}
+          </span>
+        </td>
+
+        <td class="editable ${cellClass('sellerTaxId')}" contenteditable data-field="sellerTaxId">
+          ${escapeHtml(f.sellerTaxId.value||'')}
+          <div style="display:flex; justify-content:space-between;">${sourceTag('sellerTaxId')}${confTag('sellerTaxId')}</div>
+        </td>
+
+        <td class="editable ${cellClass('buyerTaxId')}" contenteditable data-field="buyerTaxId" style="${inv.status==='warning' ? 'color: var(--warning);' : ''}">
+          ${escapeHtml(f.buyerTaxId.value||'')}
+          <div style="display:flex; justify-content:space-between;">${sourceTag('buyerTaxId')}${confTag('buyerTaxId')}</div>
+        </td>
+
+        <td class="editable ${cellClass('amountUntaxed')}" contenteditable data-field="amountUntaxed">
+          ${escapeHtml(fmtMoney(f.amountUntaxed.value))}
+          <div style="display:flex; justify-content:space-between;">${sourceTag('amountUntaxed')}${confTag('amountUntaxed')}</div>
+        </td>
+
+        <td class="editable ${cellClass('tax')}" contenteditable data-field="tax">
+          ${escapeHtml(fmtMoney(f.tax.value))}
+          <div style="display:flex; justify-content:space-between;">${sourceTag('tax')}${confTag('tax')}</div>
+        </td>
+
+        <td class="editable ${cellClass('amountTotal')}" contenteditable data-field="amountTotal">
+          ${escapeHtml(fmtMoney(f.amountTotal.value))}
+          <div style="display:flex; justify-content:space-between;">${sourceTag('amountTotal')}${confTag('amountTotal')}</div>
+        </td>
+
+        <td>
+          ${statusHtml}
+          ${inv.warnings?.length ? `<div style="margin-top:6px; font-size:0.72rem; color: var(--text-secondary); max-width: 220px; white-space: normal;">${escapeHtml(inv.warnings.slice(0,3).join('；'))}${inv.warnings.length>3?'…':''}</div>` : ''}
+        </td>
+
+        <td style="display:flex; flex-direction:column; gap:6px;">
+          <a class="action-link" onclick="lockInvoice('${inv.id}')">鎖定（已核對）</a>
+          <a class="action-link" onclick="deleteInvoice('${inv.id}')" style="color: var(--danger);">刪除</a>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  updateTotalRow(filtered);
+
+  // bind blur for editable cells
+  document.querySelectorAll('.editable[contenteditable]').forEach(cell => {
+    cell.addEventListener('blur', function(){
+      const row = this.closest('tr');
+      const id = row.dataset.id;
+      const field = this.dataset.field;
+      const raw = this.textContent.trim();
+      updateInvoiceField(id, field, raw);
+    });
+  });
+
+  populateThumbnails();
+}
+
+async function populateThumbnails(){
+  const imgs = document.querySelectorAll('img.thumb-img[data-fileid]');
+  for (const img of imgs){
+    const fid = img.getAttribute('data-fileid');
+    if (!fid) continue;
+    const dataUrl = await idbGetThumb(fid);
+    if (dataUrl) img.src = dataUrl;
+  }
+}
+
+
+function allCategoriesForSelect(){
+  // unified list for selection: client + shared (dedup by name)
+  const map = new Map();
+  clientCategories.forEach(c=>map.set(c.name, c));
+  sharedCategories.forEach(c=>{ if(!map.has(c.name)) map.set(c.name, c); });
+  return Array.from(map.values());
+}
+
+function updateInvoiceCategory(id, categoryName){
+  const inv = invoices.find(x=>x.id===id);
+  if (!inv) return;
+  const cat = allCategoriesForSelect().find(c=>c.name===categoryName);
+  if (!cat) return;
+  inv.fields.accountCategory.value = categoryName;
+  inv.fields.accountCategory.confidence = 1.0;
+  inv.fields.accountCategory.source = 'manual';
+  inv.fields.accountCategory.locked = true;
+
+  inv.fields.categoryType.value = cat.type;
+  inv.fields.categoryType.confidence = 1.0;
+  inv.fields.categoryType.source = 'manual';
+  inv.fields.categoryType.locked = true;
+
+  validateInvoice(inv);
+  saveInvoices(); updateStats(); renderTable();
+}
+
+function updateInvoiceField(id, field, value){
+  const inv = invoices.find(x=>x.id===id);
+  if (!inv) return;
+
+  // clean values
+  if (['amountUntaxed','tax','amountTotal'].includes(field)){
+    const n = toIntSafe(value);
+    setField(inv, field, n, 1.0, 'manual');
+    lockField(inv, field);
+  } else if (field === 'invoiceNo'){
+    const v = normalizeInvoiceNo(value);
+    setField(inv, field, v || value, 1.0, 'manual');
+    lockField(inv, field);
+  } else if (field === 'date'){
+    const d = parseTaiwanDate(value) || value;
+    setField(inv, field, d, 1.0, 'manual');
+    lockField(inv, field);
+  } else if (field === 'buyerTaxId' || field === 'sellerTaxId'){
+    const v = String(value||'').replace(/[^\d]/g,'').slice(0,8);
+    setField(inv, field, v, 1.0, 'manual');
+    lockField(inv, field);
+  } else if (field === 'itemName'){
+    setField(inv, field, value, 1.0, 'manual');
+    lockField(inv, field);
+    applyClassification(inv);
+  } else {
+    // ignore unknown
+  }
+
+  // if amounts changed, recompute missing if not locked
+  const u = inv.fields.amountUntaxed.value;
+  const t = inv.fields.tax.value;
+  const tot = inv.fields.amountTotal.value;
+  if (u!==null && t!==null && tot===null && !inv.fields.amountTotal.locked){
+    setField(inv,'amountTotal', u+t, 0.8, 'calc');
+  }
+  if (u!==null && tot!==null && t===null && !inv.fields.tax.locked){
+    setField(inv,'tax', tot-u, 0.8, 'calc');
+  }
+  if (t!==null && tot!==null && u===null && !inv.fields.amountUntaxed.locked){
+    setField(inv,'amountUntaxed', tot-t, 0.8, 'calc');
+  }
+
+  validateInvoice(inv);
+  saveInvoices(); updateStats(); renderTable();
+}
+
+function lockInvoice(id){
+  const inv = invoices.find(x=>x.id===id);
+  if (!inv) return;
+  // lock key fields
+  ['invoiceNo','date','sellerTaxId','buyerTaxId','amountUntaxed','tax','amountTotal','itemName','accountCategory','categoryType'].forEach(k=>{
+    inv.fields[k].locked = true;
+    if (!inv.fields[k].source) inv.fields[k].source = 'manual';
+    if (!inv.fields[k].confidence) inv.fields[k].confidence = 1.0;
+  });
+  inv.warnings = inv.warnings.filter(w=>w.startsWith('疑似重複')); // keep duplicate warning if any
+  inv.status = inv.warnings.length ? 'duplicate' : 'done';
+  saveInvoices(); updateStats(); renderTable();
+  showToast('已鎖定（視為已核對）', 'success');
+}
+
+function deleteInvoice(id){
+  if (!confirm('確定要刪除此筆發票？')) return;
+  invoices = invoices.filter(inv => inv.id !== id);
+  saveInvoices(); updateStats(); renderTable();
+}
+
+function updateTotalRow(list){
+  const sum = (k) => list.reduce((acc, inv) => acc + (inv.fields[k]?.value || 0), 0);
+  const totalUntaxed = sum('amountUntaxed');
+  const totalTax = sum('tax');
+  const totalAmount = sum('amountTotal');
+
+  document.getElementById('footerUntaxed').textContent = '$' + totalUntaxed.toLocaleString();
+  document.getElementById('footerTax').textContent = '$' + totalTax.toLocaleString();
+  document.getElementById('footerTotal').textContent = '$' + totalAmount.toLocaleString();
+}
+
+function updateStats(){
+  const filtered = invoices.filter(inv =>
+    !currentClientId || inv.clientId === currentClientId || inv.status === 'warning'
+  );
+  const sum = (k) => filtered.reduce((acc, inv) => acc + (inv.fields[k]?.value || 0), 0);
+  const totalUntaxed = sum('amountUntaxed');
+  const totalTax = sum('tax');
+  const totalAmount = sum('amountTotal');
+
+  // cost/expense by categoryType
+  const totalCost = filtered.filter(inv => inv.fields.categoryType.value === 'cost').reduce((a,inv)=>a+(inv.fields.amountTotal.value||0),0);
+  const totalExpense = filtered.filter(inv => inv.fields.categoryType.value === 'expense').reduce((a,inv)=>a+(inv.fields.amountTotal.value||0),0);
+
+  document.getElementById('totalCount').textContent = filtered.length;
+  document.getElementById('totalUntaxedDisplay').textContent = '$' + totalUntaxed.toLocaleString();
+  document.getElementById('totalTaxDisplay').textContent = '$' + totalTax.toLocaleString();
+  document.getElementById('totalAmountDisplay').textContent = '$' + totalAmount.toLocaleString();
+  document.getElementById('totalCost').textContent = '$' + totalCost.toLocaleString();
+  document.getElementById('totalExpense').textContent = '$' + totalExpense.toLocaleString();
+}
+
+// ========== UI helpers ==========
+function toggleSelectAll(source) {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  checkboxes.forEach(cb => cb.checked = source.checked);
+}
+document.addEventListener('change', function (e) {
+  if (e.target.classList.contains('row-checkbox')) {
+    const all = document.querySelectorAll('.row-checkbox');
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const selectAll = document.getElementById('selectAllCheckbox');
+    if (all.length === checked.length) {
+      selectAll.checked = true;
+      selectAll.indeterminate = false;
+    } else if (checked.length === 0) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+    } else {
+      selectAll.checked = false;
+      selectAll.indeterminate = true;
+    }
+  }
+});
+
+// hover preview
+const previewEl = document.getElementById('hoverPreview');
+const previewImg = document.getElementById('hoverImage');
+function showPreview(e, url) { previewImg.src = url; previewEl.style.display = 'block'; movePreview(e); }
+function hidePreview() { previewEl.style.display = 'none'; }
+function movePreview(e) {
+  let x = e.clientX + 20;
+  let y = e.clientY;
+  const width = previewEl.offsetWidth;
+  const height = previewEl.offsetHeight;
+  if (x + width > window.innerWidth) x = e.clientX - width - 20;
+  if (y + height / 2 > window.innerHeight) y = window.innerHeight - height / 2 - 20;
+  if (y - height / 2 < 0) y = height / 2 + 20;
+  previewEl.style.left = x + 'px';
+  previewEl.style.top = y + 'px';
+}
+
+// modal
+function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+
+// export placeholder
+// ========== 核對中心（Audit） ==========
+function setAuditFilter(f){
+  auditFilter = f || 'all';
+  renderAuditView();
+}
+
+function getAuditFlags(inv){
+  const reasons = inv.warnings || [];
+  const idMismatch = reasons.some(r=>r.includes('買方統編不符'));
+  const amtMismatch = reasons.some(r=>r.includes('金額不一致') || r.includes('未稅') || r.includes('稅額') || r.includes('價稅'));
+  const dup = (inv.status === 'duplicate') || reasons.some(r=>r.includes('疑似重複'));
+  const need = inv.status === 'warning' || reasons.length>0;
+  const locked = isInvoiceLocked(inv);
+  return { idMismatch, amtMismatch, dup, need, locked };
+}
+
+function isInvoiceLocked(inv){
+  const f = inv.fields || {};
+  return !!(f.amountTotal?.locked || f.amountUntaxed?.locked || f.tax?.locked || f.invoiceNo?.locked || f.date?.locked || f.buyerTaxId?.locked || f.sellerTaxId?.locked);
+}
+
+function toggleSelectAllAudit(cb){
+  const checked = !!cb.checked;
+  document.querySelectorAll('.audit-select').forEach(x=>{ x.checked = checked; });
+}
+
+function getSelectedAuditIds(){
+  return Array.from(document.querySelectorAll('.audit-select:checked')).map(x=>x.getAttribute('data-id')).filter(Boolean);
+}
+
+function batchLockSelected(){
+  const ids = getSelectedAuditIds();
+  if (!ids.length){ showToast('請先勾選要鎖定的發票', 'warning'); return; }
+  for (const id of ids){
+    lockInvoiceById(id, { quiet:true });
+  }
+  saveInvoices();
+  updateStats();
+  renderTable();
+  renderAuditView();
+  showToast(`已鎖定 ${ids.length} 筆`, 'success');
+}
+
+function batchDeleteSelected(){
+  const ids = getSelectedAuditIds();
+  if (!ids.length){ showToast('請先勾選要刪除的發票', 'warning'); return; }
+  if (!confirm(`確定刪除 ${ids.length} 筆發票？此操作不可復原`)) return;
+  invoices = invoices.filter(inv => !ids.includes(inv.id));
+  saveInvoices();
+  updateStats();
+  renderTable();
+  renderAuditView();
+  showToast(`已刪除 ${ids.length} 筆`, 'success');
+}
+
+function lockInvoiceById(id, opts){
+  const inv = invoices.find(x=>x.id===id);
+  if (!inv) return;
+  ['invoiceNo','date','buyerTaxId','sellerTaxId','amountUntaxed','tax','amountTotal'].forEach(k=>{
+    if (inv.fields?.[k]) inv.fields[k].locked = true;
+  });
+  if (inv.fields?.accountCategory) inv.fields.accountCategory.locked = true;
+  if (inv.fields?.categoryType) inv.fields.categoryType.locked = true;
+  inv.status = 'done';
+  inv.warnings = inv.warnings || [];
+  if (!inv.warnings.includes('已人工核對並鎖定')) inv.warnings.push('已人工核對並鎖定');
+  if (!opts?.quiet) showToast('已鎖定該筆', 'success');
+}
+
+function renderAuditView(){
+  const counts = { need:0, dup:0, id_mismatch:0, amount_mismatch:0, locked:0 };
+  const rows = [];
+
+  for (const inv of invoices){
+    const flags = getAuditFlags(inv);
+    if (flags.need) counts.need++;
+    if (flags.dup) counts.dup++;
+    if (flags.idMismatch) counts.id_mismatch++;
+    if (flags.amtMismatch) counts.amount_mismatch++;
+    if (flags.locked) counts.locked++;
+
+    let include = true;
+    if (auditFilter === 'need') include = flags.need && !flags.locked;
+    else if (auditFilter === 'dup') include = flags.dup;
+    else if (auditFilter === 'id_mismatch') include = flags.idMismatch;
+    else if (auditFilter === 'amount_mismatch') include = flags.amtMismatch;
+    else if (auditFilter === 'all') include = true;
+
+    if (!include) continue;
+    rows.push(inv);
+  }
+
+  const el = (id, val) => { const x=document.getElementById(id); if(x) x.textContent = String(val); };
+  el('auditNeedCount', counts.need);
+  el('auditDupCount', counts.dup);
+  el('auditIdMismatchCount', counts.id_mismatch);
+  el('auditAmtMismatchCount', counts.amount_mismatch);
+  el('auditLockedCount', counts.locked);
+
+  const tbody = document.getElementById('auditTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = rows.map(inv=>{
+    const f = inv.fields;
+    const flags = getAuditFlags(inv);
+    const warnText = (inv.warnings||[]).slice(0,4).join('；');
+    const statusBadge = flags.locked ? `<span class="badge badge-success">已鎖定</span>` :
+                        (inv.status==='duplicate' ? `<span class="badge badge-warning">疑似重複</span>` :
+                        (inv.status==='warning' ? `<span class="badge badge-danger">需確認</span>` :
+                        `<span class="badge badge-info">${escapeHtml(inv.status||'')}</span>`));
+    return `
+      <tr>
+        <td><input type="checkbox" class="audit-select" data-id="${inv.id}" style="cursor:pointer; width:16px; height:16px;"></td>
+        <td><img class="thumb-img" data-fileid="${inv.fileId||''}" src="${placeholderThumbSvg(inv.fileId||inv.filename||'FILE')}" style="width:34px; height:48px; border-radius:6px; object-fit:cover;"></td>
+        <td>${escapeHtml(f.invoiceNo.value||'')}</td>
+        <td>${escapeHtml(f.date.value||'')}</td>
+        <td>${escapeHtml(f.buyerTaxId.value||'')}</td>
+        <td>${escapeHtml(f.sellerTaxId.value||'')}</td>
+        <td>${formatCurrency(f.amountUntaxed.value)}</td>
+        <td>${formatCurrency(f.tax.value)}</td>
+        <td><b>${formatCurrency(f.amountTotal.value)}</b></td>
+        <td title="${escapeHtml((inv.warnings||[]).join('\n'))}">${escapeHtml(warnText||'')}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <button class="btn-secondary" onclick="openInvoiceDetail('${inv.id}')">檢視</button>
+          <button class="btn-primary" onclick="lockSingleInvoice('${inv.id}')">鎖定</button>
+        </td>
+      </tr>`;
+  }).join('');
+  populateThumbnails();
+}
+
+function lockSingleInvoice(id){
+  lockInvoiceById(id);
+  saveInvoices(); updateStats(); renderTable(); renderAuditView();
+}
+
+function openInvoiceDetail(id){
+  switchTab('invoices');
+  setTimeout(()=>{
+    const row = document.querySelector(`tr[data-invoice-id="${id}"]`);
+    if (row){
+      row.scrollIntoView({ behavior:'smooth', block:'center' });
+      row.style.outline = '2px solid var(--accent)';
+      setTimeout(()=> row.style.outline = '', 1500);
+    }
+  }, 60);
+}
+
+function exportToExcel() {
+  alert('XLSX 匯出功能：可再接 SheetJS（離線）或改成 CSV。\n\n此版先聚焦在 PDF/QR/OCR/核對。');
+}
+
+// escape
+function escapeHtml(str){
+  return String(str||'')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#039;');
+}
+
+// resizable columns (keep your existing behavior)
+function setupResizableColumns() {
+  const headerRow = document.getElementById('headerRow');
+  const handles = headerRow.querySelectorAll('.resize-handle');
+  handles.forEach((handle) => {
+    let startX, startWidth;
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const th = handle.parentElement;
+      startX = e.pageX;
+      startWidth = th.offsetWidth;
+      const onMouseMove = (e) => {
+        const width = startWidth + (e.pageX - startX);
+        if (width > 40) th.style.width = width + 'px';
+      };
+      const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+  });
+}
+
+// Boot
+window.addEventListener('DOMContentLoaded', () => {
+  // inject category scope selector into modal (minimal DOM change)
+  const modal = document.getElementById('addCategoryModal');
+  if (modal && !document.getElementById('categoryScope')){
+    const fg = modal.querySelector('.modal-content');
+    const target = fg?.querySelector('.form-group:nth-child(2)'); // after name
+    const wrap = document.createElement('div');
+    wrap.className = 'form-group';
+    wrap.innerHTML = `
+      <label>儲存到資料庫</label>
+      <select id="categoryScope">
+        <option value="client">此客戶</option>
+        <option value="shared">共用</option>
+      </select>
+    `;
+    // insert after name group
+    const firstGroup = fg?.querySelector('.form-group');
+    if (firstGroup && firstGroup.parentElement){
+      firstGroup.parentElement.insertBefore(wrap, firstGroup.nextSibling);
+    }
+  }
+  init();
+});
+    </script>
+
+</body>
+
+</html>
