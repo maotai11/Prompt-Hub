@@ -1,2213 +1,1772 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能離線檔案整理工具</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); min-height: 100vh; color: #e0e0e0; }
-        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
-        h1 { text-align: center; padding: 20px; background: linear-gradient(90deg, #00d2ff, #3a7bd5, #f093fb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.2rem; text-shadow: 0 0 30px rgba(102, 126, 234, 0.3); }
-        .subtitle { text-align: center; color: #888; margin-bottom: 20px; font-size: 14px; }
-        
-        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
-        .btn-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
-        .btn-info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #1a1a2e; }
-        .btn-ai { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); color: white; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 175, 25, 0.4); } 50% { box-shadow: 0 0 0 10px rgba(245, 175, 25, 0); } }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        input[type="file"] { display: none; }
-        
-        .search-box { flex: 1; min-width: 200px; padding: 10px 15px; border: 2px solid #3a3a5a; border-radius: 8px; background: #1a1a2e; color: #e0e0e0; font-size: 14px; }
-        .search-box:focus { outline: none; border-color: #667eea; box-shadow: 0 0 10px rgba(102, 126, 234, 0.3); }
-        
-        .panels { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
-        .panel { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .panel h2 { font-size: 1.1rem; margin-bottom: 15px; color: #a0a0ff; border-bottom: 1px solid #3a3a5a; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        
-        .file-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .file-table th, .file-table td { padding: 10px; text-align: left; border-bottom: 1px solid #2a2a4a; }
-        .file-table th { background: rgba(102, 126, 234, 0.2); position: sticky; top: 0; z-index: 10; }
-        .file-table tr:hover { background: rgba(102, 126, 234, 0.1); }
-        .file-table input { width: 100%; padding: 6px 8px; border: 1px solid #3a3a5a; border-radius: 4px; background: #1a1a2e; color: #e0e0e0; font-size: 12px; }
-        .file-table input:focus { outline: none; border-color: #667eea; }
-        .table-container { max-height: 550px; overflow-y: auto; }
-        
-        .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; margin: 2px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-        .tag.tag-auto { background: linear-gradient(135deg, #f5af19, #f12711); }
-        
-        .rule-item { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); }
-        .rule-item input, .rule-item select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #3a3a5a; border-radius: 6px; background: #1a1a2e; color: #e0e0e0; font-size: 12px; }
-        .rule-item label { font-size: 12px; color: #a0a0a0; display: block; margin-top: 8px; }
-        .rule-item label:first-child { margin-top: 0; }
-        .rule-actions { display: flex; gap: 5px; margin-top: 10px; }
-        .rule-actions .btn { padding: 5px 10px; font-size: 11px; }
-        
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
-        .stat-card { background: rgba(102, 126, 234, 0.15); padding: 15px; border-radius: 10px; text-align: center; border: 1px solid rgba(102, 126, 234, 0.3); transition: all 0.3s; }
-        .stat-card:hover { transform: translateY(-3px); background: rgba(102, 126, 234, 0.25); }
-        .stat-card .number { font-size: 1.8rem; font-weight: bold; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .stat-card .label { font-size: 12px; color: #a0a0a0; margin-top: 5px; }
-        
-        .progress-bar { height: 6px; background: #2a2a4a; border-radius: 3px; margin: 10px 0; overflow: hidden; }
-        .progress-bar .fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2, #f093fb); transition: width 0.3s; }
-        
-        .checkbox-col { width: 30px; text-align: center !important; }
-        .type-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .type-pdf { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        .type-docx { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .type-xlsx { background: linear-gradient(135deg, #27ae60, #1e8449); }
-        .type-txt { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-        .type-html { background: linear-gradient(135deg, #f39c12, #d68910); }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 30px; border-radius: 16px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); }
-        .modal-content h3 { margin-bottom: 20px; color: #667eea; }
-        .modal-content pre { background: #0a0a1a; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
-        .close-btn { float: right; cursor: pointer; font-size: 28px; color: #a0a0a0; line-height: 1; }
-        .close-btn:hover { color: #fff; }
-        
-        .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid #667eea; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .preview-text { max-height: 60px; overflow: hidden; font-size: 11px; color: #666; cursor: pointer; transition: color 0.3s; line-height: 1.4; }
-        .preview-text:hover { color: #aaa; }
-        
-        .empty-state { text-align: center; padding: 60px 20px; color: #555; }
-        .empty-state svg { width: 100px; height: 100px; margin-bottom: 20px; opacity: 0.3; }
-        .empty-state p { margin-top: 10px; font-size: 14px; }
-        
-        .smart-section { background: linear-gradient(135deg, rgba(245, 175, 25, 0.1), rgba(241, 39, 17, 0.1)); border: 1px solid rgba(245, 175, 25, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 15px; }
-        .smart-section h3 { color: #f5af19; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-        .smart-options { display: flex; flex-wrap: wrap; gap: 8px; }
-        .smart-options label { display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; padding: 5px 10px; background: rgba(0,0,0,0.2); border-radius: 6px; transition: all 0.3s; }
-        .smart-options label:hover { background: rgba(245, 175, 25, 0.2); }
-        .smart-options input[type="checkbox"] { accent-color: #f5af19; }
-        
-        .ai-badge { background: linear-gradient(135deg, #f5af19, #f12711); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
-        
-        .filename-preview { font-size: 11px; color: #888; margin-top: 3px; word-break: break-all; }
-        
-        /* 副檔名篩選樣式 */
-        .ext-filter-section { background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 254, 0.1)); border: 1px solid rgba(79, 172, 254, 0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
-        .ext-filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
-        .ext-filter-header h3 { color: #4facfe; font-size: 14px; margin: 0; }
-        .ext-filter-actions { display: flex; gap: 8px; }
-        .btn-sm { padding: 6px 12px; font-size: 11px; }
-        .ext-filter-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .ext-filter-item { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(0,0,0,0.3); border-radius: 8px; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; user-select: none; }
-        .ext-filter-item:hover { background: rgba(79, 172, 254, 0.2); }
-        .ext-filter-item.selected { border-color: #4facfe; background: rgba(79, 172, 254, 0.15); }
-        .ext-filter-item input[type="checkbox"] { accent-color: #4facfe; width: 16px; height: 16px; cursor: pointer; }
-        .ext-filter-item .ext-name { font-weight: 600; text-transform: uppercase; font-size: 12px; }
-        .ext-filter-item .ext-count { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-size: 11px; color: #aaa; }
-        .ext-filter-item .ext-size { font-size: 10px; color: #888; }
-        .ext-filter-summary { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: #aaa; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .ext-priority-hint { font-size: 11px; color: #f5af19; }
-        
-        @media (max-width: 1200px) { .panels { grid-template-columns: 1fr; } }
-        
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #1a1a2e; }
-        ::-webkit-scrollbar-thumb { background: #3a3a5a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4a4a6a; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>離線薪資表分析與財務內控系統 v1.1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --primary: #1a56db;
+  --primary-light: #e1effe;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-600: #4b5563;
+  --gray-800: #1f2937;
+  --addon-bg: #fffbeb;
+  --addon-border: #f59e0b;
+  --summary-bg: #ecfdf5;
+  --summary-border: #10b981;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif; background: var(--gray-100); color: var(--gray-800); font-size: 14px; }
+.container { max-width: 1600px; margin: 0 auto; padding: 16px; }
+.header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 1.5rem; font-weight: 600; }
+.header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; }
+.card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; background: var(--gray-50); flex-wrap: wrap; gap: 8px; }
+.card-header h2 { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.card-body { padding: 20px; }
+.btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: #1e429f; }
+.btn-success { background: var(--success); color: white; }
+.btn-warning { background: var(--warning); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-outline { background: white; border: 1px solid var(--gray-300); color: var(--gray-600); }
+.btn-outline:hover { background: var(--gray-100); }
+.btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+.upload-zone { border: 2px dashed var(--gray-300); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--gray-50); }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: var(--primary-light); }
+.upload-zone input { display: none; }
+.upload-icon { font-size: 3rem; margin-bottom: 12px; }
+.tabs { display: flex; gap: 4px; padding: 8px; background: var(--gray-100); border-radius: 8px; flex-wrap: wrap; }
+.tab { padding: 8px 16px; border-radius: 6px; cursor: pointer; background: transparent; border: none; font-size: 0.9rem; transition: all 0.2s; }
+.tab:hover { background: white; }
+.tab.active { background: var(--primary); color: white; }
+.excel-container { overflow: auto; max-height: 70vh; border: 1px solid var(--gray-200); border-radius: 8px; }
+.excel-table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.excel-table th, .excel-table td { border: 1px solid #c0c0c0; padding: 6px 10px; text-align: left; white-space: nowrap; min-width: 80px; position: relative; }
+.excel-table th { background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%); font-weight: 600; position: sticky; top: 0; z-index: 10; }
+.excel-table .row-header { background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); font-weight: 600; text-align: center; min-width: 50px; position: sticky; left: 0; z-index: 5; }
+.excel-table .corner { position: sticky; left: 0; top: 0; z-index: 15; background: #e2e8f0; }
+.addon-row { background: var(--addon-bg) !important; }
+.addon-row td { border-color: var(--addon-border) !important; }
+.addon-badge { display: inline-block; background: var(--addon-border); color: white; font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+.summary-row { background: var(--summary-bg) !important; }
+.summary-row td { border-color: var(--summary-border) !important; font-weight: 600; }
+.summary-badge { display: inline-block; background: var(--summary-border); color: white; font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+.highlight-cell { background: #fef3c7 !important; box-shadow: inset 0 0 0 2px var(--warning); }
+.error-cell { background: #fee2e2 !important; box-shadow: inset 0 0 0 2px var(--danger); }
+.error-list { max-height: 300px; overflow-y: auto; }
+.error-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-bottom: 1px solid var(--gray-100); cursor: pointer; transition: background 0.2s; }
+.error-item:hover { background: var(--gray-50); }
+.error-coord { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-weight: 600; white-space: nowrap; }
+.error-coord.warning { background: var(--warning); }
+.error-desc { flex: 1; }
+.copy-btn { padding: 2px 8px; font-size: 11px; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.setting-group { background: var(--gray-50); padding: 16px; border-radius: 8px; }
+.setting-group h4 { margin-bottom: 12px; color: var(--gray-600); font-size: 0.9rem; }
+.form-row { margin-bottom: 12px; }
+.form-row label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--gray-600); }
+.form-row input, .form-row select { width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.9rem; }
+.form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+.checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; padding: 4px; }
+.checkbox-item { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border: 1px solid var(--gray-300); border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+.checkbox-item:hover { border-color: var(--primary); }
+.checkbox-item.checked { background: var(--primary-light); border-color: var(--primary); }
+.checkbox-item input { margin: 0; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+.modal-overlay.show { display: flex; }
+.modal { background: white; border-radius: 16px; max-width: 600px; width: 90%; max-height: 80vh; overflow: hidden; }
+.modal-header { padding: 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
+.modal-body { padding: 20px; overflow-y: auto; max-height: 60vh; }
+.modal-footer { padding: 16px 20px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 8px; }
+.mapping-table { width: 100%; border-collapse: collapse; }
+.mapping-table th, .mapping-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+.mapping-table select { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--gray-300); }
+.status-bar { display: flex; gap: 16px; padding: 12px 20px; background: var(--gray-800); color: white; border-radius: 8px; font-size: 0.85rem; flex-wrap: wrap; }
+.status-item { display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot.green { background: #10b981; }
+.status-dot.yellow { background: #f59e0b; }
+.status-dot.red { background: #ef4444; }
+.flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: 8px; }
+.gap-4 { gap: 16px; }
+.mt-2 { margin-top: 8px; }
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.text-sm { font-size: 0.85rem; }
+.text-gray { color: var(--gray-600); }
+.hidden { display: none !important; }
+.year-group { display: inline-block; margin-right: 8px; padding: 2px 6px; background: #dbeafe; border-radius: 4px; font-size: 12px; }
+.year-total { font-weight: bold; color: var(--primary); }
+@media print {
+  body { background: white; font-size: 11px; }
+  .no-print { display: none !important; }
+  .excel-container { max-height: none !important; overflow: visible !important; border: none !important; }
+  /* 移除 card 的 break-inside: avoid 以允許長表格跨頁，並開啟 overflow */
+  .card { box-shadow: none !important; break-inside: auto !important; overflow: visible !important; margin: 0 !important; border: none !important; }
+  .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+  
+  /* 強制標題列在每一頁重複出現 */
+  .excel-table { width: 100%; }
+  .excel-table thead { display: table-header-group; }
+  .excel-table tr { break-inside: avoid; page-break-inside: avoid; }
+  
+  /* 移除 sticky 定位，否則瀏覽器無法在第二頁重複標題 */
+  .excel-table th, .excel-table .row-header, .excel-table .corner { 
+    position: static !important; 
+    overflow: visible !important;
+  }
+  
+  /* 確保內容不被裁切 */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  
+  @page { margin: 1cm; size: auto; }
+}
+@media print and (orientation: landscape) {
+  @page { size: landscape; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🧠 智能離線檔案整理工具</h1>
-        <p class="subtitle">支援 PDF / Word / Excel / TXT / HTML 自動解析、智能打標、批次重命名</p>
-        
-        <div class="stats">
-            <div class="stat-card"><div class="number" id="totalFiles">0</div><div class="label">總檔案數</div></div>
-            <div class="stat-card"><div class="number" id="pdfCount">0</div><div class="label">PDF</div></div>
-            <div class="stat-card"><div class="number" id="docxCount">0</div><div class="label">Word</div></div>
-            <div class="stat-card"><div class="number" id="xlsxCount">0</div><div class="label">Excel</div></div>
-            <div class="stat-card"><div class="number" id="txtCount">0</div><div class="label">TXT/HTML</div></div>
-            <div class="stat-card"><div class="number" id="taggedCount">0</div><div class="label">已標記</div></div>
-            <div class="stat-card"><div class="number" id="renamedCount">0</div><div class="label">已重命名</div></div>
-        </div>
 
-        <div class="toolbar">
-            <label class="btn btn-primary">
-                📂 選擇資料夾
-                <input type="file" id="folderInput" webkitdirectory directory multiple>
-            </label>
-            <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜尋檔名、內容、標籤...">
-            <button class="btn btn-ai" id="smartAnalyzeBtn" disabled>🧠 智能分析</button>
-            <button class="btn btn-success" id="applyRulesBtn" disabled>🏷️ 套用規則</button>
-            <button class="btn btn-info" id="selectAllBtn">☑️ 全選</button>
-            <button class="btn btn-warning" id="exportBatBtn" disabled>📤 匯出 BAT</button>
-            <button class="btn btn-info" id="previewBatBtn" disabled>👁️ 預覽</button>
-        </div>
-
-        <div class="progress-bar"><div class="fill" id="progressFill" style="width: 0%"></div></div>
-        <div id="statusText" style="font-size: 12px; color: #888; margin-bottom: 15px; min-height: 18px;"></div>
-
-        <!-- 副檔名篩選區域 -->
-        <div id="extFilterSection" class="ext-filter-section" style="display:none;">
-            <div class="ext-filter-header">
-                <h3>📁 副檔名篩選</h3>
-                <div class="ext-filter-actions">
-                    <button class="btn btn-info btn-sm" id="extSelectAll">全選</button>
-                    <button class="btn btn-warning btn-sm" id="extDeselectAll">取消全選</button>
-                    <button class="btn btn-success btn-sm" id="extApplyFilter">✓ 套用篩選</button>
-                </div>
-            </div>
-            <div class="ext-filter-list" id="extFilterList"></div>
-            <div class="ext-filter-summary" id="extFilterSummary"></div>
-        </div>
-
-        <div class="panels">
-            <div class="panel">
-                <h2>📄 檔案清單 <span style="font-size:12px;color:#888;font-weight:normal;">(<span id="fileCountDisplay">0</span> 個)</span></h2>
-                <div class="table-container">
-                    <table class="file-table">
-                        <thead>
-                            <tr>
-                                <th class="checkbox-col"><input type="checkbox" id="checkAll"></th>
-                                <th style="width:70px">類型</th>
-                                <th style="width:200px">原始檔名</th>
-                                <th style="width:250px">建議檔名</th>
-                                <th style="width:150px">目標資料夾</th>
-                                <th>標籤</th>
-                            </tr>
-                        </thead>
-                        <tbody id="fileTableBody">
-                            <tr><td colspan="6" class="empty-state">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                                </svg>
-                                <div>請選擇資料夾以開始分析檔案</div>
-                                <p>支援 PDF、Word、Excel、TXT、HTML 格式</p>
-                            </td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="panel">
-                <h2>🧠 智能分析設定</h2>
-                <div class="smart-section">
-                    <h3>✨ 自動偵測項目 <button class="btn btn-success" id="addDetectItemBtn" style="padding:3px 10px;font-size:11px;margin-left:auto;">➕ 新增</button></h3>
-                    <div class="smart-options" id="builtinDetectOptions">
-                        <label><input type="checkbox" id="detectDate" checked> 日期</label>
-                        <label><input type="checkbox" id="detectCompany" checked> 公司名稱</label>
-                    </div>
-                    <div class="smart-options" id="documentTypeOptions" style="margin-top:8px;">
-                        <label><input type="checkbox" data-type="invoice" checked> 發票/收據</label>
-                        <label><input type="checkbox" data-type="contract" checked> 合約</label>
-                        <label><input type="checkbox" data-type="report" checked> 報告</label>
-                        <label><input type="checkbox" data-type="meeting" checked> 會議</label>
-                        <label><input type="checkbox" data-type="resume" checked> 履歷</label>
-                        <label><input type="checkbox" data-type="quotation" checked> 報價單</label>
-                        <label><input type="checkbox" data-type="financial" checked> 財務</label>
-                        <label><input type="checkbox" data-type="legal" checked> 法律</label>
-                    </div>
-                    <div id="customDetectItems" style="margin-top:10px;"></div>
-                </div>
-
-                <h2 style="margin-top:15px;">⚙️ 自訂規則</h2>
-                <div id="rulesContainer">
-                    <div class="rule-item">
-                        <label>關鍵字（逗號分隔）</label>
-                        <input type="text" class="rule-keyword" placeholder="例如：合約, contract, 協議">
-                        <label>標籤</label>
-                        <input type="text" class="rule-tag" placeholder="例如：合約文件">
-                        <label>目標資料夾</label>
-                        <input type="text" class="rule-folder" placeholder="例如：01_合約">
-                        <label>檔名格式</label>
-                        <input type="text" class="rule-format" placeholder="例如：[合約] {date}_{company}_{original}">
-                        <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
-                        <div class="rule-actions">
-                            <button class="btn btn-warning remove-rule">✖ 刪除</button>
-                        </div>
-                    </div>
-                </div>
-                <button class="btn btn-success" id="addRuleBtn" style="width:100%; margin-top:10px;">➕ 新增規則</button>
-                
-                <h2 style="margin-top: 20px;">💾 規則管理</h2>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-info" id="saveRulesBtn" style="flex:1;">💾 儲存</button>
-                    <button class="btn btn-primary" id="loadRulesBtn" style="flex:1;">📂 載入</button>
-                    <button class="btn btn-warning" id="clearRulesBtn" style="flex:1;">🗑️ 清除</button>
-                </div>
-                <input type="file" id="loadRulesInput" accept=".json" style="display:none">
-            </div>
-        </div>
+<div class="container">
+  <!-- Header -->
+  <div class="header no-print">
+    <div>
+      <h1>📊 離線薪資表分析與財務內控系統</h1>
+      <p class="text-sm" style="opacity:0.8;margin-top:4px;">File:// Offline Payroll Analyzer + Finance Review Team</p>
     </div>
-
-    <div class="modal" id="batPreviewModal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeBatPreview()">&times;</span>
-            <h3>📄 BAT 批次檔預覽</h3>
-            <pre id="batPreviewContent"></pre>
-            <div style="display:flex;gap:10px;margin-top:15px;">
-                <button class="btn btn-success" style="flex:1;" onclick="downloadBat()">⬇️ 下載 BAT 檔案</button>
-                <button class="btn btn-info" style="flex:1;" onclick="copyBat()">📋 複製內容</button>
-            </div>
-        </div>
+    <div class="flex gap-2">
+      <span class="badge">v1.2</span>
+      <span class="badge">🔒 離線模式</span>
     </div>
+  </div>
 
-    <div class="modal" id="contentModal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeContentModal()">&times;</span>
-            <h3 id="contentModalTitle">📄 檔案內容預覽</h3>
-            <pre id="contentPreview"></pre>
-        </div>
+  <!-- Status Bar -->
+  <div class="status-bar no-print mb-4">
+    <div class="status-item"><span class="status-dot green"></span> 離線運行中</div>
+    <div class="status-item" id="fileStatus"><span class="status-dot yellow"></span> 待上傳檔案</div>
+    <div class="status-item" id="sheetStatus"><span class="status-dot yellow"></span> 工作表: --</div>
+    <div class="status-item" id="errorStatus"><span class="status-dot green"></span> 錯誤: 0</div>
+  </div>
+
+  <!-- Upload Section -->
+  <div class="card no-print" id="uploadCard">
+    <div class="card-body">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".xlsx,.xls">
+        <div class="upload-icon">📁</div>
+        <h3>拖放 Excel 檔案至此處</h3>
+        <p class="text-gray mt-2">或點擊選擇檔案（支援 .xlsx, .xls）</p>
+        <p class="text-sm text-gray mt-2">⚠️ 所有資料僅在本機處理，絕不外傳</p>
+      </div>
     </div>
+  </div>
 
-    <div class="modal" id="addDetectModal">
-        <div class="modal-content" style="max-width:500px;">
-            <span class="close-btn" onclick="closeAddDetectModal()">&times;</span>
-            <h3>✨ 新增自訂偵測項目</h3>
-            <div class="rule-item" style="margin-top:15px;">
-                <label>項目名稱 *</label>
-                <input type="text" id="newDetectName" placeholder="例如：訂單">
-                <label>關鍵字（逗號分隔）*</label>
-                <input type="text" id="newDetectKeywords" placeholder="例如：訂單, order, 採購單, PO">
-                <label>標籤</label>
-                <input type="text" id="newDetectTag" placeholder="例如：訂單">
-                <label>目標資料夾</label>
-                <input type="text" id="newDetectFolder" placeholder="例如：09_訂單">
-            </div>
-            <div style="display:flex;gap:10px;margin-top:20px;">
-                <button class="btn btn-success" style="flex:1;" onclick="saveCustomDetectItem()">✅ 新增</button>
-                <button class="btn btn-warning" style="flex:1;" onclick="closeAddDetectModal()">❌ 取消</button>
-            </div>
-        </div>
+  <!-- Sheet Tabs -->
+  <div class="card hidden" id="sheetTabsCard">
+    <div class="card-header no-print">
+      <h2>📑 工作表選擇</h2>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-outline btn-sm" onclick="openMappingModal()">⚙️ 欄位映射</button>
+        <button class="btn btn-outline btn-sm" onclick="openSettingsModal()">🔧 後台設定</button>
+        <button class="btn btn-primary btn-sm" onclick="runAnalysis()">▶️ 執行分析</button>
+      </div>
     </div>
+    <div class="card-body">
+      <div class="tabs" id="sheetTabs"></div>
+    </div>
+  </div>
 
-    <script>
-    // ============ 智能文字提取器 ============
-    const TextExtractor = {
-        // 從二進位資料中提取可讀文字
-        extractReadableText(bytes) {
-            const chunks = [];
-            let currentChunk = '';
-            
-            for (let i = 0; i < bytes.length; i++) {
-                const byte = bytes[i];
-                // 可列印 ASCII 字元
-                if (byte >= 32 && byte <= 126) {
-                    currentChunk += String.fromCharCode(byte);
-                }
-                // 中文 UTF-8 (3 bytes: 0xE4-0xE9 開頭)
-                else if (byte >= 0xE4 && byte <= 0xE9 && i + 2 < bytes.length) {
-                    try {
-                        const char = new TextDecoder('utf-8').decode(bytes.slice(i, i + 3));
-                        if (char && !char.includes('�')) {
-                            currentChunk += char;
-                            i += 2;
-                        }
-                    } catch (e) {}
-                }
-                // 空白/換行
-                else if (byte === 10 || byte === 13 || byte === 9) {
-                    if (currentChunk.length > 0) {
-                        currentChunk += ' ';
-                    }
-                }
-                // 其他字元 - 檢查是否需要斷開
-                else if (currentChunk.length > 2) {
-                    chunks.push(currentChunk.trim());
-                    currentChunk = '';
-                }
-            }
-            
-            if (currentChunk.length > 2) {
-                chunks.push(currentChunk.trim());
-            }
-            
-            // 過濾並連接有意義的文字片段
-            return chunks
-                .filter(c => c.length > 3 && !/^[^a-zA-Z\u4e00-\u9fff]*$/.test(c))
-                .join(' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-    };
+  <!-- Header Row Selection -->
+  <div class="card hidden" id="headerRowCard">
+    <div class="card-header">
+      <h2>📍 標題列偵測</h2>
+    </div>
+    <div class="card-body">
+      <div class="flex gap-4 flex-wrap" style="align-items:center;">
+        <label>標題列位置（列號）：</label>
+        <input type="number" id="headerRowInput" value="1" min="1" style="width:80px;">
+        <button class="btn btn-primary btn-sm" onclick="confirmHeaderRow()">確認標題列</button>
+        <span class="text-sm text-gray" id="headerPreview"></span>
+      </div>
+    </div>
+  </div>
 
-    // ============ PDF 解析器 ============
-    const PDFParser = {
-        async parse(arrayBuffer) {
-            try {
-                const bytes = new Uint8Array(arrayBuffer);
-                let extractedText = '';
-                
-                // 方法1: 尋找文字物件
-                const textObjects = this.findTextObjects(bytes);
-                if (textObjects.length > 0) {
-                    extractedText = textObjects.join(' ');
-                }
-                
-                // 方法2: 解壓縮流並提取
-                if (extractedText.length < 50) {
-                    const streamTexts = await this.extractFromStreams(bytes);
-                    if (streamTexts.length > extractedText.length) {
-                        extractedText = streamTexts;
-                    }
-                }
-                
-                // 方法3: 直接提取可讀文字
-                if (extractedText.length < 50) {
-                    extractedText = TextExtractor.extractReadableText(bytes);
-                }
-                
-                // 清理文字
-                extractedText = this.cleanText(extractedText);
-                
-                return extractedText || '[PDF 內容無法提取 - 可能是掃描檔或加密檔案]';
-            } catch (e) {
-                console.error('PDF parse error:', e);
-                return '[PDF 解析錯誤]';
-            }
-        },
-        
-        findTextObjects(bytes) {
-            const texts = [];
-            const str = new TextDecoder('latin1').decode(bytes);
-            
-            // 尋找 BT...ET 文字區塊
-            const btEtPattern = /BT\s*([\s\S]*?)\s*ET/g;
-            let match;
-            
-            while ((match = btEtPattern.exec(str)) !== null) {
-                const block = match[1];
-                
-                // 提取 Tj 操作符的文字
-                const tjMatches = block.matchAll(/\(([^)]*)\)\s*Tj/g);
-                for (const tj of tjMatches) {
-                    const decoded = this.decodeString(tj[1]);
-                    if (decoded) texts.push(decoded);
-                }
-                
-                // 提取 TJ 陣列中的文字
-                const tjArrayMatches = block.matchAll(/\[((?:[^[\]]*|\([^)]*\))*)\]\s*TJ/gi);
-                for (const tja of tjArrayMatches) {
-                    const innerMatches = tja[1].matchAll(/\(([^)]*)\)/g);
-                    for (const inner of innerMatches) {
-                        const decoded = this.decodeString(inner[1]);
-                        if (decoded) texts.push(decoded);
-                    }
-                }
-                
-                // 提取 ' 和 " 操作符
-                const quoteMatches = block.matchAll(/\(([^)]*)\)\s*['"]/g);
-                for (const qm of quoteMatches) {
-                    const decoded = this.decodeString(qm[1]);
-                    if (decoded) texts.push(decoded);
-                }
-            }
-            
-            return texts;
-        },
-        
-        async extractFromStreams(bytes) {
-            const str = new TextDecoder('latin1').decode(bytes);
-            const texts = [];
-            
-            // 尋找 stream...endstream
-            const streamPattern = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
-            let match;
-            
-            while ((match = streamPattern.exec(str)) !== null) {
-                const streamData = match[1];
-                const streamBytes = new Uint8Array(streamData.length);
-                for (let i = 0; i < streamData.length; i++) {
-                    streamBytes[i] = streamData.charCodeAt(i);
-                }
-                
-                // 嘗試解壓縮 (FlateDecode)
-                try {
-                    if (typeof DecompressionStream !== 'undefined') {
-                        const decompressed = await this.inflate(streamBytes);
-                        if (decompressed) {
-                            const text = this.extractTextFromDecompressed(decompressed);
-                            if (text) texts.push(text);
-                        }
-                    }
-                } catch (e) {
-                    // 解壓縮失敗,嘗試直接提取
-                    const directText = TextExtractor.extractReadableText(streamBytes);
-                    if (directText.length > 10) texts.push(directText);
-                }
-            }
-            
-            return texts.join(' ');
-        },
-        
-        async inflate(data) {
-            try {
-                // 檢查 zlib header (78 01, 78 5E, 78 9C, 78 DA)
-                let streamData = data;
-                if (data[0] === 0x78) {
-                    streamData = data.slice(2); // 跳過 zlib header
-                }
-                
-                const ds = new DecompressionStream('deflate-raw');
-                const writer = ds.writable.getWriter();
-                writer.write(streamData);
-                writer.close();
-                
-                const reader = ds.readable.getReader();
-                const chunks = [];
-                
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    chunks.push(value);
-                }
-                
-                const totalLength = chunks.reduce((a, c) => a + c.length, 0);
-                const result = new Uint8Array(totalLength);
-                let offset = 0;
-                for (const chunk of chunks) {
-                    result.set(chunk, offset);
-                    offset += chunk.length;
-                }
-                
-                return result;
-            } catch (e) {
-                return null;
-            }
-        },
-        
-        extractTextFromDecompressed(bytes) {
-            const str = new TextDecoder('latin1').decode(bytes);
-            const texts = [];
-            
-            // 從解壓縮的內容中提取文字
-            const tjMatches = str.matchAll(/\(([^)]*)\)\s*Tj/g);
-            for (const tj of tjMatches) {
-                const decoded = this.decodeString(tj[1]);
-                if (decoded) texts.push(decoded);
-            }
-            
-            const tjArrayMatches = str.matchAll(/\[((?:[^[\]]*|\([^)]*\))*)\]\s*TJ/gi);
-            for (const tja of tjArrayMatches) {
-                const innerMatches = tja[1].matchAll(/\(([^)]*)\)/g);
-                for (const inner of innerMatches) {
-                    const decoded = this.decodeString(inner[1]);
-                    if (decoded) texts.push(decoded);
-                }
-            }
-            
-            if (texts.length === 0) {
-                // 備用: 提取可讀字元
-                return TextExtractor.extractReadableText(bytes);
-            }
-            
-            return texts.join(' ');
-        },
-        
-        decodeString(str) {
-            if (!str) return '';
-            
-            // 處理跳脫字元
-            let result = str
-                .replace(/\\n/g, '\n')
-                .replace(/\\r/g, '')
-                .replace(/\\t/g, ' ')
-                .replace(/\\\(/g, '(')
-                .replace(/\\\)/g, ')')
-                .replace(/\\\\/g, '\\');
-            
-            // 處理八進位跳脫 \nnn
-            result = result.replace(/\\([0-7]{1,3})/g, (match, oct) => {
-                return String.fromCharCode(parseInt(oct, 8));
-            });
-            
-            // 過濾控制字元
-            result = result.replace(/[\x00-\x1f]/g, ' ');
-            
-            return result.trim();
-        },
-        
-        cleanText(text) {
-            if (!text) return '';
-            
-            return text
-                .replace(/[\x00-\x1f]/g, ' ')  // 移除控制字元
-                .replace(/[^\u0020-\u007e\u00a0-\u00ff\u4e00-\u9fff\u3400-\u4dbf\uf000-\ufaff\n]/g, ' ')  // 保留常用字元
-                .replace(/\s+/g, ' ')  // 合併空白
-                .trim()
-                .substring(0, 8000);  // 限制長度
-        }
-    };
+  <!-- Sum Columns Selection -->
+  <div class="card hidden" id="sumColumnsCard">
+    <div class="card-header">
+      <h2>📊 加總與摘要設定</h2>
+    </div>
+    <div class="card-body">
+      <p class="text-sm text-gray mb-4">系統已自動預選金額欄位，請確認需要顯示「員工小計」與「底部摘要」的項目：</p>
+      <div style="max-height: 300px; overflow-y: auto;">
+        <table class="mapping-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="position:sticky;top:0;background:#f9fafb;">欄位名稱</th>
+              <th style="position:sticky;top:0;background:#f9fafb;text-align:center;">
+                <label style="cursor:pointer;"><input type="checkbox" id="chkAllSubtotal" onchange="toggleAllCol(this, 'subtotal')"> 員工小計</label>
+              </th>
+              <th style="position:sticky;top:0;background:#f9fafb;text-align:center;">
+                <label style="cursor:pointer;"><input type="checkbox" id="chkAllSummary" onchange="toggleAllCol(this, 'summary')"> 底部摘要</label>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="sumColumnsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-    // ============ DOCX 解析器 ============
-    const DOCXParser = {
-        async parse(arrayBuffer) {
-            try {
-                const zip = await this.unzip(new Uint8Array(arrayBuffer));
-                
-                // 優先讀取 document.xml
-                let documentContent = zip['word/document.xml'];
-                if (!documentContent) {
-                    // 嘗試其他可能的路徑
-                    for (const key of Object.keys(zip)) {
-                        if (key.includes('document') && key.endsWith('.xml')) {
-                            documentContent = zip[key];
-                            break;
-                        }
-                    }
-                }
-                
-                if (!documentContent) {
-                    return '[無法找到 Word 文件內容]';
-                }
-                
-                const decoder = new TextDecoder('utf-8');
-                const xmlContent = decoder.decode(documentContent);
-                
-                // 提取所有文字節點
-                let text = '';
-                
-                // 移除 XML 標籤但保留段落結構
-                text = xmlContent
-                    .replace(/<w:p[^>]*>/g, '\n')  // 段落換行
-                    .replace(/<w:br[^>]*>/g, '\n')  // 換行符
-                    .replace(/<w:tab[^>]*>/g, '\t')  // Tab
-                    .replace(/<w:t[^>]*>([^<]*)<\/w:t>/g, '$1')  // 提取文字
-                    .replace(/<[^>]+>/g, '')  // 移除其他標籤
-                    .replace(/&lt;/g, '<')
-                    .replace(/&gt;/g, '>')
-                    .replace(/&amp;/g, '&')
-                    .replace(/&quot;/g, '"')
-                    .replace(/&apos;/g, "'")
-                    .replace(/&#(\d+);/g, (m, code) => String.fromCharCode(code))
-                    .replace(/\n\s*\n/g, '\n')  // 移除多餘空行
-                    .replace(/\s+/g, ' ')
-                    .trim();
-                
-                return text.substring(0, 8000) || '[Word 文件為空]';
-            } catch (e) {
-                console.error('DOCX parse error:', e);
-                return '[DOCX 解析錯誤: ' + e.message + ']';
-            }
-        },
+  <!-- Excel Display -->
+  <div class="card hidden" id="excelCard">
+    <div class="card-header">
+      <h2>📋 工作表內容</h2>
+      <span class="text-sm text-gray" id="excelInfo"></span>
+    </div>
+    <div class="excel-container" id="excelContainer"></div>
+  </div>
+
+  <!-- Error List -->
+  <div class="card hidden" id="errorCard">
+    <div class="card-header">
+      <h2>⚠️ 核對錯誤清單</h2>
+      <div class="flex gap-2">
+        <button class="btn btn-outline btn-sm" onclick="copyAllErrors()">📋 複製全部</button>
+        <button class="btn btn-outline btn-sm" onclick="exportErrors()">📥 匯出</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="error-list" id="errorList"></div>
+    </div>
+  </div>
+
+  <!-- Print Controls -->
+  <div class="card hidden no-print" id="printCard">
+    <div class="card-header">
+      <h2>🖨️ 列印/輸出</h2>
+    </div>
+    <div class="card-body">
+      <div class="flex gap-4 flex-wrap" style="align-items:center;">
+        <div class="setting-group" style="padding:8px; display:flex; gap:12px; align-items:center; background:#f3f4f6;">
+          <label>紙張方向：</label>
+          <select id="printOrientation" style="padding:4px; border-radius:4px;">
+            <option value="portrait">直式</option>
+            <option value="landscape">橫式</option>
+          </select>
+          
+          <label style="margin-left:8px; display:flex; align-items:center; gap:4px; cursor:pointer;">
+            <input type="checkbox" id="printFitWidth" checked> 自動縮放至頁寬
+          </label>
+
+          <label style="margin-left:8px;">縮放比例:</label>
+          <input type="number" id="printScale" value="100" min="50" max="200" step="5" style="width:60px; padding:4px;">%
+        </div>
+
+        <button class="btn btn-primary" onclick="printReport()">🖨️ 列印報表</button>
+        <button class="btn btn-success" id="btnExportPdf" onclick="exportToPDF()">📥 匯出 PDF</button>
+      </div>
+      <p class="text-sm text-gray mt-2">💡 提示：若預覽時邊框被切掉，請勾選「自動縮放」或調整縮放比例。</p>
+    </div>
+  </div>
+</div>
+
+<!-- Mapping Modal -->
+<div class="modal-overlay" id="mappingModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚙️ 欄位映射設定</h3>
+      <button class="btn btn-outline btn-sm" onclick="closeMappingModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-sm text-gray mb-4">請選擇對應的欄位（僅允許精準欄名匹配）</p>
+      <table class="mapping-table">
+        <thead>
+          <tr><th>系統欄位</th><th>Excel欄位</th></tr>
+        </thead>
+        <tbody id="mappingTableBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMappingModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveMapping()">儲存映射</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal" style="max-width:800px;">
+    <div class="modal-header">
+      <h3>🔧 後台設定</h3>
+      <button class="btn btn-outline btn-sm" onclick="closeSettingsModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-grid">
+        <div class="setting-group">
+          <h4>📋 核對規則</h4>
+          <div class="form-row">
+            <label>薪資異常門檻（%）</label>
+            <input type="number" id="salaryThreshold" value="20">
+          </div>
+          <div class="form-row">
+            <label>自提誤差容許</label>
+            <input type="number" id="selfContributionTolerance" value="0">
+          </div>
+          <div class="form-row" style="border-top:1px dashed #ccc; padding-top:12px; margin-top:12px;">
+            <label>所得稅檢查門檻 (薪資 > X)</label>
+            <input type="number" id="taxCheckThreshold" value="88501">
+          </div>
+          <div class="form-row">
+            <label>所得稅率 (%)</label>
+            <input type="number" id="taxRate" value="5">
+          </div>
+          <div class="form-row">
+            <label>核對規則: 姓名與ID一致性</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item"><input type="checkbox" id="checkIdUnique" checked> 檢查 ID 對應多個姓名</label>
+              <label class="checkbox-item"><input type="checkbox" id="checkNameUnique" checked> 檢查 姓名 對應多個 ID</label>
+            </div>
+          </div>
+        </div>
+        <div class="setting-group">
+          <h4>👤 員工識別</h4>
+          <div class="form-row">
+            <label>主要識別欄位</label>
+            <select id="primaryIdField">
+              <option value="idNumber">身分證字號</option>
+              <option value="employeeId">員工編號</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>次要識別欄位</label>
+            <select id="secondaryIdField">
+              <option value="name">姓名</option>
+              <option value="none">無</option>
+            </select>
+          </div>
+        </div>
+        <div class="setting-group">
+          <h4>📊 加總與年度設定</h4>
+          <div class="form-row">
+            <label>目標年度 (n, n-1)</label>
+            <input type="text" id="targetYears" placeholder="例如: 113,114 (留空則自動抓取所有)">
+            <p class="text-sm text-gray" style="margin-top:2px;">* 僅用於篩選特定年度顯示，留空則顯示全部</p>
+          </div>
+          <div class="form-row">
+            <label>分組方式</label>
+            <select id="groupByMethod">
+              <option value="year">依年度（民國年）</option>
+              <option value="yearMonth">依年月</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>顯示小計</label>
+            <select id="showSubtotal">
+              <option value="yes">是</option>
+              <option value="no">否</option>
+            </select>
+          </div>
+        </div>
+        <div class="setting-group">
+          <h4>📄 規則版本</h4>
+          <div class="form-row">
+            <label>規則版本號</label>
+            <input type="text" id="ruleVersion" value="1.1.0" readonly>
+          </div>
+          <div class="form-row">
+            <label>最後更新</label>
+            <input type="text" id="lastUpdate" readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="resetSettings()">重置預設</button>
+      <button class="btn btn-outline" onclick="closeSettingsModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveSettings()">儲存設定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 簡化版 Excel 解析器 ==========
+class SimpleXLSX {
+  constructor() {
+    this.sheets = {};
+    this.sheetNames = [];
+  }
+
+  async read(data) {
+    const zip = await this.unzip(data);
+    const workbook = { SheetNames: [], Sheets: {} };
+    
+    const wbXml = await this.getXmlFromZip(zip, 'xl/workbook.xml');
+    const sheetNodes = wbXml.querySelectorAll('sheet');
+    
+    sheetNodes.forEach((node, idx) => {
+      const name = node.getAttribute('name');
+      workbook.SheetNames.push(name);
+    });
+
+    let sharedStrings = [];
+    try {
+      const ssXml = await this.getXmlFromZip(zip, 'xl/sharedStrings.xml');
+      const siNodes = ssXml.querySelectorAll('si');
+      siNodes.forEach(si => {
+        const tNodes = si.querySelectorAll('t');
+        let text = '';
+        tNodes.forEach(t => text += t.textContent);
+        sharedStrings.push(text);
+      });
+    } catch (e) {}
+
+    for (let i = 1; i <= workbook.SheetNames.length; i++) {
+      try {
+        const sheetXml = await this.getXmlFromZip(zip, `xl/worksheets/sheet${i}.xml`);
+        const sheetData = this.parseSheet(sheetXml, sharedStrings);
+        workbook.Sheets[workbook.SheetNames[i-1]] = sheetData;
+      } catch (e) {
+        console.warn(`無法讀取 sheet${i}:`, e);
+      }
+    }
+
+    return workbook;
+  }
+
+  async unzip(data) {
+    const uint8 = new Uint8Array(data);
+    const files = {};
+    let pos = 0;
+
+    while (pos < uint8.length - 4) {
+      const sig = uint8[pos] | (uint8[pos+1]<<8) | (uint8[pos+2]<<16) | (uint8[pos+3]<<24);
+      
+      if (sig === 0x04034b50) {
+        const method = uint8[pos+8] | (uint8[pos+9]<<8);
+        const compSize = uint8[pos+18] | (uint8[pos+19]<<8) | (uint8[pos+20]<<16) | (uint8[pos+21]<<24);
+        const nameLen = uint8[pos+26] | (uint8[pos+27]<<8);
+        const extraLen = uint8[pos+28] | (uint8[pos+29]<<8);
         
-        async unzip(bytes) {
-            const files = {};
-            let pos = 0;
-            
-            while (pos < bytes.length - 4) {
-                // 本地檔案頭標記 0x04034B50
-                if (bytes[pos] === 0x50 && bytes[pos+1] === 0x4B && 
-                    bytes[pos+2] === 0x03 && bytes[pos+3] === 0x04) {
-                    
-                    const view = new DataView(bytes.buffer, bytes.byteOffset + pos);
-                    const compressionMethod = view.getUint16(8, true);
-                    const compressedSize = view.getUint32(18, true);
-                    const fileNameLength = view.getUint16(26, true);
-                    const extraLength = view.getUint16(28, true);
-                    
-                    const fileName = new TextDecoder().decode(
-                        bytes.slice(pos + 30, pos + 30 + fileNameLength)
-                    );
-                    
-                    const dataStart = pos + 30 + fileNameLength + extraLength;
-                    const dataEnd = dataStart + compressedSize;
-                    
-                    if (dataEnd <= bytes.length) {
-                        const fileData = bytes.slice(dataStart, dataEnd);
-                        
-                        if (compressionMethod === 0) {
-                            // 無壓縮
-                            files[fileName] = fileData;
-                        } else if (compressionMethod === 8) {
-                            // Deflate 壓縮
-                            try {
-                                const decompressed = await this.inflateRaw(fileData);
-                                files[fileName] = decompressed;
-                            } catch (e) {
-                                files[fileName] = fileData;
-                            }
-                        }
-                        
-                        pos = dataEnd;
-                    } else {
-                        break;
-                    }
-                } else {
-                    pos++;
-                }
-            }
-            
-            return files;
-        },
+        const fileName = new TextDecoder().decode(uint8.slice(pos+30, pos+30+nameLen));
+        const dataStart = pos + 30 + nameLen + extraLen;
+        const compData = uint8.slice(dataStart, dataStart + compSize);
         
-        async inflateRaw(data) {
+        if (method === 0) {
+          files[fileName] = compData;
+        } else if (method === 8) {
+          try {
             const ds = new DecompressionStream('deflate-raw');
             const writer = ds.writable.getWriter();
-            writer.write(data);
+            const reader = ds.readable.getReader();
+            writer.write(compData);
             writer.close();
             
-            const reader = ds.readable.getReader();
             const chunks = [];
-            
             while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                chunks.push(value);
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
             }
-            
-            const totalLength = chunks.reduce((a, c) => a + c.length, 0);
-            const result = new Uint8Array(totalLength);
+            const totalLen = chunks.reduce((a, c) => a + c.length, 0);
+            const result = new Uint8Array(totalLen);
             let offset = 0;
             for (const chunk of chunks) {
-                result.set(chunk, offset);
-                offset += chunk.length;
+              result.set(chunk, offset);
+              offset += chunk.length;
             }
-            
-            return result;
-        }
-    };
-
-    // ============ XLSX 解析器 ============
-    const XLSXParser = {
-        async parse(arrayBuffer) {
-            try {
-                const zip = await DOCXParser.unzip(new Uint8Array(arrayBuffer));
-                let allText = [];
-                
-                // 讀取共享字串
-                const sharedStrings = [];
-                const ssFile = zip['xl/sharedStrings.xml'];
-                if (ssFile) {
-                    const decoder = new TextDecoder('utf-8');
-                    const ssXml = decoder.decode(ssFile);
-                    
-                    // 提取 <t> 標籤中的文字
-                    const tMatches = ssXml.matchAll(/<t[^>]*>([^<]*)<\/t>/g);
-                    for (const m of tMatches) {
-                        let text = m[1]
-                            .replace(/&lt;/g, '<')
-                            .replace(/&gt;/g, '>')
-                            .replace(/&amp;/g, '&')
-                            .replace(/&quot;/g, '"');
-                        sharedStrings.push(text);
-                    }
-                }
-                
-                // 讀取所有工作表
-                for (const [name, content] of Object.entries(zip)) {
-                    if (name.match(/xl\/worksheets\/sheet\d+\.xml/)) {
-                        const decoder = new TextDecoder('utf-8');
-                        const sheetXml = decoder.decode(content);
-                        
-                        // 提取儲存格
-                        const cellPattern = /<c[^>]*>([\s\S]*?)<\/c>/g;
-                        let cellMatch;
-                        
-                        while ((cellMatch = cellPattern.exec(sheetXml)) !== null) {
-                            const cellTag = cellMatch[0];
-                            const cellContent = cellMatch[1];
-                            
-                            // 取得值
-                            const valueMatch = cellContent.match(/<v>([^<]*)<\/v>/);
-                            if (valueMatch) {
-                                const value = valueMatch[1];
-                                
-                                // 檢查是否是共享字串
-                                if (cellTag.includes('t="s"')) {
-                                    const idx = parseInt(value);
-                                    if (sharedStrings[idx]) {
-                                        allText.push(sharedStrings[idx]);
-                                    }
-                                } else if (cellTag.includes('t="inlineStr"')) {
-                                    // 內聯字串
-                                    const tMatch = cellContent.match(/<t[^>]*>([^<]*)<\/t>/);
-                                    if (tMatch) allText.push(tMatch[1]);
-                                } else {
-                                    allText.push(value);
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                const result = allText.join(' ').replace(/\s+/g, ' ').trim();
-                return result.substring(0, 8000) || '[Excel 工作表為空]';
-            } catch (e) {
-                console.error('XLSX parse error:', e);
-                return '[XLSX 解析錯誤: ' + e.message + ']';
-            }
-        }
-    };
-
-    // ============ 智能分析引擎 ============
-    const SmartAnalyzer = {
-        // 日期模式
-        datePatterns: [
-            /(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})[日號]?/g,
-            /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g,
-            /(\d{4})(\d{2})(\d{2})/g,
-            /(民國)?(\d{2,3})年(\d{1,2})月(\d{1,2})日/g
-        ],
-        
-        // 公司名稱模式
-        companyPatterns: [
-            /([^\s,，。]{2,15})(股份有限公司|有限公司|公司|企業|集團|Corp\.?|Inc\.?|Ltd\.?|LLC)/gi,
-            /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\s+(Corporation|Company|Inc|Ltd)/gi
-        ],
-        
-        // 文件類型關鍵字
-        documentTypes: {
-            invoice: {
-                keywords: ['發票', '統一發票', 'invoice', '收據', 'receipt', '電子發票', '三聯式'],
-                folder: '01_發票收據',
-                tag: '發票'
-            },
-            contract: {
-                keywords: ['合約', '契約', 'contract', 'agreement', '協議書', '合同', '服務條款'],
-                folder: '02_合約文件',
-                tag: '合約'
-            },
-            report: {
-                keywords: ['報告', 'report', '分析', 'analysis', '研究', '調查', '評估', '報表'],
-                folder: '03_報告文件',
-                tag: '報告'
-            },
-            meeting: {
-                keywords: ['會議', 'meeting', '議程', 'agenda', '紀錄', 'minutes', '討論'],
-                folder: '04_會議資料',
-                tag: '會議'
-            },
-            resume: {
-                keywords: ['履歷', '簡歷', 'resume', 'cv', 'curriculum vitae', '個人資料', '工作經歷'],
-                folder: '05_履歷資料',
-                tag: '履歷'
-            },
-            quotation: {
-                keywords: ['報價', '報價單', 'quotation', 'quote', '估價', '價目', 'proposal'],
-                folder: '06_報價單',
-                tag: '報價'
-            },
-            financial: {
-                keywords: ['財務', '財報', '資產負債', '損益', '現金流', 'financial', 'balance sheet'],
-                folder: '07_財務資料',
-                tag: '財務'
-            },
-            legal: {
-                keywords: ['法律', '律師', '訴訟', '判決', '法規', 'legal', 'law', '條例'],
-                folder: '08_法律文件',
-                tag: '法律'
-            }
-        },
-        
-        analyze(file) {
-            const result = {
-                dates: [],
-                companies: [],
-                documentType: null,
-                tags: [],
-                suggestedName: file.name,
-                suggestedFolder: ''
-            };
-            
-            const searchText = (file.name + ' ' + file.content).toLowerCase();
-            const originalText = file.name + ' ' + file.content;
-            
-            // 提取日期
-            if (document.getElementById('detectDate')?.checked) {
-                for (const pattern of this.datePatterns) {
-                    const matches = originalText.matchAll(new RegExp(pattern.source, pattern.flags));
-                    for (const match of matches) {
-                        let dateStr = this.normalizeDate(match);
-                        if (dateStr && !result.dates.includes(dateStr)) {
-                            result.dates.push(dateStr);
-                        }
-                    }
-                }
-            }
-            
-            // 提取公司名稱
-            if (document.getElementById('detectCompany')?.checked) {
-                for (const pattern of this.companyPatterns) {
-                    const matches = originalText.matchAll(new RegExp(pattern.source, pattern.flags));
-                    for (const match of matches) {
-                        let company = match[0].trim();
-                        // 過濾太短或太長的
-                        if (company.length >= 4 && company.length <= 30) {
-                            if (!result.companies.some(c => c.includes(company) || company.includes(c))) {
-                                result.companies.push(company);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // 識別文件類型
-            for (const [type, config] of Object.entries(this.documentTypes)) {
-                const checkboxId = 'detect' + type.charAt(0).toUpperCase() + type.slice(1);
-                const checkbox = document.getElementById(checkboxId);
-                
-                if (checkbox && !checkbox.checked) continue;
-                
-                const matched = config.keywords.some(kw => searchText.includes(kw.toLowerCase()));
-                if (matched) {
-                    if (!result.documentType) {
-                        result.documentType = type;
-                        result.suggestedFolder = config.folder;
-                    }
-                    if (!result.tags.includes(config.tag)) {
-                        result.tags.push(config.tag);
-                    }
-                }
-            }
-            
-            // 生成建議檔名
-            result.suggestedName = this.generateFileName(file, result);
-            
-            return result;
-        },
-        
-        normalizeDate(match) {
-            try {
-                const str = match[0];
-                let year, month, day;
-                
-                // 民國年
-                if (str.includes('民國') || /^\d{2,3}年/.test(str)) {
-                    const m = str.match(/(\d{2,3})年(\d{1,2})月(\d{1,2})/);
-                    if (m) {
-                        year = parseInt(m[1]) + (parseInt(m[1]) < 200 ? 1911 : 0);
-                        month = m[2].padStart(2, '0');
-                        day = m[3].padStart(2, '0');
-                    }
-                }
-                // 西元年
-                else if (match[1] && match[1].length === 4) {
-                    year = match[1];
-                    month = (match[2] || '01').padStart(2, '0');
-                    day = (match[3] || '01').padStart(2, '0');
-                }
-                // 其他格式
-                else if (match[3] && match[3].length === 4) {
-                    year = match[3];
-                    month = (match[1] || '01').padStart(2, '0');
-                    day = (match[2] || '01').padStart(2, '0');
-                }
-                // YYYYMMDD
-                else if (/^\d{8}$/.test(str)) {
-                    year = str.substring(0, 4);
-                    month = str.substring(4, 6);
-                    day = str.substring(6, 8);
-                }
-                
-                if (year && parseInt(year) >= 1990 && parseInt(year) <= 2100) {
-                    return `${year}${month}${day}`;
-                }
-            } catch (e) {}
-            return null;
-        },
-        
-        generateFileName(file, analysis) {
-            const ext = '.' + file.name.split('.').pop();
-            const baseName = file.name.replace(/\.[^.]+$/, '');
-            
-            let parts = [];
-            
-            // 添加文件類型標籤
-            if (analysis.documentType) {
-                const typeConfig = this.documentTypes[analysis.documentType];
-                parts.push(`[${typeConfig.tag}]`);
-            }
-            
-            // 添加日期
-            if (analysis.dates.length > 0) {
-                parts.push(analysis.dates[0]);
-            }
-            
-            // 添加公司名稱（簡化）
-            if (analysis.companies.length > 0) {
-                let company = analysis.companies[0];
-                // 簡化公司名稱
-                company = company.replace(/(股份有限公司|有限公司)$/, '');
-                if (company.length > 10) company = company.substring(0, 10);
-                parts.push(company);
-            }
-            
-            // 如果沒有提取到任何資訊，保留原檔名
-            if (parts.length === 0) {
-                return file.name;
-            }
-            
-            // 添加原始檔名的簡化版本
-            let shortName = baseName
-                .replace(/[\[\]【】\(\)（）]/g, '')
-                .replace(/\s+/g, '_')
-                .substring(0, 20);
-            
-            if (shortName && !parts.some(p => shortName.includes(p) || p.includes(shortName))) {
-                parts.push(shortName);
-            }
-            
-            return parts.join('_') + ext;
-        }
-    };
-
-    // ============ 主程式 ============
-    let files = [];
-    let filteredFiles = [];
-    let generatedBat = '';
-
-    // DOM 元素
-    const folderInput = document.getElementById('folderInput');
-    const searchBox = document.getElementById('searchBox');
-    const fileTableBody = document.getElementById('fileTableBody');
-    const applyRulesBtn = document.getElementById('applyRulesBtn');
-    const exportBatBtn = document.getElementById('exportBatBtn');
-    const previewBatBtn = document.getElementById('previewBatBtn');
-    const smartAnalyzeBtn = document.getElementById('smartAnalyzeBtn');
-    const addRuleBtn = document.getElementById('addRuleBtn');
-    const rulesContainer = document.getElementById('rulesContainer');
-    const progressFill = document.getElementById('progressFill');
-    const statusText = document.getElementById('statusText');
-    const checkAll = document.getElementById('checkAll');
-
-    // 選擇資料夾
-    folderInput.addEventListener('change', async (e) => {
-        const fileList = Array.from(e.target.files);
-        const supportedTypes = ['.pdf', '.docx', '.xlsx', '.xls', '.txt', '.html', '.htm', '.xml', '.csv'];
-        
-        files = fileList.filter(f => {
-            const ext = '.' + f.name.split('.').pop().toLowerCase();
-            return supportedTypes.includes(ext) && !f.name.startsWith('.');
-        }).map(f => ({
-            file: f,
-            name: f.name,
-            path: f.webkitRelativePath,
-            type: f.name.split('.').pop().toLowerCase(),
-            size: f.size,
-            content: '',
-            suggestedName: f.name,
-            suggestedFolder: '',
-            tags: [],
-            selected: true,
-            analyzed: false
-        }));
-
-        if (files.length === 0) {
-            statusText.textContent = '未找到支援的檔案格式';
-            return;
-        }
-
-        updateStats();
-        
-        // 解析檔案內容
-        statusText.innerHTML = '<span class="loading"></span> 正在解析檔案內容...';
-        
-        for (let i = 0; i < files.length; i++) {
-            const f = files[i];
-            progressFill.style.width = ((i + 1) / files.length * 100) + '%';
-            statusText.innerHTML = `<span class="loading"></span> 解析中: ${f.name} (${i + 1}/${files.length})`;
-            
-            try {
-                const arrayBuffer = await f.file.arrayBuffer();
-                
-                switch (f.type) {
-                    case 'pdf':
-                        f.content = await PDFParser.parse(arrayBuffer);
-                        break;
-                    case 'docx':
-                        f.content = await DOCXParser.parse(arrayBuffer);
-                        break;
-                    case 'xlsx':
-                    case 'xls':
-                        f.content = await XLSXParser.parse(arrayBuffer);
-                        break;
-                    case 'txt':
-                    case 'html':
-                    case 'htm':
-                    case 'xml':
-                    case 'csv':
-                        // 嘗試不同編碼
-                        let text = '';
-                        try {
-                            text = new TextDecoder('utf-8').decode(arrayBuffer);
-                            if (text.includes('�')) {
-                                text = new TextDecoder('big5').decode(arrayBuffer);
-                            }
-                        } catch (e) {
-                            text = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuffer);
-                        }
-                        // 移除 HTML 標籤
-                        if (f.type === 'html' || f.type === 'htm') {
-                            text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                                       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-                                       .replace(/<[^>]+>/g, ' ')
-                                       .replace(/&nbsp;/g, ' ')
-                                       .replace(/\s+/g, ' ');
-                        }
-                        f.content = text.substring(0, 8000);
-                        break;
-                }
-            } catch (err) {
-                console.error('Parse error for', f.name, err);
-                f.content = '[解析錯誤: ' + err.message + ']';
-            }
-            
-            // 讓 UI 有機會更新
-            if (i % 5 === 0) {
-                await new Promise(r => setTimeout(r, 10));
-            }
+            files[fileName] = result;
+          } catch (e) {
+            files[fileName] = compData;
+          }
         }
         
-        statusText.textContent = `✅ 完成！已載入 ${files.length} 個檔案，可開始智能分析`;
-        progressFill.style.width = '100%';
-        
-        filteredFiles = [...files];
-        renderTable();
-        
-        smartAnalyzeBtn.disabled = false;
-        applyRulesBtn.disabled = false;
-        exportBatBtn.disabled = false;
-        previewBatBtn.disabled = false;
-    });
-
-    // 智能分析
-    smartAnalyzeBtn.addEventListener('click', async () => {
-        statusText.innerHTML = '<span class="loading"></span> 正在進行智能分析...';
-        smartAnalyzeBtn.disabled = true;
-        
-        await new Promise(r => setTimeout(r, 50));
-        
-        for (let i = 0; i < files.length; i++) {
-            const f = files[i];
-            const analysis = SmartAnalyzer.analyze(f);
-            
-            f.tags = [...new Set([...f.tags, ...analysis.tags])];
-            
-            if (analysis.suggestedName !== f.name) {
-                f.suggestedName = analysis.suggestedName;
-            }
-            
-            if (analysis.suggestedFolder && !f.suggestedFolder) {
-                f.suggestedFolder = analysis.suggestedFolder;
-            }
-            
-            f.analyzed = true;
-            f.analysisResult = analysis;
-            
-            progressFill.style.width = ((i + 1) / files.length * 100) + '%';
-        }
-        
-        filteredFiles = [...files];
-        renderTable();
-        updateStats();
-        
-        statusText.textContent = `🧠 智能分析完成！已處理 ${files.length} 個檔案`;
-        smartAnalyzeBtn.disabled = false;
-    });
-
-    // 搜尋功能
-    searchBox.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        if (!query) {
-            filteredFiles = [...files];
-        } else {
-            filteredFiles = files.filter(f => 
-                f.name.toLowerCase().includes(query) ||
-                f.content.toLowerCase().includes(query) ||
-                f.tags.some(t => t.toLowerCase().includes(query)) ||
-                f.suggestedName.toLowerCase().includes(query) ||
-                f.suggestedFolder.toLowerCase().includes(query)
-            );
-        }
-        renderTable();
-    });
-
-    // 渲染表格
-    function renderTable() {
-        if (filteredFiles.length === 0) {
-            fileTableBody.innerHTML = `<tr><td colspan="6" class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                </svg>
-                <div>${files.length > 0 ? '沒有找到符合的檔案' : '請選擇資料夾以開始分析'}</div>
-            </td></tr>`;
-            document.getElementById('fileCountDisplay').textContent = '0';
-            return;
-        }
-
-        fileTableBody.innerHTML = filteredFiles.map((f, idx) => {
-            const globalIdx = files.indexOf(f);
-            const previewText = f.content.substring(0, 80).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const isRenamed = f.suggestedName !== f.name;
-            
-            return `
-            <tr data-idx="${globalIdx}">
-                <td class="checkbox-col">
-                    <input type="checkbox" class="file-check" ${f.selected ? 'checked' : ''}>
-                </td>
-                <td>
-                    <span class="type-badge type-${f.type}">${f.type}</span>
-                </td>
-                <td title="${escapeHtml(f.path)}">
-                    <div style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">
-                        ${escapeHtml(f.name)}
-                    </div>
-                    <div class="preview-text" onclick="showContent(${globalIdx})">${previewText}...</div>
-                </td>
-                <td>
-                    <input type="text" value="${escapeHtml(f.suggestedName)}" class="suggested-name" 
-                           style="${isRenamed ? 'border-color:#f5af19;background:rgba(245,175,25,0.1);' : ''}">
-                    ${f.analyzed ? '<span class="ai-badge">AI</span>' : ''}
-                </td>
-                <td>
-                    <input type="text" value="${escapeHtml(f.suggestedFolder)}" class="suggested-folder"
-                           placeholder="目標資料夾" style="${f.suggestedFolder ? 'border-color:#38ef7d;' : ''}">
-                </td>
-                <td>
-                    ${f.tags.map(t => `<span class="tag ${f.analyzed ? 'tag-auto' : ''}">${escapeHtml(t)}</span>`).join('')}
-                </td>
-            </tr>`;
-        }).join('');
-
-        document.getElementById('fileCountDisplay').textContent = filteredFiles.length;
-        
-        // 綁定事件
-        document.querySelectorAll('.file-check').forEach(cb => {
-            cb.addEventListener('change', function() {
-                const idx = parseInt(this.closest('tr').dataset.idx);
-                files[idx].selected = this.checked;
-                updateStats();
-            });
-        });
-        
-        document.querySelectorAll('.suggested-name').forEach(input => {
-            input.addEventListener('change', function() {
-                const idx = parseInt(this.closest('tr').dataset.idx);
-                files[idx].suggestedName = this.value;
-                updateStats();
-            });
-        });
-        
-        document.querySelectorAll('.suggested-folder').forEach(input => {
-            input.addEventListener('change', function() {
-                const idx = parseInt(this.closest('tr').dataset.idx);
-                files[idx].suggestedFolder = this.value;
-            });
-        });
-
-        updateStats();
+        pos = dataStart + compSize;
+      } else if (sig === 0x02014b50) {
+        break;
+      } else {
+        pos++;
+      }
     }
+    
+    return files;
+  }
 
-    // 顯示內容
-    function showContent(idx) {
-        const f = files[idx];
-        document.getElementById('contentModalTitle').textContent = '📄 ' + f.name;
+  async getXmlFromZip(zip, path) {
+    const data = zip[path];
+    if (!data) throw new Error(`File not found: ${path}`);
+    const text = new TextDecoder().decode(data);
+    const parser = new DOMParser();
+    return parser.parseFromString(text, 'application/xml');
+  }
+
+  parseSheet(xml, sharedStrings) {
+    const sheet = { '!ref': 'A1' };
+    const rows = xml.querySelectorAll('row');
+    let maxRow = 0, maxCol = 0;
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('c');
+      cells.forEach(cell => {
+        const ref = cell.getAttribute('r');
+        const type = cell.getAttribute('t');
+        const vNode = cell.querySelector('v');
         
-        let content = f.content;
-        if (f.analysisResult) {
-            content = `【智能分析結果】\n`;
-            content += `日期: ${f.analysisResult.dates.join(', ') || '未偵測'}\n`;
-            content += `公司: ${f.analysisResult.companies.join(', ') || '未偵測'}\n`;
-            content += `類型: ${f.analysisResult.documentType || '未分類'}\n`;
-            content += `標籤: ${f.analysisResult.tags.join(', ') || '無'}\n`;
-            content += `\n${'─'.repeat(40)}\n\n`;
-            content += `【檔案內容】\n${f.content}`;
-        }
-        
-        document.getElementById('contentPreview').textContent = content;
-        document.getElementById('contentModal').classList.add('active');
-    }
-    window.showContent = showContent;
-
-    function closeContentModal() {
-        document.getElementById('contentModal').classList.remove('active');
-    }
-    window.closeContentModal = closeContentModal;
-
-    // 全選
-    checkAll.addEventListener('change', () => {
-        filteredFiles.forEach(f => f.selected = checkAll.checked);
-        renderTable();
-    });
-
-    document.getElementById('selectAllBtn').addEventListener('click', () => {
-        const allSelected = filteredFiles.every(f => f.selected);
-        filteredFiles.forEach(f => f.selected = !allSelected);
-        checkAll.checked = !allSelected;
-        renderTable();
-    });
-
-    // 更新統計
-    function updateStats() {
-        document.getElementById('totalFiles').textContent = files.length;
-        document.getElementById('pdfCount').textContent = files.filter(f => f.type === 'pdf').length;
-        document.getElementById('docxCount').textContent = files.filter(f => f.type === 'docx').length;
-        document.getElementById('xlsxCount').textContent = files.filter(f => ['xlsx', 'xls'].includes(f.type)).length;
-        document.getElementById('txtCount').textContent = files.filter(f => ['txt', 'html', 'htm', 'xml', 'csv'].includes(f.type)).length;
-        document.getElementById('taggedCount').textContent = files.filter(f => f.tags.length > 0).length;
-        document.getElementById('renamedCount').textContent = files.filter(f => f.suggestedName !== f.name).length;
-    }
-
-    // 取得規則
-    function getRules() {
-        const rules = [];
-        document.querySelectorAll('.rule-item').forEach(item => {
-            const keyword = item.querySelector('.rule-keyword')?.value?.trim();
-            const tag = item.querySelector('.rule-tag')?.value?.trim();
-            const folder = item.querySelector('.rule-folder')?.value?.trim();
-            const format = item.querySelector('.rule-format')?.value?.trim();
-            
-            if (keyword) {
-                rules.push({ keyword, tag, folder, format });
-            }
-        });
-        return rules;
-    }
-
-    // 套用自訂規則
-    applyRulesBtn.addEventListener('click', () => {
-        const rules = getRules();
-        let matchCount = 0;
-        
-        files.forEach(f => {
-            const searchText = (f.name + ' ' + f.content).toLowerCase();
-            
-            rules.forEach(rule => {
-                const keywords = rule.keyword.split(',').map(k => k.trim().toLowerCase());
-                const matched = keywords.some(kw => kw && searchText.includes(kw));
-                
-                if (matched) {
-                    matchCount++;
-                    
-                    if (rule.tag && !f.tags.includes(rule.tag)) {
-                        f.tags.push(rule.tag);
-                    }
-                    
-                    if (rule.folder) {
-                        f.suggestedFolder = rule.folder;
-                    }
-                    
-                    if (rule.format) {
-                        f.suggestedName = applyNameFormat(f, rule.format);
-                    }
-                }
-            });
-        });
-        
-        filteredFiles = [...files];
-        if (searchBox.value) {
-            searchBox.dispatchEvent(new Event('input'));
-        } else {
-            renderTable();
-        }
-        
-        statusText.textContent = `✅ 規則已套用！匹配 ${matchCount} 次`;
-    });
-
-    // 套用檔名格式
-    function applyNameFormat(file, format) {
-        const ext = '.' + file.name.split('.').pop();
-        const baseName = file.name.replace(/\.[^.]+$/, '');
-        
-        let result = format;
-        
-        // 替換變數
-        const analysis = file.analysisResult || SmartAnalyzer.analyze(file);
-        
-        result = result.replace(/\{date\}/gi, analysis.dates[0] || '');
-        result = result.replace(/\{company\}/gi, (analysis.companies[0] || '').replace(/(股份有限公司|有限公司)$/, ''));
-        result = result.replace(/\{original\}/gi, baseName);
-        result = result.replace(/\{type\}/gi, file.type.toUpperCase());
-        
-        // 清理
-        result = result.replace(/_+/g, '_').replace(/^_|_$/g, '');
-        
-        if (!result.includes('.')) {
-            result += ext;
-        }
-        
-        return result;
-    }
-
-    // 新增規則
-    addRuleBtn.addEventListener('click', () => {
-        const ruleHtml = `
-            <div class="rule-item">
-                <label>關鍵字（逗號分隔）</label>
-                <input type="text" class="rule-keyword" placeholder="例如：合約, contract, 協議">
-                <label>標籤</label>
-                <input type="text" class="rule-tag" placeholder="例如：合約文件">
-                <label>目標資料夾</label>
-                <input type="text" class="rule-folder" placeholder="例如：01_合約">
-                <label>檔名格式</label>
-                <input type="text" class="rule-format" placeholder="例如：[合約] {date}_{company}_{original}">
-                <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
-                <div class="rule-actions">
-                    <button class="btn btn-warning remove-rule">✖ 刪除</button>
-                </div>
-            </div>
-        `;
-        rulesContainer.insertAdjacentHTML('beforeend', ruleHtml);
-        bindRuleEvents();
-    });
-
-    // 綁定規則刪除事件
-    function bindRuleEvents() {
-        document.querySelectorAll('.remove-rule').forEach(btn => {
-            btn.onclick = function() {
-                if (document.querySelectorAll('.rule-item').length > 1) {
-                    this.closest('.rule-item').remove();
-                }
-            };
-        });
-    }
-    bindRuleEvents();
-
-    // 規則管理
-    document.getElementById('saveRulesBtn').addEventListener('click', () => {
-        const rules = getRules();
-        const blob = new Blob([JSON.stringify(rules, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'file-organize-rules.json';
-        a.click();
-        statusText.textContent = '💾 規則已儲存';
-    });
-
-    document.getElementById('loadRulesBtn').addEventListener('click', () => {
-        document.getElementById('loadRulesInput').click();
-    });
-
-    document.getElementById('loadRulesInput').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        try {
-            const text = await file.text();
-            const rules = JSON.parse(text);
-            
-            rulesContainer.innerHTML = '';
-            rules.forEach(rule => {
-                const ruleHtml = `
-                    <div class="rule-item">
-                        <label>關鍵字（逗號分隔）</label>
-                        <input type="text" class="rule-keyword" value="${escapeHtml(rule.keyword || '')}">
-                        <label>標籤</label>
-                        <input type="text" class="rule-tag" value="${escapeHtml(rule.tag || '')}">
-                        <label>目標資料夾</label>
-                        <input type="text" class="rule-folder" value="${escapeHtml(rule.folder || '')}">
-                        <label>檔名格式</label>
-                        <input type="text" class="rule-format" value="${escapeHtml(rule.format || rule.prefix || '')}">
-                        <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
-                        <div class="rule-actions">
-                            <button class="btn btn-warning remove-rule">✖ 刪除</button>
-                        </div>
-                    </div>
-                `;
-                rulesContainer.insertAdjacentHTML('beforeend', ruleHtml);
-            });
-            bindRuleEvents();
-            statusText.textContent = '📂 規則已載入';
-        } catch (err) {
-            statusText.textContent = '❌ 規則檔案格式錯誤';
-        }
-        e.target.value = '';
-    });
-
-    document.getElementById('clearRulesBtn').addEventListener('click', () => {
-        if (confirm('確定要清除所有自訂規則嗎？')) {
-            rulesContainer.innerHTML = `
-                <div class="rule-item">
-                    <label>關鍵字（逗號分隔）</label>
-                    <input type="text" class="rule-keyword" placeholder="例如：合約, contract, 協議">
-                    <label>標籤</label>
-                    <input type="text" class="rule-tag" placeholder="例如：合約文件">
-                    <label>目標資料夾</label>
-                    <input type="text" class="rule-folder" placeholder="例如：01_合約">
-                    <label>檔名格式</label>
-                    <input type="text" class="rule-format" placeholder="例如：[合約] {date}_{company}_{original}">
-                    <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
-                    <div class="rule-actions">
-                        <button class="btn btn-warning remove-rule">✖ 刪除</button>
-                    </div>
-                </div>
-            `;
-            bindRuleEvents();
-            statusText.textContent = '🗑️ 規則已清除';
-        }
-    });
-
-    // 產生 BAT
-    function generateBat() {
-        const selectedFiles = files.filter(f => f.selected);
-        if (selectedFiles.length === 0) {
-            alert('請至少選擇一個檔案！');
-            return '';
-        }
-
-        let bat = '@echo off\r\n';
-        bat += 'chcp 65001 > nul\r\n';
-        bat += 'setlocal enabledelayedexpansion\r\n\r\n';
-        bat += 'echo ╔════════════════════════════════════════════╗\r\n';
-        bat += 'echo ║         智能檔案整理批次處理工具           ║\r\n';
-        bat += 'echo ╠════════════════════════════════════════════╣\r\n';
-        bat += 'echo ║  產生時間: ' + new Date().toLocaleString('zh-TW').padEnd(31) + '║\r\n';
-        bat += 'echo ║  檔案數量: ' + (selectedFiles.length + ' 個').padEnd(31) + '║\r\n';
-        bat += 'echo ╚════════════════════════════════════════════╝\r\n';
-        bat += 'echo.\r\n\r\n';
-        
-        bat += 'set "BASE_DIR=%~dp0"\r\n';
-        bat += 'cd /d "%BASE_DIR%"\r\n\r\n';
-
-        // 收集所有資料夾
-        const folders = new Set();
-        selectedFiles.forEach(f => {
-            if (f.suggestedFolder) {
-                // 支援巢狀資料夾
-                const parts = f.suggestedFolder.split(/[\/\\]/).filter(p => p);
-                let path = '';
-                parts.forEach(part => {
-                    path = path ? path + '\\' + part : part;
-                    folders.add(path);
-                });
-            }
-        });
-
-        // 建立資料夾
-        if (folders.size > 0) {
-            bat += 'echo [Step 1/3] 建立資料夾結構...\r\n';
-            bat += 'echo.\r\n';
-            [...folders].sort().forEach(folder => {
-                bat += `if not exist "${folder}" (\r\n`;
-                bat += `    mkdir "${folder}"\r\n`;
-                bat += `    echo   [+] 建立: ${folder}\r\n`;
-                bat += `)\r\n`;
-            });
-            bat += 'echo.\r\n\r\n';
-        }
-
-        // 處理檔案
-        bat += 'echo [Step 2/3] 處理檔案...\r\n';
-        bat += 'echo.\r\n';
-        bat += 'set /a SUCCESS=0\r\n';
-        bat += 'set /a FAILED=0\r\n\r\n';
-
-        selectedFiles.forEach((f, i) => {
-            const sourcePath = f.path.replace(/\//g, '\\');
-            const newName = f.suggestedName.replace(/[<>:"|?*]/g, '_'); // 移除非法字元
-            const targetFolder = f.suggestedFolder ? f.suggestedFolder.replace(/\//g, '\\') : '';
-            
-            bat += `echo [${i + 1}/${selectedFiles.length}] ${f.name}\r\n`;
-            
-            if (targetFolder && newName !== f.name) {
-                // 移動並重命名
-                bat += `if exist "${sourcePath}" (\r\n`;
-                bat += `    copy /Y "${sourcePath}" "${targetFolder}\\${newName}" > nul 2>&1\r\n`;
-                bat += `    if !errorlevel! == 0 (\r\n`;
-                bat += `        del /Q "${sourcePath}" > nul 2>&1\r\n`;
-                bat += `        echo       → ${targetFolder}\\${newName}\r\n`;
-                bat += `        set /a SUCCESS+=1\r\n`;
-                bat += `    ) else (\r\n`;
-                bat += `        echo       [!] 處理失敗\r\n`;
-                bat += `        set /a FAILED+=1\r\n`;
-                bat += `    )\r\n`;
-                bat += `) else (\r\n`;
-                bat += `    echo       [!] 找不到檔案\r\n`;
-                bat += `    set /a FAILED+=1\r\n`;
-                bat += `)\r\n\r\n`;
-            } else if (targetFolder) {
-                // 只移動
-                bat += `if exist "${sourcePath}" (\r\n`;
-                bat += `    move /Y "${sourcePath}" "${targetFolder}\\" > nul 2>&1\r\n`;
-                bat += `    if !errorlevel! == 0 (\r\n`;
-                bat += `        echo       → ${targetFolder}\\\r\n`;
-                bat += `        set /a SUCCESS+=1\r\n`;
-                bat += `    ) else (\r\n`;
-                bat += `        echo       [!] 移動失敗\r\n`;
-                bat += `        set /a FAILED+=1\r\n`;
-                bat += `    )\r\n`;
-                bat += `) else (\r\n`;
-                bat += `    echo       [!] 找不到檔案\r\n`;
-                bat += `    set /a FAILED+=1\r\n`;
-                bat += `)\r\n\r\n`;
-            } else if (newName !== f.name) {
-                // 只重命名
-                const dir = sourcePath.includes('\\') ? sourcePath.substring(0, sourcePath.lastIndexOf('\\') + 1) : '';
-                bat += `if exist "${sourcePath}" (\r\n`;
-                bat += `    ren "${sourcePath}" "${newName}" > nul 2>&1\r\n`;
-                bat += `    if !errorlevel! == 0 (\r\n`;
-                bat += `        echo       → ${newName}\r\n`;
-                bat += `        set /a SUCCESS+=1\r\n`;
-                bat += `    ) else (\r\n`;
-                bat += `        echo       [!] 重命名失敗\r\n`;
-                bat += `        set /a FAILED+=1\r\n`;
-                bat += `    )\r\n`;
-                bat += `) else (\r\n`;
-                bat += `    echo       [!] 找不到檔案\r\n`;
-                bat += `    set /a FAILED+=1\r\n`;
-                bat += `)\r\n\r\n`;
+        if (ref) {
+          const { col, row: rowNum } = this.parseRef(ref);
+          maxRow = Math.max(maxRow, rowNum);
+          maxCol = Math.max(maxCol, col);
+          
+          let value = vNode ? vNode.textContent : '';
+          
+          if (type === 's' && sharedStrings[parseInt(value)]) {
+            value = sharedStrings[parseInt(value)];
+            sheet[ref] = { t: 's', v: value, w: value };
+          } else if (type === 'b') {
+            sheet[ref] = { t: 'b', v: value === '1' };
+          } else if (value !== '') {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+              sheet[ref] = { t: 'n', v: num, w: String(num) };
             } else {
-                bat += `echo       (無變更)\r\n\r\n`;
+              sheet[ref] = { t: 's', v: value, w: value };
             }
-        });
-        
-        bat += 'echo.\r\n';
-        bat += 'echo [Step 3/3] 完成！\r\n';
-        bat += 'echo.\r\n';
-        bat += 'echo ════════════════════════════════════════════\r\n';
-        bat += 'echo   成功: %SUCCESS% 個  /  失敗: %FAILED% 個\r\n';
-        bat += 'echo ════════════════════════════════════════════\r\n';
-        bat += 'echo.\r\n';
-        bat += 'pause\r\n';
-        bat += 'endlocal\r\n';
-
-        return bat;
-    }
-
-    // 預覽 BAT
-    previewBatBtn.addEventListener('click', () => {
-        generatedBat = generateBat();
-        if (generatedBat) {
-            document.getElementById('batPreviewContent').textContent = generatedBat;
-            document.getElementById('batPreviewModal').classList.add('active');
+          }
         }
+      });
     });
 
-    function closeBatPreview() {
-        document.getElementById('batPreviewModal').classList.remove('active');
+    sheet['!ref'] = `A1:${this.colToLetter(maxCol)}${maxRow}`;
+    return sheet;
+  }
+
+  parseRef(ref) {
+    const match = ref.match(/^([A-Z]+)(\d+)$/);
+    if (!match) return { col: 0, row: 0 };
+    const colStr = match[1];
+    const row = parseInt(match[2]);
+    let col = 0;
+    for (let i = 0; i < colStr.length; i++) {
+      col = col * 26 + (colStr.charCodeAt(i) - 64);
     }
-    window.closeBatPreview = closeBatPreview;
+    return { col, row };
+  }
 
-    // 匯出 BAT
-    exportBatBtn.addEventListener('click', () => {
-        generatedBat = generateBat();
-        if (generatedBat) {
-            downloadBat();
-        }
-    });
-
-    function downloadBat() {
-        if (!generatedBat) generatedBat = generateBat();
-        if (!generatedBat) return;
-        
-        // 使用 BOM 確保 Windows 正確識別 UTF-8
-        const BOM = '\uFEFF';
-        const blob = new Blob([BOM + generatedBat], { type: 'text/plain;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'organize-files-' + new Date().toISOString().slice(0,10) + '.bat';
-        a.click();
-        closeBatPreview();
-        statusText.textContent = '✅ BAT 檔案已下載！請將檔案放到資料夾根目錄執行';
+  colToLetter(col) {
+    let letter = '';
+    while (col > 0) {
+      const mod = (col - 1) % 26;
+      letter = String.fromCharCode(65 + mod) + letter;
+      col = Math.floor((col - 1) / 26);
     }
-    window.downloadBat = downloadBat;
+    return letter || 'A';
+  }
+}
 
-    function copyBat() {
-        if (!generatedBat) return;
-        navigator.clipboard.writeText(generatedBat).then(() => {
-            statusText.textContent = '📋 已複製到剪貼簿';
-        });
-    }
-    window.copyBat = copyBat;
+// ========== 全域變數 ==========
+let workbook = null;
+let currentSheet = null;
+let currentSheetName = '';
+let originalData = [];
+let headerRow = 1;
+let headers = [];
+let columnMapping = {};
+let settings = {};
+let errors = [];
+let summaryData = {};
+let employeeBlocks = [];
+let selectedSumColumns = [];     // 用於員工小計
+let selectedSummaryColumns = []; // 用於底部摘要
 
-    // 工具函數
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
+// 系統欄位定義 - 依據使用者需求更新 (v1.2)
+const SYSTEM_FIELDS = [
+  { key: 'employeeId', label: '員工代號', required: false },
+  { key: 'name', label: '員工姓名', required: true },
+  { key: 'idNumber', label: '身分證字號', required: true },
+  { key: 'address', label: '地址', required: false },
+  { key: 'category', label: '類別', required: false },
+  { key: 'year', label: '年度', required: false },
+  { key: 'month', label: '月份', required: false },
+  { key: 'salary', label: '薪資', required: false },
+  { key: 'netPay', label: '薪資淨額', required: false },
+  { key: 'selfContribution', label: '自提', required: false },
+  { key: 'bonus', label: '獎金', required: false },
+  { key: 'tax', label: '所得稅', required: false },
+  { key: 'totalPay', label: '合計', required: false },
+  { key: 'yearEndBonus', label: '年終', required: false }
+];
 
-    // 自動儲存規則到 localStorage
-    setInterval(() => {
-        try {
-            const rules = getRules();
-            if (rules.length > 0) {
-                localStorage.setItem('smartFileOrganizerRules', JSON.stringify(rules));
-            }
-        } catch (e) {}
-    }, 5000);
+// ========== 初始化 ==========
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  initUploadZone();
+  updateLastUpdate();
+});
 
-    // 載入儲存的規則
-    window.addEventListener('load', () => {
-        try {
-            const saved = localStorage.getItem('smartFileOrganizerRules');
-            if (saved) {
-                const rules = JSON.parse(saved);
-                if (rules.length > 0) {
-                    rulesContainer.innerHTML = '';
-                    rules.forEach(rule => {
-                        const ruleHtml = `
-                            <div class="rule-item">
-                                <label>關鍵字（逗號分隔）</label>
-                                <input type="text" class="rule-keyword" value="${escapeHtml(rule.keyword || '')}">
-                                <label>標籤</label>
-                                <input type="text" class="rule-tag" value="${escapeHtml(rule.tag || '')}">
-                                <label>目標資料夾</label>
-                                <input type="text" class="rule-folder" value="${escapeHtml(rule.folder || '')}">
-                                <label>檔名格式</label>
-                                <input type="text" class="rule-format" value="${escapeHtml(rule.format || '')}">
-                                <div style="font-size:10px;color:#666;margin-top:5px;">可用變數: {date}, {company}, {original}, {type}</div>
-                                <div class="rule-actions">
-                                    <button class="btn btn-warning remove-rule">✖ 刪除</button>
-                                </div>
-                            </div>
-                        `;
-                        rulesContainer.insertAdjacentHTML('beforeend', ruleHtml);
-                    });
-                    bindRuleEvents();
-                }
-            }
-        } catch (e) {}
-    });
-
-    // 拖放支援
-    document.body.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    });
-
-    document.body.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (e.dataTransfer.items) {
-            // 提示用戶使用選擇資料夾按鈕
-            statusText.textContent = '⚠️ 請使用「選擇資料夾」按鈕來載入檔案';
-        }
-    });
-
-    // ============ 自訂偵測項目功能 ============
-    let customDetectItems = [];
-    let customDetectCounter = 0;
-
-    // 開啟新增偵測項目 Modal
-    document.getElementById('addDetectItemBtn').addEventListener('click', () => {
-        document.getElementById('newDetectName').value = '';
-        document.getElementById('newDetectKeywords').value = '';
-        document.getElementById('newDetectTag').value = '';
-        document.getElementById('newDetectFolder').value = '';
-        document.getElementById('addDetectModal').classList.add('active');
-    });
-
-    function closeAddDetectModal() {
-        document.getElementById('addDetectModal').classList.remove('active');
-    }
-    window.closeAddDetectModal = closeAddDetectModal;
-
-    // 儲存自訂偵測項目
-    function saveCustomDetectItem() {
-        const name = document.getElementById('newDetectName').value.trim();
-        const keywords = document.getElementById('newDetectKeywords').value.trim();
-        const tag = document.getElementById('newDetectTag').value.trim() || name;
-        const folder = document.getElementById('newDetectFolder').value.trim();
-
-        if (!name || !keywords) {
-            alert('請填寫項目名稱和關鍵字！');
-            return;
-        }
-
-        const itemId = 'customDetect_' + (++customDetectCounter);
-        const keywordArray = keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
-
-        // 加入自訂項目列表
-        const customItem = {
-            id: itemId,
-            name: name,
-            keywords: keywordArray,
-            tag: tag,
-            folder: folder,
-            enabled: true
-        };
-        customDetectItems.push(customItem);
-
-        // 動態添加到 SmartAnalyzer.documentTypes
-        SmartAnalyzer.documentTypes[itemId] = {
-            keywords: keywordArray,
-            folder: folder,
-            tag: tag,
-            isCustom: true
-        };
-
-        // 渲染自訂項目 UI
-        renderCustomDetectItems();
-        
-        // 儲存到 localStorage
-        saveCustomDetectItemsToStorage();
-
-        closeAddDetectModal();
-        statusText.textContent = `✅ 已新增偵測項目：${name}`;
-    }
-    window.saveCustomDetectItem = saveCustomDetectItem;
-
-    // 渲染自訂偵測項目
-    function renderCustomDetectItems() {
-        const container = document.getElementById('customDetectItems');
-        
-        if (customDetectItems.length === 0) {
-            container.innerHTML = '';
-            return;
-        }
-
-        container.innerHTML = `
-            <div style="font-size:11px;color:#888;margin-bottom:5px;">📌 自訂項目：</div>
-            <div class="smart-options">
-                ${customDetectItems.map(item => `
-                    <label style="position:relative;padding-right:25px;" data-custom-id="${item.id}">
-                        <input type="checkbox" data-custom-type="${item.id}" ${item.enabled ? 'checked' : ''}>
-                        ${escapeHtml(item.name)}
-                        <span class="custom-detect-delete" onclick="deleteCustomDetectItem('${item.id}')" 
-                              style="position:absolute;right:5px;top:50%;transform:translateY(-50%);
-                                     cursor:pointer;color:#f5576c;font-weight:bold;font-size:14px;"
-                              title="刪除此項目">×</span>
-                    </label>
-                `).join('')}
-            </div>
-        `;
-
-        // 綁定 checkbox 事件
-        container.querySelectorAll('input[data-custom-type]').forEach(cb => {
-            cb.addEventListener('change', function() {
-                const itemId = this.dataset.customType;
-                const item = customDetectItems.find(i => i.id === itemId);
-                if (item) {
-                    item.enabled = this.checked;
-                    saveCustomDetectItemsToStorage();
-                }
-            });
-        });
-    }
-
-    // 刪除自訂偵測項目
-    function deleteCustomDetectItem(itemId) {
-        if (!confirm('確定要刪除此偵測項目嗎？')) return;
-
-        // 從列表移除
-        customDetectItems = customDetectItems.filter(i => i.id !== itemId);
-
-        // 從 SmartAnalyzer 移除
-        delete SmartAnalyzer.documentTypes[itemId];
-
-        // 重新渲染
-        renderCustomDetectItems();
-        
-        // 儲存到 localStorage
-        saveCustomDetectItemsToStorage();
-
-        statusText.textContent = '🗑️ 已刪除偵測項目';
-    }
-    window.deleteCustomDetectItem = deleteCustomDetectItem;
-
-    // 儲存自訂項目到 localStorage
-    function saveCustomDetectItemsToStorage() {
-        try {
-            localStorage.setItem('customDetectItems', JSON.stringify(customDetectItems));
-        } catch (e) {}
-    }
-
-    // 從 localStorage 載入自訂項目
-    function loadCustomDetectItemsFromStorage() {
-        try {
-            const saved = localStorage.getItem('customDetectItems');
-            if (saved) {
-                customDetectItems = JSON.parse(saved);
-                customDetectItems.forEach(item => {
-                    // 還原到 SmartAnalyzer
-                    SmartAnalyzer.documentTypes[item.id] = {
-                        keywords: item.keywords,
-                        folder: item.folder,
-                        tag: item.tag,
-                        isCustom: true
-                    };
-                    customDetectCounter = Math.max(customDetectCounter, parseInt(item.id.split('_')[1]) || 0);
-                });
-                renderCustomDetectItems();
-            }
-        } catch (e) {}
-    }
-
-    // 修改 SmartAnalyzer.analyze 以支援自訂項目和新的 checkbox 結構
-    const originalAnalyze = SmartAnalyzer.analyze.bind(SmartAnalyzer);
-    SmartAnalyzer.analyze = function(file) {
-        const result = {
-            dates: [],
-            companies: [],
-            documentType: null,
-            tags: [],
-            suggestedName: file.name,
-            suggestedFolder: ''
-        };
-        
-        const searchText = (file.name + ' ' + file.content).toLowerCase();
-        const originalText = file.name + ' ' + file.content;
-        
-        // 提取日期
-        if (document.getElementById('detectDate')?.checked) {
-            for (const pattern of this.datePatterns) {
-                const matches = originalText.matchAll(new RegExp(pattern.source, pattern.flags));
-                for (const match of matches) {
-                    let dateStr = this.normalizeDate(match);
-                    if (dateStr && !result.dates.includes(dateStr)) {
-                        result.dates.push(dateStr);
-                    }
-                }
-            }
-        }
-        
-        // 提取公司名稱
-        if (document.getElementById('detectCompany')?.checked) {
-            for (const pattern of this.companyPatterns) {
-                const matches = originalText.matchAll(new RegExp(pattern.source, pattern.flags));
-                for (const match of matches) {
-                    let company = match[0].trim();
-                    if (company.length >= 4 && company.length <= 30) {
-                        if (!result.companies.some(c => c.includes(company) || company.includes(c))) {
-                            result.companies.push(company);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 識別文件類型 - 使用新的 checkbox 結構
-        for (const [type, config] of Object.entries(this.documentTypes)) {
-            let isEnabled = false;
-            
-            // 檢查是否啟用
-            if (config.isCustom) {
-                // 自訂項目
-                const cb = document.querySelector(`input[data-custom-type="${type}"]`);
-                isEnabled = cb ? cb.checked : false;
-            } else {
-                // 內建項目
-                const cb = document.querySelector(`input[data-type="${type}"]`);
-                isEnabled = cb ? cb.checked : true;
-            }
-            
-            if (!isEnabled) continue;
-            
-            const matched = config.keywords.some(kw => searchText.includes(kw.toLowerCase()));
-            if (matched) {
-                if (!result.documentType) {
-                    result.documentType = type;
-                    result.suggestedFolder = config.folder;
-                }
-                if (!result.tags.includes(config.tag)) {
-                    result.tags.push(config.tag);
-                }
-            }
-        }
-        
-        // 生成建議檔名
-        result.suggestedName = this.generateFileName(file, result);
-        
-        return result;
+function loadSettings() {
+  const saved = localStorage.getItem('payrollAnalyzerSettings_v1_1');
+  if (saved) {
+    settings = JSON.parse(saved);
+  } else {
+    settings = {
+      salaryThreshold: 20,
+      selfContributionTolerance: 0,
+      taxCheckThreshold: 88501,
+      taxRate: 5,
+      primaryIdField: 'idNumber',
+      secondaryIdField: 'name',
+      groupByMethod: 'year',
+      showSubtotal: 'yes',
+      targetYears: '',
+      checkIdUnique: true,
+      checkNameUnique: true,
+      ruleVersion: '1.4.0'
     };
+  }
+  applySettingsToUI();
+}
 
-    // 頁面載入時載入自訂項目
-    window.addEventListener('load', () => {
-        loadCustomDetectItemsFromStorage();
+function applySettingsToUI() {
+  document.getElementById('salaryThreshold').value = settings.salaryThreshold || 20;
+  document.getElementById('selfContributionTolerance').value = settings.selfContributionTolerance || 0;
+  document.getElementById('taxCheckThreshold').value = settings.taxCheckThreshold || 88501;
+  document.getElementById('taxRate').value = settings.taxRate || 5;
+  document.getElementById('checkIdUnique').checked = settings.checkIdUnique !== false;
+  document.getElementById('checkNameUnique').checked = settings.checkNameUnique !== false;
+
+  document.getElementById('primaryIdField').value = settings.primaryIdField || 'idNumber';
+  document.getElementById('secondaryIdField').value = settings.secondaryIdField || 'name';
+  document.getElementById('groupByMethod').value = settings.groupByMethod || 'year';
+  document.getElementById('showSubtotal').value = settings.showSubtotal || 'yes';
+  document.getElementById('targetYears').value = settings.targetYears || '';
+  document.getElementById('ruleVersion').value = settings.ruleVersion || '1.4.0';
+}
+
+function updateLastUpdate() {
+  document.getElementById('lastUpdate').value = new Date().toLocaleString('zh-TW');
+}
+
+// ========== 檔案上傳 ==========
+function initUploadZone() {
+  const zone = document.getElementById('uploadZone');
+  const input = document.getElementById('fileInput');
+
+  zone.addEventListener('click', () => input.click());
+  
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zone.classList.add('dragover');
+  });
+
+  zone.addEventListener('dragleave', () => {
+    zone.classList.remove('dragover');
+  });
+
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleFile(files[0]);
+  });
+
+  input.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) handleFile(e.target.files[0]);
+  });
+}
+
+async function handleFile(file) {
+  if (!file.name.match(/\.xlsx?$/i)) {
+    alert('請上傳 Excel 檔案（.xlsx 或 .xls）');
+    return;
+  }
+
+  try {
+    const data = await file.arrayBuffer();
+    const parser = new SimpleXLSX();
+    workbook = await parser.read(data);
+    
+    document.getElementById('fileStatus').innerHTML = '<span class="status-dot green"></span> 已載入: ' + file.name;
+    
+    showSheetTabs();
+    
+    if (workbook.SheetNames.length > 0) {
+      selectSheet(workbook.SheetNames[0]);
+    }
+  } catch (error) {
+    console.error('解析錯誤:', error);
+    alert('檔案解析失敗: ' + error.message);
+  }
+}
+
+// ========== 工作表操作 ==========
+function showSheetTabs() {
+  const container = document.getElementById('sheetTabs');
+  container.innerHTML = '';
+  
+  workbook.SheetNames.forEach(name => {
+    const tab = document.createElement('button');
+    tab.className = 'tab';
+    tab.textContent = name;
+    tab.onclick = () => selectSheet(name);
+    container.appendChild(tab);
+  });
+
+  document.getElementById('uploadCard').classList.add('hidden');
+  document.getElementById('sheetTabsCard').classList.remove('hidden');
+}
+
+function selectSheet(name) {
+  currentSheetName = name;
+  currentSheet = workbook.Sheets[name];
+  
+  document.querySelectorAll('#sheetTabs .tab').forEach(tab => {
+    tab.classList.toggle('active', tab.textContent === name);
+  });
+  
+  document.getElementById('sheetStatus').innerHTML = '<span class="status-dot green"></span> 工作表: ' + name;
+  
+  parseOriginalData();
+  
+  document.getElementById('headerRowCard').classList.remove('hidden');
+  autoDetectHeaderRow();
+  
+  renderExcelTable();
+}
+
+function parseOriginalData() {
+  originalData = [];
+  if (!currentSheet || !currentSheet['!ref']) return;
+  
+  const ref = currentSheet['!ref'];
+  const range = parseRange(ref);
+  
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    const row = [];
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const addr = colToLetter(c + 1) + (r + 1);
+      const cell = currentSheet[addr];
+      row.push(cell ? (cell.w !== undefined ? cell.w : cell.v) : '');
+    }
+    originalData.push(row);
+  }
+}
+
+function parseRange(ref) {
+  const parts = ref.split(':');
+  const start = parseCell(parts[0]);
+  const end = parts[1] ? parseCell(parts[1]) : start;
+  return { s: start, e: end };
+}
+
+function parseCell(addr) {
+  const match = addr.match(/^([A-Z]+)(\d+)$/);
+  if (!match) return { r: 0, c: 0 };
+  let c = 0;
+  for (let i = 0; i < match[1].length; i++) {
+    c = c * 26 + (match[1].charCodeAt(i) - 64);
+  }
+  return { r: parseInt(match[2]) - 1, c: c - 1 };
+}
+
+function colToLetter(col) {
+  let letter = '';
+  while (col > 0) {
+    const mod = (col - 1) % 26;
+    letter = String.fromCharCode(65 + mod) + letter;
+    col = Math.floor((col - 1) / 26);
+  }
+  return letter || 'A';
+}
+
+// ========== 標題列偵測 ==========
+function autoDetectHeaderRow() {
+  for (let i = 0; i < Math.min(10, originalData.length); i++) {
+    const row = originalData[i];
+    const nonEmptyCount = row.filter(cell => cell !== '').length;
+    const hasKeywords = row.some(cell => 
+      /姓名|身分證|薪資|年月|員工|編號|金額|發薪/.test(String(cell))
+    );
+    if (nonEmptyCount >= 3 && hasKeywords) {
+      headerRow = i + 1;
+      document.getElementById('headerRowInput').value = headerRow;
+      updateHeaderPreview();
+      return;
+    }
+  }
+  updateHeaderPreview();
+}
+
+function updateHeaderPreview() {
+  const row = originalData[headerRow - 1];
+  if (row) {
+    const preview = row.slice(0, 5).filter(c => c).join(', ') + (row.length > 5 ? '...' : '');
+    document.getElementById('headerPreview').textContent = '預覽: ' + preview;
+  }
+}
+
+function confirmHeaderRow() {
+  headerRow = parseInt(document.getElementById('headerRowInput').value) || 1;
+  headers = originalData[headerRow - 1] || [];
+  
+  updateHeaderPreview();
+  showSumColumnsSelection();
+  updateMappingTable();
+  renderExcelTable();
+}
+
+// ========== 加總與摘要欄位選擇 ==========
+function showSumColumnsSelection() {
+  const tbody = document.getElementById('sumColumnsTableBody');
+  tbody.innerHTML = '';
+  selectedSumColumns = [];
+  selectedSummaryColumns = [];
+  
+  // 關鍵字判斷是否為金額/數值欄位
+  const amountKeywords = ['薪', '額', '金', '稅', '保', '費', '扣', 'Pay', 'Net', 'Total', 'Bonus', 'Tax', '合計', '小計', '獎金'];
+  
+  headers.forEach((header, idx) => {
+    if (!header || String(header).trim() === '') return;
+    
+    const hStr = String(header);
+    // 預設勾選邏輯：包含關鍵字
+    const isDefaultChecked = amountKeywords.some(k => hStr.includes(k));
+    
+    if (isDefaultChecked) {
+      selectedSumColumns.push(idx);
+      selectedSummaryColumns.push(idx);
+    }
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(header)}</td>
+      <td style="text-align:center;">
+        <input type="checkbox" value="${idx}" class="chk-subtotal" ${isDefaultChecked ? 'checked' : ''} onchange="updateSelectedCols()">
+      </td>
+      <td style="text-align:center;">
+        <input type="checkbox" value="${idx}" class="chk-summary" ${isDefaultChecked ? 'checked' : ''} onchange="updateSelectedCols()">
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  // 更新全選按鈕狀態
+  document.getElementById('chkAllSubtotal').checked = false;
+  document.getElementById('chkAllSummary').checked = false;
+  
+  document.getElementById('sumColumnsCard').classList.remove('hidden');
+}
+
+function toggleAllCol(source, type) {
+  const className = type === 'subtotal' ? '.chk-subtotal' : '.chk-summary';
+  document.querySelectorAll(className).forEach(chk => {
+    chk.checked = source.checked;
+  });
+  updateSelectedCols();
+}
+
+function updateSelectedCols() {
+  selectedSumColumns = [];
+  selectedSummaryColumns = [];
+  
+  document.querySelectorAll('.chk-subtotal:checked').forEach(chk => {
+    selectedSumColumns.push(parseInt(chk.value));
+  });
+  
+  document.querySelectorAll('.chk-summary:checked').forEach(chk => {
+    selectedSummaryColumns.push(parseInt(chk.value));
+  });
+}
+
+// ========== 欄位映射 ==========
+function openMappingModal() {
+  updateMappingTable();
+  document.getElementById('mappingModal').classList.add('show');
+}
+
+function closeMappingModal() {
+  document.getElementById('mappingModal').classList.remove('show');
+}
+
+function updateMappingTable() {
+  const tbody = document.getElementById('mappingTableBody');
+  tbody.innerHTML = '';
+  
+  SYSTEM_FIELDS.forEach(field => {
+    const tr = document.createElement('tr');
+    
+    let matchedIdx = -1;
+    headers.forEach((h, idx) => {
+      if (h && h === field.label) {
+        matchedIdx = idx;
+      }
     });
+    
+    tr.innerHTML = `
+      <td>${field.label}${field.required ? ' <span style="color:red">*</span>' : ''}</td>
+      <td>
+        <select id="map_${field.key}">
+          <option value="">-- 未映射 --</option>
+          ${headers.map((h, idx) => 
+            h ? `<option value="${idx}" ${idx === matchedIdx ? 'selected' : ''}>${h}</option>` : ''
+          ).join('')}
+        </select>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-    // ============ 副檔名篩選功能 ============
-    let allRawFiles = []; // 儲存原始檔案列表（未篩選）
-    let extFilter = {}; // 副檔名篩選狀態
+function saveMapping() {
+  SYSTEM_FIELDS.forEach(field => {
+    const select = document.getElementById(`map_${field.key}`);
+    if (select && select.value !== '') {
+      columnMapping[field.key] = parseInt(select.value);
+    } else {
+      delete columnMapping[field.key];
+    }
+  });
+  closeMappingModal();
+  alert('欄位映射已儲存！');
+}
+
+// ========== 後台設定 ==========
+function openSettingsModal() {
+  applySettingsToUI();
+  document.getElementById('settingsModal').classList.add('show');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+function saveSettings() {
+  settings.salaryThreshold = parseInt(document.getElementById('salaryThreshold').value) || 20;
+  settings.selfContributionTolerance = parseInt(document.getElementById('selfContributionTolerance').value) || 0;
+  settings.taxCheckThreshold = parseInt(document.getElementById('taxCheckThreshold').value) || 88501;
+  settings.taxRate = parseFloat(document.getElementById('taxRate').value) || 5;
+  settings.checkIdUnique = document.getElementById('checkIdUnique').checked;
+  settings.checkNameUnique = document.getElementById('checkNameUnique').checked;
+
+  settings.primaryIdField = document.getElementById('primaryIdField').value;
+  settings.secondaryIdField = document.getElementById('secondaryIdField').value;
+  settings.groupByMethod = document.getElementById('groupByMethod').value;
+  settings.showSubtotal = document.getElementById('showSubtotal').value;
+  settings.targetYears = document.getElementById('targetYears').value;
+  
+  localStorage.setItem('payrollAnalyzerSettings_v1_1', JSON.stringify(settings));
+  updateLastUpdate();
+  closeSettingsModal();
+  alert('設定已儲存至本機！');
+}
+
+function resetSettings() {
+  localStorage.removeItem('payrollAnalyzerSettings_v1_1');
+  loadSettings();
+  alert('已重置為預設值');
+}
+
+// ========== Excel 表格渲染 ==========
+function renderExcelTable() {
+  const container = document.getElementById('excelContainer');
+  
+  if (originalData.length === 0) {
+    container.innerHTML = '<p style="padding:20px;text-align:center;">無資料</p>';
+    return;
+  }
+  
+  let html = '<table class="excel-table"><thead><tr>';
+  html += '<th class="corner"></th>';
+  
+  const colCount = Math.max(...originalData.map(r => r.length));
+  for (let c = 0; c < colCount; c++) {
+    html += `<th>${colToLetter(c + 1)}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+  
+  originalData.forEach((row, rowIdx) => {
+    const isHeaderRow = rowIdx === headerRow - 1;
+    html += `<tr${isHeaderRow ? ' style="background:#e0f2fe;"' : ''}>`;
+    html += `<td class="row-header">${rowIdx + 1}</td>`;
     
-    // 格式化檔案大小
-    function formatFileSize(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    for (let c = 0; c < colCount; c++) {
+      const cellAddr = colToLetter(c + 1) + (rowIdx + 1);
+      const value = row[c] !== undefined ? row[c] : '';
+      html += `<td data-addr="${cellAddr}">${escapeHtml(String(value))}</td>`;
+    }
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  
+  document.getElementById('excelCard').classList.remove('hidden');
+  document.getElementById('excelInfo').textContent = `${originalData.length} 列 × ${colCount} 欄`;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ========== 執行分析 ==========
+function runAnalysis() {
+  if (originalData.length === 0) {
+    alert('請先上傳並選擇工作表');
+    return;
+  }
+  
+  errors = [];
+  summaryData = {};
+  employeeBlocks = [];
+  
+  if (!headers || headers.length === 0) {
+    confirmHeaderRow();
+  }
+  
+  // 自動嘗試映射欄位
+  autoMapColumns();
+  
+  // 識別員工區塊
+  identifyEmployeeBlocks();
+  
+  // 執行核對規則
+  runValidationRules();
+  
+  // 計算年度分組數據
+  calculateYearlyData();
+  
+  // 渲染帶外掛層的表格（含摘要區）
+  renderTableWithAddons();
+  
+  // 顯示錯誤清單
+  renderErrorList();
+  
+  // 顯示列印區
+  document.getElementById('printCard').classList.remove('hidden');
+  
+  // 更新狀態
+  document.getElementById('errorStatus').innerHTML = 
+    `<span class="status-dot ${errors.length > 0 ? 'red' : 'green'}"></span> 錯誤: ${errors.length}`;
+}
+
+// ========== 自動映射欄位 ==========
+function autoMapColumns() {
+  if (Object.keys(columnMapping).length > 0) return;
+  
+  headers.forEach((h, idx) => {
+    if (!h) return;
+    const hStr = String(h).trim();
+    
+    // 優先匹配完全相符的
+    if (hStr === '員工代號') columnMapping.employeeId = idx;
+    else if (hStr === '員工姓名') columnMapping.name = idx;
+    else if (hStr === '身分證字號') columnMapping.idNumber = idx;
+    else if (hStr === '年度') columnMapping.year = idx;
+    
+    // 模糊匹配
+    if (columnMapping.employeeId === undefined && /代號|編號|Employee/.test(hStr)) columnMapping.employeeId = idx;
+    if (columnMapping.name === undefined && /姓名|Name/.test(hStr)) columnMapping.name = idx;
+    if (columnMapping.idNumber === undefined && /身分證|身份證/.test(hStr)) columnMapping.idNumber = idx;
+    if (columnMapping.address === undefined && /地址|Address/.test(hStr)) columnMapping.address = idx;
+    if (columnMapping.category === undefined && /類別|Category/.test(hStr)) columnMapping.category = idx;
+    if (columnMapping.year === undefined && (/年度|Year/.test(hStr) && !/年終/.test(hStr))) columnMapping.year = idx;
+    if (columnMapping.month === undefined && /月份|Month|發薪月/.test(hStr)) columnMapping.month = idx;
+    
+    if (columnMapping.salary === undefined && /薪資|本薪|Salary/.test(hStr) && !/淨額/.test(hStr)) columnMapping.salary = idx;
+    if (columnMapping.netPay === undefined && /淨額|Net/.test(hStr)) columnMapping.netPay = idx;
+    if (columnMapping.selfContribution === undefined && /自提|勞健保/.test(hStr)) columnMapping.selfContribution = idx;
+    if (columnMapping.bonus === undefined && /獎金|Bonus/.test(hStr) && !/年終/.test(hStr)) columnMapping.bonus = idx;
+    if (columnMapping.tax === undefined && /所得稅|Tax/.test(hStr)) columnMapping.tax = idx;
+    if (columnMapping.totalPay === undefined && /合計|Total/.test(hStr)) columnMapping.totalPay = idx;
+    if (columnMapping.yearEndBonus === undefined && /年終/.test(hStr)) columnMapping.yearEndBonus = idx;
+  });
+}
+
+// ========== 員工區塊識別 ==========
+function identifyEmployeeBlocks() {
+  const nameIdx = columnMapping.name;
+  const idIdx = columnMapping.idNumber;
+  
+  const employees = new Map();
+  
+  for (let r = headerRow; r < originalData.length; r++) {
+    const row = originalData[r];
+    const name = nameIdx !== undefined ? String(row[nameIdx] || '').trim() : '';
+    const id = idIdx !== undefined ? String(row[idIdx] || '').trim() : '';
+    
+    if (!name && !id) continue;
+    
+    const key = `${id}_${name}`;
+    
+    if (!employees.has(key)) {
+      employees.set(key, {
+        name,
+        idNumber: id,
+        rows: [],
+        startRow: r,
+        endRow: r
+      });
     }
     
-    // 分析副檔名統計
-    function analyzeExtensions(fileList) {
-        const stats = {};
-        fileList.forEach(f => {
-            const ext = f.name.split('.').pop().toLowerCase();
-            if (!stats[ext]) {
-                stats[ext] = { count: 0, size: 0, files: [] };
-            }
-            stats[ext].count++;
-            stats[ext].size += f.size;
-            stats[ext].files.push(f);
+    const emp = employees.get(key);
+    emp.rows.push(r);
+    emp.endRow = r;
+  }
+  
+  employeeBlocks = Array.from(employees.values());
+}
+
+// ========== 取得年度 ==========
+function getYearFromRow(row) {
+  // 優先使用單獨的年度欄位
+  if (columnMapping.year !== undefined) {
+    const y = String(row[columnMapping.year] || '').trim();
+    if (y) {
+      let match = y.match(/^(\d{2,4})/);
+      if (match) {
+        let yr = parseInt(match[1]);
+        if (yr > 1900) yr -= 1911; // 西元轉民國
+        return String(yr);
+      }
+      return y;
+    }
+  }
+
+  // 備用：年月或發薪月
+  let ymIdx = columnMapping.month; // 這裡實際上可能是年月混合
+  if (ymIdx !== undefined) {
+    const ym = String(row[ymIdx] || '');
+    // 支援 113/01, 113-01, 2024/01, 11301 等格式
+    let match = ym.match(/^(\d{2,4})[\/\-]?\d{1,2}/);
+    if (match) {
+      let yr = parseInt(match[1]);
+      if (yr > 1900) yr -= 1911;
+      return String(yr);
+    }
+  }
+  
+  return '未分類';
+}
+
+// ========== 計算年度分組數據 ==========
+function calculateYearlyData() {
+  // 建立需要計算的欄位聯集 (小計 + 摘要)
+  const allCalcCols = new Set([...selectedSumColumns, ...selectedSummaryColumns]);
+  
+  // 為每個員工區塊計算年度分組
+  employeeBlocks.forEach(block => {
+    block.yearlyData = {};
+    
+    allCalcCols.forEach(colIdx => {
+      block.yearlyData[colIdx] = {};
+    });
+    
+    block.rows.forEach(r => {
+      const row = originalData[r];
+      const year = getYearFromRow(row);
+      
+      allCalcCols.forEach(colIdx => {
+        const valStr = String(row[colIdx] || 0).replace(/,/g, '');
+        const val = parseFloat(valStr);
+        // 排除非數值
+        if (!isNaN(val)) {
+          if (!block.yearlyData[colIdx][year]) {
+            block.yearlyData[colIdx][year] = 0;
+          }
+          block.yearlyData[colIdx][year] += val;
+        }
+      });
+    });
+  });
+  
+  // 計算全表摘要（所有員工合計）
+  summaryData = {};
+  selectedSummaryColumns.forEach(colIdx => {
+    const colName = headers[colIdx];
+    summaryData[colIdx] = { name: colName, years: {}, total: 0 };
+    
+    for (let r = headerRow; r < originalData.length; r++) {
+      const row = originalData[r];
+      const year = getYearFromRow(row);
+      const val = parseFloat(String(row[colIdx] || 0).replace(/,/g, ''));
+      
+      if (!isNaN(val)) {
+        if (!summaryData[colIdx].years[year]) {
+          summaryData[colIdx].years[year] = 0;
+        }
+        summaryData[colIdx].years[year] += val;
+        summaryData[colIdx].total += val;
+      }
+    }
+  });
+}
+
+// ========== 核對規則 ==========
+function runValidationRules() {
+  const nameIdx = columnMapping.name;
+  const idIdx = columnMapping.idNumber;
+  const salaryIdx = columnMapping.salary;
+  const taxIdx = columnMapping.tax;
+  
+  // 準備交叉檢查的 Map
+  // 結構: { 'A123456789': { '王小明': ['A2'], '王大明': ['A5'] } }
+  const idToNames = {}; 
+  const nameToIds = {};
+
+  // 1. 基本列資料檢查
+  for (let r = headerRow; r < originalData.length; r++) {
+    const row = originalData[r];
+    const rowNum = r + 1;
+    const name = nameIdx !== undefined ? String(row[nameIdx] || '').trim() : '';
+    const idNumber = idIdx !== undefined ? String(row[idIdx] || '').trim() : '';
+    
+    // 檢查姓名
+    if (nameIdx !== undefined) {
+      if (!name) {
+        const addr = colToLetter(nameIdx + 1) + rowNum;
+        errors.push({
+          type: 'warning',
+          coord: addr,
+          column: headers[nameIdx],
+          message: '姓名欄位為空',
+          expected: '應有姓名',
+          actual: '空白'
         });
-        return stats;
+      }
     }
     
-    // 渲染副檔名篩選區域
-    function renderExtFilter(extStats) {
-        const section = document.getElementById('extFilterSection');
-        const list = document.getElementById('extFilterList');
-        const summary = document.getElementById('extFilterSummary');
-        
-        // 依檔案數量排序
-        const sortedExts = Object.entries(extStats)
-            .sort((a, b) => b[1].count - a[1].count);
-        
-        // 初始化所有副檔名為勾選
-        extFilter = {};
-        sortedExts.forEach(([ext]) => {
-            extFilter[ext] = true;
+    // 檢查身分證格式 (如果有映射)
+    if (idIdx !== undefined && idNumber) {
+      if (!/^[A-Z][12]\d{8}$/.test(idNumber)) {
+        const addr = colToLetter(idIdx + 1) + rowNum;
+        errors.push({
+          type: 'error',
+          coord: addr,
+          column: headers[idIdx],
+          message: '身分證格式不正確',
+          expected: '格式：A123456789',
+          actual: idNumber
         });
-        
-        // 類型顏色對應
-        const typeColors = {
-            pdf: '#e74c3c',
-            docx: '#3498db', doc: '#3498db',
-            xlsx: '#27ae60', xls: '#27ae60',
-            txt: '#9b59b6',
-            html: '#f39c12', htm: '#f39c12',
-            xml: '#1abc9c',
-            csv: '#e67e22'
-        };
-        
-        list.innerHTML = sortedExts.map(([ext, data]) => {
-            const color = typeColors[ext] || '#667eea';
-            return `
-                <label class="ext-filter-item selected" data-ext="${ext}" style="border-left: 3px solid ${color};">
-                    <input type="checkbox" data-ext-filter="${ext}" checked>
-                    <span class="ext-name" style="color:${color}">.${ext}</span>
-                    <span class="ext-count">${data.count} 個</span>
-                    <span class="ext-size">${formatFileSize(data.size)}</span>
-                </label>
-            `;
-        }).join('');
-        
-        // 更新摘要
-        updateExtFilterSummary();
-        
-        // 綁定事件
-        list.querySelectorAll('input[data-ext-filter]').forEach(cb => {
-            cb.addEventListener('change', function() {
-                const ext = this.dataset.extFilter;
-                extFilter[ext] = this.checked;
-                this.closest('.ext-filter-item').classList.toggle('selected', this.checked);
-                updateExtFilterSummary();
+      }
+    }
+
+    // 交叉檢查資料收集: 身分證 <-> 姓名 (排除空值)
+    if (name && idNumber) {
+        const addrId = colToLetter(idIdx + 1) + rowNum;
+        const addrName = colToLetter(nameIdx + 1) + rowNum;
+
+        // 檢查 ID Number -> Name
+        if (!idToNames[idNumber]) idToNames[idNumber] = {};
+        if (!idToNames[idNumber][name]) idToNames[idNumber][name] = [];
+        idToNames[idNumber][name].push(addrId);
+
+        // 檢查 Name -> ID Number
+        if (!nameToIds[name]) nameToIds[name] = {};
+        if (!nameToIds[name][idNumber]) nameToIds[name][idNumber] = [];
+        nameToIds[name][idNumber].push(addrName);
+    }
+    
+    // 薪資所得稅邏輯檢查
+    if (salaryIdx !== undefined && taxIdx !== undefined) {
+      const salaryVal = parseFloat(String(row[salaryIdx] || 0).replace(/,/g, ''));
+      const taxVal = parseFloat(String(row[taxIdx] || 0).replace(/,/g, ''));
+      const threshold = settings.taxCheckThreshold || 88501;
+      const rate = (settings.taxRate || 5) / 100;
+      
+      if (!isNaN(salaryVal) && !isNaN(taxVal)) {
+        if (salaryVal > threshold) {
+          // 簡單計算：薪資 * 稅率，允許 +/- 1 的誤差 (四捨五入或無條件捨去問題)
+          const expectedTax = Math.floor(salaryVal * rate);
+          const tolerance = 1;
+          
+          if (Math.abs(taxVal - expectedTax) > tolerance) {
+             const addr = colToLetter(taxIdx + 1) + rowNum;
+             errors.push({
+               type: 'error',
+               coord: addr,
+               column: headers[taxIdx],
+               message: '所得稅計算異常',
+               expected: `約 ${expectedTax} (薪資 > ${threshold} 且稅率 ${settings.taxRate}%)`,
+               actual: String(taxVal)
+             });
+          }
+        }
+      }
+    }
+    
+    // 檢查選定的數值欄位負數
+    const checkCols = new Set([...selectedSumColumns, ...selectedSummaryColumns]);
+    checkCols.forEach(colIdx => {
+      const val = row[colIdx];
+      if (val !== '' && val !== undefined && val !== null) {
+        const numVal = parseFloat(String(val).replace(/,/g, ''));
+        if (isNaN(numVal)) {
+          // 允許非數值文字
+        } else if (numVal < 0) {
+          const addr = colToLetter(colIdx + 1) + rowNum;
+          errors.push({
+            type: 'warning',
+            coord: addr,
+            column: headers[colIdx],
+            message: '負數值',
+            expected: '正數或零',
+            actual: String(numVal)
+          });
+        }
+      }
+    });
+  }
+
+  // 執行交叉檢查分析
+  // 1. 產出錯誤：單一 身分證 對應多個不同姓名 (若設定啟用)
+  if (settings.checkIdUnique !== false) {
+    Object.keys(idToNames).forEach(id => {
+      const names = Object.keys(idToNames[id]);
+      if (names.length > 1) {
+        const desc = names.map(n => `${n}(${idToNames[id][n].length}筆)`).join(', ');
+        names.forEach(n => {
+          idToNames[id][n].forEach(coord => {
+              errors.push({
+              type: 'error',
+              coord: coord,
+              column: headers[idIdx],
+              message: '身分證對應多個不同姓名',
+              expected: '單一身分證應對應唯一姓名',
+              actual: `ID ${id} 對應: ${desc}`
             });
+          });
         });
-        
-        // 點擊整個項目也能切換
-        list.querySelectorAll('.ext-filter-item').forEach(item => {
-            item.addEventListener('click', function(e) {
-                if (e.target.type !== 'checkbox') {
-                    const cb = this.querySelector('input[type="checkbox"]');
-                    cb.checked = !cb.checked;
-                    cb.dispatchEvent(new Event('change'));
-                }
+      }
+    });
+  }
+
+  // 2. 產出錯誤：單一 姓名 對應多個不同身分證 (若設定啟用)
+  if (settings.checkNameUnique !== false) {
+    Object.keys(nameToIds).forEach(name => {
+      const ids = Object.keys(nameToIds[name]);
+      if (ids.length > 1) {
+        const desc = ids.map(id => `${id}(${nameToIds[name][id].length}筆)`).join(', ');
+        ids.forEach(id => {
+          nameToIds[name][id].forEach(coord => {
+              errors.push({
+              type: 'error',
+              coord: coord,
+              column: headers[nameIdx],
+              message: '姓名對應多個不同身分證',
+              expected: '單一姓名應對應唯一身分證',
+              actual: `姓名 ${name} 對應: ${desc}`
             });
+          });
         });
-        
-        section.style.display = 'block';
+      }
+    });
+  }
+}
+
+// ========== 格式化數字 ==========
+function formatNumber(num) {
+  if (typeof num !== 'number' || isNaN(num)) return '0';
+  return num.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// ========== 生成年度分組字串 ==========
+function generateYearlyString(yearData) {
+  let years = Object.keys(yearData).filter(y => y !== '未分類').sort();
+  
+  // 處理後台設定的目標年度過濾
+  if (settings.targetYears) {
+    const targetSet = new Set(settings.targetYears.split(/[,，]/).map(y => y.trim()));
+    if (targetSet.size > 0) {
+      years = years.filter(y => targetSet.has(y));
+    }
+  }
+
+  if (yearData['未分類']) years.push('未分類');
+  
+  // 如果沒有資料，直接返回
+  if (years.length === 0) return '';
+
+  let total = 0;
+  const parts = years.map(year => {
+    const val = yearData[year] || 0;
+    total += val;
+    return `${year}(${formatNumber(val)})`;
+  });
+  
+  // 計算總計 (包含未顯示的年度嗎？ 這裡假設Total應包含所有數據，還是只包含顯示的？
+  // 根據內控邏輯，Total通常指該員工該欄位的加總。
+  // 但顯示格式為 113(...), 114(...)=Total(...)，隱含 Total 是前面項目的加總。
+  // 因此這裡 Total 只加總有顯示的部分。
+  
+  return parts.join(',') + `=Total(${formatNumber(total)})`;
+}
+
+// ========== 渲染帶外掛層的表格 ==========
+function renderTableWithAddons() {
+  const container = document.getElementById('excelContainer');
+  const colCount = Math.max(...originalData.map(r => r.length));
+  
+  let html = '<table class="excel-table"><thead><tr>';
+  html += '<th class="corner"></th>';
+  for (let c = 0; c < colCount; c++) {
+    html += `<th>${colToLetter(c + 1)}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+  
+  // 建立錯誤座標集合
+  const errorCoords = new Set(errors.map(e => e.coord));
+  
+  // 找出每個員工區塊的結束列
+  const blockEndRows = new Map();
+  employeeBlocks.forEach(block => {
+    blockEndRows.set(block.endRow, block);
+  });
+  
+  // 渲染原始資料
+  let addonRowCount = 0;
+  originalData.forEach((row, rowIdx) => {
+    const isHeaderRow = rowIdx === headerRow - 1;
+    html += `<tr${isHeaderRow ? ' style="background:#e0f2fe;"' : ''}>`;
+    html += `<td class="row-header">${rowIdx + 1}</td>`;
+    
+    for (let c = 0; c < colCount; c++) {
+      const cellAddr = colToLetter(c + 1) + (rowIdx + 1);
+      const value = row[c] !== undefined ? row[c] : '';
+      const hasError = errorCoords.has(cellAddr);
+      const errorType = hasError ? errors.find(e => e.coord === cellAddr)?.type : '';
+      
+      html += `<td data-addr="${cellAddr}" class="${hasError ? (errorType === 'error' ? 'error-cell' : 'highlight-cell') : ''}" onclick="highlightCell('${cellAddr}')">${escapeHtml(String(value))}</td>`;
+    }
+    html += '</tr>';
+    
+    // 插入員工區塊小計外掛列（年度分組）
+    if (blockEndRows.has(rowIdx)) {
+      const block = blockEndRows.get(rowIdx);
+      addonRowCount++;
+      
+      html += `<tr class="addon-row">`;
+      html += `<td class="row-header" style="background:var(--addon-bg);font-size:10px;">外掛</td>`;
+      
+      for (let c = 0; c < colCount; c++) {
+        // 優先顯示加總數值
+        if (selectedSumColumns.includes(c)) {
+          if (block.yearlyData && block.yearlyData[c]) {
+            const yearData = block.yearlyData[c];
+            const yearStr = generateYearlyString(yearData);
+            html += `<td style="font-size:11px;font-weight:bold;color:#b45309;">${yearStr}</td>`;
+          } else {
+            html += `<td></td>`;
+          }
+        } 
+        // 非加總欄位的第一欄顯示標籤
+        else if (c === 0) {
+          html += `<td><span class="addon-badge">外掛</span>分組小計</td>`;
+        } 
+        // 其他空白
+        else {
+          html += `<td></td>`;
+        }
+      }
+      html += '</tr>';
+    }
+  });
+  
+  // ========== 表格最下方摘要區（外掛）==========
+  if (selectedSummaryColumns.length > 0) {
+    // 空白分隔行
+    html += `<tr class="summary-row"><td class="row-header" style="background:var(--summary-bg);"></td>`;
+    html += `<td colspan="${colCount}" style="text-align:center;font-weight:bold;background:var(--summary-bg);border-top:3px solid var(--summary-border);">`;
+    html += `<span class="summary-badge">外掛</span>📊 表格摘要區`;
+    html += `</td></tr>`;
+    
+    // 每個欄位的摘要
+    selectedSummaryColumns.forEach(colIdx => {
+      const data = summaryData[colIdx];
+      if (!data) return;
+      
+      const yearStr = generateYearlyString(data.years);
+      
+      html += `<tr class="summary-row">`;
+      html += `<td class="row-header" style="background:var(--summary-bg);font-size:10px;">摘要</td>`;
+      html += `<td colspan="${colCount}" style="font-family:monospace;font-size:12px;">`;
+      html += `<strong>${escapeHtml(data.name)}:</strong> ${yearStr}`;
+      html += `</td></tr>`;
+    });
+  }
+  
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  
+  document.getElementById('excelInfo').textContent = 
+    `${originalData.length} 列 × ${colCount} 欄 | 外掛列: ${addonRowCount} | 選定欄位: ${selectedSumColumns.length}`;
+}
+
+function highlightCell(addr) {
+  document.querySelectorAll('.excel-table td').forEach(td => {
+    if (!td.classList.contains('error-cell')) {
+      td.classList.remove('highlight-cell');
+    }
+  });
+  const cell = document.querySelector(`td[data-addr="${addr}"]`);
+  if (cell) {
+    cell.classList.add('highlight-cell');
+    cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// ========== 錯誤清單 ==========
+function renderErrorList() {
+  const container = document.getElementById('errorList');
+  
+  if (errors.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:var(--success);padding:20px;">✅ 無核對錯誤</p>';
+    document.getElementById('errorCard').classList.remove('hidden');
+    return;
+  }
+  
+  let html = '';
+  errors.forEach((err, idx) => {
+    html += `
+      <div class="error-item" onclick="highlightCell('${err.coord}')">
+        <span class="error-coord ${err.type}">${err.coord}</span>
+        <div class="error-desc">
+          <strong>${err.column}</strong>: ${err.message}
+          ${err.expected ? `<br><span class="text-sm text-gray">期望: ${err.expected} | 實際: ${err.actual}</span>` : ''}
+        </div>
+        <button class="btn btn-outline copy-btn" onclick="event.stopPropagation();copyError(${idx})">複製</button>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  document.getElementById('errorCard').classList.remove('hidden');
+}
+
+function copyError(idx) {
+  const err = errors[idx];
+  const text = `${err.coord}\t${err.column}\t${err.message}\t期望:${err.expected || '-'}\t實際:${err.actual || '-'}`;
+  copyToClipboard(text);
+}
+
+function copyAllErrors() {
+  const text = errors.map(err => 
+    `${err.coord}\t${err.column}\t${err.message}\t期望:${err.expected || '-'}\t實際:${err.actual || '-'}`
+  ).join('\n');
+  copyToClipboard(text);
+}
+
+function exportErrors() {
+  const text = '座標\t欄位\t問題描述\t期望值\t實際值\n' + errors.map(err => 
+    `${err.coord}\t${err.column}\t${err.message}\t${err.expected || '-'}\t${err.actual || '-'}`
+  ).join('\n');
+  downloadText('errors_' + new Date().toISOString().slice(0,10) + '.txt', text);
+}
+
+// ========== 列印 ==========
+function printReport() {
+  const orientation = document.getElementById('printOrientation').value;
+  const fitWidth = document.getElementById('printFitWidth').checked;
+  const scalePercent = document.getElementById('printScale').value || 100;
+  
+  const container = document.getElementById('excelContainer');
+  const originalStyle = container.getAttribute('style') || '';
+  
+  // 暫時調整容器樣式以適應列印
+  container.style.maxHeight = 'none';
+  container.style.overflow = 'visible';
+  container.style.border = 'none'; // 避免邊框重疊
+  
+  // 加入列印用 style
+  const style = document.createElement('style');
+  style.id = 'print-style';
+  
+  let css = `@page { size: ${orientation}; margin: 10mm; }`;
+  css += `@media print { 
+    body { -webkit-print-color-adjust: exact; } 
+    .no-print { display: none !important; }
+    .container { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+    .card { box-shadow: none !important; border: none !important; margin: 0 !important; }
+    .excel-container { overflow: visible !important; max-height: none !important; }
+  `;
+  
+  // 處理縮放
+  if (fitWidth) {
+    // 自動計算縮放比例 (假設 A4 寬度約 210mm/297mm)
+    // 這裡簡單使用 CSS zoom 或 transform
+    css += `
+      .excel-table { width: 100% !important; }
+    `;
+  } else {
+    if (scalePercent != 100) {
+      css += `
+        .excel-table { zoom: ${scalePercent}%; }
+      `;
+    }
+  }
+  
+  css += `}`;
+  style.textContent = css;
+  document.head.appendChild(style);
+  
+  window.print();
+  
+  // 復原
+  setTimeout(() => {
+    const s = document.getElementById('print-style');
+    if (s) s.remove();
+    container.setAttribute('style', originalStyle);
+  }, 500);
+}
+
+// ========== 工具函數 ==========
+function copyToClipboard(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('已複製到剪貼簿');
+    });
+  } else {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('已複製到剪貼簿');
+  }
+}
+
+function downloadText(filename, text) {
+  const blob = new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function showToast(message) {
+  const existing = document.querySelector('.toast-msg');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast-msg';
+  toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:12px 24px;border-radius:8px;z-index:9999;';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+// ========== PDF 匯出 ==========
+async function exportToPDF() {
+  if (!window.jspdf || !window.html2canvas) {
+    alert('PDF 模組尚未載入，請確認網路連線（此功能需 CDN）');
+    return;
+  }
+  
+  const btn = document.getElementById('btnExportPdf');
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '⏳ 處理中...';
+  btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const orientation = document.getElementById('printOrientation').value;
+    const element = document.getElementById('excelContainer');
+    
+    // 暫時移除容器限制以截取完整內容
+    const originalMaxHeight = element.style.maxHeight;
+    const originalOverflow = element.style.overflow;
+    const originalBorder = element.style.border;
+    const originalPadding = element.style.padding;
+    
+    element.style.maxHeight = 'none';
+    element.style.overflow = 'visible';
+    element.style.border = 'none';
+    element.style.padding = '10px'; // 加入內距確保邊框被截取
+
+    // 使用 html2canvas 截圖
+    // 提高 scale 以獲得更好的清晰度
+    const canvas = await html2canvas(element, { 
+      scale: 2, 
+      logging: false,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
+
+    // 復原樣式
+    element.style.maxHeight = originalMaxHeight;
+    element.style.overflow = originalOverflow;
+    element.style.border = originalBorder;
+    element.style.padding = originalPadding;
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+    
+    const pdf = new jsPDF({
+      orientation: orientation,
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    
+    const imgProps = pdf.getImageProperties(imgData);
+    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // 第一頁
+    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+    heightLeft -= pdfHeight;
+
+    // 後續頁面
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight; // 這裡的邏輯是負的位移
+      // 修正邏輯：每次 addPage 後，圖片要往上移一頁的高度
+      // 我們使用累積的負位移
+      
+      pdf.addPage();
+      
+      // 假設第一頁印了 0 ~ 297mm
+      // 第二頁要印 297 ~ 594mm 的內容，把它放在 PDF 的 y=0 處
+      // 所以 y 座標應該是 -297mm
+      
+      // 重新計算 position
+      // 第 n 頁的 position 應該是 -1 * (n-1) * pdfHeight
+      const currentPageIndex = pdf.internal.getNumberOfPages(); // 1-based, now it's 2
+      const yOffset = -1 * (currentPageIndex - 1) * pdfHeight;
+      
+      pdf.addImage(imgData, 'JPEG', 0, yOffset, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
     }
     
-    // 更新副檔名篩選摘要
-    function updateExtFilterSummary() {
-        const summary = document.getElementById('extFilterSummary');
-        const selectedExts = Object.entries(extFilter).filter(([_, v]) => v).map(([k]) => k);
-        const totalExts = Object.keys(extFilter).length;
-        
-        let selectedCount = 0;
-        let selectedSize = 0;
-        allRawFiles.forEach(f => {
-            const ext = f.name.split('.').pop().toLowerCase();
-            if (extFilter[ext]) {
-                selectedCount++;
-                selectedSize += f.size;
-            }
-        });
-        
-        summary.innerHTML = `
-            <div>
-                <strong>已選擇:</strong> ${selectedExts.length}/${totalExts} 種類型，
-                共 <strong>${selectedCount}</strong> 個檔案 (${formatFileSize(selectedSize)})
-            </div>
-            <div class="ext-priority-hint">
-                💡 取消勾選不需要處理的檔案類型，可加快處理速度
-            </div>
-        `;
-    }
-    
-    // 副檔名全選
-    document.getElementById('extSelectAll').addEventListener('click', () => {
-        Object.keys(extFilter).forEach(ext => extFilter[ext] = true);
-        document.querySelectorAll('input[data-ext-filter]').forEach(cb => {
-            cb.checked = true;
-            cb.closest('.ext-filter-item').classList.add('selected');
-        });
-        updateExtFilterSummary();
-    });
-    
-    // 副檔名取消全選
-    document.getElementById('extDeselectAll').addEventListener('click', () => {
-        Object.keys(extFilter).forEach(ext => extFilter[ext] = false);
-        document.querySelectorAll('input[data-ext-filter]').forEach(cb => {
-            cb.checked = false;
-            cb.closest('.ext-filter-item').classList.remove('selected');
-        });
-        updateExtFilterSummary();
-    });
-    
-    // 套用副檔名篩選
-    document.getElementById('extApplyFilter').addEventListener('click', async () => {
-        const selectedExts = Object.entries(extFilter).filter(([_, v]) => v).map(([k]) => k);
-        
-        if (selectedExts.length === 0) {
-            alert('請至少選擇一種檔案類型！');
-            return;
-        }
-        
-        // 過濾檔案
-        const filteredRawFiles = allRawFiles.filter(f => {
-            const ext = f.name.split('.').pop().toLowerCase();
-            return extFilter[ext];
-        });
-        
-        // 開始處理
-        files = filteredRawFiles.map(f => ({
-            file: f,
-            name: f.name,
-            path: f.webkitRelativePath,
-            type: f.name.split('.').pop().toLowerCase(),
-            size: f.size,
-            content: '',
-            suggestedName: f.name,
-            suggestedFolder: '',
-            tags: [],
-            selected: true,
-            analyzed: false
-        }));
-        
-        if (files.length === 0) {
-            statusText.textContent = '未選擇任何檔案';
-            return;
-        }
-        
-        updateStats();
-        
-        // 隱藏篩選區域，開始解析
-        document.getElementById('extFilterSection').style.display = 'none';
-        
-        // 解析檔案內容
-        statusText.innerHTML = '<span class="loading"></span> 正在解析檔案內容...';
-        
-        for (let i = 0; i < files.length; i++) {
-            const f = files[i];
-            progressFill.style.width = ((i + 1) / files.length * 100) + '%';
-            statusText.innerHTML = `<span class="loading"></span> 解析中: ${f.name} (${i + 1}/${files.length})`;
-            
-            try {
-                const arrayBuffer = await f.file.arrayBuffer();
-                
-                switch (f.type) {
-                    case 'pdf':
-                        f.content = await PDFParser.parse(arrayBuffer);
-                        break;
-                    case 'docx':
-                        f.content = await DOCXParser.parse(arrayBuffer);
-                        break;
-                    case 'xlsx':
-                    case 'xls':
-                        f.content = await XLSXParser.parse(arrayBuffer);
-                        break;
-                    case 'txt':
-                    case 'html':
-                    case 'htm':
-                    case 'xml':
-                    case 'csv':
-                        let text = '';
-                        try {
-                            text = new TextDecoder('utf-8').decode(arrayBuffer);
-                            if (text.includes('�')) {
-                                text = new TextDecoder('big5').decode(arrayBuffer);
-                            }
-                        } catch (e) {
-                            text = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuffer);
-                        }
-                        if (f.type === 'html' || f.type === 'htm') {
-                            text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                                       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-                                       .replace(/<[^>]+>/g, ' ')
-                                       .replace(/&nbsp;/g, ' ')
-                                       .replace(/\s+/g, ' ');
-                        }
-                        f.content = text.substring(0, 8000);
-                        break;
-                }
-            } catch (err) {
-                console.error('Parse error for', f.name, err);
-                f.content = '[解析錯誤: ' + err.message + ']';
-            }
-            
-            if (i % 5 === 0) {
-                await new Promise(r => setTimeout(r, 10));
-            }
-        }
-        
-        statusText.textContent = `✅ 完成！已載入 ${files.length} 個檔案，可開始智能分析`;
-        progressFill.style.width = '100%';
-        
-        filteredFiles = [...files];
-        renderTable();
-        
-        smartAnalyzeBtn.disabled = false;
-        applyRulesBtn.disabled = false;
-        exportBatBtn.disabled = false;
-        previewBatBtn.disabled = false;
-    });
+    pdf.save('payroll_analysis_' + new Date().toISOString().slice(0,10) + '.pdf');
 
-    // 修改原始的資料夾選擇事件
-    const originalFolderHandler = folderInput.onchange;
-    folderInput.removeEventListener('change', originalFolderHandler);
-    
-    folderInput.addEventListener('change', (e) => {
-        const fileList = Array.from(e.target.files);
-        const supportedTypes = ['.pdf', '.docx', '.xlsx', '.xls', '.txt', '.html', '.htm', '.xml', '.csv'];
-        
-        // 儲存所有支援的原始檔案
-        allRawFiles = fileList.filter(f => {
-            const ext = '.' + f.name.split('.').pop().toLowerCase();
-            return supportedTypes.includes(ext) && !f.name.startsWith('.');
-        });
-
-        if (allRawFiles.length === 0) {
-            statusText.textContent = '未找到支援的檔案格式';
-            document.getElementById('extFilterSection').style.display = 'none';
-            return;
-        }
-
-        // 分析副檔名並顯示篩選區域
-        const extStats = analyzeExtensions(allRawFiles);
-        renderExtFilter(extStats);
-        
-        // 重置檔案列表和按鈕狀態
-        files = [];
-        filteredFiles = [];
-        fileTableBody.innerHTML = `<tr><td colspan="6" class="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-            </svg>
-            <div>請選擇要處理的檔案類型，然後點擊「✓ 套用篩選」</div>
-            <p>共偵測到 ${allRawFiles.length} 個支援的檔案</p>
-        </td></tr>`;
-        
-        document.getElementById('fileCountDisplay').textContent = '0';
-        document.getElementById('totalFiles').textContent = allRawFiles.length;
-        
-        smartAnalyzeBtn.disabled = true;
-        applyRulesBtn.disabled = true;
-        exportBatBtn.disabled = true;
-        previewBatBtn.disabled = true;
-        
-        progressFill.style.width = '0%';
-        statusText.textContent = `📁 偵測到 ${allRawFiles.length} 個檔案，請選擇要處理的檔案類型`;
-    });
-    </script>
+  } catch (err) {
+    console.error(err);
+    alert('PDF 匯出失敗: ' + err.message);
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
+}
+</script>
 </body>
 </html>
