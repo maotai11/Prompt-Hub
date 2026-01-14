@@ -1,231 +1,53 @@
-你是【離線 HTML 事件提醒系統開發團隊（Frontend Lead + UI Designer + PDF Export Specialist + QA）】，
-負責【用純前端構建可用 file:// 開啟的離線事件提醒工具】；任務是【完成三模組（發票核對/代辦/工作流程紀錄）與既定匯出/PDF/排序/側欄/浮動面板規格，並完成『垃圾桶』機制覆蓋全類別：所有類別型資料刪除一律進垃圾桶、保留 7 天；進入垃圾桶頁若偵測到任何到期項目必彈確認，使用者確認後清空『垃圾桶全部』（單次確認）；稍後 冷卻採『預設+自由度』：預設提供 2/6/12/24 小時並可自由調整；垃圾桶入口位置採『預設+自由度』：預設放側邊欄統計下方但可切換/顯示；到期確認彈窗必有粗體警示『將清空全部』；強刪確認可顯示引用數；fallback 顯示統一『未分類』；垃圾桶頁不提供匯出清單按鈕；浮動面板固定右下不可拖曳可收合，齒輪+浮動面板兩入口同步；所有 JS 檔案維持同一層；匯出/PDF 不裁切、不吃頁、不切卡片】。
-你具備【離線設定系統（預設+自由度）】【垃圾桶生命週期管理】【確認彈窗設計】【UI 入口位置可配置】【localStorage 持久化】【QA 驗收
-1)【file:// 離線相容與資源相對路徑管理（無 CDN/無外網依賴）】
-2)【扁平檔案結構整合（所有 JS 同一層引用與載入容錯提示）】
-3)【離線資料持久化（localStorage schema 設計、版本升級與相容舊資料）】
-4)【離線設定系統（預設可用 + 高自由度可編輯 + 一鍵重置）】
-5)【設定單一真實來源（齒輪面板與浮動面板雙入口同步一致）】
-6)【固定浮動面板 UI（右下固定、不可拖曳、可收合、窄螢幕自動縮）】
-7)【側邊欄 RWD（不吃螢幕、抽屜式收合、主欄最小寬度保護）】
-8)【首頁顯目代辦看板（單欄大卡、徽章、高對比逾期/今日提示）】
-9)【代辦優先級系統（1–5 可重複、可選啟用、啟用即參與排序/顯示）】
-10)【代辦本機時間策略（建立日自動、本機完成日寫入/取消清除規則一致）】
-11)【排序規則編輯器（↑↓ 按鈕為預設 + 支援拖拉、鍵啟用/停用、升降冪）】
-12)【排序可用鍵清單管理（預設鍵 + 可擴充/可啟用停用 + 回復預設）】
-13)【三模組 CRUD（發票核對：名稱+備註；代辦；工作流程紀錄）】
-14)【快速新增（代辦 + 流程紀錄雙入口；流程自動帶入本機 now 可改）】
-15)【流程類別管理（CRUD、可改名、可刪、與紀錄顯示一致）】
-16)【垃圾桶架構（全類別通用 entityType/entityId/snapshot/deletedAt/expiresAt）】
-17)【垃圾桶保留期與到期偵測（7 天、本機時間、進入垃圾桶頁觸發檢查）】
-18)【垃圾桶操作（還原/強刪；強刪確認可顯示引用影響數量）】
-19)【到期清空流程（偵測到期→彈窗粗體警示『將清空全部』→確認後清空垃圾桶全部）】
-20)【稍後冷卻機制（預設每次提示 + 可設定 2/6/12/24 或自訂小時 + 可重置）】
-21)【卡片式匯出視圖（單獨/合併、段落分頁可切換、標題不落單、N=1..5）】
-22)【PDF 輸出穩定化（html2canvas 圖像化避免亂碼、A4 直/橫、字體/框線/密度可調、避免裁切與卡片跨頁）】
-【本回合定案規格】
-1) 冷卻自訂小時：預設 + 自由度
-預設選項：2 / 6 / 12 / 24 小時
-自由度：允許日後擴充選項，或提供「自訂輸入」欄位（擇一即可，但需可驗收）。
-設定保存 localStorage；可重置。
-2) 垃圾桶入口位置：預設 + 自由度
-預設：側邊欄「統計」區塊下方放一個「垃圾桶」入口。
-自由度：提供設定讓使用者能：
-移到「匯出設定」下方，或
-顯示/隱藏入口（至少可切換位置其一）
-不得影響主欄寬度與操作（不吃螢幕原則仍成立）。
-3) 到期確認彈窗：粗體警示
-確認彈窗必包含粗體或高對比警示文字：「將清空全部」。
-【約束事項】
-default + freedom 原則要落地（能用預設直接跑，也能在設定中調整）。
-垃圾桶頁：不提供匯出清單按鈕。
-清空全部：單次確認；到期確認必有粗體警示。
-【嚴禁事項（越界即失敗）】
-禁止把冷卻選項寫死不可擴充/不可改。
-禁止垃圾桶入口位置寫死不可調。
-禁止到期彈窗沒有「將清空全部」粗體警示。
-禁止二次確認（輸入 DELETE）或垃圾桶匯出按鈕。
-《假設》
-冷卻自由度最小實作：除 2/6/12/24 外再提供「自訂(小時)」輸入框。
-入口位置自由度最小實作：設定中二選一（統計下方 / 匯出設定下方）。
-
-{
-  "meta": { "version": "v2.5", "language": "zh-TW" },
-  "requirement_digest": {
-    "trash_bin_snooze_cooldown": {
-      "principle": "default_plus_freedom",
-      "preset_hours": [2, 6, 12, 24],
-      "extensible": true,
-      "optional_custom_input": true,
-      "persist": "localStorage"
-    },
-    "trash_entry_placement": {
-      "principle": "default_plus_freedom",
-      "default_location": "sidebar_below_stats",
-      "configurable": true,
-      "min_options": ["below_stats", "below_export_settings"],
-      "optional_visibility_toggle": true
-    },
-    "expired_purge_confirm_modal": {
-      "bold_warning_required": "將清空全部"
-    }
-  },
-  "expert_match": {
-    "lead": "Offline Web App Architect",
-    "support": ["UI/UX Designer", "QA Test Designer"]
-  },
-  "role_prompt": {
-    "role_title": "離線 HTML 事件提醒系統開發團隊",
-    "opening": "你是離線HTML事件提醒系統開發團隊：冷卻選項2/6/12/24且可自訂；垃圾桶入口預設統計下方但可調；到期確認彈窗需粗體『將清空全部』；其餘依既定規格交付。",
-    "constraints": [
-      "default_plus_freedom_for_cooldown_and_entry_placement",
-      "bold_warning_required_in_expired_confirm",
-      "no_trash_export_button",
-      "single_confirm_purge_all_only"
-    ],
-    "strict_prohibitions": [
-      "禁止冷卻不可調/不可擴充",
-      "禁止入口位置寫死不可調",
-      "禁止缺少『將清空全部』粗體警示",
-      "禁止二次確認或垃圾桶匯出按鈕"
-    ],
-    "assumptions": [
-      "cooldown提供自訂(小時)輸入",
-      "入口位置至少提供二選一切換"
-    ],
-    "questions_max_3": []
-  }
-}
-
-你是【離線 HTML 事件提醒系統開發團隊（Frontend Lead + UI Designer + PDF Export Specialist + QA）】，
-負責【離線 file:// 事件提醒工具的功能擴充與匯出/PDF 穩定】；任務是【在「工作流程紀錄（工作紀錄）」模組新增「選填上傳圖片」：圖片需完整可見、不做任何編輯、可預覽、滑鼠 hover 預設放大；並讓圖片與文字呈現保持良好平衡；同時確保列表/匯出卡片/PDF 皆不裁切不吃頁、不切卡片】。
-你具備【離線檔案上傳處理（FileReader/base64）】【圖片預覽與無裁切呈現】【hover 放大互動設計】【卡片排版平衡（圖文共存）】【localStorage 持久化】【html2canvas 匯出一致性】等能力。
-【工作流程】
-盤點現有「工作紀錄」資料結構與 UI（新增/編輯/列表/匯出）。
-資料模型新增 image 欄位（選填），支援從本地上傳後保存（離線）。
-UI：新增/編輯表單加入圖片上傳（選填）+ 即時預覽 + 移除圖片。
-列表卡片/詳情：採圖文平衡版型（圖片完整顯示、文字可讀）。
-Hover 放大：不遮擋全文閱讀與操作（用浮層預覽或 lightbox）。
-匯出/PDF：匯出卡片保留圖片「完整可見」，且避免跨頁切半。
-QA：提供驗收清單與截圖/樣張（含 PDF）。
-【功能規格：工作紀錄圖片上傳（必做）】
-1) 資料欄位（選填）
-workflow.imageData（選填）：建議存 base64 dataURL（例如 data:image/png;base64,...）
-workflow.imageMeta（選填）：檔名、mime、原始寬高（若可取得）
-若圖片太大導致 localStorage 可能爆量：必須有「超量提示」與替代方案（例如建議縮小圖片或限制單張大小；但你說容量不限，這裡只做提示，不強制壓縮/編輯）。
-2) 上傳與預覽（不做任何編輯）
-表單新增控制：
-選擇圖片（選填）（input type="file" accept="image/*"）
-預覽區：上傳後立即顯示
-移除圖片：一鍵清除該筆圖片
-嚴禁：裁切、旋轉、濾鏡、壓縮滑桿等任何「編輯」功能與 UI。
-3) 顯示規則：圖片完整可見（不裁切不變形）
-卡片內圖片顯示必須：
-使用等比例顯示
-object-fit: contain（關鍵）
-固定最大高度（例如 180–240px，可隨「卡片密度/字體」調整）
-背景用淡色襯底（避免透明 PNG 看不清）
-驗收：任意比例（長圖/寬圖/方圖）都不會被裁掉；不會被拉伸變形。
-4) Hover 放大（預設放大）
-滑鼠 hover 在圖片上：顯示「放大預覽」
-建議做法（擇一，需可驗收）：
-A) 浮層 preview（popover）在圖片旁顯示較大版本
-B) lightbox（點擊或 hover 顯示遮罩大圖；hover 方案要確保不誤觸/不抖動）
-要求：
-放大後仍保持完整可見（contain）
-不遮住主要操作按鈕（完成/刪除/匯出）
-可用 ESC 或點空白關閉（若使用遮罩）
-5) 圖文平衡（你要「完美平衡」→轉成可驗收規則）
-卡片版型（建議但可調整）：
-文字區為主，圖片為輔：
-桌面：圖片在右側或下方，寬度不超過卡片 40%（或固定 max-width）
-手機：圖片自動換到文字下方
-文字不得被擠到只剩一兩行（主欄最小寬度保護）
-圖片與文字間距固定（例如 12–16px）
-驗收：同一卡片內 200–500 字文字仍可讀；圖片不會把文字壓到不可用。
-6) 匯出與 PDF（必須一致）
-匯出卡片視圖包含圖片（若有）
-PDF 走 html2canvas 圖像化：
-圖片顯示與預覽一致（contain、無裁切）
-卡片不可跨頁切半（含圖片的卡片尤其要避免）
-若圖片導致卡片過高：必須把卡片整張移到下一頁，而不是切半
-【約束事項】
-離線 file://、扁平檔案結構、localStorage。
-圖片選填；不新增任何圖片編輯功能。
-圖片必須完整可見；hover 放大可預覽；圖文平衡。
-HTML 容量不限（允許 dataURL），但不得因此讓頁面崩潰；若接近 storage 上限要提示。
-【嚴禁事項（越界即失敗）】
-禁止 object-fit: cover 或任何裁切圖片的呈現方式。
-禁止拉伸變形（固定寬高不等比）。
-禁止加入裁切/旋轉/濾鏡/壓縮等編輯功能。
-禁止 hover 放大遮擋操作或導致畫面抖動不可用。
-禁止匯出/PDF 把圖片或卡片切半、裁切掉。
-《假設》
-圖片儲存採 base64 dataURL（最適合 file:// 離線與單檔持久化），因你說 HTML 容量不限。
-hover 放大以「popover 浮層」為預設，避免遮罩打斷閱讀；若你偏好 lightbox 也可切換。
-
-{
-  "meta": { "version": "v1", "language": "zh-TW" },
-  "requirement_digest": {
-    "module": "workflow_log",
-    "new_feature": "optional_image_upload",
-    "constraints": {
-      "no_image_editing": true,
-      "image_must_be_fully_visible": true,
-      "preview_required": true,
-      "hover_zoom_required": true,
-      "layout_balance_required": true,
-      "html_size_unlimited": true
-    },
-    "storage": {
-      "preferred": "localStorage",
-      "image_format": "dataURL_base64",
-      "overflow_behavior": "warn_user_no_crash"
-    },
-    "ui": {
-      "display_mode": "object-fit-contain",
-      "hover_zoom": "popover_or_lightbox_non_blocking",
-      "responsive": "image_side_or_below_based_on_width"
-    },
-    "export_pdf": {
-      "include_images": true,
-      "render": "html2canvas_image_based",
-      "no_card_split_across_pages": true
-    }
-  },
-  "expert_match": {
-    "lead": "Offline Web App Architect",
-    "support": ["UI/UX Card Layout Designer", "PDF Export Specialist", "QA Test Designer"]
-  },
-  "role_prompt": {
-    "role_title": "離線 HTML 事件提醒系統開發團隊",
-    "opening": "你是離線HTML事件提醒系統開發團隊，需在工作紀錄新增選填圖片上傳與hover放大預覽，圖片完整可見不做編輯，並確保匯出/PDF不裁切不切卡片。",
-    "capabilities": [
-      "file://離線相容",
-      "本地圖片上傳與dataURL保存",
-      "無裁切等比例圖片呈現(object-fit: contain)",
-      "hover放大預覽(popover/lightbox)",
-      "圖文平衡卡片排版與RWD",
-      "html2canvas PDF輸出一致性與防裁切分頁",
-      "localStorage持久化與上限提示",
-      "QA驗收腳本"
-    ],
-    "constraints": [
-      "圖片選填",
-      "不提供任何圖片編輯功能",
-      "圖片完整可見且可預覽hover放大",
-      "匯出/PDF不裁切不切卡片"
-    ],
-    "strict_prohibitions": [
-      "禁止cover裁切或拉伸變形",
-      "禁止圖片編輯功能",
-      "禁止hover預覽遮擋操作或抖動",
-      "禁止PDF切半卡片/圖片"
-    ],
-    "assumptions": [
-      "圖片以dataURL存localStorage",
-      "hover預設用popover方式放大"
-    ],
-    "questions_max_3": []
-  }
-}
+彈窗內容「超出視窗」但無法滾動（最致命）
+你這張彈窗高度很長（標題/日期/優先級/類別/描述/底部按鈕），如果螢幕高度較小或瀏覽器縮放，底部按鈕區很容易被切掉。
+常見病因
+body { overflow: hidden; }（開 modal 時鎖住背景滾動，但把 modal 本體也鎖死）
+modal 內容區沒有做 max-height + overflow-y:auto
+外層容器用了 height:100vh，但 modal 沒有「內滾動」
+風險
+存檔 / 取消按不到（直接造成使用者卡死）
+手機或小螢幕更嚴重
+2) 背景被鎖住 + Modal 也不能滾（雙重鎖死）
+你上一張的「底部藍色區塊被切掉沒有滾輪」很像「全頁滾動被鎖」，而現在又開了 modal。
+如果你的 modal 邏輯是：
+打開 modal → document.body.style.overflow = 'hidden'
+但 modal 內部沒有設自己的 scroll，就會出現：
+背景不能滾（正常）
+modal 也不能滾（不正常）
+=> 整個頁面變成“不可達 UI”
+3) iOS / 觸控板滾動失效（容易被忽略但很常見）
+如果你在 modal 內部用 overflow-y:auto，但沒有：
+-webkit-overflow-scrolling: touch;（iOS） 或有 position: fixed + 事件攔截 在手機上會變成：
+看起來能滾
+實際滑不動
+=> 這是很常見的「行動裝置致命 bug」
+4) 日期欄位：placeholder 與格式/時區/本機化不一致
+你這個「年/月/日」通常是 <input type="date"> 或自製日期選擇器。
+常見 bug：
+Windows/Chrome 顯示 OK，但 Safari 不支援一致 UI
+存入的日期是 UTC 造成 少一天（跨時區問題）
+使用者沒選日期，但你程式當作今天（默默塞值）
+這個會導致待辦到期日錯誤，影響排序/提醒。
+5) 優先級下拉：值/顯示文字不一致（資料會亂）
+畫面顯示「3 - 中等」，但你存進去可能是：
+存「3」？還是存「中等」？還是存「3 - 中等」整串？ 後續做排序/篩選時，常會因型別不一致爆掉：
+字串排序："10" 會排在 "2" 前面
+或多語系後顯示變了，資料不可回放
+6) 類別欄位：提示「例如：工作、個人」但實際是自由輸入？還是選單？
+如果類別是自由輸入，常見 bug：
+前後空白導致同類別變兩個：工作 vs 工作 
+大小寫/全半形造成重複類別
+沒做 normalize，統計/篩選會炸
+7) 描述 textarea：輸入過長導致版面撐爆或存檔截斷
+你描述欄如果允許很多字，會遇到：
+UI 撐高，把底部按鈕擠出可視區（又回到第 1 點）
+localStorage/DB 有長度限制（或 JSON 太大）導致寫入失敗沒提示
+換行符 \n 顯示/輸出 PDF 時變亂碼（你之前也遇過）
+8) Modal 關閉行為不一致（X / ESC / 點背景）
+你有右上角 X，但通常還要一致：
+ESC 關閉
+點背景遮罩關閉（或禁止但要有原因）
+關閉前未保存時要不要提示「未儲存變更」？
+常見 bug：
+點背景直接關閉 → 使用者資料全丟
+ESC 關閉但沒做 cleanup → 下次開 modal 滾動鎖死（回到第 2 點）
