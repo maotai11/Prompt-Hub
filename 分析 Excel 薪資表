@@ -1,0 +1,779 @@
+線薪資分析系統 - 功能需求規格書
+1. 專案概述
+1.1 專案目標
+建立一個完全離線的 Web 應用程式，用於分析 Excel 薪資表，提供自動化核對、加總、自提檢核、以及高品質的預覽與列印輸出功能。系統必須 100% 還原 Excel 原始顯示與樣式。
+
+1.2 核心價值主張
+✅ 完全離線：無需網路連線，所有處理在本機完成
+✅ 100% 還原 Excel：精準呈現合併儲存格、樣式、框線、欄寬列高
+✅ 智慧自動化：自動偵測標題列、自動檢核、自動加總、自動回填
+✅ 彈性擴充：可新增自訂規則、調整參數、手動修正
+✅ 專業輸出：高品質 PDF 匯出與列印，無空白頁問題
+1.3 技術約束
+約束項目	要求	驗證方式
+離線運作	所有 JS 庫、字型、資源必須打包在專案內	斷網測試
+瀏覽器支援	Chrome/Edge (Chromium 核心)	跨瀏覽器測試
+資料量	支援 1000-3000 列 × 50 欄	效能測試
+檔案大小	支援 10MB+ Excel 檔案	壓力測試
+隱私保護	資料不上傳、不外傳	網路監控測試
+2. 功能需求詳述
+2.1 檔案載入與活頁簿選擇
+2.1.1 功能描述
+使用者上傳 Excel 檔案後，系統解析活頁簿並顯示所有 Sheet 清單，使用者可選擇單一或多個 Sheet 進行分析。
+
+2.1.2 使用者操作流程
+單一 Sheet
+多個 Sheet
+拖曳/選擇 Excel 檔案
+解析活頁簿
+顯示 Sheet 清單
+選擇模式
+渲染該 Sheet
+合併分析模式
+開始分析
+2.1.3 技術規格
+支援格式：.xlsx（優先）、.xlsm、.xls
+解析引擎：SheetJS (xlsx.js) v0.18+
+檔案大小限制：最大 50MB（可調整）
+Sheet 數量限制：最多 20 個 Sheet
+2.1.4 資料結構
+interface Workbook {
+  fileName: string;
+  fileSize: number;
+  uploadTime: Date;
+  sheets: Sheet[];
+  selectedSheetIds: string[];
+}
+interface Sheet {
+  id: string;
+  name: string;
+  rowCount: number;
+  colCount: number;
+  isSelected: boolean;
+}
+2.1.5 例外處理
+例外情況	處理方式
+檔案格式不支援	顯示錯誤訊息，列出支援格式
+檔案損毀	提示「檔案無法讀取，請檢查檔案完整性」
+超過大小限制	提示「檔案過大（XX MB），建議分割後上傳」
+Sheet 為空	標記為「空白 Sheet」，不可選擇
+2.2 標題列偵測與欄位映射
+2.2.1 功能描述
+系統自動偵測薪資表的標題列（通常在前 5 列），並識別關鍵欄位（姓名、身分證字號、年、月、薪資、所得稅、加班費、自提）。若自動偵測失敗或不準確，使用者可手動調整。
+
+2.2.2 自動偵測演算法
+步驟 1：候選列篩選
+
+掃描前 5 列
+計算每列的「文字比例」（文字儲存格數 / 總儲存格數）
+文字比例 > 60% 的列為候選
+步驟 2：關鍵字匹配
+
+const FIELD_KEYWORDS = {
+  name: ['姓名', '員工姓名', 'NAME', '名字'],
+  id: ['身分證', '身分證字號', 'ID', '身份證'],
+  year: ['年', '年度', 'YEAR', '民國年'],
+  month: ['月', '月份', 'MONTH'],
+  salary: ['薪資', '本薪', '應發薪資', '總薪資', 'SALARY'],
+  tax: ['所得稅', '稅額', '代扣稅額', 'TAX'],
+  overtime: ['加班費', 'OT', '加班津貼', 'OVERTIME'],
+  contribution: ['自提', '勞退自提', '6%自提', '自願提繳']
+};
+步驟 3：評分機制
+
+每個候選列計算「匹配分數」= 匹配到的關鍵欄位數
+分數最高的列為標題列
+若分數相同，選擇列號較小者
+步驟 4：信心度評估
+
+interface DetectionResult {
+  headerRow: number;
+  confidence: 'high' | 'medium' | 'low';
+  matchedFields: string[];
+  missingFields: string[];
+}
+// 信心度判定
+// high: 匹配 >= 6 個關鍵欄位
+// medium: 匹配 4-5 個關鍵欄位
+// low: 匹配 < 4 個關鍵欄位
+2.2.3 手動調整 UI
+使用者可透過以下方式調整：
+
+調整標題列位置
+
+下拉選單選擇列號（1-10）
+即時預覽該列內容
+手動映射欄位
+
+[姓名欄] ▼ → A 欄（姓名）
+[身分證欄] ▼ → B 欄（身分證字號）
+[年欄] ▼ → C 欄（年）
+[月欄] ▼ → D 欄（月）
+[薪資欄] ▼ → E 欄（薪資）
+[所得稅欄] ▼ → F 欄（所得稅）
+[加班費欄] ▼ → G 欄（加班費）
+[自提欄] ▼ → H 欄（自提）
+同義詞管理
+
+點擊「管理同義詞」按鈕
+可新增/刪除欄位別名
+儲存至 localStorage
+2.2.4 精準匹配規則
+IMPORTANT
+
+欄位匹配必須採用「精準匹配」模式，不可使用模糊包含。
+
+// ❌ 錯誤：模糊包含
+if (cellValue.includes('薪資')) { ... }
+// ✅ 正確：精準匹配（trim 後）
+if (cellValue.trim() === '薪資' || FIELD_KEYWORDS.salary.includes(cellValue.trim())) { ... }
+2.2.5 資料結構
+interface FieldMapping {
+  name: string | null;      // 欄位名稱（A, B, C...）
+  id: string | null;
+  year: string | null;
+  month: string | null;
+  salary: string | null;
+  tax: string | null;
+  overtime: string | null;
+  contribution: string | null;
+}
+interface HeaderDetection {
+  headerRow: number;
+  mapping: FieldMapping;
+  detectionMode: 'auto' | 'manual';
+  confidence: 'high' | 'medium' | 'low';
+}
+2.3 核對功能（內建規則 1 & 2）
+2.3.1 規則 1：姓名 ↔ 身分證一致性檢核
+檢核邏輯
+
+// 檢核 1-1：同名是否對應多筆不同身分證
+const nameToIds = new Map<string, Set<string>>();
+for (const row of dataRows) {
+  const name = row[mapping.name];
+  const id = row[mapping.id];
+  if (!nameToIds.has(name)) {
+    nameToIds.set(name, new Set());
+  }
+  nameToIds.get(name).add(id);
+}
+const duplicateNameIssues = [];
+for (const [name, ids] of nameToIds) {
+  if (ids.size > 1) {
+    duplicateNameIssues.push({
+      type: 'DUPLICATE_NAME',
+      severity: 'warning',
+      message: `姓名「${name}」對應多筆身分證：${Array.from(ids).join(', ')}`,
+      affectedRows: getRowsByName(name)
+    });
+  }
+}
+// 檢核 1-2：同身分證是否對應多筆不同姓名
+const idToNames = new Map<string, Set<string>>();
+// ... 類似邏輯
+輸出格式
+
+interface Issue {
+  id: string;
+  type: 'DUPLICATE_NAME' | 'DUPLICATE_ID' | 'TAX_MISMATCH' | 'CUSTOM';
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  affectedRows: number[];
+  suggestedFix?: string;
+}
+2.3.2 規則 2：薪資門檻與所得稅檢核
+檢核邏輯
+
+const THRESHOLD = 88501; // 可調整
+const TAX_RATE = 0.05;   // 5%
+const TOLERANCE = 1;     // 容忍值 ±1
+for (const row of dataRows) {
+  const salary = parseFloat(row[mapping.salary]);
+  const tax = parseFloat(row[mapping.tax]);
+  
+  if (salary > THRESHOLD) {
+    const expectedTax = salary * TAX_RATE;
+    const diff = Math.abs(tax - expectedTax);
+    
+    if (diff > TOLERANCE) {
+      issues.push({
+        type: 'TAX_MISMATCH',
+        severity: 'error',
+        message: `薪資 ${salary} 超過門檻，所得稅應為 ${expectedTax.toFixed(0)}，實際為 ${tax}（差異 ${diff.toFixed(0)}）`,
+        affectedRows: [row.rowNumber],
+        suggestedFix: `建議修正所得稅為 ${expectedTax.toFixed(0)}`
+      });
+    }
+  }
+}
+參數調整 UI
+
+門檻金額：[88501] （可編輯）
+稅率：[5]% （可編輯）
+容忍值：[±1] （可編輯）
+2.3.3 檢核結果展示
+問題清單面板
+
+┌─────────────────────────────────────┐
+│ 檢核結果（3 個問題）                │
+├─────────────────────────────────────┤
+│ ⚠️ 姓名「王小明」對應多筆身分證      │
+│    → 列 5, 12, 23                   │
+│    [查看詳情]                        │
+├─────────────────────────────────────┤
+│ ❌ 薪資 90000 所得稅計算錯誤         │
+│    → 列 8                           │
+│    建議修正為 4500                   │
+│    [自動修正] [忽略]                 │
+├─────────────────────────────────────┤
+│ ℹ️ 身分證「A123456789」對應多筆姓名  │
+│    → 列 15, 16                      │
+│    [查看詳情]                        │
+└─────────────────────────────────────┘
+表格高亮顯示
+
+點擊問題項目 → 表格自動捲動至相關列
+問題列以紅色/黃色背景標記
+滑鼠懸停顯示問題詳情
+2.4 加總功能（內建規則 3）
+2.4.1 功能描述
+針對使用者選取的數字欄位（薪資、所得稅、加班費等），按年份分組進行加總，並將結果回填到表格底部。
+
+2.4.2 加總邏輯
+步驟 1：欄位選取
+
+// 使用者可勾選要加總的欄位
+interface AggregationConfig {
+  selectedFields: string[]; // ['salary', 'tax', 'overtime']
+  groupByYear: boolean;      // 是否按年份分組
+  groupByPerson: boolean;    // 是否按人員分組
+}
+步驟 2：年份解析
+
+function parseYear(value: any): number | null {
+  const str = String(value).trim();
+  
+  // 民國年（113, 114）
+  if (/^\d{3}$/.test(str)) {
+    return parseInt(str);
+  }
+  
+  // 西元年（2024, 2025）→ 轉民國年
+  if (/^\d{4}$/.test(str)) {
+    return parseInt(str) - 1911;
+  }
+  
+  return null;
+}
+步驟 3：分組加總
+
+interface AggregationResult {
+  person?: string;           // 姓名（若按人員分組）
+  year?: number;             // 年份（若按年份分組）
+  totals: Record<string, number>; // { salary: 100000, tax: 5000 }
+}
+// 範例：按人員 + 年份分組
+const results: AggregationResult[] = [
+  { person: '王小明', year: 113, totals: { salary: 50000, tax: 2500 } },
+  { person: '王小明', year: 114, totals: { salary: 52000, tax: 2600 } },
+  { person: '王小明', totals: { salary: 102000, tax: 5100 } }, // 該人員合計
+  { totals: { salary: 500000, tax: 25000 } } // 總計
+];
+2.4.3 回填格式
+表格底部區塊
+
+┌─────────────────────────────────────┐
+│ 【加總結果】                        │
+├─────────────────────────────────────┤
+│ 王小明 - 113年                      │
+│   薪資: 50,000                      │
+│   所得稅: 2,500                     │
+│   加班費: 1,200                     │
+├─────────────────────────────────────┤
+│ 王小明 - 114年                      │
+│   薪資: 52,000                      │
+│   所得稅: 2,600                     │
+│   加班費: 1,500                     │
+├─────────────────────────────────────┤
+│ 王小明 - 合計                       │
+│   薪資: 102,000                     │
+│   所得稅: 5,100                     │
+│   加班費: 2,700                     │
+├─────────────────────────────────────┤
+│ 總計                                │
+│   薪資: 500,000                     │
+│   所得稅: 25,000                    │
+│   加班費: 12,000                    │
+└─────────────────────────────────────┘
+JSON 格式（可匯出）
+
+{
+  "aggregationType": "byPersonAndYear",
+  "fields": ["salary", "tax", "overtime"],
+  "results": [
+    {
+      "person": "王小明",
+      "year": 113,
+      "totals": { "salary": 50000, "tax": 2500, "overtime": 1200 }
+    }
+  ]
+}
+2.4.4 精準匹配要求
+WARNING
+
+欄位選取時必須精準匹配標題，不可模糊包含。
+
+// ❌ 錯誤
+if (header.includes('薪')) { ... }
+// ✅ 正確
+if (header === '薪資' || FIELD_KEYWORDS.salary.includes(header)) { ... }
+2.5 自提檢核功能
+2.5.1 功能描述
+根據後台設定的勞健保級距表，自動檢核員工自提金額是否正確，並提供「自動回填」與「數字池配對」兩種模式。
+
+2.5.2 後台級距表設定
+UI 介面
+
+┌─────────────────────────────────────┐
+│ 勞健保級距表設定                    │
+├─────────────────────────────────────┤
+│ 貼上級距表資料（Excel 格式）：      │
+│ ┌─────────────────────────────────┐ │
+│ │ 投保薪資  6%金額                │ │
+│ │ 26400     1584                  │ │
+│ │ 27600     1656                  │ │
+│ │ 28800     1728                  │ │
+│ │ ...                             │ │
+│ └─────────────────────────────────┘ │
+│ [解析] [儲存]                       │
+└─────────────────────────────────────┘
+資料結構
+
+interface InsuranceLevel {
+  salary: number;      // 投保薪資
+  contribution: number; // 6% 金額
+}
+// 儲存至 localStorage
+const insuranceTable: InsuranceLevel[] = [
+  { salary: 26400, contribution: 1584 },
+  { salary: 27600, contribution: 1656 },
+  // ...
+];
+2.5.3 模式 1：自動回填
+觸發條件
+
+員工該月自提欄位為空或 0
+回填邏輯
+
+function autoFillContribution(employeeSalary: number): number {
+  // 找到對應級距（取最接近且不超過的級距）
+  const level = insuranceTable
+    .filter(l => l.salary <= employeeSalary)
+    .sort((a, b) => b.salary - a.salary)[0];
+  
+  if (level) {
+    return level.contribution;
+  }
+  
+  // 若薪資低於最低級距，使用最低級距
+  return insuranceTable[0].contribution;
+}
+回填標記
+
+interface CellMetadata {
+  value: number;
+  source: 'original' | 'auto-filled' | 'user-edited';
+  originalValue?: number;
+}
+// 回填的儲存格以淺藍色背景標記
+// 提供「一鍵復原」按鈕
+2.5.4 模式 2：數字池配對
+使用情境 使用者輸入一組數字（例如銀行對帳單上的自提金額），系統在自提欄位中尋找「多組加總結果」能配對到目標。
+
+演算法：組合求和（Combination Sum）
+
+CAUTION
+
+數字池配對可能產生大量組合，必須設定上限並使用剪枝策略。
+
+const MAX_POOL_SIZE = 30;  // 最多 30 個數字
+const MAX_COMBINATIONS = 100; // 最多回傳 100 組結果
+function findCombinations(
+  pool: number[],
+  target: number,
+  maxCombinationSize: number = 12
+): number[][] {
+  // 使用動態規劃 + 回溯
+  const results: number[][] = [];
+  
+  function backtrack(start: number, current: number[], sum: number) {
+    if (sum === target) {
+      results.push([...current]);
+      return;
+    }
+    
+    if (sum > target || current.length >= maxCombinationSize) {
+      return;
+    }
+    
+    if (results.length >= MAX_COMBINATIONS) {
+      return; // 剪枝：已找到足夠多組合
+    }
+    
+    for (let i = start; i < pool.length; i++) {
+      current.push(pool[i]);
+      backtrack(i + 1, current, sum + pool[i]);
+      current.pop();
+    }
+  }
+  
+  backtrack(0, [], 0);
+  return results;
+}
+配對結果展示
+
+┌─────────────────────────────────────┐
+│ 數字池配對結果                      │
+├─────────────────────────────────────┤
+│ 目標金額：4752                      │
+│                                     │
+│ 找到 3 組可能配對：                 │
+│                                     │
+│ ☐ 組合 1（5 個月）                  │
+│   王小明：1584 + 1584 + 1584        │
+│   李小華：...                       │
+│   [查看詳情]                        │
+│                                     │
+│ ☐ 組合 2（3 個月）                  │
+│   王小明：1584 + 1584               │
+│   張小美：1584                      │
+│   [查看詳情]                        │
+│                                     │
+│ ☐ 組合 3（單月多人）                │
+│   王小明：1584                      │
+│   李小華：1656                      │
+│   張小美：1512                      │
+│   [查看詳情]                        │
+│                                     │
+│ [套用選取的組合]                    │
+└─────────────────────────────────────┘
+儲存使用者選擇
+
+interface MatchSelection {
+  targetAmount: number;
+  selectedCombination: number[];
+  timestamp: Date;
+}
+// 儲存至 localStorage
+localStorage.setItem('contribution_matches', JSON.stringify(selections));
+2.6 預覽與輸出
+2.6.1 列印方向自動判斷
+判斷邏輯
+
+function determineOrientation(colCount: number): 'portrait' | 'landscape' {
+  // 欄位數 <= 8：直式
+  // 欄位數 > 8：橫式
+  return colCount <= 8 ? 'portrait' : 'landscape';
+}
+手動調整
+
+列印方向：◉ 橫式  ○ 直式  ○ 自動判斷
+2.6.2 邊界超出檢測
+檢測邏輯
+
+function checkPageOverflow(): OverflowInfo {
+  const printArea = document.querySelector('.print-preview');
+  const pageWidth = 297; // A4 橫式寬度（mm）
+  const pageHeight = 210; // A4 橫式高度（mm）
+  
+  const actualWidth = printArea.scrollWidth * 0.264583; // px to mm
+  const actualHeight = printArea.scrollHeight * 0.264583;
+  
+  return {
+    widthOverflow: actualWidth > pageWidth,
+    heightOverflow: actualHeight > pageHeight,
+    suggestedScale: Math.min(pageWidth / actualWidth, pageHeight / actualHeight)
+  };
+}
+超出提示
+
+┌─────────────────────────────────────┐
+│ ⚠️ 表格超出列印範圍                  │
+├─────────────────────────────────────┤
+│ 寬度超出：15%                       │
+│ 高度超出：0%                        │
+│                                     │
+│ 建議縮放比例：85%                   │
+│                                     │
+│ [自動縮放] [手動調整] [忽略]        │
+└─────────────────────────────────────┘
+2.6.3 避免空白頁
+CSS 策略
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  
+  /* 避免分頁 */
+  table {
+    page-break-inside: avoid;
+  }
+  
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  /* 移除多餘空白 */
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* 隱藏不需列印的元素 */
+  .no-print {
+    display: none !important;
+  }
+}
+2.6.4 PDF 匯出
+方案 1：瀏覽器列印（推薦）
+
+function exportToPDF() {
+  window.print(); // 使用者可選擇「另存為 PDF」
+}
+方案 2：jsPDF（備援）
+
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+async function exportToPDFBackup() {
+  const element = document.querySelector('.print-preview');
+  const canvas = await html2canvas(element, {
+    scale: 2, // 提高解析度
+    useCORS: true
+  });
+  
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('landscape', 'mm', 'a4');
+  
+  const imgWidth = 297; // A4 橫式寬度
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  
+  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+  pdf.save('薪資表.pdf');
+}
+WARNING
+
+jsPDF 方案會將內容轉為圖片，可能導致：
+
+文字無法選取/複製
+檔案大小較大
+列印品質下降
+建議優先使用瀏覽器列印功能。
+
+3. 規則引擎
+3.1 規則資料結構
+interface Rule {
+  id: string;
+  name: string;
+  description: string;
+  type: 'built-in' | 'custom';
+  enabled: boolean;
+  condition: RuleCondition;
+  action: RuleAction;
+  createdAt: Date;
+  updatedAt: Date;
+}
+interface RuleCondition {
+  field: string;           // 欄位名稱
+  operator: 'eq' | 'ne' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'regex';
+  value: any;              // 比較值（可為常數或另一欄位）
+  tolerance?: number;      // 容忍值（用於數字比較）
+}
+interface RuleAction {
+  type: 'report-issue' | 'auto-fix' | 'highlight';
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  suggestedFix?: string;
+}
+3.2 內建規則清單
+規則 ID	名稱	描述	可停用
+rule-001	姓名身分證一致性	檢查同名/同身分證是否對應唯一	✅
+rule-002	薪資門檻稅額檢核	薪資 > 88501 時檢查所得稅	✅
+rule-003	自提金額檢核	檢查自提是否符合級距表	✅
+3.3 自訂規則 UI
+┌─────────────────────────────────────┐
+│ 新增自訂規則                        │
+├─────────────────────────────────────┤
+│ 規則名稱：[                        ]│
+│ 描述：    [                        ]│
+│                                     │
+│ 條件設定：                          │
+│ 欄位：[薪資 ▼]                      │
+│ 運算子：[大於 ▼]                    │
+│ 比較值：[100000]                    │
+│ 容忍值：[±0]                        │
+│                                     │
+│ 動作設定：                          │
+│ 類型：[回報問題 ▼]                  │
+│ 嚴重性：[警告 ▼]                    │
+│ 訊息：[薪資超過 10 萬，請確認]      │
+│                                     │
+│ [儲存] [取消]                       │
+└─────────────────────────────────────┘
+3.4 規則管理
+┌─────────────────────────────────────┐
+│ 規則管理                            │
+├─────────────────────────────────────┤
+│ ☑ 姓名身分證一致性（內建）          │
+│   [編輯] [停用]                     │
+├─────────────────────────────────────┤
+│ ☑ 薪資門檻稅額檢核（內建）          │
+│   [編輯] [停用]                     │
+├─────────────────────────────────────┤
+│ ☐ 自提金額檢核（內建）- 已停用      │
+│   [編輯] [啟用]                     │
+├─────────────────────────────────────┤
+│ ☑ 加班費上限檢查（自訂）            │
+│   [編輯] [刪除] [停用]              │
+├─────────────────────────────────────┤
+│ [+ 新增規則] [重新執行檢核]         │
+└─────────────────────────────────────┘
+4. 效能要求
+4.1 效能指標
+操作	目標時間	最大可接受時間
+檔案上傳與解析	< 2 秒	< 5 秒
+Sheet 渲染	< 1 秒	< 3 秒
+標題列偵測	< 0.5 秒	< 1 秒
+檢核執行（3000 列）	< 3 秒	< 10 秒
+加總計算	< 1 秒	< 3 秒
+數字池配對（30 個數字）	< 5 秒	< 15 秒
+列印預覽	< 2 秒	< 5 秒
+4.2 優化策略
+大檔案處理
+
+使用 Web Worker 進行背景解析
+虛擬捲動（Virtual Scrolling）渲染大表格
+分批處理檢核規則
+記憶體管理
+
+及時釋放不再使用的 Workbook 物件
+限制同時開啟的 Sheet 數量（最多 3 個）
+5. 相容性要求
+5.1 瀏覽器支援
+瀏覽器	最低版本	測試狀態
+Chrome	90+	✅ 必測
+Edge	90+	✅ 必測
+Firefox	88+	⚠️ 次要
+Safari	14+	⚠️ 次要
+5.2 作業系統
+✅ Windows 10/11
+⚠️ macOS（次要支援）
+❌ 行動裝置（不支援）
+6. 資料隱私與安全
+6.1 隱私保護
+IMPORTANT
+
+所有資料處理僅在本機進行，絕不上傳至雲端。
+
+✅ 無網路請求（除了載入離線資源）
+✅ 無第三方追蹤
+✅ 無 Cookie（僅使用 localStorage）
+✅ 資料不離開使用者電腦
+6.2 資料儲存
+資料類型	儲存位置	保留期限
+欄位映射設定	localStorage	永久（除非清除）
+自訂規則	localStorage	永久
+級距表	localStorage	永久
+數字池配對結果	localStorage	永久
+上傳的 Excel	記憶體	關閉分頁即清除
+7. 使用者介面需求
+7.1 視覺風格
+色彩系統
+
+:root {
+  /* 主色調：穩重財務感 */
+  --primary: #2C3E50;        /* 深藍灰 */
+  --secondary: #D4AF37;      /* 香檳金 */
+  --accent: #E8D5C4;         /* 奶油白 */
+  
+  /* 功能色 */
+  --success: #27AE60;
+  --warning: #F39C12;
+  --error: #E74C3C;
+  --info: #3498DB;
+  
+  /* 背景 */
+  --bg-primary: #F5F5F5;
+  --bg-secondary: #FFFFFF;
+  --bg-glass: rgba(255, 255, 255, 0.8);
+  
+  /* 文字 */
+  --text-primary: #2C3E50;
+  --text-secondary: #7F8C8D;
+  --text-muted: #BDC3C7;
+}
+Soft UI 特性
+
+柔和陰影：box-shadow: 0 4px 20px rgba(0,0,0,0.08)
+圓角：border-radius: 12px
+玻璃效果：backdrop-filter: blur(10px)
+微動畫：transition: all 0.3s ease
+7.2 版面配置
+┌─────────────────────────────────────────────────────┐
+│ 【頂部導航列】                                      │
+│ 離線薪資分析系統  [檔案] [設定] [說明]             │
+├──────────────┬──────────────────────────────────────┤
+│              │                                      │
+│ 【左側面板】 │ 【主要內容區】                       │
+│              │                                      │
+│ 📁 檔案上傳  │ ┌──────────────────────────────────┐ │
+│ 📊 活頁簿    │ │ Excel 預覽區                     │ │
+│ 🔍 欄位映射  │ │                                  │ │
+│ ✅ 核對檢核  │ │ [表格渲染區域]                   │ │
+│ ➕ 加總分析  │ │                                  │ │
+│ 💰 自提檢核  │ │                                  │ │
+│ 📄 預覽輸出  │ └──────────────────────────────────┘ │
+│ ⚙️ 規則管理  │                                      │
+│              │                                      │
+└──────────────┴──────────────────────────────────────┘
+8. 驗收標準
+8.1 功能驗收
+ 可上傳並解析 .xlsx 檔案（最大 50MB）
+ 可選擇單一或多個 Sheet 進行分析
+ 標題列自動偵測準確率 > 90%（測試 20 個樣本）
+ 可手動調整標題列與欄位映射
+ 姓名身分證一致性檢核正確無誤
+ 薪資門檻稅額檢核正確無誤
+ 加總功能按年份分組正確
+ 自提自動回填正確（基於級距表）
+ 數字池配對可找到所有可能組合（< 15 秒）
+ 列印預覽無空白頁
+ 邊界超出時有提示與自動縮放
+ 可匯出 PDF（瀏覽器列印）
+8.2 效能驗收
+ 3000 列 × 50 欄表格渲染 < 3 秒
+ 檢核執行 < 10 秒
+ 記憶體使用 < 500MB
+8.3 相容性驗收
+ Chrome 90+ 正常運作
+ Edge 90+ 正常運作
+ 完全離線可用（斷網測試）
+9. 未來擴充方向
+9.1 短期（3 個月內）
+支援 .xls 格式（需額外解析器）
+支援條件格式顯示
+匯出為 Excel 格式（含加總結果）
+9.2 中期（6 個月內）
+支援多檔案合併分析
+支援樞紐分析表
+支援圖表生成
+9.3 長期（1 年內）
+桌面應用程式版本（Electron）
+批次處理模式
+進階統計分析
+文件版本：v1.0
+最後更新：2026-01-18
+負責人：前端架構團隊
