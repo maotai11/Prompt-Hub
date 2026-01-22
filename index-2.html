@@ -1,0 +1,2601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離線優先工作紀錄系統</title>
+    <!-- Tailwind CSS v2 (Static) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rrule@2.7.2/dist/es5/rrule.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.18/dayjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.18/plugin/isoWeek.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.18/plugin/customParseFormat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.6/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/13.0.2/markdown-it.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- FilePond & Plugins -->
+    <link href="https://cdn.jsdelivr.net/npm/filepond/dist/filepond.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/filepond-plugin-image-exif-orientation/dist/filepond-plugin-image-exif-orientation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/filepond-plugin-image-resize/dist/filepond-plugin-image-resize.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/filepond-plugin-image-transform/dist/filepond-plugin-image-transform.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/filepond/dist/filepond.min.js"></script>
+    
+    <!-- Viewer.js -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Tailwind v3/v4 Compatibility Layer */
+        .bg-slate-900 { background-color: #0f172a; }
+        .bg-slate-800 { background-color: #1e293b; }
+        .bg-slate-700 { background-color: #334155; }
+        .text-slate-400 { color: #94a3b8; }
+        .text-slate-500 { color: #64748b; }
+        .border-slate-700 { border-color: #334155; }
+        .hover\:bg-slate-800:hover { background-color: #1e293b; }
+        .aspect-square { aspect-ratio: 1 / 1; }
+        
+        .sortable-ghost { opacity: 0.4; background: #c8ebfb; }
+        .sortable-chosen { background: #f0f9ff; }
+        .nav-item.active { background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%); color: white; }
+        .period-badge { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+        .checklist-item:hover { background: #f8fafc; }
+        .markdown-preview h1 { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .markdown-preview h2 { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .markdown-preview p { margin-bottom: 0.5rem; }
+        .markdown-preview ul { list-style: disc; margin-left: 1.5rem; }
+        .markdown-preview ol { list-style: decimal; margin-left: 1.5rem; }
+        .markdown-preview code { background: #f1f5f9; padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
+        .markdown-preview pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+        @media print { .no-print { display: none !important; } }
+        
+        /* FilePond Customization */
+        .filepond--root { margin-bottom: 0; }
+        .filepond--panel-root { background-color: #f8fafc; border: 1px solid #e2e8f0; }
+        .filepond--item-panel { background-color: #3b82f6; }
+        
+        /* Image Grid */
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+        .image-item { aspect-ratio: 1; cursor: pointer; overflow: hidden; border-radius: 0.5rem; border: 1px solid #e2e8f0; position: relative; }
+        .image-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
+        .image-item:hover img { transform: scale(1.05); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- App Shell -->
+    <div id="app" class="flex h-screen overflow-hidden">
+        <!-- Side Navigation -->
+        <nav class="w-64 bg-slate-900 text-white flex flex-col no-print">
+            <div class="p-4 border-b border-slate-700">
+                <h1 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-tasks text-blue-400"></i>
+                    工作紀錄系統
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">離線優先 · IndexedDB</p>
+            </div>
+            <div class="flex-1 py-4">
+                <a href="#" data-page="dashboard" class="nav-item active flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-chart-pie w-5"></i> 總覽
+                </a>
+                <a href="#" data-page="checklist" class="nav-item flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-check-square w-5"></i> 本期核對
+                </a>
+                <a href="#" data-page="rules" class="nav-item flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-repeat w-5"></i> 規則庫
+                </a>
+                <a href="#" data-page="logs" class="nav-item flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-file-alt w-5"></i> 工作紀錄
+                </a>
+                <a href="#" data-page="dedup" class="nav-item flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-search w-5"></i> 搜尋與去重
+                </a>
+                <a href="#" data-page="export" class="nav-item flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-file-pdf w-5"></i> 匯出 PDF
+                </a>
+                <a href="#" data-page="settings" class="nav-item flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-cog w-5"></i> 設定
+                </a>
+                <a href="#" data-page="audit" class="nav-item flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-history w-5"></i> 審計紀錄
+                </a>
+            </div>
+            <div class="p-4 border-t border-slate-700 text-xs text-slate-500">
+                <div id="offline-status" class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    <span>離線可用</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <header class="bg-white border-b border-gray-200 px-6 py-3 no-print">
+                <div class="flex items-center justify-between">
+                    <!-- Period Switcher -->
+                    <div class="flex items-center gap-4">
+                        <button id="prevPeriod" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="text-center">
+                            <div id="periodBadge" class="period-badge text-white px-4 py-1 rounded-full text-sm font-medium">
+                                載入中...
+                            </div>
+                            <div id="periodRange" class="text-xs text-gray-500 mt-1"></div>
+                        </div>
+                        <button id="nextPeriod" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button id="todayPeriod" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                            今天
+                        </button>
+                    </div>
+                    <!-- Period Type Selector -->
+                    <div class="flex items-center gap-3">
+                        <select id="periodTypeSelect" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500">
+                            <option value="week">每週</option>
+                            <option value="month">每月</option>
+                            <option value="customCutoff">自訂結算日</option>
+                        </select>
+                        <div id="cutoffDayContainer" class="hidden">
+                            <label class="text-sm text-gray-600 mr-2">結算日:</label>
+                            <select id="cutoffDaySelect" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm">
+                            </select>
+                        </div>
+                        <button id="visualExport" class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm mr-2" title="截圖當前畫面 PDF">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <button id="quickExport" class="flex items-center gap-2 px-4 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                            <i class="fas fa-download"></i> 快速匯出
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main id="pageContent" class="flex-1 overflow-auto p-6">
+                <!-- Dynamic content loaded here -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Rule Editor Modal -->
+    <div id="ruleModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 id="ruleModalTitle" class="text-xl font-bold">新增規則</h2>
+                <button id="closeRuleModal" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="ruleForm" class="p-6 overflow-auto max-h-[calc(90vh-140px)]">
+                <input type="hidden" id="ruleId">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">標題 *</label>
+                        <input type="text" id="ruleTitle" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">標籤 (逗號分隔)</label>
+                        <input type="text" id="ruleTags" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500" placeholder="財務, 月報, 重要">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                        <textarea id="ruleDescription" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">重複規則</label>
+                        <div class="flex gap-2 mb-3">
+                            <button type="button" id="basicModeBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">基礎模式</button>
+                            <button type="button" id="advancedModeBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm">進階模式</button>
+                        </div>
+                        <!-- Basic Mode -->
+                        <div id="basicRuleMode" class="space-y-3">
+                            <div class="flex gap-4">
+                                <select id="ruleFreq" class="border border-gray-300 rounded-lg px-3 py-2">
+                                    <option value="WEEKLY">每週</option>
+                                    <option value="MONTHLY">每月</option>
+                                    <option value="DAILY">每日</option>
+                                </select>
+                                <div class="flex items-center gap-2">
+                                    <span>每</span>
+                                    <input type="number" id="ruleInterval" value="1" min="1" class="w-16 border border-gray-300 rounded-lg px-2 py-2">
+                                    <span id="intervalUnit">週</span>
+                                </div>
+                            </div>
+                            <div id="weekdaySelector" class="flex gap-2">
+                                <label class="flex items-center gap-1"><input type="checkbox" value="MO" class="byday-check"> 一</label>
+                                <label class="flex items-center gap-1"><input type="checkbox" value="TU" class="byday-check"> 二</label>
+                                <label class="flex items-center gap-1"><input type="checkbox" value="WE" class="byday-check"> 三</label>
+                                <label class="flex items-center gap-1"><input type="checkbox" value="TH" class="byday-check"> 四</label>
+                                <label class="flex items-center gap-1"><input type="checkbox" value="FR" class="byday-check"> 五</label>
+                                <label class="flex items-center gap-1"><input type="checkbox" value="SA" class="byday-check"> 六</label>
+                                <label class="flex items-center gap-1"><input type="checkbox" value="SU" class="byday-check"> 日</label>
+                            </div>
+                            <div id="monthdaySelector" class="hidden">
+                                <label class="text-sm text-gray-600">每月第幾天</label>
+                                <input type="number" id="ruleByMonthDay" min="1" max="31" value="1" class="w-20 border border-gray-300 rounded-lg px-2 py-2 ml-2">
+                            </div>
+                        </div>
+                        <!-- Advanced Mode -->
+                        <div id="advancedRuleMode" class="hidden">
+                            <input type="text" id="ruleRRuleString" class="w-full border border-gray-300 rounded-lg px-4 py-2 font-mono text-sm" placeholder="FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR">
+                            <p class="text-xs text-gray-500 mt-1">使用標準 RRULE 格式</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">預覽 (接下來 5 次)</label>
+                        <div id="rulePreview" class="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 min-h-[80px]">
+                            請設定重複規則...
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="ruleActive" checked class="rounded">
+                        <label for="ruleActive" class="text-sm text-gray-700">啟用此規則</label>
+                    </div>
+                </div>
+            </form>
+            <div class="p-4 border-t border-gray-200 flex justify-end gap-3">
+                <button type="button" id="cancelRule" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+                <button type="button" id="saveRule" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Editor Modal -->
+    <div id="logModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 id="logModalTitle" class="text-xl font-bold">新增工作紀錄</h2>
+                <button id="closeLogModal" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex h-[60vh]">
+                <div class="flex-1 p-4 border-r border-gray-200">
+                    <input type="hidden" id="logId">
+                    <input type="text" id="logTitle" placeholder="標題" class="w-full border border-gray-300 rounded-lg px-4 py-2 mb-3 focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="logTags" placeholder="標籤 (逗號分隔)" class="w-full border border-gray-300 rounded-lg px-4 py-2 mb-3 focus:ring-2 focus:ring-blue-500">
+                    <textarea id="logContent" class="w-full h-[calc(100%-240px)] border border-gray-300 rounded-lg px-4 py-2 font-mono text-sm focus:ring-2 focus:ring-blue-500 mb-3" placeholder="使用 Markdown 格式..."></textarea>
+                    
+                    <div class="mt-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">附件圖片</label>
+                        <input type="file" class="filepond" name="filepond" multiple data-max-file-size="10MB" data-max-files="10" />
+                    </div>
+                </div>
+                <div class="flex-1 p-4 overflow-auto">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">預覽</h3>
+                    <div id="logPreview" class="markdown-preview prose prose-sm max-w-none"></div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-between">
+                <div>
+                    <label class="text-sm text-gray-600 mr-2">連結至:</label>
+                    <select id="logLinkedTo" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                        <option value="">無連結</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" id="cancelLog" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
+                    <button type="button" id="saveLog" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ===============================================
+    // ① 期別引擎規格 (Period Engine)
+    // ===============================================
+    dayjs.extend(dayjs_plugin_isoWeek);
+    dayjs.extend(dayjs_plugin_customParseFormat);
+
+    const PeriodEngine = {
+        /**
+         * 期別引擎：支援 week/month/customCutoff
+         * 輸入：date (dayjs), periodType, options
+         * 輸出：{ start, end, periodId, prev, next }
+         */
+        
+        // 週起始日 (0=週日, 1=週一)
+        weekStart: 1,
+        
+        // 自訂結算日 (1-31)
+        cutoffDay: 25,
+        
+        getPeriod(date, periodType, options = {}) {
+            const d = dayjs(date);
+            switch (periodType) {
+                case 'week': return this.getWeekPeriod(d, options.weekStart || this.weekStart);
+                case 'month': return this.getMonthPeriod(d);
+                case 'customCutoff': return this.getCustomCutoffPeriod(d, options.cutoffDay || this.cutoffDay);
+                default: return this.getMonthPeriod(d);
+            }
+        },
+        
+        getWeekPeriod(date, weekStart = 1) {
+            // 週起始日處理
+            let start = date.isoWeekday(weekStart);
+            if (start.isAfter(date)) {
+                start = start.subtract(7, 'day');
+            }
+            const end = start.add(6, 'day');
+            const periodId = `W${start.format('YYYYMMDD')}`;
+            
+            return {
+                start: start.startOf('day'),
+                end: end.endOf('day'),
+                periodId,
+                periodLabel: `${start.format('YYYY/MM/DD')} ~ ${end.format('MM/DD')}`,
+                prev: () => this.getWeekPeriod(start.subtract(7, 'day'), weekStart),
+                next: () => this.getWeekPeriod(start.add(7, 'day'), weekStart)
+            };
+        },
+        
+        getMonthPeriod(date) {
+            const start = date.startOf('month');
+            const end = date.endOf('month');
+            const periodId = `M${date.format('YYYYMM')}`;
+            
+            return {
+                start: start.startOf('day'),
+                end: end.endOf('day'),
+                periodId,
+                periodLabel: date.format('YYYY年MM月'),
+                prev: () => this.getMonthPeriod(date.subtract(1, 'month')),
+                next: () => this.getMonthPeriod(date.add(1, 'month'))
+            };
+        },
+        
+        getCustomCutoffPeriod(date, cutoffDay) {
+            // 自訂結算日邏輯：
+            // 例如 cutoffDay=25，則期別為上月26日~本月25日
+            // 若某月無該日，採「該月最後一天」策略
+            
+            const getActualCutoffDay = (year, month) => {
+                const daysInMonth = dayjs(`${year}-${month}-01`).daysInMonth();
+                return Math.min(cutoffDay, daysInMonth);
+            };
+            
+            let periodStart, periodEnd;
+            const year = date.year();
+            const month = date.month() + 1; // 1-12
+            const day = date.date();
+            const actualCutoff = getActualCutoffDay(year, month);
+            
+            if (day <= actualCutoff) {
+                // 在本月結算日之前，屬於上月26~本月cutoff的期別
+                const prevMonth = date.subtract(1, 'month');
+                const prevActualCutoff = getActualCutoffDay(prevMonth.year(), prevMonth.month() + 1);
+                periodStart = dayjs(`${prevMonth.format('YYYY-MM')}-${String(prevActualCutoff + 1).padStart(2, '0')}`);
+                periodEnd = dayjs(`${date.format('YYYY-MM')}-${String(actualCutoff).padStart(2, '0')}`);
+            } else {
+                // 在本月結算日之後，屬於本月(cutoff+1)~下月cutoff的期別
+                const nextMonth = date.add(1, 'month');
+                const nextActualCutoff = getActualCutoffDay(nextMonth.year(), nextMonth.month() + 1);
+                periodStart = dayjs(`${date.format('YYYY-MM')}-${String(actualCutoff + 1).padStart(2, '0')}`);
+                periodEnd = dayjs(`${nextMonth.format('YYYY-MM')}-${String(nextActualCutoff).padStart(2, '0')}`);
+            }
+            
+            const periodId = `C${periodStart.format('YYYYMMDD')}`;
+            
+            return {
+                start: periodStart.startOf('day'),
+                end: periodEnd.endOf('day'),
+                periodId,
+                periodLabel: `${periodStart.format('MM/DD')} ~ ${periodEnd.format('MM/DD')}`,
+                prev: () => this.getCustomCutoffPeriod(periodStart.subtract(1, 'day'), cutoffDay),
+                next: () => this.getCustomCutoffPeriod(periodEnd.add(1, 'day'), cutoffDay)
+            };
+        }
+    };
+
+    // ===============================================
+    // ② 資料庫 Schema (Dexie)
+    // ===============================================
+    const db = new Dexie('WorkLogSystem');
+    
+    db.version(1).stores({
+        // 規則表：儲存重複規則
+        rules: '++id, title, *tags, rruleString, active, createdAt, updatedAt',
+        
+        // 核對實例表：lazy 生成的本期核對項
+        checklistInstances: '++id, ruleId, periodId, [periodId+ruleId], completed, completedAt, position, createdAt',
+        
+        // 工作紀錄表
+        logs: '++id, title, *tags, periodId, linkedType, linkedId, createdAt, updatedAt',
+        
+        // 審計表：所有操作記錄
+        audits: '++id, action, targetType, targetId, beforeData, afterData, createdAt',
+        
+        // 設定表 (用於少量設定)
+        settings: 'key',
+
+        // 附件表：儲存圖片檔案
+        attachments: '++id, parentType, parentId, [parentType+parentId], name, type, size, createdAt'
+    });
+    
+    // 升級處理：如果資料庫已存在但版本舊，需要手動觸發一次升級檢查
+    // 這裡我們假設使用者刷新頁面會重新打開 DB，Dexie 會自動處理 version(1) 到 version(2) 的 schema 變更
+    // 但因為我們保持 version(1) 並新增 store，若已存在的 DB 不會自動加表，
+    // 正確做法是增加版號。但為了簡化此範例且不破壞現有數據，
+    // 我們使用 dynamic closing/opening 或直接升級 version。
+    // 在此演示環境，我們直接將 version 升級為 2。
+    
+    db.close();
+    db.version(2).stores({
+        rules: '++id, title, *tags, rruleString, active, createdAt, updatedAt',
+        checklistInstances: '++id, ruleId, periodId, [periodId+ruleId], completed, completedAt, position, createdAt',
+        logs: '++id, title, *tags, periodId, linkedType, linkedId, createdAt, updatedAt',
+        audits: '++id, action, targetType, targetId, beforeData, afterData, createdAt',
+        settings: 'key',
+        attachments: '++id, parentType, parentId, [parentType+parentId], name, type, size, createdAt'
+    });
+    db.open();
+    
+    // 初始化設定
+    async function initSettings() {
+        const defaults = {
+            periodType: 'month',
+            weekStart: 1,
+            cutoffDay: 25,
+            fuseThreshold: 0.4
+        };
+        
+        for (const [key, value] of Object.entries(defaults)) {
+            const existing = await db.settings.get(key);
+            if (!existing) {
+                await db.settings.put({ key, value });
+            }
+        }
+    }
+    
+    async function getSetting(key) {
+        const setting = await db.settings.get(key);
+        return setting ? setting.value : null;
+    }
+    
+    async function setSetting(key, value) {
+        await db.settings.put({ key, value });
+    }
+
+    // ===============================================
+    // ③ 重複規則與本期清單生成
+    // ===============================================
+    const RRuleHelper = {
+        /**
+         * 從 UI 選項構建 RRULE 字串
+         */
+        buildRRuleString(freq, interval, byday, bymonthday) {
+            let parts = [`FREQ=${freq}`];
+            if (interval > 1) parts.push(`INTERVAL=${interval}`);
+            if (freq === 'WEEKLY' && byday && byday.length > 0) {
+                parts.push(`BYDAY=${byday.join(',')}`);
+            }
+            if (freq === 'MONTHLY' && bymonthday) {
+                parts.push(`BYMONTHDAY=${bymonthday}`);
+            }
+            return parts.join(';');
+        },
+        
+        /**
+         * 解析 RRULE 字串並獲取時間範圍內的 occurrences
+         */
+        getOccurrences(rruleString, start, end) {
+            try {
+                const rule = rrule.RRule.fromString(`RRULE:${rruleString}`);
+                // 設定起始日期
+                const options = { ...rule.options, dtstart: start.toDate() };
+                const ruleWithStart = new rrule.RRule(options);
+                
+                return ruleWithStart.between(start.toDate(), end.toDate(), true);
+            } catch (e) {
+                console.error('RRULE parse error:', e);
+                return [];
+            }
+        },
+        
+        /**
+         * 預覽接下來 N 次發生時間
+         */
+        previewNext(rruleString, count = 5) {
+            try {
+                const rule = rrule.RRule.fromString(`RRULE:${rruleString}`);
+                const options = { ...rule.options, dtstart: new Date() };
+                const ruleWithStart = new rrule.RRule(options);
+                return ruleWithStart.all((date, i) => i < count);
+            } catch (e) {
+                return [];
+            }
+        }
+    };
+    
+    /**
+     * Lazy 實例化策略：
+     * 進入某期或查詢該期時才生成本期 checklist instance
+     */
+    async function lazyGenerateChecklist(periodId, start, end) {
+        // 1. 獲取所有啟用的規則
+        const activeRules = await db.rules.where('active').equals(1).toArray();
+        
+        // 2. 對每個規則檢查是否有 occurrence 落在本期
+        for (const rule of activeRules) {
+            if (!rule.rruleString) continue;
+            
+            const occurrences = RRuleHelper.getOccurrences(rule.rruleString, start, end);
+            
+            if (occurrences.length > 0) {
+                // 3. 檢查是否已存在該期該規則的實例
+                const existing = await db.checklistInstances
+                    .where('[periodId+ruleId]')
+                    .equals([periodId, rule.id])
+                    .first();
+                
+                if (!existing) {
+                    // 4. 創建新實例 (每期每規則只建一個)
+                    const maxPosition = await db.checklistInstances
+                        .where('periodId').equals(periodId)
+                        .toArray()
+                        .then(items => items.length > 0 ? Math.max(...items.map(i => i.position || 0)) : 0);
+                    
+                    await db.checklistInstances.add({
+                        ruleId: rule.id,
+                        periodId,
+                        completed: false,
+                        completedAt: null,
+                        position: maxPosition + 1,
+                        createdAt: new Date().toISOString(),
+                        occurrenceDate: occurrences[0].toISOString() // 記錄首次發生日
+                    });
+                }
+            }
+        }
+        
+        // 5. 返回本期所有實例
+        return await getChecklistForPeriod(periodId);
+    }
+    
+    async function getChecklistForPeriod(periodId) {
+        const instances = await db.checklistInstances
+            .where('periodId')
+            .equals(periodId)
+            .sortBy('position');
+        
+        // 加載關聯的規則資訊
+        const enriched = await Promise.all(instances.map(async (inst) => {
+            const rule = await db.rules.get(inst.ruleId);
+            return { ...inst, rule };
+        }));
+        
+        return enriched.filter(e => e.rule); // 過濾已刪除規則的實例
+    }
+
+    // ===============================================
+    // ④ 核對流程與完成判定
+    // ===============================================
+    async function toggleChecklistItem(instanceId, completed) {
+        const instance = await db.checklistInstances.get(instanceId);
+        if (!instance) return;
+        
+        const beforeData = { ...instance };
+        
+        await db.checklistInstances.update(instanceId, {
+            completed,
+            completedAt: completed ? new Date().toISOString() : null
+        });
+        
+        // 寫入 audit
+        await db.audits.add({
+            action: completed ? 'COMPLETE' : 'UNCOMPLETE',
+            targetType: 'checklistInstance',
+            targetId: instanceId,
+            beforeData: JSON.stringify(beforeData),
+            afterData: JSON.stringify({ completed, completedAt: completed ? new Date().toISOString() : null }),
+            createdAt: new Date().toISOString()
+        });
+        
+        return await db.checklistInstances.get(instanceId);
+    }
+
+    // ===============================================
+    // ⑤ 搜尋/去重規格 (Fuse.js)
+    // ===============================================
+    const SearchDedup = {
+        fuseOptions: {
+            includeScore: true,
+            threshold: 0.4,
+            keys: ['title', 'tags', 'description']
+        },
+        
+        async findDuplicates(scope = 'rules') {
+            let items;
+            switch (scope) {
+                case 'rules':
+                    items = await db.rules.toArray();
+                    break;
+                case 'logs':
+                    items = await db.logs.toArray();
+                    break;
+                default:
+                    items = await db.rules.toArray();
+            }
+            
+            if (items.length < 2) return [];
+            
+            const fuse = new Fuse(items, this.fuseOptions);
+            const clusters = [];
+            const processed = new Set();
+            
+            for (const item of items) {
+                if (processed.has(item.id)) continue;
+                
+                const results = fuse.search(item.title || '');
+                const similar = results
+                    .filter(r => r.item.id !== item.id && r.score < this.fuseOptions.threshold && !processed.has(r.item.id))
+                    .map(r => ({ ...r.item, score: r.score }));
+                
+                if (similar.length > 0) {
+                    clusters.push({
+                        primary: item,
+                        similar,
+                        matchedFields: ['title']
+                    });
+                    similar.forEach(s => processed.add(s.id));
+                }
+                processed.add(item.id);
+            }
+            
+            return clusters;
+        },
+        
+        async merge(primaryId, secondaryIds, scope = 'rules') {
+            const table = scope === 'rules' ? db.rules : db.logs;
+            const primary = await table.get(primaryId);
+            
+            for (const secId of secondaryIds) {
+                const secondary = await table.get(secId);
+                if (!secondary) continue;
+                
+                // 記錄 audit
+                await db.audits.add({
+                    action: 'MERGE',
+                    targetType: scope,
+                    targetId: secId,
+                    beforeData: JSON.stringify(secondary),
+                    afterData: JSON.stringify({ mergedInto: primaryId }),
+                    createdAt: new Date().toISOString()
+                });
+                
+                // 軟刪除 (標記為已合併)
+                await table.update(secId, { 
+                    mergedInto: primaryId, 
+                    active: 0,
+                    updatedAt: new Date().toISOString() 
+                });
+            }
+        },
+        
+        async ignore(clusterId, itemIds, scope = 'rules') {
+            await db.audits.add({
+                action: 'IGNORE_DUPLICATE',
+                targetType: scope,
+                targetId: itemIds.join(','),
+                beforeData: null,
+                afterData: JSON.stringify({ ignored: true }),
+                createdAt: new Date().toISOString()
+            });
+        },
+        
+        async undoAction(auditId) {
+            const audit = await db.audits.get(auditId);
+            if (!audit) return false;
+            
+            const table = audit.targetType === 'rules' ? db.rules : 
+                         audit.targetType === 'logs' ? db.logs : 
+                         db.checklistInstances;
+            
+            if (audit.action === 'MERGE') {
+                const beforeData = JSON.parse(audit.beforeData);
+                await table.update(audit.targetId, {
+                    ...beforeData,
+                    mergedInto: null,
+                    active: 1
+                });
+            } else if (audit.action === 'COMPLETE' || audit.action === 'UNCOMPLETE') {
+                const beforeData = JSON.parse(audit.beforeData);
+                await table.update(audit.targetId, {
+                    completed: beforeData.completed,
+                    completedAt: beforeData.completedAt
+                });
+            }
+            
+            // 標記 audit 為已撤銷
+            await db.audits.update(auditId, { undone: true });
+            
+            return true;
+        }
+    };
+
+    // ===============================================
+    // ⑥ 拖拉排序規格 (SortableJS)
+    // ===============================================
+    function initSortable(containerId, onUpdate) {
+        const el = document.getElementById(containerId);
+        if (!el) return null;
+        
+        return Sortable.create(el, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            handle: '.drag-handle',
+            onEnd: async function(evt) {
+                const items = Array.from(el.children);
+                const updates = items.map((item, index) => ({
+                    id: parseInt(item.dataset.id),
+                    position: index + 1
+                }));
+                
+                // 批量更新位置
+                await db.transaction('rw', db.checklistInstances, async () => {
+                    for (const update of updates) {
+                        await db.checklistInstances.update(update.id, { position: update.position });
+                    }
+                });
+                
+                if (onUpdate) onUpdate(updates);
+            }
+        });
+    }
+
+    // ===============================================
+    // ⑦ Markdown 渲染 (markdown-it + DOMPurify)
+    // ===============================================
+    const md = window.markdownit({
+        html: false, // 禁用 HTML 標籤
+        linkify: true,
+        typographer: true
+    });
+    
+    function renderMarkdown(content) {
+        const rawHtml = md.render(content || '');
+        return DOMPurify.sanitize(rawHtml, {
+            ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li', 'a', 'blockquote', 'img'],
+            ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class']
+        });
+    }
+
+    // ===============================================
+    // ⑧ 附件管理 (FilePond + Dexie)
+    // ===============================================
+    // Register FilePond plugins
+    FilePond.registerPlugin(
+        FilePondPluginImagePreview,
+        FilePondPluginImageExifOrientation,
+        FilePondPluginImageResize,
+        FilePondPluginImageTransform
+    );
+
+    const AttachmentManager = {
+        pond: null,
+        
+        init(elementId) {
+            const inputElement = document.querySelector(elementId);
+            this.pond = FilePond.create(inputElement, {
+                labelIdle: '拖拉圖片到此處或 <span class="filepond--label-action">點擊上傳</span>',
+                imagePreviewHeight: 100,
+                imageResizeTargetWidth: 1024,
+                imageResizeTargetHeight: 1024,
+                imageResizeMode: 'contain',
+                imageTransformOutputQuality: 80,
+                storeAsFile: true,
+                credits: false
+            });
+            return this.pond;
+        },
+        
+        async saveFiles(parentType, parentId) {
+            if (!this.pond) return;
+            
+            const files = this.pond.getFiles();
+            for (const item of files) {
+                const file = item.file;
+                if (item.source && typeof item.source === 'number') { 
+                    continue; 
+                }
+                
+                await db.attachments.add({
+                    parentType,
+                    parentId,
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    file: file,
+                    createdAt: new Date().toISOString()
+                });
+            }
+        },
+        
+        async loadFiles(parentType, parentId) {
+            if (!this.pond) return;
+            this.pond.removeFiles();
+            const attachments = await db.attachments
+                .where('[parentType+parentId]')
+                .equals([parentType, parentId])
+                .toArray();
+            return attachments;
+        },
+        
+        async getAttachments(parentType, parentId) {
+            return await db.attachments
+                .where('[parentType+parentId]')
+                .equals([parentType, parentId])
+                .toArray();
+        },
+        
+        async deleteAttachment(id) {
+            await db.attachments.delete(id);
+        },
+
+        createImageGrid(attachments, container, isEditable = false) {
+            container.innerHTML = '';
+            if (attachments.length === 0) return;
+            
+            const grid = document.createElement('div');
+            grid.className = 'image-grid';
+            
+            attachments.forEach(att => {
+                const div = document.createElement('div');
+                div.className = 'image-item group';
+                
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(att.file);
+                img.alt = att.name;
+                
+                div.appendChild(img);
+                
+                if (isEditable) {
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity';
+                    delBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    delBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        await this.deleteAttachment(att.id);
+                        div.remove();
+                    };
+                    div.appendChild(delBtn);
+                }
+                
+                grid.appendChild(div);
+            });
+            
+            container.appendChild(grid);
+            
+            new Viewer(grid, {
+                toolbar: {
+                    zoomIn: 1, zoomOut: 1, oneToOne: 1, reset: 1, prev: 1, play: 1, next: 1, rotateLeft: 1, rotateRight: 1, flipHorizontal: 1, flipVertical: 1,
+                },
+            });
+        }
+    };
+
+    // ===============================================
+    // ⑨ PDF 產檔規格 (jsPDF + AutoTable)
+    // ===============================================
+    const PDFExporter = {
+        /**
+         * 產生 PDF 檔案
+         * @param {Object} options - 選項
+         * @param {Date} options.startDate - 開始日期
+         * @param {Date} options.endDate - 結束日期
+         * @param {boolean} options.includeChecklist - 包含核對清單
+         * @param {boolean} options.includeLogs - 包含工作紀錄
+         * @param {boolean} options.includeAudits - 包含審計紀錄
+         * @param {string} options.filenamePrefix - 檔名前綴
+         */
+        async generate(options) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            // 載入並註冊中文字型 (使用內建的 Helvetica 替代，實際需要載入中文字型)
+            // 這裡示範如何處理，實際部署需要提供字型檔
+            doc.setFont('helvetica');
+            
+            let yPos = 20;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 15;
+            const contentWidth = pageWidth - margin * 2;
+            
+            // 頁首
+            doc.setFontSize(18);
+            doc.text('工作紀錄報表', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+            
+            doc.setFontSize(10);
+            const dateRange = `${dayjs(options.startDate).format('YYYY/MM/DD')} - ${dayjs(options.endDate).format('YYYY/MM/DD')}`;
+            doc.text(dateRange, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+            
+            doc.setDrawColor(200);
+            doc.line(margin, yPos, pageWidth - margin, yPos);
+            yPos += 10;
+            
+            // 核對清單
+            if (options.includeChecklist) {
+                const instances = await db.checklistInstances
+                    .where('periodId')
+                    .equals(options.periodId)
+                    .toArray();
+                
+                const enriched = await Promise.all(instances.map(async (inst) => {
+                    const rule = await db.rules.get(inst.ruleId);
+                    return { ...inst, rule };
+                }));
+                
+                const checklistData = enriched.filter(e => e.rule).map(item => [
+                    item.completed ? '✓' : '○',
+                    item.rule?.title || 'N/A',
+                    (item.rule?.tags || []).join(', '),
+                    item.completed ? dayjs(item.completedAt).format('YYYY/MM/DD HH:mm') : '-'
+                ]);
+                
+                if (checklistData.length > 0) {
+                    doc.setFontSize(14);
+                    doc.text('核對清單', margin, yPos);
+                    yPos += 8;
+                    
+                    doc.autoTable({
+                        startY: yPos,
+                        head: [['狀態', '項目', '標籤', '完成時間']],
+                        body: checklistData,
+                        margin: { left: margin, right: margin },
+                        styles: { fontSize: 9, cellPadding: 3 },
+                        headStyles: { fillColor: [59, 130, 246] },
+                        columnStyles: {
+                            0: { cellWidth: 15 },
+                            1: { cellWidth: 60 },
+                            2: { cellWidth: 40 },
+                            3: { cellWidth: 40 }
+                        }
+                    });
+                    
+                    yPos = doc.lastAutoTable.finalY + 15;
+                }
+            }
+            
+            // 工作紀錄
+            if (options.includeLogs) {
+                const logs = await db.logs
+                    .where('periodId')
+                    .equals(options.periodId)
+                    .toArray();
+                
+                if (logs.length > 0) {
+                    // 檢查是否需要新頁
+                    if (yPos > 250) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    doc.setFontSize(14);
+                    doc.text('工作紀錄', margin, yPos);
+                    yPos += 8;
+                    
+                    const logsData = logs.map(log => [
+                        dayjs(log.createdAt).format('YYYY/MM/DD'),
+                        log.title || 'N/A',
+                        (log.content || '').substring(0, 100) + ((log.content || '').length > 100 ? '...' : '')
+                    ]);
+                    
+                    doc.autoTable({
+                        startY: yPos,
+                        head: [['日期', '標題', '內容摘要']],
+                        body: logsData,
+                        margin: { left: margin, right: margin },
+                        styles: { fontSize: 9, cellPadding: 3 },
+                        headStyles: { fillColor: [34, 197, 94] }
+                    });
+                    
+                    yPos = doc.lastAutoTable.finalY + 15;
+                }
+            }
+            
+            // 頁尾
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(
+                    `Generated: ${dayjs().format('YYYY/MM/DD HH:mm')} | Page ${i}/${pageCount}`,
+                    pageWidth / 2,
+                    doc.internal.pageSize.getHeight() - 10,
+                    { align: 'center' }
+                );
+            }
+            
+            // 下載
+            const filename = `${options.filenamePrefix || 'report'}_${dayjs().format('YYYYMMDD_HHmmss')}.pdf`;
+            doc.save(filename);
+            
+            return filename;
+        },
+
+        async generateVisual(elementId, filenamePrefix) {
+            const element = document.getElementById(elementId);
+            if (!element) throw new Error('Element not found');
+            
+            // Adjust styles for better capture
+            const originalOverflow = element.style.overflow;
+            element.style.overflow = 'visible'; // Show full content
+            
+            try {
+                const canvas = await html2canvas(element, {
+                    scale: 1.5,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#f9fafb',
+                    ignoreElements: (el) => el.classList.contains('no-print')
+                });
+                
+                const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const imgProps = pdf.getImageProperties(imgData);
+                const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                // First page
+                pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+                heightLeft -= pdfHeight;
+                
+                // Subsequent pages
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight; // This logic for position is tricky in jsPDF
+                    // Correct approach for splitting image across pages:
+                    pdf.addPage();
+                    // We render the image shifted up
+                    pdf.addImage(imgData, 'JPEG', 0, -1 * (imgHeight - heightLeft), pdfWidth, imgHeight); 
+                    heightLeft -= pdfHeight;
+                }
+                
+                const filename = `${filenamePrefix}_visual_${dayjs().format('YYYYMMDD_HHmmss')}.pdf`;
+                pdf.save(filename);
+                return filename;
+            } finally {
+                element.style.overflow = originalOverflow;
+            }
+        }
+    };
+
+    // ===============================================
+    // 應用程式狀態與 UI 控制
+    // ===============================================
+    const App = {
+        currentPeriod: null,
+        periodType: 'month',
+        sortableInstance: null,
+        
+        async init() {
+            await initSettings();
+            
+            // 載入設定
+            this.periodType = await getSetting('periodType') || 'month';
+            PeriodEngine.weekStart = await getSetting('weekStart') || 1;
+            PeriodEngine.cutoffDay = await getSetting('cutoffDay') || 25;
+            
+            // 設定 UI
+            document.getElementById('periodTypeSelect').value = this.periodType;
+            this.toggleCutoffDaySelector();
+            this.initCutoffDayOptions();
+            document.getElementById('cutoffDaySelect').value = PeriodEngine.cutoffDay;
+            
+            // 計算當前期別
+            this.currentPeriod = PeriodEngine.getPeriod(dayjs(), this.periodType);
+            this.updatePeriodDisplay();
+            
+            // 綁定事件
+            this.bindEvents();
+            
+            // 載入首頁
+            this.navigateTo('dashboard');
+        },
+        
+        bindEvents() {
+            // 導航
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const page = e.currentTarget.dataset.page;
+                    this.navigateTo(page);
+                });
+            });
+            
+            // 期別切換
+            document.getElementById('prevPeriod').addEventListener('click', () => {
+                this.currentPeriod = this.currentPeriod.prev();
+                this.updatePeriodDisplay();
+                this.refreshCurrentPage();
+            });
+            
+            document.getElementById('nextPeriod').addEventListener('click', () => {
+                this.currentPeriod = this.currentPeriod.next();
+                this.updatePeriodDisplay();
+                this.refreshCurrentPage();
+            });
+            
+            document.getElementById('todayPeriod').addEventListener('click', () => {
+                this.currentPeriod = PeriodEngine.getPeriod(dayjs(), this.periodType);
+                this.updatePeriodDisplay();
+                this.refreshCurrentPage();
+            });
+            
+            // 期別類型切換
+            document.getElementById('periodTypeSelect').addEventListener('change', async (e) => {
+                this.periodType = e.target.value;
+                await setSetting('periodType', this.periodType);
+                this.toggleCutoffDaySelector();
+                this.currentPeriod = PeriodEngine.getPeriod(dayjs(), this.periodType);
+                this.updatePeriodDisplay();
+                this.refreshCurrentPage();
+            });
+            
+            // 結算日切換
+            document.getElementById('cutoffDaySelect').addEventListener('change', async (e) => {
+                PeriodEngine.cutoffDay = parseInt(e.target.value);
+                await setSetting('cutoffDay', PeriodEngine.cutoffDay);
+                this.currentPeriod = PeriodEngine.getPeriod(dayjs(), this.periodType);
+                this.updatePeriodDisplay();
+                this.refreshCurrentPage();
+            });
+            
+            // 快速匯出
+            document.getElementById('quickExport').addEventListener('click', () => {
+                this.navigateTo('export');
+            });
+
+            // 截圖匯出
+            document.getElementById('visualExport').addEventListener('click', async () => {
+                Swal.fire({
+                    title: '正在截取畫面...',
+                    text: '請稍候',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+                
+                try {
+                    const filename = await PDFExporter.generateVisual('pageContent', 'snapshot');
+                    Swal.fire({ icon: 'success', title: '匯出成功', text: `已下載: ${filename}` });
+                } catch (err) {
+                    Swal.fire({ icon: 'error', title: '匯出失敗', text: err.message });
+                }
+            });
+            
+            // 規則 Modal
+            document.getElementById('closeRuleModal').addEventListener('click', () => this.closeRuleModal());
+            document.getElementById('cancelRule').addEventListener('click', () => this.closeRuleModal());
+            document.getElementById('saveRule').addEventListener('click', () => this.saveRule());
+            
+            // 規則模式切換
+            document.getElementById('basicModeBtn').addEventListener('click', () => this.switchRuleMode('basic'));
+            document.getElementById('advancedModeBtn').addEventListener('click', () => this.switchRuleMode('advanced'));
+            
+            // 規則頻率變更
+            document.getElementById('ruleFreq').addEventListener('change', (e) => {
+                this.updateRuleFreqUI(e.target.value);
+                this.updateRulePreview();
+            });
+            
+            // 規則預覽更新
+            ['ruleInterval', 'ruleByMonthDay'].forEach(id => {
+                document.getElementById(id).addEventListener('input', () => this.updateRulePreview());
+            });
+            document.querySelectorAll('.byday-check').forEach(cb => {
+                cb.addEventListener('change', () => this.updateRulePreview());
+            });
+            document.getElementById('ruleRRuleString').addEventListener('input', () => this.updateRulePreview());
+            
+            // Log Modal
+            document.getElementById('closeLogModal').addEventListener('click', () => this.closeLogModal());
+            document.getElementById('cancelLog').addEventListener('click', () => this.closeLogModal());
+            document.getElementById('saveLog').addEventListener('click', () => this.saveLog());
+            document.getElementById('logContent').addEventListener('input', (e) => {
+                document.getElementById('logPreview').innerHTML = renderMarkdown(e.target.value);
+            });
+        },
+        
+        toggleCutoffDaySelector() {
+            const container = document.getElementById('cutoffDayContainer');
+            container.classList.toggle('hidden', this.periodType !== 'customCutoff');
+        },
+        
+        initCutoffDayOptions() {
+            const select = document.getElementById('cutoffDaySelect');
+            select.innerHTML = '';
+            for (let i = 1; i <= 31; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${i} 日`;
+                select.appendChild(option);
+            }
+        },
+        
+        updatePeriodDisplay() {
+            document.getElementById('periodBadge').textContent = this.currentPeriod.periodId;
+            document.getElementById('periodRange').textContent = this.currentPeriod.periodLabel;
+        },
+        
+        async navigateTo(page) {
+            // 更新導航狀態
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.page === page);
+            });
+            
+            // 載入頁面內容
+            const content = document.getElementById('pageContent');
+            content.innerHTML = '<div class="flex items-center justify-center h-full"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i></div>';
+            
+            this.currentPage = page;
+            
+            switch (page) {
+                case 'dashboard': await this.renderDashboard(); break;
+                case 'checklist': await this.renderChecklist(); break;
+                case 'rules': await this.renderRules(); break;
+                case 'logs': await this.renderLogs(); break;
+                case 'dedup': await this.renderDedup(); break;
+                case 'export': await this.renderExport(); break;
+                case 'settings': await this.renderSettings(); break;
+                case 'audit': await this.renderAudit(); break;
+            }
+        },
+        
+        refreshCurrentPage() {
+            if (this.currentPage) {
+                this.navigateTo(this.currentPage);
+            }
+        },
+        
+        // =============== Dashboard ===============
+        async renderDashboard() {
+            const periodId = this.currentPeriod.periodId;
+            const start = this.currentPeriod.start;
+            const end = this.currentPeriod.end;
+            
+            // Lazy generate checklist
+            const checklist = await lazyGenerateChecklist(periodId, start, end);
+            const completed = checklist.filter(i => i.completed).length;
+            const total = checklist.length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            // Recent audits
+            const recentAudits = await db.audits.orderBy('createdAt').reverse().limit(10).toArray();
+            
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="max-w-6xl mx-auto">
+                    <h1 class="text-2xl font-bold mb-6">總覽</h1>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <!-- Progress Card -->
+                        <div class="bg-white rounded-xl p-6 card-shadow">
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">本期進度</h3>
+                            <div class="flex items-end gap-2 mb-3">
+                                <span class="text-4xl font-bold text-blue-600">${completed}</span>
+                                <span class="text-gray-400 text-lg">/ ${total}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all" style="width: ${percent}%"></div>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">${percent}% 完成</p>
+                        </div>
+                        
+                        <!-- Quick Stats -->
+                        <div class="bg-white rounded-xl p-6 card-shadow">
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">規則數量</h3>
+                            <div class="text-4xl font-bold text-green-600" id="totalRules">-</div>
+                            <p class="text-sm text-gray-500 mt-2">啟用中的重複規則</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-6 card-shadow">
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">工作紀錄</h3>
+                            <div class="text-4xl font-bold text-purple-600" id="totalLogs">-</div>
+                            <p class="text-sm text-gray-500 mt-2">本期紀錄數</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Incomplete Items -->
+                        <div class="bg-white rounded-xl p-6 card-shadow">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-gray-800">待完成項目</h3>
+                                <a href="#" data-page="checklist" class="text-sm text-blue-600 hover:underline nav-item">查看全部</a>
+                            </div>
+                            <div id="incompleteList" class="space-y-2">
+                                ${checklist.filter(i => !i.completed).slice(0, 5).map(item => `
+                                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                        <button class="quick-complete w-5 h-5 border-2 border-gray-300 rounded hover:border-blue-500 flex items-center justify-center" data-id="${item.id}">
+                                        </button>
+                                        <span class="flex-1">${item.rule?.title || 'N/A'}</span>
+                                        ${(item.rule?.tags || []).map(tag => `<span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">${tag}</span>`).join('')}
+                                    </div>
+                                `).join('') || '<p class="text-gray-500 text-center py-4">本期已全部完成 🎉</p>'}
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Audits -->
+                        <div class="bg-white rounded-xl p-6 card-shadow">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-gray-800">最近操作</h3>
+                                <a href="#" data-page="audit" class="text-sm text-blue-600 hover:underline nav-item">查看全部</a>
+                            </div>
+                            <div class="space-y-2 max-h-64 overflow-auto">
+                                ${recentAudits.map(audit => `
+                                    <div class="flex items-center gap-3 p-2 text-sm ${audit.undone ? 'opacity-50' : ''}">
+                                        <span class="w-8 h-8 rounded-full ${this.getAuditColor(audit.action)} flex items-center justify-center text-white text-xs">
+                                            <i class="${this.getAuditIcon(audit.action)}"></i>
+                                        </span>
+                                        <div class="flex-1">
+                                            <span class="font-medium">${this.getAuditLabel(audit.action)}</span>
+                                            <span class="text-gray-500">${audit.targetType} #${audit.targetId}</span>
+                                        </div>
+                                        <span class="text-xs text-gray-400">${dayjs(audit.createdAt).format('MM/DD HH:mm')}</span>
+                                    </div>
+                                `).join('') || '<p class="text-gray-500 text-center py-4">暫無操作記錄</p>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Load stats
+            const rulesCount = await db.rules.where('active').equals(1).count();
+            const logsCount = await db.logs.where('periodId').equals(periodId).count();
+            document.getElementById('totalRules').textContent = rulesCount;
+            document.getElementById('totalLogs').textContent = logsCount;
+            
+            // Quick complete handlers
+            content.querySelectorAll('.quick-complete').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    await toggleChecklistItem(id, true);
+                    this.refreshCurrentPage();
+                    Swal.fire({ icon: 'success', title: '已完成!', timer: 1000, showConfirmButton: false });
+                });
+            });
+            
+            // Nav item handlers
+            content.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.navigateTo(e.currentTarget.dataset.page);
+                });
+            });
+        },
+        
+        getAuditColor(action) {
+            const colors = {
+                'COMPLETE': 'bg-green-500',
+                'UNCOMPLETE': 'bg-yellow-500',
+                'MERGE': 'bg-purple-500',
+                'IGNORE_DUPLICATE': 'bg-gray-500',
+                'CREATE': 'bg-blue-500',
+                'UPDATE': 'bg-indigo-500',
+                'DELETE': 'bg-red-500'
+            };
+            return colors[action] || 'bg-gray-500';
+        },
+        
+        getAuditIcon(action) {
+            const icons = {
+                'COMPLETE': 'fas fa-check',
+                'UNCOMPLETE': 'fas fa-undo',
+                'MERGE': 'fas fa-code-merge',
+                'IGNORE_DUPLICATE': 'fas fa-eye-slash',
+                'CREATE': 'fas fa-plus',
+                'UPDATE': 'fas fa-edit',
+                'DELETE': 'fas fa-trash'
+            };
+            return icons[action] || 'fas fa-circle';
+        },
+        
+        getAuditLabel(action) {
+            const labels = {
+                'COMPLETE': '完成',
+                'UNCOMPLETE': '取消完成',
+                'MERGE': '合併',
+                'IGNORE_DUPLICATE': '忽略重複',
+                'CREATE': '新增',
+                'UPDATE': '更新',
+                'DELETE': '刪除'
+            };
+            return labels[action] || action;
+        },
+        
+        // =============== Checklist ===============
+        async renderChecklist() {
+            const periodId = this.currentPeriod.periodId;
+            const start = this.currentPeriod.start;
+            const end = this.currentPeriod.end;
+            
+            const checklist = await lazyGenerateChecklist(periodId, start, end);
+            const incomplete = checklist.filter(i => !i.completed);
+            const completed = checklist.filter(i => i.completed);
+            
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h1 class="text-2xl font-bold">本期核對</h1>
+                        <button id="syncChecklist" class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors">
+                            <i class="fas fa-sync-alt"></i> 重新同步
+                        </button>
+                    </div>
+                    
+                    <!-- Tabs -->
+                    <div class="flex gap-4 mb-6 border-b border-gray-200">
+                        <button class="checklist-tab pb-3 px-4 border-b-2 border-blue-500 text-blue-600 font-medium" data-tab="incomplete">
+                            未完成 (${incomplete.length})
+                        </button>
+                        <button class="checklist-tab pb-3 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="completed">
+                            已完成 (${completed.length})
+                        </button>
+                        <button class="checklist-tab pb-3 px-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="all">
+                            全部 (${checklist.length})
+                        </button>
+                    </div>
+                    
+                    <!-- Incomplete List -->
+                    <div id="tab-incomplete" class="checklist-content">
+                        ${incomplete.length > 0 ? `
+                            <div id="incompleteItems" class="space-y-2">
+                                ${incomplete.map(item => this.renderChecklistItem(item)).join('')}
+                            </div>
+                        ` : `
+                            <div class="text-center py-12">
+                                <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+                                <p class="text-xl text-gray-600">本期已全部完成！</p>
+                                <button class="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" onclick="App.navigateTo('export')">
+                                    匯出報表
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <!-- Completed List -->
+                    <div id="tab-completed" class="checklist-content hidden">
+                        ${completed.length > 0 ? `
+                            <div class="space-y-2">
+                                ${completed.map(item => this.renderChecklistItem(item)).join('')}
+                            </div>
+                        ` : `
+                            <div class="text-center py-12 text-gray-500">
+                                <i class="fas fa-clipboard-list text-4xl mb-4"></i>
+                                <p>尚未完成任何核對</p>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <!-- All List -->
+                    <div id="tab-all" class="checklist-content hidden">
+                        <div id="allItems" class="space-y-2">
+                            ${checklist.map(item => this.renderChecklistItem(item)).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Init sortable
+            if (incomplete.length > 0) {
+                this.sortableInstance = initSortable('incompleteItems');
+            }
+            
+            // Tab switching
+            content.querySelectorAll('.checklist-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabName = e.currentTarget.dataset.tab;
+                    content.querySelectorAll('.checklist-tab').forEach(t => {
+                        t.classList.toggle('border-blue-500', t.dataset.tab === tabName);
+                        t.classList.toggle('text-blue-600', t.dataset.tab === tabName);
+                        t.classList.toggle('border-transparent', t.dataset.tab !== tabName);
+                        t.classList.toggle('text-gray-500', t.dataset.tab !== tabName);
+                    });
+                    content.querySelectorAll('.checklist-content').forEach(c => {
+                        c.classList.toggle('hidden', c.id !== `tab-${tabName}`);
+                    });
+                });
+            });
+            
+            // Checkbox handlers
+            content.querySelectorAll('.checklist-checkbox').forEach(cb => {
+                cb.addEventListener('change', async (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    const completed = e.currentTarget.checked;
+                    await toggleChecklistItem(id, completed);
+                    this.refreshCurrentPage();
+                });
+            });
+            
+            // Sync button
+            document.getElementById('syncChecklist').addEventListener('click', async () => {
+                await lazyGenerateChecklist(periodId, start, end);
+                this.refreshCurrentPage();
+                Swal.fire({ icon: 'success', title: '同步完成', timer: 1000, showConfirmButton: false });
+            });
+            
+            // Create log from item
+            content.querySelectorAll('.create-log-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const title = e.currentTarget.dataset.title;
+                    this.openLogModal(null, { linkedType: 'checklist', linkedId: id, title: `# ${title}\n\n` });
+                });
+            });
+        },
+        
+        renderChecklistItem(item) {
+            return `
+                <div class="checklist-item flex items-center gap-3 p-4 bg-white rounded-lg card-shadow group" data-id="${item.id}">
+                    <span class="drag-handle cursor-move text-gray-300 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fas fa-grip-vertical"></i>
+                    </span>
+                    <input type="checkbox" class="checklist-checkbox w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                           data-id="${item.id}" ${item.completed ? 'checked' : ''}>
+                    <div class="flex-1">
+                        <span class="${item.completed ? 'line-through text-gray-400' : ''}">${item.rule?.title || 'N/A'}</span>
+                        <div class="flex gap-1 mt-1">
+                            ${(item.rule?.tags || []).map(tag => `<span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">${tag}</span>`).join('')}
+                        </div>
+                    </div>
+                    ${item.completed ? `<span class="text-xs text-gray-400">${dayjs(item.completedAt).format('MM/DD HH:mm')}</span>` : ''}
+                    <div class="relative">
+                        <button class="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 item-menu-btn">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="item-menu hidden absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border py-1 w-48 z-10">
+                            <button class="create-log-btn w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" data-id="${item.id}" data-title="${item.rule?.title || ''}">
+                                <i class="fas fa-file-alt mr-2"></i> 新增工作紀錄
+                            </button>
+                            <button class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">
+                                <i class="fas fa-copy mr-2"></i> 標記為重複
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+        
+        // =============== Rules ===============
+        async renderRules() {
+            const rules = await db.rules.toArray();
+            
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h1 class="text-2xl font-bold">規則庫</h1>
+                        <button id="addRule" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-plus"></i> 新增規則
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        ${rules.filter(r => !r.mergedInto).map(rule => `
+                            <div class="bg-white rounded-lg p-4 card-shadow flex items-center gap-4">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer rule-active" data-id="${rule.id}" ${rule.active ? 'checked' : ''}>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                                <div class="flex-1">
+                                    <h3 class="font-medium ${!rule.active ? 'text-gray-400' : ''}">${rule.title}</h3>
+                                    <p class="text-sm text-gray-500">${this.formatRRuleSummary(rule.rruleString)}</p>
+                                    <div class="flex gap-1 mt-1">
+                                        ${(rule.tags || []).map(tag => `<span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">${tag}</span>`).join('')}
+                                    </div>
+                                </div>
+                                <span class="text-xs text-gray-400">${dayjs(rule.updatedAt || rule.createdAt).format('YYYY/MM/DD')}</span>
+                                <button class="edit-rule p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600" data-id="${rule.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="delete-rule p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600" data-id="${rule.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `).join('') || `
+                            <div class="text-center py-12 bg-white rounded-lg">
+                                <i class="fas fa-repeat text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-gray-500">尚無規則。點擊「新增規則」開始建立。</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            // Add rule button
+            document.getElementById('addRule').addEventListener('click', () => this.openRuleModal());
+            
+            // Edit rule
+            content.querySelectorAll('.edit-rule').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    const rule = await db.rules.get(id);
+                    this.openRuleModal(rule);
+                });
+            });
+            
+            // Delete rule
+            content.querySelectorAll('.delete-rule').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    const result = await Swal.fire({
+                        title: '確定刪除？',
+                        text: '此操作無法復原',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        confirmButtonText: '刪除',
+                        cancelButtonText: '取消'
+                    });
+                    if (result.isConfirmed) {
+                        await db.rules.delete(id);
+                        await db.audits.add({
+                            action: 'DELETE',
+                            targetType: 'rules',
+                            targetId: id,
+                            createdAt: new Date().toISOString()
+                        });
+                        this.refreshCurrentPage();
+                    }
+                });
+            });
+            
+            // Toggle active
+            content.querySelectorAll('.rule-active').forEach(cb => {
+                cb.addEventListener('change', async (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    const active = e.currentTarget.checked ? 1 : 0;
+                    await db.rules.update(id, { active, updatedAt: new Date().toISOString() });
+                });
+            });
+        },
+        
+        formatRRuleSummary(rruleString) {
+            if (!rruleString) return '無規則';
+            try {
+                const rule = rrule.RRule.fromString(`RRULE:${rruleString}`);
+                return rule.toText();
+            } catch {
+                return rruleString;
+            }
+        },
+        
+        openRuleModal(rule = null) {
+            document.getElementById('ruleModal').classList.remove('hidden');
+            document.getElementById('ruleModalTitle').textContent = rule ? '編輯規則' : '新增規則';
+            
+            if (rule) {
+                document.getElementById('ruleId').value = rule.id;
+                document.getElementById('ruleTitle').value = rule.title || '';
+                document.getElementById('ruleTags').value = (rule.tags || []).join(', ');
+                document.getElementById('ruleDescription').value = rule.description || '';
+                document.getElementById('ruleActive').checked = rule.active;
+                document.getElementById('ruleRRuleString').value = rule.rruleString || '';
+                this.parseRRuleToUI(rule.rruleString);
+            } else {
+                document.getElementById('ruleId').value = '';
+                document.getElementById('ruleForm').reset();
+                document.getElementById('ruleActive').checked = true;
+            }
+            
+            this.updateRulePreview();
+        },
+        
+        closeRuleModal() {
+            document.getElementById('ruleModal').classList.add('hidden');
+        },
+        
+        switchRuleMode(mode) {
+            const isBasic = mode === 'basic';
+            document.getElementById('basicRuleMode').classList.toggle('hidden', !isBasic);
+            document.getElementById('advancedRuleMode').classList.toggle('hidden', isBasic);
+            document.getElementById('basicModeBtn').classList.toggle('bg-blue-600', isBasic);
+            document.getElementById('basicModeBtn').classList.toggle('text-white', isBasic);
+            document.getElementById('basicModeBtn').classList.toggle('bg-gray-200', !isBasic);
+            document.getElementById('advancedModeBtn').classList.toggle('bg-blue-600', !isBasic);
+            document.getElementById('advancedModeBtn').classList.toggle('text-white', !isBasic);
+            document.getElementById('advancedModeBtn').classList.toggle('bg-gray-200', isBasic);
+        },
+        
+        updateRuleFreqUI(freq) {
+            document.getElementById('weekdaySelector').classList.toggle('hidden', freq !== 'WEEKLY');
+            document.getElementById('monthdaySelector').classList.toggle('hidden', freq !== 'MONTHLY');
+            const units = { 'DAILY': '天', 'WEEKLY': '週', 'MONTHLY': '月' };
+            document.getElementById('intervalUnit').textContent = units[freq] || '次';
+        },
+        
+        updateRulePreview() {
+            let rruleString;
+            
+            if (!document.getElementById('advancedRuleMode').classList.contains('hidden')) {
+                rruleString = document.getElementById('ruleRRuleString').value;
+            } else {
+                const freq = document.getElementById('ruleFreq').value;
+                const interval = parseInt(document.getElementById('ruleInterval').value) || 1;
+                const byday = Array.from(document.querySelectorAll('.byday-check:checked')).map(cb => cb.value);
+                const bymonthday = document.getElementById('ruleByMonthDay').value;
+                rruleString = RRuleHelper.buildRRuleString(freq, interval, byday, bymonthday);
+            }
+            
+            const preview = document.getElementById('rulePreview');
+            const dates = RRuleHelper.previewNext(rruleString, 5);
+            
+            if (dates.length > 0) {
+                preview.innerHTML = dates.map(d => dayjs(d).format('YYYY/MM/DD (ddd)')).join('<br>');
+            } else {
+                preview.innerHTML = '<span class="text-red-500">無法解析規則或無符合日期</span>';
+            }
+        },
+        
+        parseRRuleToUI(rruleString) {
+            if (!rruleString) return;
+            try {
+                const parts = rruleString.split(';');
+                parts.forEach(part => {
+                    const [key, value] = part.split('=');
+                    switch (key) {
+                        case 'FREQ':
+                            document.getElementById('ruleFreq').value = value;
+                            this.updateRuleFreqUI(value);
+                            break;
+                        case 'INTERVAL':
+                            document.getElementById('ruleInterval').value = value;
+                            break;
+                        case 'BYDAY':
+                            document.querySelectorAll('.byday-check').forEach(cb => {
+                                cb.checked = value.split(',').includes(cb.value);
+                            });
+                            break;
+                        case 'BYMONTHDAY':
+                            document.getElementById('ruleByMonthDay').value = value;
+                            break;
+                    }
+                });
+            } catch (e) {
+                console.error('Parse RRULE error:', e);
+            }
+        },
+        
+        async saveRule() {
+            const id = document.getElementById('ruleId').value;
+            const title = document.getElementById('ruleTitle').value.trim();
+            const tags = document.getElementById('ruleTags').value.split(',').map(t => t.trim()).filter(t => t);
+            const description = document.getElementById('ruleDescription').value;
+            const active = document.getElementById('ruleActive').checked ? 1 : 0;
+            
+            let rruleString;
+            if (!document.getElementById('advancedRuleMode').classList.contains('hidden')) {
+                rruleString = document.getElementById('ruleRRuleString').value;
+            } else {
+                const freq = document.getElementById('ruleFreq').value;
+                const interval = parseInt(document.getElementById('ruleInterval').value) || 1;
+                const byday = Array.from(document.querySelectorAll('.byday-check:checked')).map(cb => cb.value);
+                const bymonthday = document.getElementById('ruleByMonthDay').value;
+                rruleString = RRuleHelper.buildRRuleString(freq, interval, byday, bymonthday);
+            }
+            
+            if (!title) {
+                Swal.fire({ icon: 'error', title: '請輸入標題' });
+                return;
+            }
+            
+            // Validate RRULE
+            try {
+                rrule.RRule.fromString(`RRULE:${rruleString}`);
+            } catch {
+                Swal.fire({ icon: 'error', title: 'RRULE 格式錯誤', text: '請檢查重複規則設定' });
+                return;
+            }
+            
+            const data = {
+                title,
+                tags,
+                description,
+                rruleString,
+                active,
+                updatedAt: new Date().toISOString()
+            };
+            
+            if (id) {
+                await db.rules.update(parseInt(id), data);
+                await db.audits.add({
+                    action: 'UPDATE',
+                    targetType: 'rules',
+                    targetId: parseInt(id),
+                    afterData: JSON.stringify(data),
+                    createdAt: new Date().toISOString()
+                });
+            } else {
+                data.createdAt = new Date().toISOString();
+                const newId = await db.rules.add(data);
+                await db.audits.add({
+                    action: 'CREATE',
+                    targetType: 'rules',
+                    targetId: newId,
+                    afterData: JSON.stringify(data),
+                    createdAt: new Date().toISOString()
+                });
+            }
+            
+            this.closeRuleModal();
+            this.refreshCurrentPage();
+            Swal.fire({ icon: 'success', title: '儲存成功', timer: 1000, showConfirmButton: false });
+        },
+        
+        // =============== Logs ===============
+        async renderLogs() {
+            const logs = await db.logs.orderBy('createdAt').reverse().toArray();
+            
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="max-w-6xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h1 class="text-2xl font-bold">工作紀錄</h1>
+                        <button id="addLog" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-plus"></i> 新增紀錄
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 space-y-2 max-h-[calc(100vh-200px)] overflow-auto">
+                            ${logs.map(log => `
+                                <div class="log-item p-4 bg-white rounded-lg card-shadow cursor-pointer hover:bg-blue-50 transition-colors" data-id="${log.id}">
+                                    <h3 class="font-medium truncate">${log.title || '無標題'}</h3>
+                                    <p class="text-sm text-gray-500 truncate">${(log.content || '').substring(0, 50)}...</p>
+                                    <div class="flex items-center justify-between mt-2">
+                                        <span class="text-xs text-gray-400">${dayjs(log.createdAt).format('YYYY/MM/DD HH:mm')}</span>
+                                        <span class="text-xs px-2 py-0.5 bg-gray-100 rounded">${log.periodId || ''}</span>
+                                    </div>
+                                </div>
+                            `).join('') || `
+                                <div class="text-center py-12 bg-white rounded-lg">
+                                    <i class="fas fa-file-alt text-4xl text-gray-300 mb-4"></i>
+                                    <p class="text-gray-500">尚無紀錄</p>
+                                </div>
+                            `}
+                        </div>
+                        <div class="lg:col-span-2 bg-white rounded-lg p-6 card-shadow">
+                            <div id="logDetail" class="text-center text-gray-400 py-12">
+                                <i class="fas fa-hand-pointer text-4xl mb-4"></i>
+                                <p>選擇左側紀錄查看詳情</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add log
+            document.getElementById('addLog').addEventListener('click', () => this.openLogModal());
+            
+            // View log
+            content.querySelectorAll('.log-item').forEach(item => {
+                item.addEventListener('click', async (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    const log = await db.logs.get(id);
+                    this.showLogDetail(log);
+                    content.querySelectorAll('.log-item').forEach(i => i.classList.remove('ring-2', 'ring-blue-500'));
+                    e.currentTarget.classList.add('ring-2', 'ring-blue-500');
+                });
+            });
+        },
+        
+        showLogDetail(log) {
+            const detail = document.getElementById('logDetail');
+            detail.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold">${log.title || '無標題'}</h2>
+                        <div class="flex gap-2 mt-1">
+                            ${(log.tags || []).map(tag => `<span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">${tag}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="edit-log-btn p-2 hover:bg-gray-100 rounded-lg" data-id="${log.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-log-btn p-2 hover:bg-red-50 text-red-600 rounded-lg" data-id="${log.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-500 mb-4">
+                    <span>${dayjs(log.createdAt).format('YYYY/MM/DD HH:mm')}</span>
+                    ${log.periodId ? `<span class="ml-2">· 期別: ${log.periodId}</span>` : ''}
+                </div>
+                
+                <div id="logAttachments" class="mb-4"></div>
+                
+                <hr class="my-4">
+                <div class="markdown-preview prose max-w-none">
+                    ${renderMarkdown(log.content)}
+                </div>
+            `;
+            
+            // Load attachments
+            AttachmentManager.getAttachments('log', log.id).then(attachments => {
+                const container = detail.querySelector('#logAttachments');
+                AttachmentManager.createImageGrid(attachments, container, false);
+            });
+            
+            detail.querySelector('.edit-log-btn').addEventListener('click', () => this.openLogModal(log));
+            detail.querySelector('.delete-log-btn').addEventListener('click', async () => {
+                const result = await Swal.fire({
+                    title: '確定刪除？',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: '刪除',
+                    cancelButtonText: '取消'
+                });
+                if (result.isConfirmed) {
+                    await db.logs.delete(log.id);
+                    // Also delete attachments
+                    const attachments = await db.attachments.where('[parentType+parentId]').equals(['log', log.id]).toArray();
+                    await db.attachments.bulkDelete(attachments.map(a => a.id));
+                    
+                    this.refreshCurrentPage();
+                }
+            });
+        },
+        
+        async openLogModal(log = null, prefill = {}) {
+            document.getElementById('logModal').classList.remove('hidden');
+            document.getElementById('logModalTitle').textContent = log ? '編輯工作紀錄' : '新增工作紀錄';
+            
+            // Init FilePond
+            if (!AttachmentManager.pond) {
+                AttachmentManager.init('.filepond');
+            }
+            AttachmentManager.pond.removeFiles();
+            
+            const fileInputContainer = document.querySelector('.filepond').parentElement;
+            
+            // Create or clear existing attachments container
+            let existingContainer = document.getElementById('existingAttachments');
+            if (!existingContainer) {
+                existingContainer = document.createElement('div');
+                existingContainer.id = 'existingAttachments';
+                existingContainer.className = 'mb-2';
+                fileInputContainer.insertBefore(existingContainer, fileInputContainer.firstChild);
+            } else {
+                existingContainer.innerHTML = '';
+            }
+            
+            // Load linked options
+            const rules = await db.rules.toArray();
+            const linkedSelect = document.getElementById('logLinkedTo');
+            linkedSelect.innerHTML = '<option value="">無連結</option>';
+            rules.forEach(r => {
+                linkedSelect.innerHTML += `<option value="rule:${r.id}">${r.title}</option>`;
+            });
+            
+            if (log) {
+                document.getElementById('logId').value = log.id;
+                document.getElementById('logTitle').value = log.title || '';
+                document.getElementById('logTags').value = (log.tags || []).join(', ');
+                document.getElementById('logContent').value = log.content || '';
+                if (log.linkedType && log.linkedId) {
+                    linkedSelect.value = `${log.linkedType}:${log.linkedId}`;
+                }
+                
+                // Show existing attachments
+                const attachments = await AttachmentManager.getAttachments('log', log.id);
+                AttachmentManager.createImageGrid(attachments, existingContainer, true);
+                
+            } else {
+                document.getElementById('logId').value = '';
+                document.getElementById('logTitle').value = '';
+                document.getElementById('logTags').value = '';
+                document.getElementById('logContent').value = prefill.title || '';
+                if (prefill.linkedType && prefill.linkedId) {
+                    linkedSelect.value = `${prefill.linkedType}:${prefill.linkedId}`;
+                }
+            }
+            
+            document.getElementById('logPreview').innerHTML = renderMarkdown(document.getElementById('logContent').value);
+        },
+        
+        closeLogModal() {
+            document.getElementById('logModal').classList.add('hidden');
+            if (AttachmentManager.pond) {
+                AttachmentManager.pond.removeFiles();
+            }
+        },
+        
+        async saveLog() {
+            const id = document.getElementById('logId').value;
+            const title = document.getElementById('logTitle').value.trim();
+            const tags = document.getElementById('logTags').value.split(',').map(t => t.trim()).filter(t => t);
+            const content = document.getElementById('logContent').value;
+            const linked = document.getElementById('logLinkedTo').value;
+            
+            let linkedType = null, linkedId = null;
+            if (linked) {
+                [linkedType, linkedId] = linked.split(':');
+                linkedId = parseInt(linkedId);
+            }
+            
+            const data = {
+                title,
+                tags,
+                content,
+                linkedType,
+                linkedId,
+                periodId: this.currentPeriod.periodId,
+                updatedAt: new Date().toISOString()
+            };
+            
+            let logId;
+            if (id) {
+                logId = parseInt(id);
+                await db.logs.update(logId, data);
+            } else {
+                data.createdAt = new Date().toISOString();
+                logId = await db.logs.add(data);
+            }
+            
+            // Save attachments
+            await AttachmentManager.saveFiles('log', logId);
+            
+            this.closeLogModal();
+            this.refreshCurrentPage();
+            Swal.fire({ icon: 'success', title: '儲存成功', timer: 1000, showConfirmButton: false });
+        },
+        
+        // =============== Dedup ===============
+        async renderDedup() {
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-2xl font-bold mb-6">搜尋與去重</h1>
+                    
+                    <div class="bg-white rounded-lg p-6 card-shadow mb-6">
+                        <div class="flex gap-4 mb-4">
+                            <input type="text" id="searchInput" placeholder="搜尋..." class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                            <select id="searchScope" class="border border-gray-300 rounded-lg px-4 py-2">
+                                <option value="rules">規則</option>
+                                <option value="logs">工作紀錄</option>
+                            </select>
+                            <select id="searchMode" class="border border-gray-300 rounded-lg px-4 py-2">
+                                <option value="fuzzy">容錯模式</option>
+                                <option value="exact">精準模式</option>
+                            </select>
+                            <button id="searchBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <button id="findDuplicates" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                            <i class="fas fa-clone mr-2"></i> 自動偵測重複
+                        </button>
+                    </div>
+                    
+                    <div id="searchResults" class="space-y-4">
+                        <div class="text-center py-12 text-gray-400">
+                            <i class="fas fa-search text-4xl mb-4"></i>
+                            <p>輸入關鍵字或點擊「自動偵測重複」</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Search
+            document.getElementById('searchBtn').addEventListener('click', () => this.performSearch());
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.performSearch();
+            });
+            
+            // Find duplicates
+            document.getElementById('findDuplicates').addEventListener('click', () => this.findDuplicates());
+        },
+        
+        async performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            const scope = document.getElementById('searchScope').value;
+            const mode = document.getElementById('searchMode').value;
+            
+            if (!query) return;
+            
+            const items = scope === 'rules' ? await db.rules.toArray() : await db.logs.toArray();
+            
+            const fuse = new Fuse(items, {
+                includeScore: true,
+                threshold: mode === 'fuzzy' ? 0.4 : 0.1,
+                keys: ['title', 'tags', 'description', 'content']
+            });
+            
+            const results = fuse.search(query);
+            
+            const resultsDiv = document.getElementById('searchResults');
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="text-center py-8 text-gray-500">無符合結果</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = results.map(r => `
+                <div class="bg-white rounded-lg p-4 card-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-medium">${r.item.title || '無標題'}</h3>
+                            <p class="text-sm text-gray-500">${(r.item.description || r.item.content || '').substring(0, 100)}...</p>
+                        </div>
+                        <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            相似度: ${Math.round((1 - r.score) * 100)}%
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        },
+        
+        async findDuplicates() {
+            const scope = document.getElementById('searchScope').value;
+            const clusters = await SearchDedup.findDuplicates(scope);
+            
+            const resultsDiv = document.getElementById('searchResults');
+            if (clusters.length === 0) {
+                resultsDiv.innerHTML = '<div class="text-center py-8 text-gray-500"><i class="fas fa-check-circle text-green-500 text-4xl mb-4"></i><p>未發現重複項目</p></div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = clusters.map((cluster, idx) => `
+                <div class="bg-white rounded-lg p-4 card-shadow">
+                    <h3 class="font-medium mb-3">可能重複群組 #${idx + 1}</h3>
+                    <div class="space-y-2 mb-4">
+                        <div class="p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+                            <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded mr-2">主要</span>
+                            ${cluster.primary.title}
+                        </div>
+                        ${cluster.similar.map(s => `
+                            <div class="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                                <span>${s.title}</span>
+                                <span class="text-xs text-gray-500">${Math.round((1 - s.score) * 100)}% 相似</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="merge-btn px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700" 
+                                data-primary="${cluster.primary.id}" 
+                                data-secondary="${cluster.similar.map(s => s.id).join(',')}">
+                            <i class="fas fa-code-merge mr-1"></i> 合併
+                        </button>
+                        <button class="ignore-btn px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300"
+                                data-ids="${[cluster.primary.id, ...cluster.similar.map(s => s.id)].join(',')}">
+                            <i class="fas fa-eye-slash mr-1"></i> 忽略
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Merge handler
+            resultsDiv.querySelectorAll('.merge-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const primaryId = parseInt(e.currentTarget.dataset.primary);
+                    const secondaryIds = e.currentTarget.dataset.secondary.split(',').map(Number);
+                    await SearchDedup.merge(primaryId, secondaryIds, scope);
+                    Swal.fire({ icon: 'success', title: '合併成功', timer: 1000, showConfirmButton: false });
+                    this.findDuplicates();
+                });
+            });
+            
+            // Ignore handler
+            resultsDiv.querySelectorAll('.ignore-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const ids = e.currentTarget.dataset.ids.split(',').map(Number);
+                    await SearchDedup.ignore(null, ids, scope);
+                    Swal.fire({ icon: 'info', title: '已忽略', timer: 1000, showConfirmButton: false });
+                    e.currentTarget.closest('.bg-white').remove();
+                });
+            });
+        },
+        
+        // =============== Export ===============
+        async renderExport() {
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="max-w-2xl mx-auto">
+                    <h1 class="text-2xl font-bold mb-6">匯出 PDF</h1>
+                    
+                    <div class="bg-white rounded-lg p-6 card-shadow">
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">日期區間</label>
+                                <div class="flex gap-4">
+                                    <div class="flex-1">
+                                        <label class="text-xs text-gray-500">開始</label>
+                                        <input type="date" id="exportStartDate" class="w-full border border-gray-300 rounded-lg px-4 py-2" value="${this.currentPeriod.start.format('YYYY-MM-DD')}">
+                                    </div>
+                                    <div class="flex-1">
+                                        <label class="text-xs text-gray-500">結束</label>
+                                        <input type="date" id="exportEndDate" class="w-full border border-gray-300 rounded-lg px-4 py-2" value="${this.currentPeriod.end.format('YYYY-MM-DD')}">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">包含內容</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="exportChecklist" checked class="rounded">
+                                        <span>核對清單</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="exportLogs" class="rounded">
+                                        <span>工作紀錄</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="exportAudits" class="rounded">
+                                        <span>審計紀錄</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">檔名前綴</label>
+                                <input type="text" id="exportPrefix" class="w-full border border-gray-300 rounded-lg px-4 py-2" value="工作報表">
+                            </div>
+                            
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                注意：PDF 使用基本字型，中文可能顯示為方塊。建議在瀏覽器支援良好的環境下使用。
+                            </div>
+                            
+                            <button id="generatePDF" class="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-lg transition-colors">
+                                <i class="fas fa-file-pdf mr-2"></i> 產生 PDF 並下載
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('generatePDF').addEventListener('click', async () => {
+                const startDate = document.getElementById('exportStartDate').value;
+                const endDate = document.getElementById('exportEndDate').value;
+                
+                Swal.fire({
+                    title: '產生中...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+                
+                try {
+                    const filename = await PDFExporter.generate({
+                        startDate: new Date(startDate),
+                        endDate: new Date(endDate),
+                        periodId: this.currentPeriod.periodId,
+                        includeChecklist: document.getElementById('exportChecklist').checked,
+                        includeLogs: document.getElementById('exportLogs').checked,
+                        includeAudits: document.getElementById('exportAudits').checked,
+                        filenamePrefix: document.getElementById('exportPrefix').value
+                    });
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: '匯出成功！',
+                        text: `已下載: ${filename}`
+                    });
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '匯出失敗',
+                        text: err.message
+                    });
+                }
+            });
+        },
+        
+        // =============== Settings ===============
+        async renderSettings() {
+            const periodType = await getSetting('periodType');
+            const weekStart = await getSetting('weekStart');
+            const cutoffDay = await getSetting('cutoffDay');
+            const fuseThreshold = await getSetting('fuseThreshold');
+            
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="max-w-2xl mx-auto">
+                    <h1 class="text-2xl font-bold mb-6">設定</h1>
+                    
+                    <div class="bg-white rounded-lg p-6 card-shadow space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">預設期別類型</label>
+                            <select id="settingPeriodType" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                <option value="week" ${periodType === 'week' ? 'selected' : ''}>每週</option>
+                                <option value="month" ${periodType === 'month' ? 'selected' : ''}>每月</option>
+                                <option value="customCutoff" ${periodType === 'customCutoff' ? 'selected' : ''}>自訂結算日</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">週起始日</label>
+                            <select id="settingWeekStart" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                <option value="0" ${weekStart === 0 ? 'selected' : ''}>週日</option>
+                                <option value="1" ${weekStart === 1 ? 'selected' : ''}>週一</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">自訂結算日 (每月第幾天)</label>
+                            <select id="settingCutoffDay" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                                ${Array.from({length: 31}, (_, i) => `<option value="${i+1}" ${cutoffDay === i+1 ? 'selected' : ''}>${i+1} 日</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">搜尋相似度閾值 (0-1, 越小越嚴格)</label>
+                            <input type="range" id="settingFuseThreshold" min="0.1" max="0.8" step="0.1" value="${fuseThreshold}" class="w-full">
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>嚴格 (0.1)</span>
+                                <span id="thresholdValue">${fuseThreshold}</span>
+                                <span>寬鬆 (0.8)</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div>
+                            <h3 class="font-medium text-gray-800 mb-3">資料管理</h3>
+                            <div class="space-y-2">
+                                <button id="exportData" class="w-full py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200">
+                                    <i class="fas fa-download mr-2"></i> 匯出所有資料 (JSON)
+                                </button>
+                                <button id="importData" class="w-full py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200">
+                                    <i class="fas fa-upload mr-2"></i> 匯入資料
+                                </button>
+                                <button id="clearData" class="w-full py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
+                                    <i class="fas fa-trash mr-2"></i> 清除所有資料
+                                </button>
+                            </div>
+                            <input type="file" id="importFile" class="hidden" accept=".json">
+                        </div>
+                        
+                        <button id="saveSettings" class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                            儲存設定
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Threshold display
+            document.getElementById('settingFuseThreshold').addEventListener('input', (e) => {
+                document.getElementById('thresholdValue').textContent = e.target.value;
+            });
+            
+            // Save settings
+            document.getElementById('saveSettings').addEventListener('click', async () => {
+                await setSetting('periodType', document.getElementById('settingPeriodType').value);
+                await setSetting('weekStart', parseInt(document.getElementById('settingWeekStart').value));
+                await setSetting('cutoffDay', parseInt(document.getElementById('settingCutoffDay').value));
+                await setSetting('fuseThreshold', parseFloat(document.getElementById('settingFuseThreshold').value));
+                
+                // Update app state
+                this.periodType = document.getElementById('settingPeriodType').value;
+                PeriodEngine.weekStart = parseInt(document.getElementById('settingWeekStart').value);
+                PeriodEngine.cutoffDay = parseInt(document.getElementById('settingCutoffDay').value);
+                SearchDedup.fuseOptions.threshold = parseFloat(document.getElementById('settingFuseThreshold').value);
+                
+                document.getElementById('periodTypeSelect').value = this.periodType;
+                document.getElementById('cutoffDaySelect').value = PeriodEngine.cutoffDay;
+                this.toggleCutoffDaySelector();
+                this.currentPeriod = PeriodEngine.getPeriod(dayjs(), this.periodType);
+                this.updatePeriodDisplay();
+                
+                Swal.fire({ icon: 'success', title: '設定已儲存', timer: 1000, showConfirmButton: false });
+            });
+            
+            // Export data
+            document.getElementById('exportData').addEventListener('click', async () => {
+                const data = {
+                    rules: await db.rules.toArray(),
+                    checklistInstances: await db.checklistInstances.toArray(),
+                    logs: await db.logs.toArray(),
+                    audits: await db.audits.toArray(),
+                    settings: await db.settings.toArray(),
+                    // Attachments 匯出時略過檔案內容 (因為 Blob stringify 有問題)，或者只匯出 metadata
+                    // 完整備份需要處理 Blob 序列化，這裡簡化處理
+                    exportedAt: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `worklog_backup_${dayjs().format('YYYYMMDD_HHmmss')}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+            
+            // Import data
+            document.getElementById('importData').addEventListener('click', () => {
+                document.getElementById('importFile').click();
+            });
+            
+            document.getElementById('importFile').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+                    
+                    const result = await Swal.fire({
+                        title: '確定匯入？',
+                        text: '這將覆蓋現有資料',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: '匯入',
+                        cancelButtonText: '取消'
+                    });
+                    
+                    if (result.isConfirmed) {
+                        if (data.rules) await db.rules.bulkPut(data.rules);
+                        if (data.checklistInstances) await db.checklistInstances.bulkPut(data.checklistInstances);
+                        if (data.logs) await db.logs.bulkPut(data.logs);
+                        if (data.audits) await db.audits.bulkPut(data.audits);
+                        if (data.settings) await db.settings.bulkPut(data.settings);
+                        
+                        Swal.fire({ icon: 'success', title: '匯入成功' });
+                        this.refreshCurrentPage();
+                    }
+                } catch (err) {
+                    Swal.fire({ icon: 'error', title: '匯入失敗', text: err.message });
+                }
+            });
+            
+            // Clear data
+            document.getElementById('clearData').addEventListener('click', async () => {
+                const result = await Swal.fire({
+                    title: '確定清除所有資料？',
+                    text: '此操作無法復原！',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: '清除',
+                    cancelButtonText: '取消'
+                });
+                
+                if (result.isConfirmed) {
+                    await db.rules.clear();
+                    await db.checklistInstances.clear();
+                    await db.logs.clear();
+                    await db.audits.clear();
+                    Swal.fire({ icon: 'success', title: '已清除所有資料' });
+                    this.refreshCurrentPage();
+                }
+            });
+        },
+        
+        // =============== Audit ===============
+        async renderAudit() {
+            const audits = await db.audits.orderBy('createdAt').reverse().toArray();
+            
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-2xl font-bold mb-6">審計紀錄</h1>
+                    
+                    <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">時間</th>
+                                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">操作</th>
+                                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">類型</th>
+                                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">ID</th>
+                                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">狀態</th>
+                                    <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${audits.map(audit => `
+                                    <tr class="${audit.undone ? 'bg-gray-50 opacity-60' : ''}">
+                                        <td class="px-4 py-3 text-sm">${dayjs(audit.createdAt).format('YYYY/MM/DD HH:mm:ss')}</td>
+                                        <td class="px-4 py-3">
+                                            <span class="px-2 py-1 rounded text-xs font-medium ${this.getAuditColor(audit.action)} text-white">
+                                                ${this.getAuditLabel(audit.action)}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm">${audit.targetType}</td>
+                                        <td class="px-4 py-3 text-sm">#${audit.targetId}</td>
+                                        <td class="px-4 py-3 text-sm">${audit.undone ? '<span class="text-yellow-600">已撤銷</span>' : '<span class="text-green-600">有效</span>'}</td>
+                                        <td class="px-4 py-3">
+                                            ${!audit.undone && (audit.action === 'MERGE' || audit.action === 'COMPLETE' || audit.action === 'UNCOMPLETE') ? `
+                                                <button class="undo-btn text-blue-600 hover:underline text-sm" data-id="${audit.id}">
+                                                    <i class="fas fa-undo mr-1"></i> 撤銷
+                                                </button>
+                                            ` : '-'}
+                                        </td>
+                                    </tr>
+                                `).join('') || `
+                                    <tr>
+                                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">暫無審計紀錄</td>
+                                    </tr>
+                                `}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Undo handlers
+            content.querySelectorAll('.undo-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    const result = await Swal.fire({
+                        title: '確定撤銷此操作？',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: '撤銷',
+                        cancelButtonText: '取消'
+                    });
+                    
+                    if (result.isConfirmed) {
+                        const success = await SearchDedup.undoAction(id);
+                        if (success) {
+                            Swal.fire({ icon: 'success', title: '已撤銷', timer: 1000, showConfirmButton: false });
+                            this.refreshCurrentPage();
+                        } else {
+                            Swal.fire({ icon: 'error', title: '撤銷失敗' });
+                        }
+                    }
+                });
+            });
+        }
+    };
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', () => {
+        App.init();
+    });
+
+    // Handle menu toggles
+    document.addEventListener('click', (e) => {
+        // Close all menus
+        document.querySelectorAll('.item-menu').forEach(menu => {
+            if (!e.target.closest('.item-menu-btn')) {
+                menu.classList.add('hidden');
+            }
+        });
+        
+        // Toggle clicked menu
+        if (e.target.closest('.item-menu-btn')) {
+            const menu = e.target.closest('.checklist-item').querySelector('.item-menu');
+            menu.classList.toggle('hidden');
+        }
+    });
+
+    // Offline detection
+    window.addEventListener('online', () => {
+        document.getElementById('offline-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span><span>已連線</span>';
+    });
+    
+    window.addEventListener('offline', () => {
+        document.getElementById('offline-status').innerHTML = '<span class="w-2 h-2 rounded-full bg-yellow-500"></span><span>離線模式</span>';
+    });
+    </script>
+</body>
+</html>
