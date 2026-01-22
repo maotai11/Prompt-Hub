@@ -1,1772 +1,1679 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>離線薪資表分析與財務內控系統 v1.1</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<style>
-:root {
-  --primary: #1a56db;
-  --primary-light: #e1effe;
-  --success: #059669;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-600: #4b5563;
-  --gray-800: #1f2937;
-  --addon-bg: #fffbeb;
-  --addon-border: #f59e0b;
-  --summary-bg: #ecfdf5;
-  --summary-border: #10b981;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif; background: var(--gray-100); color: var(--gray-800); font-size: 14px; }
-.container { max-width: 1600px; margin: 0 auto; padding: 16px; }
-.header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.header h1 { font-size: 1.5rem; font-weight: 600; }
-.header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; }
-.card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden; }
-.card-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; background: var(--gray-50); flex-wrap: wrap; gap: 8px; }
-.card-header h2 { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-.card-body { padding: 20px; }
-.btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-.btn-primary { background: var(--primary); color: white; }
-.btn-primary:hover { background: #1e429f; }
-.btn-success { background: var(--success); color: white; }
-.btn-warning { background: var(--warning); color: white; }
-.btn-danger { background: var(--danger); color: white; }
-.btn-outline { background: white; border: 1px solid var(--gray-300); color: var(--gray-600); }
-.btn-outline:hover { background: var(--gray-100); }
-.btn-sm { padding: 4px 10px; font-size: 0.8rem; }
-.upload-zone { border: 2px dashed var(--gray-300); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--gray-50); }
-.upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: var(--primary-light); }
-.upload-zone input { display: none; }
-.upload-icon { font-size: 3rem; margin-bottom: 12px; }
-.tabs { display: flex; gap: 4px; padding: 8px; background: var(--gray-100); border-radius: 8px; flex-wrap: wrap; }
-.tab { padding: 8px 16px; border-radius: 6px; cursor: pointer; background: transparent; border: none; font-size: 0.9rem; transition: all 0.2s; }
-.tab:hover { background: white; }
-.tab.active { background: var(--primary); color: white; }
-.excel-container { overflow: auto; max-height: 70vh; border: 1px solid var(--gray-200); border-radius: 8px; }
-.excel-table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
-.excel-table th, .excel-table td { border: 1px solid #c0c0c0; padding: 6px 10px; text-align: left; white-space: nowrap; min-width: 80px; position: relative; }
-.excel-table th { background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%); font-weight: 600; position: sticky; top: 0; z-index: 10; }
-.excel-table .row-header { background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); font-weight: 600; text-align: center; min-width: 50px; position: sticky; left: 0; z-index: 5; }
-.excel-table .corner { position: sticky; left: 0; top: 0; z-index: 15; background: #e2e8f0; }
-.addon-row { background: var(--addon-bg) !important; }
-.addon-row td { border-color: var(--addon-border) !important; }
-.addon-badge { display: inline-block; background: var(--addon-border); color: white; font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
-.summary-row { background: var(--summary-bg) !important; }
-.summary-row td { border-color: var(--summary-border) !important; font-weight: 600; }
-.summary-badge { display: inline-block; background: var(--summary-border); color: white; font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
-.highlight-cell { background: #fef3c7 !important; box-shadow: inset 0 0 0 2px var(--warning); }
-.error-cell { background: #fee2e2 !important; box-shadow: inset 0 0 0 2px var(--danger); }
-.error-list { max-height: 300px; overflow-y: auto; }
-.error-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-bottom: 1px solid var(--gray-100); cursor: pointer; transition: background 0.2s; }
-.error-item:hover { background: var(--gray-50); }
-.error-coord { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-weight: 600; white-space: nowrap; }
-.error-coord.warning { background: var(--warning); }
-.error-desc { flex: 1; }
-.copy-btn { padding: 2px 8px; font-size: 11px; }
-.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-.setting-group { background: var(--gray-50); padding: 16px; border-radius: 8px; }
-.setting-group h4 { margin-bottom: 12px; color: var(--gray-600); font-size: 0.9rem; }
-.form-row { margin-bottom: 12px; }
-.form-row label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: var(--gray-600); }
-.form-row input, .form-row select { width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.9rem; }
-.form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
-.checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; padding: 4px; }
-.checkbox-item { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border: 1px solid var(--gray-300); border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
-.checkbox-item:hover { border-color: var(--primary); }
-.checkbox-item.checked { background: var(--primary-light); border-color: var(--primary); }
-.checkbox-item input { margin: 0; }
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-.modal-overlay.show { display: flex; }
-.modal { background: white; border-radius: 16px; max-width: 600px; width: 90%; max-height: 80vh; overflow: hidden; }
-.modal-header { padding: 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
-.modal-body { padding: 20px; overflow-y: auto; max-height: 60vh; }
-.modal-footer { padding: 16px 20px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 8px; }
-.mapping-table { width: 100%; border-collapse: collapse; }
-.mapping-table th, .mapping-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--gray-200); }
-.mapping-table select { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--gray-300); }
-.status-bar { display: flex; gap: 16px; padding: 12px 20px; background: var(--gray-800); color: white; border-radius: 8px; font-size: 0.85rem; flex-wrap: wrap; }
-.status-item { display: flex; align-items: center; gap: 6px; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.status-dot.green { background: #10b981; }
-.status-dot.yellow { background: #f59e0b; }
-.status-dot.red { background: #ef4444; }
-.flex { display: flex; }
-.flex-wrap { flex-wrap: wrap; }
-.gap-2 { gap: 8px; }
-.gap-4 { gap: 16px; }
-.mt-2 { margin-top: 8px; }
-.mt-4 { margin-top: 16px; }
-.mb-4 { margin-bottom: 16px; }
-.text-sm { font-size: 0.85rem; }
-.text-gray { color: var(--gray-600); }
-.hidden { display: none !important; }
-.year-group { display: inline-block; margin-right: 8px; padding: 2px 6px; background: #dbeafe; border-radius: 4px; font-size: 12px; }
-.year-total { font-weight: bold; color: var(--primary); }
-@media print {
-  body { background: white; font-size: 11px; }
-  .no-print { display: none !important; }
-  .excel-container { max-height: none !important; overflow: visible !important; border: none !important; }
-  /* 移除 card 的 break-inside: avoid 以允許長表格跨頁，並開啟 overflow */
-  .card { box-shadow: none !important; break-inside: auto !important; overflow: visible !important; margin: 0 !important; border: none !important; }
-  .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
-  
-  /* 強制標題列在每一頁重複出現 */
-  .excel-table { width: 100%; }
-  .excel-table thead { display: table-header-group; }
-  .excel-table tr { break-inside: avoid; page-break-inside: avoid; }
-  
-  /* 移除 sticky 定位，否則瀏覽器無法在第二頁重複標題 */
-  .excel-table th, .excel-table .row-header, .excel-table .corner { 
-    position: static !important; 
-    overflow: visible !important;
-  }
-  
-  /* 確保內容不被裁切 */
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  
-  @page { margin: 1cm; size: auto; }
-}
-@media print and (orientation: landscape) {
-  @page { size: landscape; }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離線優先工作紀錄系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Dexie.js - IndexedDB -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+    <!-- Day.js -->
+    <script src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.10/plugin/isoWeek.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.10/plugin/customParseFormat.min.js"></script>
+    <!-- RRule -->
+    <script src="https://unpkg.com/rrule@2.7.2/dist/es5/rrule.min.js"></script>
+    <!-- Fuse.js -->
+    <script src="https://unpkg.com/fuse.js@7.0.0/dist/fuse.min.js"></script>
+    <!-- SortableJS -->
+    <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
+    <!-- Markdown-it -->
+    <script src="https://unpkg.com/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
+    <!-- DOMPurify -->
+    <script src="https://unpkg.com/dompurify@3.0.8/dist/purify.min.js"></script>
+    <!-- jsPDF -->
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <style>
+        .sortable-ghost { opacity: 0.4; background: #c8ebfb; }
+        .sortable-chosen { background: #f0f9ff; }
+        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
+        .markdown-body h1 { font-size: 1.5em; font-weight: bold; margin: 0.5em 0; }
+        .markdown-body h2 { font-size: 1.25em; font-weight: bold; margin: 0.5em 0; }
+        .markdown-body ul { list-style: disc; margin-left: 1.5em; }
+        .markdown-body ol { list-style: decimal; margin-left: 1.5em; }
+        .markdown-body code { background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 3px; }
+        .markdown-body pre { background: #1f2937; color: #e5e7eb; padding: 1em; border-radius: 6px; overflow-x: auto; }
+        .markdown-body blockquote { border-left: 4px solid #d1d5db; padding-left: 1em; color: #6b7280; }
+        .period-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px; }
+        .offline-indicator { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+    </style>
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Offline Indicator -->
+    <div id="offlineIndicator" class="offline-indicator hidden">
+        <span class="bg-yellow-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m-3.536-3.536a4 4 0 010-5.656m-7.072 7.072a4 4 0 010-5.656m-3.536 3.536a9 9 0 010-12.728"/>
+            </svg>
+            離線模式
+        </span>
+    </div>
 
-<div class="container">
-  <!-- Header -->
-  <div class="header no-print">
-    <div>
-      <h1>📊 離線薪資表分析與財務內控系統</h1>
-      <p class="text-sm" style="opacity:0.8;margin-top:4px;">File:// Offline Payroll Analyzer + Finance Review Team</p>
-    </div>
-    <div class="flex gap-2">
-      <span class="badge">v1.2</span>
-      <span class="badge">🔒 離線模式</span>
-    </div>
-  </div>
-
-  <!-- Status Bar -->
-  <div class="status-bar no-print mb-4">
-    <div class="status-item"><span class="status-dot green"></span> 離線運行中</div>
-    <div class="status-item" id="fileStatus"><span class="status-dot yellow"></span> 待上傳檔案</div>
-    <div class="status-item" id="sheetStatus"><span class="status-dot yellow"></span> 工作表: --</div>
-    <div class="status-item" id="errorStatus"><span class="status-dot green"></span> 錯誤: 0</div>
-  </div>
-
-  <!-- Upload Section -->
-  <div class="card no-print" id="uploadCard">
-    <div class="card-body">
-      <div class="upload-zone" id="uploadZone">
-        <input type="file" id="fileInput" accept=".xlsx,.xls">
-        <div class="upload-icon">📁</div>
-        <h3>拖放 Excel 檔案至此處</h3>
-        <p class="text-gray mt-2">或點擊選擇檔案（支援 .xlsx, .xls）</p>
-        <p class="text-sm text-gray mt-2">⚠️ 所有資料僅在本機處理，絕不外傳</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sheet Tabs -->
-  <div class="card hidden" id="sheetTabsCard">
-    <div class="card-header no-print">
-      <h2>📑 工作表選擇</h2>
-      <div class="flex gap-2 flex-wrap">
-        <button class="btn btn-outline btn-sm" onclick="openMappingModal()">⚙️ 欄位映射</button>
-        <button class="btn btn-outline btn-sm" onclick="openSettingsModal()">🔧 後台設定</button>
-        <button class="btn btn-primary btn-sm" onclick="runAnalysis()">▶️ 執行分析</button>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="tabs" id="sheetTabs"></div>
-    </div>
-  </div>
-
-  <!-- Header Row Selection -->
-  <div class="card hidden" id="headerRowCard">
-    <div class="card-header">
-      <h2>📍 標題列偵測</h2>
-    </div>
-    <div class="card-body">
-      <div class="flex gap-4 flex-wrap" style="align-items:center;">
-        <label>標題列位置（列號）：</label>
-        <input type="number" id="headerRowInput" value="1" min="1" style="width:80px;">
-        <button class="btn btn-primary btn-sm" onclick="confirmHeaderRow()">確認標題列</button>
-        <span class="text-sm text-gray" id="headerPreview"></span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sum Columns Selection -->
-  <div class="card hidden" id="sumColumnsCard">
-    <div class="card-header">
-      <h2>📊 加總與摘要設定</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-sm text-gray mb-4">系統已自動預選金額欄位，請確認需要顯示「員工小計」與「底部摘要」的項目：</p>
-      <div style="max-height: 300px; overflow-y: auto;">
-        <table class="mapping-table" style="width:100%;">
-          <thead>
-            <tr>
-              <th style="position:sticky;top:0;background:#f9fafb;">欄位名稱</th>
-              <th style="position:sticky;top:0;background:#f9fafb;text-align:center;">
-                <label style="cursor:pointer;"><input type="checkbox" id="chkAllSubtotal" onchange="toggleAllCol(this, 'subtotal')"> 員工小計</label>
-              </th>
-              <th style="position:sticky;top:0;background:#f9fafb;text-align:center;">
-                <label style="cursor:pointer;"><input type="checkbox" id="chkAllSummary" onchange="toggleAllCol(this, 'summary')"> 底部摘要</label>
-              </th>
-            </tr>
-          </thead>
-          <tbody id="sumColumnsTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Excel Display -->
-  <div class="card hidden" id="excelCard">
-    <div class="card-header">
-      <h2>📋 工作表內容</h2>
-      <span class="text-sm text-gray" id="excelInfo"></span>
-    </div>
-    <div class="excel-container" id="excelContainer"></div>
-  </div>
-
-  <!-- Error List -->
-  <div class="card hidden" id="errorCard">
-    <div class="card-header">
-      <h2>⚠️ 核對錯誤清單</h2>
-      <div class="flex gap-2">
-        <button class="btn btn-outline btn-sm" onclick="copyAllErrors()">📋 複製全部</button>
-        <button class="btn btn-outline btn-sm" onclick="exportErrors()">📥 匯出</button>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="error-list" id="errorList"></div>
-    </div>
-  </div>
-
-  <!-- Print Controls -->
-  <div class="card hidden no-print" id="printCard">
-    <div class="card-header">
-      <h2>🖨️ 列印/輸出</h2>
-    </div>
-    <div class="card-body">
-      <div class="flex gap-4 flex-wrap" style="align-items:center;">
-        <div class="setting-group" style="padding:8px; display:flex; gap:12px; align-items:center; background:#f3f4f6;">
-          <label>紙張方向：</label>
-          <select id="printOrientation" style="padding:4px; border-radius:4px;">
-            <option value="portrait">直式</option>
-            <option value="landscape">橫式</option>
-          </select>
-          
-          <label style="margin-left:8px; display:flex; align-items:center; gap:4px; cursor:pointer;">
-            <input type="checkbox" id="printFitWidth" checked> 自動縮放至頁寬
-          </label>
-
-          <label style="margin-left:8px;">縮放比例:</label>
-          <input type="number" id="printScale" value="100" min="50" max="200" step="5" style="width:60px; padding:4px;">%
-        </div>
-
-        <button class="btn btn-primary" onclick="printReport()">🖨️ 列印報表</button>
-        <button class="btn btn-success" id="btnExportPdf" onclick="exportToPDF()">📥 匯出 PDF</button>
-      </div>
-      <p class="text-sm text-gray mt-2">💡 提示：若預覽時邊框被切掉，請勾選「自動縮放」或調整縮放比例。</p>
-    </div>
-  </div>
-</div>
-
-<!-- Mapping Modal -->
-<div class="modal-overlay" id="mappingModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>⚙️ 欄位映射設定</h3>
-      <button class="btn btn-outline btn-sm" onclick="closeMappingModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <p class="text-sm text-gray mb-4">請選擇對應的欄位（僅允許精準欄名匹配）</p>
-      <table class="mapping-table">
-        <thead>
-          <tr><th>系統欄位</th><th>Excel欄位</th></tr>
-        </thead>
-        <tbody id="mappingTableBody"></tbody>
-      </table>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeMappingModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveMapping()">儲存映射</button>
-    </div>
-  </div>
-</div>
-
-<!-- Settings Modal -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal" style="max-width:800px;">
-    <div class="modal-header">
-      <h3>🔧 後台設定</h3>
-      <button class="btn btn-outline btn-sm" onclick="closeSettingsModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="settings-grid">
-        <div class="setting-group">
-          <h4>📋 核對規則</h4>
-          <div class="form-row">
-            <label>薪資異常門檻（%）</label>
-            <input type="number" id="salaryThreshold" value="20">
-          </div>
-          <div class="form-row">
-            <label>自提誤差容許</label>
-            <input type="number" id="selfContributionTolerance" value="0">
-          </div>
-          <div class="form-row" style="border-top:1px dashed #ccc; padding-top:12px; margin-top:12px;">
-            <label>所得稅檢查門檻 (薪資 > X)</label>
-            <input type="number" id="taxCheckThreshold" value="88501">
-          </div>
-          <div class="form-row">
-            <label>所得稅率 (%)</label>
-            <input type="number" id="taxRate" value="5">
-          </div>
-          <div class="form-row">
-            <label>核對規則: 姓名與ID一致性</label>
-            <div class="checkbox-group">
-              <label class="checkbox-item"><input type="checkbox" id="checkIdUnique" checked> 檢查 ID 對應多個姓名</label>
-              <label class="checkbox-item"><input type="checkbox" id="checkNameUnique" checked> 檢查 姓名 對應多個 ID</label>
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-gray-800">📋 工作紀錄系統</h1>
+                <div class="flex items-center gap-4">
+                    <!-- Period Selector -->
+                    <div class="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                        <button onclick="navigatePeriod(-1)" class="p-2 hover:bg-white rounded transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <span id="currentPeriodLabel" class="px-3 py-1 font-medium min-w-[180px] text-center"></span>
+                        <button onclick="navigatePeriod(1)" class="p-2 hover:bg-white rounded transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Period Type Toggle -->
+                    <select id="periodTypeSelect" onchange="changePeriodType(this.value)" class="border rounded-lg px-3 py-2">
+                        <option value="week">每週</option>
+                        <option value="month">每月</option>
+                        <option value="customCutoff">自訂結算日</option>
+                    </select>
+                    <!-- Settings -->
+                    <button onclick="openSettings()" class="p-2 hover:bg-gray-100 rounded-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
-          </div>
         </div>
-        <div class="setting-group">
-          <h4>👤 員工識別</h4>
-          <div class="form-row">
-            <label>主要識別欄位</label>
-            <select id="primaryIdField">
-              <option value="idNumber">身分證字號</option>
-              <option value="employeeId">員工編號</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label>次要識別欄位</label>
-            <select id="secondaryIdField">
-              <option value="name">姓名</option>
-              <option value="none">無</option>
-            </select>
-          </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex gap-6">
+                <button onclick="switchTab('checklist')" data-tab="checklist" class="tab-btn py-3 px-2 font-medium text-gray-600 hover:text-gray-900 tab-active">
+                    ✅ 本期核對
+                </button>
+                <button onclick="switchTab('todos')" data-tab="todos" class="tab-btn py-3 px-2 font-medium text-gray-600 hover:text-gray-900">
+                    📝 待辦事項
+                </button>
+                <button onclick="switchTab('worklog')" data-tab="worklog" class="tab-btn py-3 px-2 font-medium text-gray-600 hover:text-gray-900">
+                    📓 工作紀錄
+                </button>
+                <button onclick="switchTab('recurring')" data-tab="recurring" class="tab-btn py-3 px-2 font-medium text-gray-600 hover:text-gray-900">
+                    🔄 重複事項
+                </button>
+                <button onclick="switchTab('search')" data-tab="search" class="tab-btn py-3 px-2 font-medium text-gray-600 hover:text-gray-900">
+                    🔍 搜尋/去重
+                </button>
+                <button onclick="switchTab('export')" data-tab="export" class="tab-btn py-3 px-2 font-medium text-gray-600 hover:text-gray-900">
+                    📄 PDF 匯出
+                </button>
+            </div>
         </div>
-        <div class="setting-group">
-          <h4>📊 加總與年度設定</h4>
-          <div class="form-row">
-            <label>目標年度 (n, n-1)</label>
-            <input type="text" id="targetYears" placeholder="例如: 113,114 (留空則自動抓取所有)">
-            <p class="text-sm text-gray" style="margin-top:2px;">* 僅用於篩選特定年度顯示，留空則顯示全部</p>
-          </div>
-          <div class="form-row">
-            <label>分組方式</label>
-            <select id="groupByMethod">
-              <option value="year">依年度（民國年）</option>
-              <option value="yearMonth">依年月</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label>顯示小計</label>
-            <select id="showSubtotal">
-              <option value="yes">是</option>
-              <option value="no">否</option>
-            </select>
-          </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Checklist Tab -->
+        <div id="tab-checklist" class="tab-content">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold">本期核對清單</h2>
+                    <div class="flex items-center gap-2">
+                        <span id="checklistProgress" class="text-sm text-gray-500"></span>
+                        <button onclick="generatePeriodChecklist()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                            🔄 重新生成
+                        </button>
+                    </div>
+                </div>
+                <div id="checklistContainer" class="space-y-3">
+                    <!-- Checklist items will be rendered here -->
+                </div>
+            </div>
         </div>
-        <div class="setting-group">
-          <h4>📄 規則版本</h4>
-          <div class="form-row">
-            <label>規則版本號</label>
-            <input type="text" id="ruleVersion" value="1.1.0" readonly>
-          </div>
-          <div class="form-row">
-            <label>最後更新</label>
-            <input type="text" id="lastUpdate" readonly>
-          </div>
+
+        <!-- Todos Tab -->
+        <div id="tab-todos" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold">待辦事項</h2>
+                    <button onclick="openTodoModal()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+                        + 新增待辦
+                    </button>
+                </div>
+                <div id="todosContainer" class="space-y-2">
+                    <!-- Todos will be rendered here -->
+                </div>
+            </div>
         </div>
-      </div>
+
+        <!-- Work Log Tab -->
+        <div id="tab-worklog" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold">新增工作紀錄</h2>
+                    </div>
+                    <form id="worklogForm" onsubmit="saveWorklog(event)">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">標題</label>
+                            <input type="text" id="worklogTitle" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">日期</label>
+                            <input type="date" id="worklogDate" required class="w-full border rounded-lg px-3 py-2">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">標籤（逗號分隔）</label>
+                            <input type="text" id="worklogTags" class="w-full border rounded-lg px-3 py-2" placeholder="開發, 會議, 文件">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">內容（支援 Markdown）</label>
+                            <textarea id="worklogContent" rows="8" class="w-full border rounded-lg px-3 py-2 font-mono text-sm" placeholder="## 今日工作&#10;- 完成功能A&#10;- 修復Bug B"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">關聯任務 ID（可選）</label>
+                            <input type="text" id="worklogLinkedTask" class="w-full border rounded-lg px-3 py-2" placeholder="task-xxx">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition">
+                            儲存紀錄
+                        </button>
+                    </form>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-bold mb-4">本期工作紀錄</h2>
+                    <div id="worklogList" class="space-y-4 max-h-[600px] overflow-y-auto">
+                        <!-- Worklogs will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recurring Tab -->
+        <div id="tab-recurring" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold">重複事項規則</h2>
+                    <button onclick="openRecurringModal()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition">
+                        + 新增規則
+                    </button>
+                </div>
+                <div id="recurringContainer" class="space-y-3">
+                    <!-- Recurring rules will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Search/Dedupe Tab -->
+        <div id="tab-search" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold mb-4">搜尋與去重</h2>
+                    <div class="flex gap-4">
+                        <input type="text" id="searchInput" oninput="performSearch(this.value)" class="flex-1 border rounded-lg px-4 py-2" placeholder="搜尋標題、標籤、描述...">
+                        <button onclick="findDuplicates()" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
+                            🔍 尋找重複項目
+                        </button>
+                    </div>
+                </div>
+                <div id="searchResults" class="space-y-3">
+                    <!-- Search results will be rendered here -->
+                </div>
+                <div id="duplicatesSection" class="mt-6 hidden">
+                    <h3 class="text-lg font-bold mb-4">可能重複的項目</h3>
+                    <div id="duplicatesContainer" class="space-y-3">
+                        <!-- Duplicates will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Tab -->
+        <div id="tab-export" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="text-xl font-bold mb-6">PDF 匯出</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-medium mb-4">匯出設定</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">開始日期</label>
+                                <input type="date" id="exportStartDate" class="w-full border rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">結束日期</label>
+                                <input type="date" id="exportEndDate" class="w-full border rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">包含內容</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="exportChecklist" checked class="rounded">
+                                        核對清單
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="exportTodos" checked class="rounded">
+                                        待辦事項
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="exportWorklog" checked class="rounded">
+                                        工作紀錄
+                                    </label>
+                                </div>
+                            </div>
+                            <button onclick="generatePDF()" class="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                產生 PDF 並下載
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-medium mb-4">預覽</h3>
+                        <div id="pdfPreview" class="border rounded-lg p-4 bg-gray-50 min-h-[400px] text-sm">
+                            <p class="text-gray-500">設定日期範圍後點擊「產生 PDF」</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Todo Modal -->
+    <div id="todoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-4">新增待辦事項</h3>
+            <form id="todoForm" onsubmit="saveTodo(event)">
+                <input type="hidden" id="todoId">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">標題</label>
+                    <input type="text" id="todoTitle" required class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                    <textarea id="todoDescription" rows="3" class="w-full border rounded-lg px-3 py-2"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">標籤（逗號分隔）</label>
+                    <input type="text" id="todoTags" class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">優先級</label>
+                    <select id="todoPriority" class="w-full border rounded-lg px-3 py-2">
+                        <option value="low">低</option>
+                        <option value="medium" selected>中</option>
+                        <option value="high">高</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">截止日期（可選）</label>
+                    <input type="date" id="todoDueDate" class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeTodoModal()" class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="submit" class="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
+                        儲存
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="resetSettings()">重置預設</button>
-      <button class="btn btn-outline" onclick="closeSettingsModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveSettings()">儲存設定</button>
+
+    <!-- Recurring Modal -->
+    <div id="recurringModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-4">新增重複事項規則</h3>
+            <form id="recurringForm" onsubmit="saveRecurring(event)">
+                <input type="hidden" id="recurringId">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">標題</label>
+                    <input type="text" id="recurringTitle" required class="w-full border rounded-lg px-3 py-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                    <textarea id="recurringDescription" rows="2" class="w-full border rounded-lg px-3 py-2"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">頻率</label>
+                    <select id="recurringFreq" class="w-full border rounded-lg px-3 py-2" onchange="updateRRulePreview()">
+                        <option value="DAILY">每日</option>
+                        <option value="WEEKLY" selected>每週</option>
+                        <option value="MONTHLY">每月</option>
+                        <option value="YEARLY">每年</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">間隔</label>
+                    <input type="number" id="recurringInterval" value="1" min="1" class="w-full border rounded-lg px-3 py-2" onchange="updateRRulePreview()">
+                </div>
+                <div class="mb-4" id="weekdaySelector">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">星期幾（週重複用）</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex items-center gap-1"><input type="checkbox" name="byweekday" value="MO" onchange="updateRRulePreview()"> 一</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="byweekday" value="TU" onchange="updateRRulePreview()"> 二</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="byweekday" value="WE" onchange="updateRRulePreview()"> 三</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="byweekday" value="TH" onchange="updateRRulePreview()"> 四</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="byweekday" value="FR" onchange="updateRRulePreview()"> 五</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="byweekday" value="SA" onchange="updateRRulePreview()"> 六</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="byweekday" value="SU" onchange="updateRRulePreview()"> 日</label>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">開始日期</label>
+                    <input type="date" id="recurringStart" required class="w-full border rounded-lg px-3 py-2" onchange="updateRRulePreview()">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">結束日期（可選）</label>
+                    <input type="date" id="recurringEnd" class="w-full border rounded-lg px-3 py-2" onchange="updateRRulePreview()">
+                </div>
+                <div class="mb-4 p-3 bg-gray-100 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">RRULE 預覽</label>
+                    <code id="rrulePreview" class="text-xs break-all"></code>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeRecurringModal()" class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="submit" class="flex-1 bg-purple-500 text-white py-2 rounded-lg hover:bg-purple-600">
+                        儲存
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-  </div>
-</div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-xl font-bold mb-4">系統設定</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">自訂結算日（1-31）</label>
+                    <input type="number" id="settingsCutoffDay" min="1" max="31" value="25" class="w-full border rounded-lg px-3 py-2">
+                    <p class="text-xs text-gray-500 mt-1">若該月無此日，將採用該月最後一天</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">週起始日</label>
+                    <select id="settingsWeekStart" class="w-full border rounded-lg px-3 py-2">
+                        <option value="1">星期一</option>
+                        <option value="0">星期日</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button onclick="closeSettings()" class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button onclick="saveSettings()" class="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">
+                        儲存設定
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Log Modal -->
+    <div id="auditModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+            <h3 class="text-xl font-bold mb-4">操作記錄 (Audit Log)</h3>
+            <div id="auditList" class="flex-1 overflow-y-auto space-y-2">
+                <!-- Audit logs will be rendered here -->
+            </div>
+            <button onclick="closeAuditModal()" class="mt-4 w-full border border-gray-300 py-2 rounded-lg hover:bg-gray-50">
+                關閉
+            </button>
+        </div>
+    </div>
 
 <script>
-// ========== 簡化版 Excel 解析器 ==========
-class SimpleXLSX {
-  constructor() {
-    this.sheets = {};
-    this.sheetNames = [];
-  }
+// ============================================
+// ① 期別引擎規格 (Period Engine)
+// ============================================
+dayjs.extend(dayjs_plugin_isoWeek);
+dayjs.extend(dayjs_plugin_customParseFormat);
 
-  async read(data) {
-    const zip = await this.unzip(data);
-    const workbook = { SheetNames: [], Sheets: {} };
-    
-    const wbXml = await this.getXmlFromZip(zip, 'xl/workbook.xml');
-    const sheetNodes = wbXml.querySelectorAll('sheet');
-    
-    sheetNodes.forEach((node, idx) => {
-      const name = node.getAttribute('name');
-      workbook.SheetNames.push(name);
-    });
+const PeriodEngine = {
+    settings: {
+        cutoffDay: 25,  // 自訂結算日預設值
+        weekStart: 1    // 1=週一, 0=週日
+    },
 
-    let sharedStrings = [];
-    try {
-      const ssXml = await this.getXmlFromZip(zip, 'xl/sharedStrings.xml');
-      const siNodes = ssXml.querySelectorAll('si');
-      siNodes.forEach(si => {
-        const tNodes = si.querySelectorAll('t');
-        let text = '';
-        tNodes.forEach(t => text += t.textContent);
-        sharedStrings.push(text);
-      });
-    } catch (e) {}
+    // 取得週期別資訊
+    getPeriod(date, periodType = 'week') {
+        const d = dayjs(date);
+        switch (periodType) {
+            case 'week': return this.getWeekPeriod(d);
+            case 'month': return this.getMonthPeriod(d);
+            case 'customCutoff': return this.getCustomCutoffPeriod(d);
+            default: return this.getWeekPeriod(d);
+        }
+    },
 
-    for (let i = 1; i <= workbook.SheetNames.length; i++) {
-      try {
-        const sheetXml = await this.getXmlFromZip(zip, `xl/worksheets/sheet${i}.xml`);
-        const sheetData = this.parseSheet(sheetXml, sharedStrings);
-        workbook.Sheets[workbook.SheetNames[i-1]] = sheetData;
-      } catch (e) {
-        console.warn(`無法讀取 sheet${i}:`, e);
-      }
-    }
-
-    return workbook;
-  }
-
-  async unzip(data) {
-    const uint8 = new Uint8Array(data);
-    const files = {};
-    let pos = 0;
-
-    while (pos < uint8.length - 4) {
-      const sig = uint8[pos] | (uint8[pos+1]<<8) | (uint8[pos+2]<<16) | (uint8[pos+3]<<24);
-      
-      if (sig === 0x04034b50) {
-        const method = uint8[pos+8] | (uint8[pos+9]<<8);
-        const compSize = uint8[pos+18] | (uint8[pos+19]<<8) | (uint8[pos+20]<<16) | (uint8[pos+21]<<24);
-        const nameLen = uint8[pos+26] | (uint8[pos+27]<<8);
-        const extraLen = uint8[pos+28] | (uint8[pos+29]<<8);
+    // 週期別：週一到週日（或自訂起始日）
+    getWeekPeriod(d) {
+        const weekStart = this.settings.weekStart;
+        let start, end;
         
-        const fileName = new TextDecoder().decode(uint8.slice(pos+30, pos+30+nameLen));
-        const dataStart = pos + 30 + nameLen + extraLen;
-        const compData = uint8.slice(dataStart, dataStart + compSize);
+        if (weekStart === 1) {
+            start = d.isoWeekday(1); // 週一
+            end = d.isoWeekday(7);   // 週日
+        } else {
+            const dayOfWeek = d.day();
+            start = d.subtract(dayOfWeek, 'day');
+            end = start.add(6, 'day');
+        }
         
-        if (method === 0) {
-          files[fileName] = compData;
-        } else if (method === 8) {
-          try {
-            const ds = new DecompressionStream('deflate-raw');
-            const writer = ds.writable.getWriter();
-            const reader = ds.readable.getReader();
-            writer.write(compData);
-            writer.close();
+        const periodId = `W${start.format('GGGG')}-${start.isoWeek().toString().padStart(2, '0')}`;
+        
+        return {
+            type: 'week',
+            periodId,
+            start: start.format('YYYY-MM-DD'),
+            end: end.format('YYYY-MM-DD'),
+            label: `${start.format('MM/DD')} ~ ${end.format('MM/DD')}`,
+            prev: () => this.getWeekPeriod(d.subtract(7, 'day')),
+            next: () => this.getWeekPeriod(d.add(7, 'day'))
+        };
+    },
+
+    // 月期別：1號到月底
+    getMonthPeriod(d) {
+        const start = d.startOf('month');
+        const end = d.endOf('month');
+        const periodId = `M${d.format('YYYY-MM')}`;
+        
+        return {
+            type: 'month',
+            periodId,
+            start: start.format('YYYY-MM-DD'),
+            end: end.format('YYYY-MM-DD'),
+            label: d.format('YYYY年MM月'),
+            prev: () => this.getMonthPeriod(d.subtract(1, 'month')),
+            next: () => this.getMonthPeriod(d.add(1, 'month'))
+        };
+    },
+
+    // 自訂結算日期別
+    // 例如 cutoffDay=25：本期為上月26日～本月25日
+    // 邊界處理：若該月無此日，採該月最後一天
+    getCustomCutoffPeriod(d) {
+        const cutoff = this.settings.cutoffDay;
+        const currentDay = d.date();
+        
+        let periodStart, periodEnd;
+        
+        if (currentDay <= cutoff) {
+            // 當前日期 <= 結算日，屬於上月結算日+1 到 本月結算日的期間
+            const prevMonth = d.subtract(1, 'month');
+            const prevMonthLastDay = prevMonth.endOf('month').date();
+            const startDay = Math.min(cutoff + 1, prevMonthLastDay + 1);
             
-            const chunks = [];
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              chunks.push(value);
-            }
-            const totalLen = chunks.reduce((a, c) => a + c.length, 0);
-            const result = new Uint8Array(totalLen);
-            let offset = 0;
-            for (const chunk of chunks) {
-              result.set(chunk, offset);
-              offset += chunk.length;
-            }
-            files[fileName] = result;
-          } catch (e) {
-            files[fileName] = compData;
-          }
-        }
-        
-        pos = dataStart + compSize;
-      } else if (sig === 0x02014b50) {
-        break;
-      } else {
-        pos++;
-      }
-    }
-    
-    return files;
-  }
-
-  async getXmlFromZip(zip, path) {
-    const data = zip[path];
-    if (!data) throw new Error(`File not found: ${path}`);
-    const text = new TextDecoder().decode(data);
-    const parser = new DOMParser();
-    return parser.parseFromString(text, 'application/xml');
-  }
-
-  parseSheet(xml, sharedStrings) {
-    const sheet = { '!ref': 'A1' };
-    const rows = xml.querySelectorAll('row');
-    let maxRow = 0, maxCol = 0;
-
-    rows.forEach(row => {
-      const cells = row.querySelectorAll('c');
-      cells.forEach(cell => {
-        const ref = cell.getAttribute('r');
-        const type = cell.getAttribute('t');
-        const vNode = cell.querySelector('v');
-        
-        if (ref) {
-          const { col, row: rowNum } = this.parseRef(ref);
-          maxRow = Math.max(maxRow, rowNum);
-          maxCol = Math.max(maxCol, col);
-          
-          let value = vNode ? vNode.textContent : '';
-          
-          if (type === 's' && sharedStrings[parseInt(value)]) {
-            value = sharedStrings[parseInt(value)];
-            sheet[ref] = { t: 's', v: value, w: value };
-          } else if (type === 'b') {
-            sheet[ref] = { t: 'b', v: value === '1' };
-          } else if (value !== '') {
-            const num = parseFloat(value);
-            if (!isNaN(num)) {
-              sheet[ref] = { t: 'n', v: num, w: String(num) };
+            if (startDay > prevMonthLastDay) {
+                periodStart = d.startOf('month');
             } else {
-              sheet[ref] = { t: 's', v: value, w: value };
+                periodStart = prevMonth.date(Math.min(cutoff + 1, prevMonthLastDay));
+                if (cutoff >= prevMonthLastDay) {
+                    periodStart = d.startOf('month');
+                }
             }
-          }
+            
+            const thisMonthLastDay = d.endOf('month').date();
+            periodEnd = d.date(Math.min(cutoff, thisMonthLastDay));
+        } else {
+            // 當前日期 > 結算日，屬於本月結算日+1 到 下月結算日的期間
+            periodStart = d.date(cutoff + 1);
+            const nextMonth = d.add(1, 'month');
+            const nextMonthLastDay = nextMonth.endOf('month').date();
+            periodEnd = nextMonth.date(Math.min(cutoff, nextMonthLastDay));
         }
-      });
-    });
-
-    sheet['!ref'] = `A1:${this.colToLetter(maxCol)}${maxRow}`;
-    return sheet;
-  }
-
-  parseRef(ref) {
-    const match = ref.match(/^([A-Z]+)(\d+)$/);
-    if (!match) return { col: 0, row: 0 };
-    const colStr = match[1];
-    const row = parseInt(match[2]);
-    let col = 0;
-    for (let i = 0; i < colStr.length; i++) {
-      col = col * 26 + (colStr.charCodeAt(i) - 64);
+        
+        const periodId = `C${periodEnd.format('YYYY-MM')}-${cutoff.toString().padStart(2, '0')}`;
+        
+        return {
+            type: 'customCutoff',
+            periodId,
+            start: periodStart.format('YYYY-MM-DD'),
+            end: periodEnd.format('YYYY-MM-DD'),
+            label: `${periodStart.format('MM/DD')} ~ ${periodEnd.format('MM/DD')} (結算日${cutoff}號)`,
+            prev: () => this.getCustomCutoffPeriod(periodStart.subtract(1, 'day')),
+            next: () => this.getCustomCutoffPeriod(periodEnd.add(1, 'day'))
+        };
     }
-    return { col, row };
-  }
+};
 
-  colToLetter(col) {
-    let letter = '';
-    while (col > 0) {
-      const mod = (col - 1) % 26;
-      letter = String.fromCharCode(65 + mod) + letter;
-      col = Math.floor((col - 1) / 26);
-    }
-    return letter || 'A';
-  }
-}
+// ============================================
+// ② 資料庫 Schema（Dexie）
+// ============================================
+const db = new Dexie('WorkRecordSystem');
 
-// ========== 全域變數 ==========
-let workbook = null;
-let currentSheet = null;
-let currentSheetName = '';
-let originalData = [];
-let headerRow = 1;
-let headers = [];
-let columnMapping = {};
-let settings = {};
-let errors = [];
-let summaryData = {};
-let employeeBlocks = [];
-let selectedSumColumns = [];     // 用於員工小計
-let selectedSummaryColumns = []; // 用於底部摘要
-
-// 系統欄位定義 - 依據使用者需求更新 (v1.2)
-const SYSTEM_FIELDS = [
-  { key: 'employeeId', label: '員工代號', required: false },
-  { key: 'name', label: '員工姓名', required: true },
-  { key: 'idNumber', label: '身分證字號', required: true },
-  { key: 'address', label: '地址', required: false },
-  { key: 'category', label: '類別', required: false },
-  { key: 'year', label: '年度', required: false },
-  { key: 'month', label: '月份', required: false },
-  { key: 'salary', label: '薪資', required: false },
-  { key: 'netPay', label: '薪資淨額', required: false },
-  { key: 'selfContribution', label: '自提', required: false },
-  { key: 'bonus', label: '獎金', required: false },
-  { key: 'tax', label: '所得稅', required: false },
-  { key: 'totalPay', label: '合計', required: false },
-  { key: 'yearEndBonus', label: '年終', required: false }
-];
-
-// ========== 初始化 ==========
-document.addEventListener('DOMContentLoaded', () => {
-  loadSettings();
-  initUploadZone();
-  updateLastUpdate();
+db.version(1).stores({
+    // 待辦事項
+    todos: '++id, title, completed, priority, dueDate, periodId, position, createdAt, updatedAt',
+    
+    // 重複事項規則
+    recurringRules: '++id, title, rruleString, enabled, createdAt',
+    
+    // 本期核對項實例（Lazy 生成）
+    checklistInstances: '++id, ruleId, periodId, completed, completedAt, [ruleId+periodId], createdAt',
+    
+    // 工作紀錄
+    worklogs: '++id, title, date, periodId, *tags, linkedTaskId, createdAt',
+    
+    // 審計記錄（去重/合併的追蹤）
+    auditLogs: '++id, action, entityType, entityId, data, createdAt',
+    
+    // 系統設定
+    settings: 'key'
 });
 
-function loadSettings() {
-  const saved = localStorage.getItem('payrollAnalyzerSettings_v1_1');
-  if (saved) {
-    settings = JSON.parse(saved);
-  } else {
-    settings = {
-      salaryThreshold: 20,
-      selfContributionTolerance: 0,
-      taxCheckThreshold: 88501,
-      taxRate: 5,
-      primaryIdField: 'idNumber',
-      secondaryIdField: 'name',
-      groupByMethod: 'year',
-      showSubtotal: 'yes',
-      targetYears: '',
-      checkIdUnique: true,
-      checkNameUnique: true,
-      ruleVersion: '1.4.0'
-    };
-  }
-  applySettingsToUI();
-}
+// ============================================
+// ③ 重複規則與本期清單生成規格
+// ============================================
+const RecurrenceManager = {
+    // 解析 RRULE 字串
+    parseRule(rruleString) {
+        return rrule.RRule.fromString(rruleString);
+    },
 
-function applySettingsToUI() {
-  document.getElementById('salaryThreshold').value = settings.salaryThreshold || 20;
-  document.getElementById('selfContributionTolerance').value = settings.selfContributionTolerance || 0;
-  document.getElementById('taxCheckThreshold').value = settings.taxCheckThreshold || 88501;
-  document.getElementById('taxRate').value = settings.taxRate || 5;
-  document.getElementById('checkIdUnique').checked = settings.checkIdUnique !== false;
-  document.getElementById('checkNameUnique').checked = settings.checkNameUnique !== false;
+    // 查詢指定期間內的 occurrence
+    getOccurrences(rruleString, startDate, endDate) {
+        try {
+            const rule = this.parseRule(rruleString);
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            return rule.between(start, end, true);
+        } catch (e) {
+            console.error('RRULE parse error:', e);
+            return [];
+        }
+    },
 
-  document.getElementById('primaryIdField').value = settings.primaryIdField || 'idNumber';
-  document.getElementById('secondaryIdField').value = settings.secondaryIdField || 'name';
-  document.getElementById('groupByMethod').value = settings.groupByMethod || 'year';
-  document.getElementById('showSubtotal').value = settings.showSubtotal || 'yes';
-  document.getElementById('targetYears').value = settings.targetYears || '';
-  document.getElementById('ruleVersion').value = settings.ruleVersion || '1.4.0';
-}
+    // 建立 RRULE 字串
+    buildRRule(options) {
+        const ruleOptions = {
+            freq: rrule.RRule[options.freq],
+            interval: options.interval || 1,
+            dtstart: new Date(options.dtstart)
+        };
+        
+        if (options.until) {
+            ruleOptions.until = new Date(options.until);
+        }
+        
+        if (options.byweekday && options.byweekday.length > 0) {
+            ruleOptions.byweekday = options.byweekday.map(d => rrule.RRule[d]);
+        }
+        
+        return new rrule.RRule(ruleOptions).toString();
+    },
 
-function updateLastUpdate() {
-  document.getElementById('lastUpdate').value = new Date().toLocaleString('zh-TW');
-}
-
-// ========== 檔案上傳 ==========
-function initUploadZone() {
-  const zone = document.getElementById('uploadZone');
-  const input = document.getElementById('fileInput');
-
-  zone.addEventListener('click', () => input.click());
-  
-  zone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    zone.classList.add('dragover');
-  });
-
-  zone.addEventListener('dragleave', () => {
-    zone.classList.remove('dragover');
-  });
-
-  zone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    zone.classList.remove('dragover');
-    const files = e.dataTransfer.files;
-    if (files.length > 0) handleFile(files[0]);
-  });
-
-  input.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) handleFile(e.target.files[0]);
-  });
-}
-
-async function handleFile(file) {
-  if (!file.name.match(/\.xlsx?$/i)) {
-    alert('請上傳 Excel 檔案（.xlsx 或 .xls）');
-    return;
-  }
-
-  try {
-    const data = await file.arrayBuffer();
-    const parser = new SimpleXLSX();
-    workbook = await parser.read(data);
-    
-    document.getElementById('fileStatus').innerHTML = '<span class="status-dot green"></span> 已載入: ' + file.name;
-    
-    showSheetTabs();
-    
-    if (workbook.SheetNames.length > 0) {
-      selectSheet(workbook.SheetNames[0]);
+    // Lazy 實例化：進入某期時生成核對項
+    async generatePeriodChecklist(periodId, startDate, endDate) {
+        const rules = await db.recurringRules.where('enabled').equals(1).toArray();
+        const instances = [];
+        
+        for (const rule of rules) {
+            // 檢查是否已存在此期此規則的實例
+            const existing = await db.checklistInstances
+                .where('[ruleId+periodId]')
+                .equals([rule.id, periodId])
+                .first();
+            
+            if (existing) {
+                instances.push(existing);
+                continue;
+            }
+            
+            // 查詢此期間內有無 occurrence
+            const occurrences = this.getOccurrences(rule.rruleString, startDate, endDate);
+            
+            if (occurrences.length > 0) {
+                // 每個規則在每期只生成一個核對實例
+                const instance = {
+                    ruleId: rule.id,
+                    ruleTitle: rule.title,
+                    ruleDescription: rule.description,
+                    periodId,
+                    occurrenceDate: occurrences[0].toISOString().split('T')[0],
+                    completed: 0,
+                    completedAt: null,
+                    createdAt: new Date().toISOString()
+                };
+                
+                const id = await db.checklistInstances.add(instance);
+                instance.id = id;
+                instances.push(instance);
+                
+                // Audit log
+                await addAuditLog('CREATE', 'checklistInstance', id, { periodId, ruleId: rule.id });
+            }
+        }
+        
+        return instances;
     }
-  } catch (error) {
-    console.error('解析錯誤:', error);
-    alert('檔案解析失敗: ' + error.message);
-  }
-}
+};
 
-// ========== 工作表操作 ==========
-function showSheetTabs() {
-  const container = document.getElementById('sheetTabs');
-  container.innerHTML = '';
-  
-  workbook.SheetNames.forEach(name => {
-    const tab = document.createElement('button');
-    tab.className = 'tab';
-    tab.textContent = name;
-    tab.onclick = () => selectSheet(name);
-    container.appendChild(tab);
-  });
-
-  document.getElementById('uploadCard').classList.add('hidden');
-  document.getElementById('sheetTabsCard').classList.remove('hidden');
-}
-
-function selectSheet(name) {
-  currentSheetName = name;
-  currentSheet = workbook.Sheets[name];
-  
-  document.querySelectorAll('#sheetTabs .tab').forEach(tab => {
-    tab.classList.toggle('active', tab.textContent === name);
-  });
-  
-  document.getElementById('sheetStatus').innerHTML = '<span class="status-dot green"></span> 工作表: ' + name;
-  
-  parseOriginalData();
-  
-  document.getElementById('headerRowCard').classList.remove('hidden');
-  autoDetectHeaderRow();
-  
-  renderExcelTable();
-}
-
-function parseOriginalData() {
-  originalData = [];
-  if (!currentSheet || !currentSheet['!ref']) return;
-  
-  const ref = currentSheet['!ref'];
-  const range = parseRange(ref);
-  
-  for (let r = range.s.r; r <= range.e.r; r++) {
-    const row = [];
-    for (let c = range.s.c; c <= range.e.c; c++) {
-      const addr = colToLetter(c + 1) + (r + 1);
-      const cell = currentSheet[addr];
-      row.push(cell ? (cell.w !== undefined ? cell.w : cell.v) : '');
-    }
-    originalData.push(row);
-  }
-}
-
-function parseRange(ref) {
-  const parts = ref.split(':');
-  const start = parseCell(parts[0]);
-  const end = parts[1] ? parseCell(parts[1]) : start;
-  return { s: start, e: end };
-}
-
-function parseCell(addr) {
-  const match = addr.match(/^([A-Z]+)(\d+)$/);
-  if (!match) return { r: 0, c: 0 };
-  let c = 0;
-  for (let i = 0; i < match[1].length; i++) {
-    c = c * 26 + (match[1].charCodeAt(i) - 64);
-  }
-  return { r: parseInt(match[2]) - 1, c: c - 1 };
-}
-
-function colToLetter(col) {
-  let letter = '';
-  while (col > 0) {
-    const mod = (col - 1) % 26;
-    letter = String.fromCharCode(65 + mod) + letter;
-    col = Math.floor((col - 1) / 26);
-  }
-  return letter || 'A';
-}
-
-// ========== 標題列偵測 ==========
-function autoDetectHeaderRow() {
-  for (let i = 0; i < Math.min(10, originalData.length); i++) {
-    const row = originalData[i];
-    const nonEmptyCount = row.filter(cell => cell !== '').length;
-    const hasKeywords = row.some(cell => 
-      /姓名|身分證|薪資|年月|員工|編號|金額|發薪/.test(String(cell))
+// ============================================
+// ④ 核對流程與完成判定
+// ============================================
+async function toggleChecklistItem(instanceId) {
+    const instance = await db.checklistInstances.get(instanceId);
+    if (!instance) return;
+    
+    const newCompleted = instance.completed ? 0 : 1;
+    const completedAt = newCompleted ? new Date().toISOString() : null;
+    
+    await db.checklistInstances.update(instanceId, {
+        completed: newCompleted,
+        completedAt
+    });
+    
+    await addAuditLog(
+        newCompleted ? 'COMPLETE' : 'UNCOMPLETE',
+        'checklistInstance',
+        instanceId,
+        { periodId: instance.periodId, completedAt }
     );
-    if (nonEmptyCount >= 3 && hasKeywords) {
-      headerRow = i + 1;
-      document.getElementById('headerRowInput').value = headerRow;
-      updateHeaderPreview();
-      return;
-    }
-  }
-  updateHeaderPreview();
-}
-
-function updateHeaderPreview() {
-  const row = originalData[headerRow - 1];
-  if (row) {
-    const preview = row.slice(0, 5).filter(c => c).join(', ') + (row.length > 5 ? '...' : '');
-    document.getElementById('headerPreview').textContent = '預覽: ' + preview;
-  }
-}
-
-function confirmHeaderRow() {
-  headerRow = parseInt(document.getElementById('headerRowInput').value) || 1;
-  headers = originalData[headerRow - 1] || [];
-  
-  updateHeaderPreview();
-  showSumColumnsSelection();
-  updateMappingTable();
-  renderExcelTable();
-}
-
-// ========== 加總與摘要欄位選擇 ==========
-function showSumColumnsSelection() {
-  const tbody = document.getElementById('sumColumnsTableBody');
-  tbody.innerHTML = '';
-  selectedSumColumns = [];
-  selectedSummaryColumns = [];
-  
-  // 關鍵字判斷是否為金額/數值欄位
-  const amountKeywords = ['薪', '額', '金', '稅', '保', '費', '扣', 'Pay', 'Net', 'Total', 'Bonus', 'Tax', '合計', '小計', '獎金'];
-  
-  headers.forEach((header, idx) => {
-    if (!header || String(header).trim() === '') return;
     
-    const hStr = String(header);
-    // 預設勾選邏輯：包含關鍵字
-    const isDefaultChecked = amountKeywords.some(k => hStr.includes(k));
-    
-    if (isDefaultChecked) {
-      selectedSumColumns.push(idx);
-      selectedSummaryColumns.push(idx);
-    }
-    
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(header)}</td>
-      <td style="text-align:center;">
-        <input type="checkbox" value="${idx}" class="chk-subtotal" ${isDefaultChecked ? 'checked' : ''} onchange="updateSelectedCols()">
-      </td>
-      <td style="text-align:center;">
-        <input type="checkbox" value="${idx}" class="chk-summary" ${isDefaultChecked ? 'checked' : ''} onchange="updateSelectedCols()">
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-  
-  // 更新全選按鈕狀態
-  document.getElementById('chkAllSubtotal').checked = false;
-  document.getElementById('chkAllSummary').checked = false;
-  
-  document.getElementById('sumColumnsCard').classList.remove('hidden');
+    await renderChecklist();
 }
 
-function toggleAllCol(source, type) {
-  const className = type === 'subtotal' ? '.chk-subtotal' : '.chk-summary';
-  document.querySelectorAll(className).forEach(chk => {
-    chk.checked = source.checked;
-  });
-  updateSelectedCols();
-}
+// ============================================
+// ⑤ 搜尋/去重規格
+// ============================================
+const SearchManager = {
+    fuseOptions: {
+        keys: ['title', 'description', 'tags'],
+        threshold: 0.4,  // 相似度閾值
+        includeScore: true,
+        minMatchCharLength: 2
+    },
 
-function updateSelectedCols() {
-  selectedSumColumns = [];
-  selectedSummaryColumns = [];
-  
-  document.querySelectorAll('.chk-subtotal:checked').forEach(chk => {
-    selectedSumColumns.push(parseInt(chk.value));
-  });
-  
-  document.querySelectorAll('.chk-summary:checked').forEach(chk => {
-    selectedSummaryColumns.push(parseInt(chk.value));
-  });
-}
+    async searchAll(query) {
+        if (!query || query.length < 2) return [];
+        
+        const [todos, worklogs, rules] = await Promise.all([
+            db.todos.toArray(),
+            db.worklogs.toArray(),
+            db.recurringRules.toArray()
+        ]);
+        
+        const allItems = [
+            ...todos.map(t => ({ ...t, type: 'todo' })),
+            ...worklogs.map(w => ({ ...w, type: 'worklog' })),
+            ...rules.map(r => ({ ...r, type: 'recurring' }))
+        ];
+        
+        const fuse = new Fuse(allItems, this.fuseOptions);
+        return fuse.search(query);
+    },
 
-// ========== 欄位映射 ==========
-function openMappingModal() {
-  updateMappingTable();
-  document.getElementById('mappingModal').classList.add('show');
-}
-
-function closeMappingModal() {
-  document.getElementById('mappingModal').classList.remove('show');
-}
-
-function updateMappingTable() {
-  const tbody = document.getElementById('mappingTableBody');
-  tbody.innerHTML = '';
-  
-  SYSTEM_FIELDS.forEach(field => {
-    const tr = document.createElement('tr');
-    
-    let matchedIdx = -1;
-    headers.forEach((h, idx) => {
-      if (h && h === field.label) {
-        matchedIdx = idx;
-      }
-    });
-    
-    tr.innerHTML = `
-      <td>${field.label}${field.required ? ' <span style="color:red">*</span>' : ''}</td>
-      <td>
-        <select id="map_${field.key}">
-          <option value="">-- 未映射 --</option>
-          ${headers.map((h, idx) => 
-            h ? `<option value="${idx}" ${idx === matchedIdx ? 'selected' : ''}>${h}</option>` : ''
-          ).join('')}
-        </select>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function saveMapping() {
-  SYSTEM_FIELDS.forEach(field => {
-    const select = document.getElementById(`map_${field.key}`);
-    if (select && select.value !== '') {
-      columnMapping[field.key] = parseInt(select.value);
-    } else {
-      delete columnMapping[field.key];
-    }
-  });
-  closeMappingModal();
-  alert('欄位映射已儲存！');
-}
-
-// ========== 後台設定 ==========
-function openSettingsModal() {
-  applySettingsToUI();
-  document.getElementById('settingsModal').classList.add('show');
-}
-
-function closeSettingsModal() {
-  document.getElementById('settingsModal').classList.remove('show');
-}
-
-function saveSettings() {
-  settings.salaryThreshold = parseInt(document.getElementById('salaryThreshold').value) || 20;
-  settings.selfContributionTolerance = parseInt(document.getElementById('selfContributionTolerance').value) || 0;
-  settings.taxCheckThreshold = parseInt(document.getElementById('taxCheckThreshold').value) || 88501;
-  settings.taxRate = parseFloat(document.getElementById('taxRate').value) || 5;
-  settings.checkIdUnique = document.getElementById('checkIdUnique').checked;
-  settings.checkNameUnique = document.getElementById('checkNameUnique').checked;
-
-  settings.primaryIdField = document.getElementById('primaryIdField').value;
-  settings.secondaryIdField = document.getElementById('secondaryIdField').value;
-  settings.groupByMethod = document.getElementById('groupByMethod').value;
-  settings.showSubtotal = document.getElementById('showSubtotal').value;
-  settings.targetYears = document.getElementById('targetYears').value;
-  
-  localStorage.setItem('payrollAnalyzerSettings_v1_1', JSON.stringify(settings));
-  updateLastUpdate();
-  closeSettingsModal();
-  alert('設定已儲存至本機！');
-}
-
-function resetSettings() {
-  localStorage.removeItem('payrollAnalyzerSettings_v1_1');
-  loadSettings();
-  alert('已重置為預設值');
-}
-
-// ========== Excel 表格渲染 ==========
-function renderExcelTable() {
-  const container = document.getElementById('excelContainer');
-  
-  if (originalData.length === 0) {
-    container.innerHTML = '<p style="padding:20px;text-align:center;">無資料</p>';
-    return;
-  }
-  
-  let html = '<table class="excel-table"><thead><tr>';
-  html += '<th class="corner"></th>';
-  
-  const colCount = Math.max(...originalData.map(r => r.length));
-  for (let c = 0; c < colCount; c++) {
-    html += `<th>${colToLetter(c + 1)}</th>`;
-  }
-  html += '</tr></thead><tbody>';
-  
-  originalData.forEach((row, rowIdx) => {
-    const isHeaderRow = rowIdx === headerRow - 1;
-    html += `<tr${isHeaderRow ? ' style="background:#e0f2fe;"' : ''}>`;
-    html += `<td class="row-header">${rowIdx + 1}</td>`;
-    
-    for (let c = 0; c < colCount; c++) {
-      const cellAddr = colToLetter(c + 1) + (rowIdx + 1);
-      const value = row[c] !== undefined ? row[c] : '';
-      html += `<td data-addr="${cellAddr}">${escapeHtml(String(value))}</td>`;
-    }
-    html += '</tr>';
-  });
-  
-  html += '</tbody></table>';
-  container.innerHTML = html;
-  
-  document.getElementById('excelCard').classList.remove('hidden');
-  document.getElementById('excelInfo').textContent = `${originalData.length} 列 × ${colCount} 欄`;
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// ========== 執行分析 ==========
-function runAnalysis() {
-  if (originalData.length === 0) {
-    alert('請先上傳並選擇工作表');
-    return;
-  }
-  
-  errors = [];
-  summaryData = {};
-  employeeBlocks = [];
-  
-  if (!headers || headers.length === 0) {
-    confirmHeaderRow();
-  }
-  
-  // 自動嘗試映射欄位
-  autoMapColumns();
-  
-  // 識別員工區塊
-  identifyEmployeeBlocks();
-  
-  // 執行核對規則
-  runValidationRules();
-  
-  // 計算年度分組數據
-  calculateYearlyData();
-  
-  // 渲染帶外掛層的表格（含摘要區）
-  renderTableWithAddons();
-  
-  // 顯示錯誤清單
-  renderErrorList();
-  
-  // 顯示列印區
-  document.getElementById('printCard').classList.remove('hidden');
-  
-  // 更新狀態
-  document.getElementById('errorStatus').innerHTML = 
-    `<span class="status-dot ${errors.length > 0 ? 'red' : 'green'}"></span> 錯誤: ${errors.length}`;
-}
-
-// ========== 自動映射欄位 ==========
-function autoMapColumns() {
-  if (Object.keys(columnMapping).length > 0) return;
-  
-  headers.forEach((h, idx) => {
-    if (!h) return;
-    const hStr = String(h).trim();
-    
-    // 優先匹配完全相符的
-    if (hStr === '員工代號') columnMapping.employeeId = idx;
-    else if (hStr === '員工姓名') columnMapping.name = idx;
-    else if (hStr === '身分證字號') columnMapping.idNumber = idx;
-    else if (hStr === '年度') columnMapping.year = idx;
-    
-    // 模糊匹配
-    if (columnMapping.employeeId === undefined && /代號|編號|Employee/.test(hStr)) columnMapping.employeeId = idx;
-    if (columnMapping.name === undefined && /姓名|Name/.test(hStr)) columnMapping.name = idx;
-    if (columnMapping.idNumber === undefined && /身分證|身份證/.test(hStr)) columnMapping.idNumber = idx;
-    if (columnMapping.address === undefined && /地址|Address/.test(hStr)) columnMapping.address = idx;
-    if (columnMapping.category === undefined && /類別|Category/.test(hStr)) columnMapping.category = idx;
-    if (columnMapping.year === undefined && (/年度|Year/.test(hStr) && !/年終/.test(hStr))) columnMapping.year = idx;
-    if (columnMapping.month === undefined && /月份|Month|發薪月/.test(hStr)) columnMapping.month = idx;
-    
-    if (columnMapping.salary === undefined && /薪資|本薪|Salary/.test(hStr) && !/淨額/.test(hStr)) columnMapping.salary = idx;
-    if (columnMapping.netPay === undefined && /淨額|Net/.test(hStr)) columnMapping.netPay = idx;
-    if (columnMapping.selfContribution === undefined && /自提|勞健保/.test(hStr)) columnMapping.selfContribution = idx;
-    if (columnMapping.bonus === undefined && /獎金|Bonus/.test(hStr) && !/年終/.test(hStr)) columnMapping.bonus = idx;
-    if (columnMapping.tax === undefined && /所得稅|Tax/.test(hStr)) columnMapping.tax = idx;
-    if (columnMapping.totalPay === undefined && /合計|Total/.test(hStr)) columnMapping.totalPay = idx;
-    if (columnMapping.yearEndBonus === undefined && /年終/.test(hStr)) columnMapping.yearEndBonus = idx;
-  });
-}
-
-// ========== 員工區塊識別 ==========
-function identifyEmployeeBlocks() {
-  const nameIdx = columnMapping.name;
-  const idIdx = columnMapping.idNumber;
-  
-  const employees = new Map();
-  
-  for (let r = headerRow; r < originalData.length; r++) {
-    const row = originalData[r];
-    const name = nameIdx !== undefined ? String(row[nameIdx] || '').trim() : '';
-    const id = idIdx !== undefined ? String(row[idIdx] || '').trim() : '';
-    
-    if (!name && !id) continue;
-    
-    const key = `${id}_${name}`;
-    
-    if (!employees.has(key)) {
-      employees.set(key, {
-        name,
-        idNumber: id,
-        rows: [],
-        startRow: r,
-        endRow: r
-      });
-    }
-    
-    const emp = employees.get(key);
-    emp.rows.push(r);
-    emp.endRow = r;
-  }
-  
-  employeeBlocks = Array.from(employees.values());
-}
-
-// ========== 取得年度 ==========
-function getYearFromRow(row) {
-  // 優先使用單獨的年度欄位
-  if (columnMapping.year !== undefined) {
-    const y = String(row[columnMapping.year] || '').trim();
-    if (y) {
-      let match = y.match(/^(\d{2,4})/);
-      if (match) {
-        let yr = parseInt(match[1]);
-        if (yr > 1900) yr -= 1911; // 西元轉民國
-        return String(yr);
-      }
-      return y;
-    }
-  }
-
-  // 備用：年月或發薪月
-  let ymIdx = columnMapping.month; // 這裡實際上可能是年月混合
-  if (ymIdx !== undefined) {
-    const ym = String(row[ymIdx] || '');
-    // 支援 113/01, 113-01, 2024/01, 11301 等格式
-    let match = ym.match(/^(\d{2,4})[\/\-]?\d{1,2}/);
-    if (match) {
-      let yr = parseInt(match[1]);
-      if (yr > 1900) yr -= 1911;
-      return String(yr);
-    }
-  }
-  
-  return '未分類';
-}
-
-// ========== 計算年度分組數據 ==========
-function calculateYearlyData() {
-  // 建立需要計算的欄位聯集 (小計 + 摘要)
-  const allCalcCols = new Set([...selectedSumColumns, ...selectedSummaryColumns]);
-  
-  // 為每個員工區塊計算年度分組
-  employeeBlocks.forEach(block => {
-    block.yearlyData = {};
-    
-    allCalcCols.forEach(colIdx => {
-      block.yearlyData[colIdx] = {};
-    });
-    
-    block.rows.forEach(r => {
-      const row = originalData[r];
-      const year = getYearFromRow(row);
-      
-      allCalcCols.forEach(colIdx => {
-        const valStr = String(row[colIdx] || 0).replace(/,/g, '');
-        const val = parseFloat(valStr);
-        // 排除非數值
-        if (!isNaN(val)) {
-          if (!block.yearlyData[colIdx][year]) {
-            block.yearlyData[colIdx][year] = 0;
-          }
-          block.yearlyData[colIdx][year] += val;
+    async findDuplicates() {
+        const todos = await db.todos.toArray();
+        const duplicates = [];
+        
+        for (let i = 0; i < todos.length; i++) {
+            for (let j = i + 1; j < todos.length; j++) {
+                const fuse = new Fuse([todos[j]], { 
+                    keys: ['title'], 
+                    threshold: 0.3,
+                    includeScore: true 
+                });
+                const result = fuse.search(todos[i].title);
+                
+                if (result.length > 0 && result[0].score < 0.3) {
+                    duplicates.push({
+                        item1: todos[i],
+                        item2: todos[j],
+                        score: result[0].score
+                    });
+                }
+            }
         }
-      });
-    });
-  });
-  
-  // 計算全表摘要（所有員工合計）
-  summaryData = {};
-  selectedSummaryColumns.forEach(colIdx => {
-    const colName = headers[colIdx];
-    summaryData[colIdx] = { name: colName, years: {}, total: 0 };
-    
-    for (let r = headerRow; r < originalData.length; r++) {
-      const row = originalData[r];
-      const year = getYearFromRow(row);
-      const val = parseFloat(String(row[colIdx] || 0).replace(/,/g, ''));
-      
-      if (!isNaN(val)) {
-        if (!summaryData[colIdx].years[year]) {
-          summaryData[colIdx].years[year] = 0;
-        }
-        summaryData[colIdx].years[year] += val;
-        summaryData[colIdx].total += val;
-      }
-    }
-  });
-}
+        
+        return duplicates;
+    },
 
-// ========== 核對規則 ==========
-function runValidationRules() {
-  const nameIdx = columnMapping.name;
-  const idIdx = columnMapping.idNumber;
-  const salaryIdx = columnMapping.salary;
-  const taxIdx = columnMapping.tax;
-  
-  // 準備交叉檢查的 Map
-  // 結構: { 'A123456789': { '王小明': ['A2'], '王大明': ['A5'] } }
-  const idToNames = {}; 
-  const nameToIds = {};
-
-  // 1. 基本列資料檢查
-  for (let r = headerRow; r < originalData.length; r++) {
-    const row = originalData[r];
-    const rowNum = r + 1;
-    const name = nameIdx !== undefined ? String(row[nameIdx] || '').trim() : '';
-    const idNumber = idIdx !== undefined ? String(row[idIdx] || '').trim() : '';
-    
-    // 檢查姓名
-    if (nameIdx !== undefined) {
-      if (!name) {
-        const addr = colToLetter(nameIdx + 1) + rowNum;
-        errors.push({
-          type: 'warning',
-          coord: addr,
-          column: headers[nameIdx],
-          message: '姓名欄位為空',
-          expected: '應有姓名',
-          actual: '空白'
+    async mergeDuplicates(keepId, removeId) {
+        const keep = await db.todos.get(keepId);
+        const remove = await db.todos.get(removeId);
+        
+        if (!keep || !remove) return false;
+        
+        // 合併資料
+        const merged = {
+            ...keep,
+            description: keep.description 
+                ? `${keep.description}\n\n[已合併] ${remove.description || ''}` 
+                : remove.description,
+            tags: [...new Set([...(keep.tags || []), ...(remove.tags || [])])]
+        };
+        
+        await db.todos.update(keepId, merged);
+        await db.todos.delete(removeId);
+        
+        // 審計記錄
+        await addAuditLog('MERGE', 'todo', keepId, {
+            removedId: removeId,
+            removedData: remove,
+            mergedInto: keepId
         });
-      }
-    }
-    
-    // 檢查身分證格式 (如果有映射)
-    if (idIdx !== undefined && idNumber) {
-      if (!/^[A-Z][12]\d{8}$/.test(idNumber)) {
-        const addr = colToLetter(idIdx + 1) + rowNum;
-        errors.push({
-          type: 'error',
-          coord: addr,
-          column: headers[idIdx],
-          message: '身分證格式不正確',
-          expected: '格式：A123456789',
-          actual: idNumber
+        
+        return true;
+    },
+
+    async markAsIgnored(id1, id2) {
+        await addAuditLog('IGNORE_DUPLICATE', 'todo', id1, {
+            ignoredPairWith: id2,
+            timestamp: new Date().toISOString()
         });
-      }
+    },
+
+    // 撤銷合併
+    async undoMerge(auditLogId) {
+        const log = await db.auditLogs.get(auditLogId);
+        if (!log || log.action !== 'MERGE') return false;
+        
+        const { removedData, mergedInto } = log.data;
+        
+        // 還原被刪除的項目
+        await db.todos.add(removedData);
+        
+        await addAuditLog('UNDO_MERGE', 'todo', mergedInto, {
+            restoredId: removedData.id,
+            originalAuditId: auditLogId
+        });
+        
+        return true;
     }
+};
 
-    // 交叉檢查資料收集: 身分證 <-> 姓名 (排除空值)
-    if (name && idNumber) {
-        const addrId = colToLetter(idIdx + 1) + rowNum;
-        const addrName = colToLetter(nameIdx + 1) + rowNum;
+// ============================================
+// ⑥ 拖拉排序規格
+// ============================================
+let todosSortable = null;
 
-        // 檢查 ID Number -> Name
-        if (!idToNames[idNumber]) idToNames[idNumber] = {};
-        if (!idToNames[idNumber][name]) idToNames[idNumber][name] = [];
-        idToNames[idNumber][name].push(addrId);
-
-        // 檢查 Name -> ID Number
-        if (!nameToIds[name]) nameToIds[name] = {};
-        if (!nameToIds[name][idNumber]) nameToIds[name][idNumber] = [];
-        nameToIds[name][idNumber].push(addrName);
+function initSortable() {
+    const container = document.getElementById('todosContainer');
+    if (!container) return;
+    
+    if (todosSortable) {
+        todosSortable.destroy();
     }
     
-    // 薪資所得稅邏輯檢查
-    if (salaryIdx !== undefined && taxIdx !== undefined) {
-      const salaryVal = parseFloat(String(row[salaryIdx] || 0).replace(/,/g, ''));
-      const taxVal = parseFloat(String(row[taxIdx] || 0).replace(/,/g, ''));
-      const threshold = settings.taxCheckThreshold || 88501;
-      const rate = (settings.taxRate || 5) / 100;
-      
-      if (!isNaN(salaryVal) && !isNaN(taxVal)) {
-        if (salaryVal > threshold) {
-          // 簡單計算：薪資 * 稅率，允許 +/- 1 的誤差 (四捨五入或無條件捨去問題)
-          const expectedTax = Math.floor(salaryVal * rate);
-          const tolerance = 1;
-          
-          if (Math.abs(taxVal - expectedTax) > tolerance) {
-             const addr = colToLetter(taxIdx + 1) + rowNum;
-             errors.push({
-               type: 'error',
-               coord: addr,
-               column: headers[taxIdx],
-               message: '所得稅計算異常',
-               expected: `約 ${expectedTax} (薪資 > ${threshold} 且稅率 ${settings.taxRate}%)`,
-               actual: String(taxVal)
-             });
-          }
-        }
-      }
-    }
-    
-    // 檢查選定的數值欄位負數
-    const checkCols = new Set([...selectedSumColumns, ...selectedSummaryColumns]);
-    checkCols.forEach(colIdx => {
-      const val = row[colIdx];
-      if (val !== '' && val !== undefined && val !== null) {
-        const numVal = parseFloat(String(val).replace(/,/g, ''));
-        if (isNaN(numVal)) {
-          // 允許非數值文字
-        } else if (numVal < 0) {
-          const addr = colToLetter(colIdx + 1) + rowNum;
-          errors.push({
-            type: 'warning',
-            coord: addr,
-            column: headers[colIdx],
-            message: '負數值',
-            expected: '正數或零',
-            actual: String(numVal)
-          });
-        }
-      }
-    });
-  }
-
-  // 執行交叉檢查分析
-  // 1. 產出錯誤：單一 身分證 對應多個不同姓名 (若設定啟用)
-  if (settings.checkIdUnique !== false) {
-    Object.keys(idToNames).forEach(id => {
-      const names = Object.keys(idToNames[id]);
-      if (names.length > 1) {
-        const desc = names.map(n => `${n}(${idToNames[id][n].length}筆)`).join(', ');
-        names.forEach(n => {
-          idToNames[id][n].forEach(coord => {
-              errors.push({
-              type: 'error',
-              coord: coord,
-              column: headers[idIdx],
-              message: '身分證對應多個不同姓名',
-              expected: '單一身分證應對應唯一姓名',
-              actual: `ID ${id} 對應: ${desc}`
+    todosSortable = new Sortable(container, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        handle: '.drag-handle',
+        onEnd: async (evt) => {
+            const items = container.querySelectorAll('[data-todo-id]');
+            const updates = [];
+            
+            items.forEach((item, index) => {
+                const id = parseInt(item.dataset.todoId);
+                updates.push({ id, position: index * 1000 });
             });
-          });
-        });
-      }
-    });
-  }
-
-  // 2. 產出錯誤：單一 姓名 對應多個不同身分證 (若設定啟用)
-  if (settings.checkNameUnique !== false) {
-    Object.keys(nameToIds).forEach(name => {
-      const ids = Object.keys(nameToIds[name]);
-      if (ids.length > 1) {
-        const desc = ids.map(id => `${id}(${nameToIds[name][id].length}筆)`).join(', ');
-        ids.forEach(id => {
-          nameToIds[name][id].forEach(coord => {
-              errors.push({
-              type: 'error',
-              coord: coord,
-              column: headers[nameIdx],
-              message: '姓名對應多個不同身分證',
-              expected: '單一姓名應對應唯一身分證',
-              actual: `姓名 ${name} 對應: ${desc}`
+            
+            // 批次更新位置
+            await db.transaction('rw', db.todos, async () => {
+                for (const u of updates) {
+                    await db.todos.update(u.id, { position: u.position });
+                }
             });
-          });
-        });
-      }
-    });
-  }
-}
-
-// ========== 格式化數字 ==========
-function formatNumber(num) {
-  if (typeof num !== 'number' || isNaN(num)) return '0';
-  return num.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-
-// ========== 生成年度分組字串 ==========
-function generateYearlyString(yearData) {
-  let years = Object.keys(yearData).filter(y => y !== '未分類').sort();
-  
-  // 處理後台設定的目標年度過濾
-  if (settings.targetYears) {
-    const targetSet = new Set(settings.targetYears.split(/[,，]/).map(y => y.trim()));
-    if (targetSet.size > 0) {
-      years = years.filter(y => targetSet.has(y));
-    }
-  }
-
-  if (yearData['未分類']) years.push('未分類');
-  
-  // 如果沒有資料，直接返回
-  if (years.length === 0) return '';
-
-  let total = 0;
-  const parts = years.map(year => {
-    const val = yearData[year] || 0;
-    total += val;
-    return `${year}(${formatNumber(val)})`;
-  });
-  
-  // 計算總計 (包含未顯示的年度嗎？ 這裡假設Total應包含所有數據，還是只包含顯示的？
-  // 根據內控邏輯，Total通常指該員工該欄位的加總。
-  // 但顯示格式為 113(...), 114(...)=Total(...)，隱含 Total 是前面項目的加總。
-  // 因此這裡 Total 只加總有顯示的部分。
-  
-  return parts.join(',') + `=Total(${formatNumber(total)})`;
-}
-
-// ========== 渲染帶外掛層的表格 ==========
-function renderTableWithAddons() {
-  const container = document.getElementById('excelContainer');
-  const colCount = Math.max(...originalData.map(r => r.length));
-  
-  let html = '<table class="excel-table"><thead><tr>';
-  html += '<th class="corner"></th>';
-  for (let c = 0; c < colCount; c++) {
-    html += `<th>${colToLetter(c + 1)}</th>`;
-  }
-  html += '</tr></thead><tbody>';
-  
-  // 建立錯誤座標集合
-  const errorCoords = new Set(errors.map(e => e.coord));
-  
-  // 找出每個員工區塊的結束列
-  const blockEndRows = new Map();
-  employeeBlocks.forEach(block => {
-    blockEndRows.set(block.endRow, block);
-  });
-  
-  // 渲染原始資料
-  let addonRowCount = 0;
-  originalData.forEach((row, rowIdx) => {
-    const isHeaderRow = rowIdx === headerRow - 1;
-    html += `<tr${isHeaderRow ? ' style="background:#e0f2fe;"' : ''}>`;
-    html += `<td class="row-header">${rowIdx + 1}</td>`;
-    
-    for (let c = 0; c < colCount; c++) {
-      const cellAddr = colToLetter(c + 1) + (rowIdx + 1);
-      const value = row[c] !== undefined ? row[c] : '';
-      const hasError = errorCoords.has(cellAddr);
-      const errorType = hasError ? errors.find(e => e.coord === cellAddr)?.type : '';
-      
-      html += `<td data-addr="${cellAddr}" class="${hasError ? (errorType === 'error' ? 'error-cell' : 'highlight-cell') : ''}" onclick="highlightCell('${cellAddr}')">${escapeHtml(String(value))}</td>`;
-    }
-    html += '</tr>';
-    
-    // 插入員工區塊小計外掛列（年度分組）
-    if (blockEndRows.has(rowIdx)) {
-      const block = blockEndRows.get(rowIdx);
-      addonRowCount++;
-      
-      html += `<tr class="addon-row">`;
-      html += `<td class="row-header" style="background:var(--addon-bg);font-size:10px;">外掛</td>`;
-      
-      for (let c = 0; c < colCount; c++) {
-        // 優先顯示加總數值
-        if (selectedSumColumns.includes(c)) {
-          if (block.yearlyData && block.yearlyData[c]) {
-            const yearData = block.yearlyData[c];
-            const yearStr = generateYearlyString(yearData);
-            html += `<td style="font-size:11px;font-weight:bold;color:#b45309;">${yearStr}</td>`;
-          } else {
-            html += `<td></td>`;
-          }
-        } 
-        // 非加總欄位的第一欄顯示標籤
-        else if (c === 0) {
-          html += `<td><span class="addon-badge">外掛</span>分組小計</td>`;
-        } 
-        // 其他空白
-        else {
-          html += `<td></td>`;
+            
+            await addAuditLog('REORDER', 'todo', null, { newOrder: updates });
         }
-      }
-      html += '</tr>';
-    }
-  });
-  
-  // ========== 表格最下方摘要區（外掛）==========
-  if (selectedSummaryColumns.length > 0) {
-    // 空白分隔行
-    html += `<tr class="summary-row"><td class="row-header" style="background:var(--summary-bg);"></td>`;
-    html += `<td colspan="${colCount}" style="text-align:center;font-weight:bold;background:var(--summary-bg);border-top:3px solid var(--summary-border);">`;
-    html += `<span class="summary-badge">外掛</span>📊 表格摘要區`;
-    html += `</td></tr>`;
-    
-    // 每個欄位的摘要
-    selectedSummaryColumns.forEach(colIdx => {
-      const data = summaryData[colIdx];
-      if (!data) return;
-      
-      const yearStr = generateYearlyString(data.years);
-      
-      html += `<tr class="summary-row">`;
-      html += `<td class="row-header" style="background:var(--summary-bg);font-size:10px;">摘要</td>`;
-      html += `<td colspan="${colCount}" style="font-family:monospace;font-size:12px;">`;
-      html += `<strong>${escapeHtml(data.name)}:</strong> ${yearStr}`;
-      html += `</td></tr>`;
     });
-  }
-  
-  html += '</tbody></table>';
-  container.innerHTML = html;
-  
-  document.getElementById('excelInfo').textContent = 
-    `${originalData.length} 列 × ${colCount} 欄 | 外掛列: ${addonRowCount} | 選定欄位: ${selectedSumColumns.length}`;
 }
 
-function highlightCell(addr) {
-  document.querySelectorAll('.excel-table td').forEach(td => {
-    if (!td.classList.contains('error-cell')) {
-      td.classList.remove('highlight-cell');
-    }
-  });
-  const cell = document.querySelector(`td[data-addr="${addr}"]`);
-  if (cell) {
-    cell.classList.add('highlight-cell');
-    cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}
+// ============================================
+// ⑦ Markdown 安全渲染
+// ============================================
+const md = window.markdownit({
+    html: false,
+    linkify: true,
+    typographer: true
+});
 
-// ========== 錯誤清單 ==========
-function renderErrorList() {
-  const container = document.getElementById('errorList');
-  
-  if (errors.length === 0) {
-    container.innerHTML = '<p style="text-align:center;color:var(--success);padding:20px;">✅ 無核對錯誤</p>';
-    document.getElementById('errorCard').classList.remove('hidden');
-    return;
-  }
-  
-  let html = '';
-  errors.forEach((err, idx) => {
-    html += `
-      <div class="error-item" onclick="highlightCell('${err.coord}')">
-        <span class="error-coord ${err.type}">${err.coord}</span>
-        <div class="error-desc">
-          <strong>${err.column}</strong>: ${err.message}
-          ${err.expected ? `<br><span class="text-sm text-gray">期望: ${err.expected} | 實際: ${err.actual}</span>` : ''}
-        </div>
-        <button class="btn btn-outline copy-btn" onclick="event.stopPropagation();copyError(${idx})">複製</button>
-      </div>
-    `;
-  });
-  
-  container.innerHTML = html;
-  document.getElementById('errorCard').classList.remove('hidden');
-}
-
-function copyError(idx) {
-  const err = errors[idx];
-  const text = `${err.coord}\t${err.column}\t${err.message}\t期望:${err.expected || '-'}\t實際:${err.actual || '-'}`;
-  copyToClipboard(text);
-}
-
-function copyAllErrors() {
-  const text = errors.map(err => 
-    `${err.coord}\t${err.column}\t${err.message}\t期望:${err.expected || '-'}\t實際:${err.actual || '-'}`
-  ).join('\n');
-  copyToClipboard(text);
-}
-
-function exportErrors() {
-  const text = '座標\t欄位\t問題描述\t期望值\t實際值\n' + errors.map(err => 
-    `${err.coord}\t${err.column}\t${err.message}\t${err.expected || '-'}\t${err.actual || '-'}`
-  ).join('\n');
-  downloadText('errors_' + new Date().toISOString().slice(0,10) + '.txt', text);
-}
-
-// ========== 列印 ==========
-function printReport() {
-  const orientation = document.getElementById('printOrientation').value;
-  const fitWidth = document.getElementById('printFitWidth').checked;
-  const scalePercent = document.getElementById('printScale').value || 100;
-  
-  const container = document.getElementById('excelContainer');
-  const originalStyle = container.getAttribute('style') || '';
-  
-  // 暫時調整容器樣式以適應列印
-  container.style.maxHeight = 'none';
-  container.style.overflow = 'visible';
-  container.style.border = 'none'; // 避免邊框重疊
-  
-  // 加入列印用 style
-  const style = document.createElement('style');
-  style.id = 'print-style';
-  
-  let css = `@page { size: ${orientation}; margin: 10mm; }`;
-  css += `@media print { 
-    body { -webkit-print-color-adjust: exact; } 
-    .no-print { display: none !important; }
-    .container { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
-    .card { box-shadow: none !important; border: none !important; margin: 0 !important; }
-    .excel-container { overflow: visible !important; max-height: none !important; }
-  `;
-  
-  // 處理縮放
-  if (fitWidth) {
-    // 自動計算縮放比例 (假設 A4 寬度約 210mm/297mm)
-    // 這裡簡單使用 CSS zoom 或 transform
-    css += `
-      .excel-table { width: 100% !important; }
-    `;
-  } else {
-    if (scalePercent != 100) {
-      css += `
-        .excel-table { zoom: ${scalePercent}%; }
-      `;
-    }
-  }
-  
-  css += `}`;
-  style.textContent = css;
-  document.head.appendChild(style);
-  
-  window.print();
-  
-  // 復原
-  setTimeout(() => {
-    const s = document.getElementById('print-style');
-    if (s) s.remove();
-    container.setAttribute('style', originalStyle);
-  }, 500);
-}
-
-// ========== 工具函數 ==========
-function copyToClipboard(text) {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('已複製到剪貼簿');
+function renderMarkdown(content) {
+    if (!content) return '';
+    const rawHtml = md.render(content);
+    return DOMPurify.sanitize(rawHtml, {
+        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li', 'blockquote', 'a', 'hr'],
+        ALLOWED_ATTR: ['href', 'target', 'rel']
     });
-  } else {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    showToast('已複製到剪貼簿');
-  }
 }
 
-function downloadText(filename, text) {
-  const blob = new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function showToast(message) {
-  const existing = document.querySelector('.toast-msg');
-  if (existing) existing.remove();
-  
-  const toast = document.createElement('div');
-  toast.className = 'toast-msg';
-  toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:12px 24px;border-radius:8px;z-index:9999;';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2000);
-}
-
-// ========== PDF 匯出 ==========
-async function exportToPDF() {
-  if (!window.jspdf || !window.html2canvas) {
-    alert('PDF 模組尚未載入，請確認網路連線（此功能需 CDN）');
-    return;
-  }
-  
-  const btn = document.getElementById('btnExportPdf');
-  const originalHtml = btn.innerHTML;
-  btn.innerHTML = '⏳ 處理中...';
-  btn.disabled = true;
-
-  try {
+// ============================================
+// ⑧ PDF 產檔規格（固定模板）
+// ============================================
+async function generatePDF() {
     const { jsPDF } = window.jspdf;
-    const orientation = document.getElementById('printOrientation').value;
-    const element = document.getElementById('excelContainer');
-    
-    // 暫時移除容器限制以截取完整內容
-    const originalMaxHeight = element.style.maxHeight;
-    const originalOverflow = element.style.overflow;
-    const originalBorder = element.style.border;
-    const originalPadding = element.style.padding;
-    
-    element.style.maxHeight = 'none';
-    element.style.overflow = 'visible';
-    element.style.border = 'none';
-    element.style.padding = '10px'; // 加入內距確保邊框被截取
-
-    // 使用 html2canvas 截圖
-    // 提高 scale 以獲得更好的清晰度
-    const canvas = await html2canvas(element, { 
-      scale: 2, 
-      logging: false,
-      useCORS: true,
-      backgroundColor: '#ffffff'
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
     });
 
-    // 復原樣式
-    element.style.maxHeight = originalMaxHeight;
-    element.style.overflow = originalOverflow;
-    element.style.border = originalBorder;
-    element.style.padding = originalPadding;
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+    const startDate = document.getElementById('exportStartDate').value;
+    const endDate = document.getElementById('exportEndDate').value;
     
-    const pdf = new jsPDF({
-      orientation: orientation,
-      unit: 'mm',
-      format: 'a4'
+    if (!startDate || !endDate) {
+        alert('請選擇日期範圍');
+        return;
+    }
+
+    const includeChecklist = document.getElementById('exportChecklist').checked;
+    const includeTodos = document.getElementById('exportTodos').checked;
+    const includeWorklog = document.getElementById('exportWorklog').checked;
+
+    // PDF 樣式設定
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 20;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    // 頁首
+    function addHeader() {
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('工作紀錄報表', pageWidth / 2, y, { align: 'center' });
+        y += 8;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`期間：${startDate} ~ ${endDate}`, pageWidth / 2, y, { align: 'center' });
+        y += 5;
+        doc.text(`產生時間：${dayjs().format('YYYY-MM-DD HH:mm:ss')}`, pageWidth / 2, y, { align: 'center' });
+        y += 10;
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 10;
+    }
+
+    // 頁尾
+    function addFooter(pageNum) {
+        doc.setFontSize(8);
+        doc.text(`第 ${pageNum} 頁`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    }
+
+    // 檢查分頁
+    function checkPageBreak(neededSpace = 20) {
+        if (y + neededSpace > pageHeight - margin - 15) {
+            addFooter(doc.internal.getNumberOfPages());
+            doc.addPage();
+            y = margin;
+            return true;
+        }
+        return false;
+    }
+
+    // 添加區段標題
+    function addSectionTitle(title) {
+        checkPageBreak(15);
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text(title, margin, y);
+        y += 8;
+        doc.setFont(undefined, 'normal');
+    }
+
+    addHeader();
+    let pageNum = 1;
+
+    // 核對清單
+    if (includeChecklist) {
+        const instances = await db.checklistInstances
+            .where('periodId')
+            .equals(currentPeriod.periodId)
+            .toArray();
+
+        if (instances.length > 0) {
+            addSectionTitle('✅ 核對清單');
+            doc.setFontSize(10);
+
+            for (const item of instances) {
+                checkPageBreak(8);
+                const status = item.completed ? '[✓]' : '[ ]';
+                const text = `${status} ${item.ruleTitle || 'Untitled'}`;
+                doc.text(text, margin + 5, y);
+                y += 6;
+            }
+            y += 5;
+        }
+    }
+
+    // 待辦事項
+    if (includeTodos) {
+        const todos = await db.todos
+            .where('dueDate')
+            .between(startDate, endDate, true, true)
+            .toArray();
+
+        if (todos.length > 0) {
+            addSectionTitle('📝 待辦事項');
+            doc.setFontSize(10);
+
+            for (const todo of todos) {
+                checkPageBreak(12);
+                const status = todo.completed ? '[✓]' : '[ ]';
+                const priority = { high: '🔴', medium: '🟡', low: '🟢' }[todo.priority] || '';
+                doc.text(`${status} ${priority} ${todo.title}`, margin + 5, y);
+                y += 5;
+                if (todo.dueDate) {
+                    doc.setFontSize(8);
+                    doc.setTextColor(100);
+                    doc.text(`截止：${todo.dueDate}`, margin + 10, y);
+                    doc.setTextColor(0);
+                    doc.setFontSize(10);
+                    y += 5;
+                }
+            }
+            y += 5;
+        }
+    }
+
+    // 工作紀錄
+    if (includeWorklog) {
+        const worklogs = await db.worklogs
+            .where('date')
+            .between(startDate, endDate, true, true)
+            .toArray();
+
+        if (worklogs.length > 0) {
+            addSectionTitle('📓 工作紀錄');
+            doc.setFontSize(10);
+
+            for (const log of worklogs) {
+                checkPageBreak(20);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${log.date} - ${log.title}`, margin + 5, y);
+                y += 5;
+                doc.setFont(undefined, 'normal');
+                
+                if (log.tags && log.tags.length > 0) {
+                    doc.setFontSize(8);
+                    doc.setTextColor(100);
+                    doc.text(`標籤：${log.tags.join(', ')}`, margin + 5, y);
+                    doc.setTextColor(0);
+                    doc.setFontSize(10);
+                    y += 5;
+                }
+                
+                if (log.content) {
+                    const lines = doc.splitTextToSize(log.content.replace(/[#*`]/g, ''), contentWidth - 10);
+                    for (const line of lines.slice(0, 5)) {
+                        checkPageBreak(6);
+                        doc.text(line, margin + 5, y);
+                        y += 5;
+                    }
+                    if (lines.length > 5) {
+                        doc.text('...', margin + 5, y);
+                        y += 5;
+                    }
+                }
+                y += 3;
+            }
+        }
+    }
+
+    addFooter(doc.internal.getNumberOfPages());
+
+    // 產生檔名並下載
+    const filename = `工作紀錄_${startDate}_${endDate}.pdf`;
+    doc.save(filename);
+    
+    await addAuditLog('EXPORT_PDF', 'report', null, { startDate, endDate, filename });
+}
+
+// ============================================
+// Audit Log Helper
+// ============================================
+async function addAuditLog(action, entityType, entityId, data) {
+    await db.auditLogs.add({
+        action,
+        entityType,
+        entityId,
+        data,
+        createdAt: new Date().toISOString()
     });
+}
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    
-    const imgProps = pdf.getImageProperties(imgData);
-    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    
-    let heightLeft = imgHeight;
-    let position = 0;
+// ============================================
+// UI State & Rendering
+// ============================================
+let currentPeriod = null;
+let currentPeriodType = 'week';
 
-    // 第一頁
-    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-    heightLeft -= pdfHeight;
-
-    // 後續頁面
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight; // 這裡的邏輯是負的位移
-      // 修正邏輯：每次 addPage 後，圖片要往上移一頁的高度
-      // 我們使用累積的負位移
-      
-      pdf.addPage();
-      
-      // 假設第一頁印了 0 ~ 297mm
-      // 第二頁要印 297 ~ 594mm 的內容，把它放在 PDF 的 y=0 處
-      // 所以 y 座標應該是 -297mm
-      
-      // 重新計算 position
-      // 第 n 頁的 position 應該是 -1 * (n-1) * pdfHeight
-      const currentPageIndex = pdf.internal.getNumberOfPages(); // 1-based, now it's 2
-      const yOffset = -1 * (currentPageIndex - 1) * pdfHeight;
-      
-      pdf.addImage(imgData, 'JPEG', 0, yOffset, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
+async function init() {
+    // 載入設定
+    const settings = await db.settings.get('app');
+    if (settings) {
+        PeriodEngine.settings = { ...PeriodEngine.settings, ...settings.value };
+        document.getElementById('periodTypeSelect').value = settings.value.periodType || 'week';
+        currentPeriodType = settings.value.periodType || 'week';
     }
     
-    pdf.save('payroll_analysis_' + new Date().toISOString().slice(0,10) + '.pdf');
-
-  } catch (err) {
-    console.error(err);
-    alert('PDF 匯出失敗: ' + err.message);
-  } finally {
-    btn.innerHTML = originalHtml;
-    btn.disabled = false;
-  }
+    // 初始化當前期別
+    currentPeriod = PeriodEngine.getPeriod(new Date(), currentPeriodType);
+    updatePeriodDisplay();
+    
+    // 載入資料
+    await renderChecklist();
+    await renderTodos();
+    await renderWorklogs();
+    await renderRecurringRules();
+    
+    // 初始化拖拉
+    initSortable();
+    
+    // 設定日期預設值
+    document.getElementById('worklogDate').value = dayjs().format('YYYY-MM-DD');
+    document.getElementById('recurringStart').value = dayjs().format('YYYY-MM-DD');
+    document.getElementById('exportStartDate').value = currentPeriod.start;
+    document.getElementById('exportEndDate').value = currentPeriod.end;
+    
+    // 離線狀態偵測
+    updateOnlineStatus();
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
 }
+
+function updateOnlineStatus() {
+    const indicator = document.getElementById('offlineIndicator');
+    if (navigator.onLine) {
+        indicator.classList.add('hidden');
+    } else {
+        indicator.classList.remove('hidden');
+    }
+}
+
+function updatePeriodDisplay() {
+    document.getElementById('currentPeriodLabel').textContent = currentPeriod.label;
+}
+
+function navigatePeriod(direction) {
+    currentPeriod = direction > 0 ? currentPeriod.next() : currentPeriod.prev();
+    updatePeriodDisplay();
+    renderChecklist();
+    renderWorklogs();
+    
+    document.getElementById('exportStartDate').value = currentPeriod.start;
+    document.getElementById('exportEndDate').value = currentPeriod.end;
+}
+
+function changePeriodType(type) {
+    currentPeriodType = type;
+    currentPeriod = PeriodEngine.getPeriod(new Date(), type);
+    updatePeriodDisplay();
+    renderChecklist();
+    saveSettings();
+}
+
+// Tab Switching
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('tab-active'));
+    
+    document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('tab-active');
+    
+    if (tabName === 'todos') {
+        setTimeout(initSortable, 100);
+    }
+}
+
+// ============================================
+// Checklist Rendering
+// ============================================
+async function renderChecklist() {
+    const container = document.getElementById('checklistContainer');
+    
+    // Lazy 生成本期核對項
+    const instances = await RecurrenceManager.generatePeriodChecklist(
+        currentPeriod.periodId,
+        currentPeriod.start,
+        currentPeriod.end
+    );
+    
+    // 額外查詢已存在的實例
+    const existingInstances = await db.checklistInstances
+        .where('periodId')
+        .equals(currentPeriod.periodId)
+        .toArray();
+    
+    const allInstances = [...new Map([...instances, ...existingInstances].map(i => [i.id, i])).values()];
+    
+    if (allInstances.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <p>本期無核對項目</p>
+                <p class="text-sm mt-2">請先在「重複事項」中新增規則</p>
+            </div>
+        `;
+        document.getElementById('checklistProgress').textContent = '';
+        return;
+    }
+    
+    const completed = allInstances.filter(i => i.completed).length;
+    document.getElementById('checklistProgress').textContent = `${completed}/${allInstances.length} 已完成`;
+    
+    container.innerHTML = allInstances.map(instance => `
+        <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition ${instance.completed ? 'opacity-60' : ''}">
+            <input type="checkbox" 
+                   ${instance.completed ? 'checked' : ''} 
+                   onchange="toggleChecklistItem(${instance.id})"
+                   class="w-5 h-5 rounded text-blue-500">
+            <div class="flex-1">
+                <h4 class="font-medium ${instance.completed ? 'line-through text-gray-500' : ''}">${escapeHtml(instance.ruleTitle)}</h4>
+                ${instance.ruleDescription ? `<p class="text-sm text-gray-500">${escapeHtml(instance.ruleDescription)}</p>` : ''}
+                <span class="text-xs text-gray-400">發生日期：${instance.occurrenceDate}</span>
+            </div>
+            ${instance.completedAt ? `<span class="text-xs text-green-600">完成於 ${dayjs(instance.completedAt).format('MM/DD HH:mm')}</span>` : ''}
+        </div>
+    `).join('');
+}
+
+async function generatePeriodChecklist() {
+    // 強制重新生成（刪除舊的再產生）
+    await db.checklistInstances
+        .where('periodId')
+        .equals(currentPeriod.periodId)
+        .delete();
+    
+    await renderChecklist();
+}
+
+// ============================================
+// Todos Rendering
+// ============================================
+async function renderTodos() {
+    const container = document.getElementById('todosContainer');
+    const todos = await db.todos.orderBy('position').toArray();
+    
+    if (todos.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <p>尚無待辦事項</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = todos.map(todo => {
+        const priorityColors = {
+            high: 'bg-red-100 text-red-700',
+            medium: 'bg-yellow-100 text-yellow-700',
+            low: 'bg-green-100 text-green-700'
+        };
+        
+        return `
+            <div data-todo-id="${todo.id}" class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition ${todo.completed ? 'opacity-60' : ''}">
+                <span class="drag-handle cursor-grab text-gray-400 hover:text-gray-600">⠿</span>
+                <input type="checkbox" 
+                       ${todo.completed ? 'checked' : ''} 
+                       onchange="toggleTodo(${todo.id})"
+                       class="w-5 h-5 rounded">
+                <div class="flex-1">
+                    <h4 class="font-medium ${todo.completed ? 'line-through text-gray-500' : ''}">${escapeHtml(todo.title)}</h4>
+                    ${todo.description ? `<p class="text-sm text-gray-500">${escapeHtml(todo.description)}</p>` : ''}
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="period-badge ${priorityColors[todo.priority]}">${todo.priority}</span>
+                        ${todo.dueDate ? `<span class="text-xs text-gray-500">截止：${todo.dueDate}</span>` : ''}
+                        ${todo.tags && todo.tags.length ? `<span class="text-xs text-blue-500">${todo.tags.join(', ')}</span>` : ''}
+                    </div>
+                </div>
+                <button onclick="editTodo(${todo.id})" class="p-1 hover:bg-gray-200 rounded">✏️</button>
+                <button onclick="deleteTodo(${todo.id})" class="p-1 hover:bg-red-100 rounded text-red-500">🗑️</button>
+            </div>
+        `;
+    }).join('');
+}
+
+async function toggleTodo(id) {
+    const todo = await db.todos.get(id);
+    await db.todos.update(id, { 
+        completed: todo.completed ? 0 : 1,
+        updatedAt: new Date().toISOString()
+    });
+    await renderTodos();
+}
+
+async function deleteTodo(id) {
+    if (!confirm('確定要刪除此待辦事項？')) return;
+    await db.todos.delete(id);
+    await addAuditLog('DELETE', 'todo', id, {});
+    await renderTodos();
+}
+
+async function editTodo(id) {
+    const todo = await db.todos.get(id);
+    if (!todo) return;
+    
+    document.getElementById('todoId').value = todo.id;
+    document.getElementById('todoTitle').value = todo.title;
+    document.getElementById('todoDescription').value = todo.description || '';
+    document.getElementById('todoTags').value = (todo.tags || []).join(', ');
+    document.getElementById('todoPriority').value = todo.priority;
+    document.getElementById('todoDueDate').value = todo.dueDate || '';
+    
+    openTodoModal();
+}
+
+function openTodoModal() {
+    document.getElementById('todoModal').classList.remove('hidden');
+    document.getElementById('todoModal').classList.add('flex');
+}
+
+function closeTodoModal() {
+    document.getElementById('todoModal').classList.add('hidden');
+    document.getElementById('todoModal').classList.remove('flex');
+    document.getElementById('todoForm').reset();
+    document.getElementById('todoId').value = '';
+}
+
+async function saveTodo(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('todoId').value;
+    const data = {
+        title: document.getElementById('todoTitle').value,
+        description: document.getElementById('todoDescription').value,
+        tags: document.getElementById('todoTags').value.split(',').map(t => t.trim()).filter(Boolean),
+        priority: document.getElementById('todoPriority').value,
+        dueDate: document.getElementById('todoDueDate').value || null,
+        periodId: currentPeriod.periodId,
+        updatedAt: new Date().toISOString()
+    };
+    
+    if (id) {
+        await db.todos.update(parseInt(id), data);
+        await addAuditLog('UPDATE', 'todo', parseInt(id), data);
+    } else {
+        const maxPosition = await db.todos.orderBy('position').last();
+        data.position = (maxPosition?.position || 0) + 1000;
+        data.completed = 0;
+        data.createdAt = new Date().toISOString();
+        const newId = await db.todos.add(data);
+        await addAuditLog('CREATE', 'todo', newId, data);
+    }
+    
+    closeTodoModal();
+    await renderTodos();
+    initSortable();
+}
+
+// ============================================
+// Worklogs Rendering
+// ============================================
+async function renderWorklogs() {
+    const container = document.getElementById('worklogList');
+    const worklogs = await db.worklogs
+        .where('date')
+        .between(currentPeriod.start, currentPeriod.end, true, true)
+        .reverse()
+        .toArray();
+    
+    if (worklogs.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <p>本期無工作紀錄</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = worklogs.map(log => `
+        <div class="border rounded-lg p-4 hover:shadow-sm transition">
+            <div class="flex items-start justify-between mb-2">
+                <div>
+                    <h4 class="font-medium">${escapeHtml(log.title)}</h4>
+                    <span class="text-sm text-gray-500">${log.date}</span>
+                </div>
+                <button onclick="deleteWorklog(${log.id})" class="text-red-500 hover:bg-red-50 p-1 rounded">🗑️</button>
+            </div>
+            ${log.tags && log.tags.length ? `
+                <div class="flex flex-wrap gap-1 mb-2">
+                    ${log.tags.map(tag => `<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">${escapeHtml(tag)}</span>`).join('')}
+                </div>
+            ` : ''}
+            <div class="markdown-body text-sm">
+                ${renderMarkdown(log.content)}
+            </div>
+            ${log.linkedTaskId ? `<p class="text-xs text-gray-400 mt-2">關聯任務：${log.linkedTaskId}</p>` : ''}
+        </div>
+    `).join('');
+}
+
+async function saveWorklog(e) {
+    e.preventDefault();
+    
+    const data = {
+        title: document.getElementById('worklogTitle').value,
+        date: document.getElementById('worklogDate').value,
+        tags: document.getElementById('worklogTags').value.split(',').map(t => t.trim()).filter(Boolean),
+        content: document.getElementById('worklogContent').value,
+        linkedTaskId: document.getElementById('worklogLinkedTask').value || null,
+        periodId: currentPeriod.periodId,
+        createdAt: new Date().toISOString()
+    };
+    
+    const id = await db.worklogs.add(data);
+    await addAuditLog('CREATE', 'worklog', id, data);
+    
+    document.getElementById('worklogForm').reset();
+    document.getElementById('worklogDate').value = dayjs().format('YYYY-MM-DD');
+    
+    await renderWorklogs();
+}
+
+async function deleteWorklog(id) {
+    if (!confirm('確定要刪除此工作紀錄？')) return;
+    await db.worklogs.delete(id);
+    await addAuditLog('DELETE', 'worklog', id, {});
+    await renderWorklogs();
+}
+
+// ============================================
+// Recurring Rules Rendering
+// ============================================
+async function renderRecurringRules() {
+    const container = document.getElementById('recurringContainer');
+    const rules = await db.recurringRules.toArray();
+    
+    if (rules.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <p>尚無重複事項規則</p>
+                <p class="text-sm mt-2">新增規則後，系統會自動在每期生成核對項目</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = rules.map(rule => {
+        let humanReadable = '';
+        try {
+            const r = rrule.RRule.fromString(rule.rruleString);
+            humanReadable = r.toText();
+        } catch (e) {
+            humanReadable = rule.rruleString;
+        }
+        
+        return `
+            <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <div class="flex-1">
+                    <h4 class="font-medium">${escapeHtml(rule.title)}</h4>
+                    ${rule.description ? `<p class="text-sm text-gray-500">${escapeHtml(rule.description)}</p>` : ''}
+                    <code class="text-xs bg-gray-200 px-2 py-0.5 rounded mt-1 inline-block">${humanReadable}</code>
+                </div>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleRecurringRule(${rule.id})" class="rounded">
+                    <span class="text-sm">啟用</span>
+                </label>
+                <button onclick="deleteRecurringRule(${rule.id})" class="p-1 hover:bg-red-100 rounded text-red-500">🗑️</button>
+            </div>
+        `;
+    }).join('');
+}
+
+async function toggleRecurringRule(id) {
+    const rule = await db.recurringRules.get(id);
+    await db.recurringRules.update(id, { enabled: rule.enabled ? 0 : 1 });
+    await renderRecurringRules();
+}
+
+async function deleteRecurringRule(id) {
+    if (!confirm('確定要刪除此規則？相關的核對項目不會被刪除。')) return;
+    await db.recurringRules.delete(id);
+    await addAuditLog('DELETE', 'recurringRule', id, {});
+    await renderRecurringRules();
+}
+
+function openRecurringModal() {
+    document.getElementById('recurringModal').classList.remove('hidden');
+    document.getElementById('recurringModal').classList.add('flex');
+    updateRRulePreview();
+}
+
+function closeRecurringModal() {
+    document.getElementById('recurringModal').classList.add('hidden');
+    document.getElementById('recurringModal').classList.remove('flex');
+    document.getElementById('recurringForm').reset();
+    document.getElementById('recurringId').value = '';
+    document.querySelectorAll('[name="byweekday"]').forEach(cb => cb.checked = false);
+}
+
+function updateRRulePreview() {
+    const freq = document.getElementById('recurringFreq').value;
+    const interval = parseInt(document.getElementById('recurringInterval').value) || 1;
+    const dtstart = document.getElementById('recurringStart').value;
+    const until = document.getElementById('recurringEnd').value;
+    
+    const byweekday = [];
+    document.querySelectorAll('[name="byweekday"]:checked').forEach(cb => {
+        byweekday.push(cb.value);
+    });
+    
+    if (!dtstart) {
+        document.getElementById('rrulePreview').textContent = '請先選擇開始日期';
+        return;
+    }
+    
+    try {
+        const rruleStr = RecurrenceManager.buildRRule({
+            freq,
+            interval,
+            dtstart,
+            until: until || null,
+            byweekday: freq === 'WEEKLY' ? byweekday : []
+        });
+        document.getElementById('rrulePreview').textContent = rruleStr;
+    } catch (e) {
+        document.getElementById('rrulePreview').textContent = '規則格式錯誤';
+    }
+}
+
+async function saveRecurring(e) {
+    e.preventDefault();
+    
+    const freq = document.getElementById('recurringFreq').value;
+    const interval = parseInt(document.getElementById('recurringInterval').value) || 1;
+    const dtstart = document.getElementById('recurringStart').value;
+    const until = document.getElementById('recurringEnd').value;
+    
+    const byweekday = [];
+    document.querySelectorAll('[name="byweekday"]:checked').forEach(cb => {
+        byweekday.push(cb.value);
+    });
+    
+    const rruleString = RecurrenceManager.buildRRule({
+        freq,
+        interval,
+        dtstart,
+        until: until || null,
+        byweekday: freq === 'WEEKLY' ? byweekday : []
+    });
+    
+    const data = {
+        title: document.getElementById('recurringTitle').value,
+        description: document.getElementById('recurringDescription').value,
+        rruleString,
+        enabled: 1,
+        createdAt: new Date().toISOString()
+    };
+    
+    const id = await db.recurringRules.add(data);
+    await addAuditLog('CREATE', 'recurringRule', id, data);
+    
+    closeRecurringModal();
+    await renderRecurringRules();
+    await renderChecklist();
+}
+
+// ============================================
+// Search & Deduplication
+// ============================================
+async function performSearch(query) {
+    const container = document.getElementById('searchResults');
+    
+    if (!query || query.length < 2) {
+        container.innerHTML = '<p class="text-gray-500">請輸入至少 2 個字元進行搜尋</p>';
+        return;
+    }
+    
+    const results = await SearchManager.searchAll(query);
+    
+    if (results.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">無搜尋結果</p>';
+        return;
+    }
+    
+    container.innerHTML = results.map(r => {
+        const item = r.item;
+        const typeLabels = { todo: '待辦', worklog: '紀錄', recurring: '重複規則' };
+        const typeColors = { todo: 'bg-green-100 text-green-700', worklog: 'bg-blue-100 text-blue-700', recurring: 'bg-purple-100 text-purple-700' };
+        
+        return `
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs px-2 py-0.5 rounded ${typeColors[item.type]}">${typeLabels[item.type]}</span>
+                    <span class="text-xs text-gray-400">相似度：${((1 - r.score) * 100).toFixed(1)}%</span>
+                </div>
+                <h4 class="font-medium">${escapeHtml(item.title)}</h4>
+                ${item.description ? `<p class="text-sm text-gray-500">${escapeHtml(item.description?.substring(0, 100))}...</p>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+async function findDuplicates() {
+    const section = document.getElementById('duplicatesSection');
+    const container = document.getElementById('duplicatesContainer');
+    
+    const duplicates = await SearchManager.findDuplicates();
+    
+    if (duplicates.length === 0) {
+        section.classList.remove('hidden');
+        container.innerHTML = '<p class="text-gray-500">未發現重複項目 👍</p>';
+        return;
+    }
+    
+    section.classList.remove('hidden');
+    container.innerHTML = duplicates.map(d => `
+        <div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-orange-700">相似度：${((1 - d.score) * 100).toFixed(1)}%</span>
+                <div class="flex gap-2">
+                    <button onclick="mergeDuplicates(${d.item1.id}, ${d.item2.id})" class="text-xs bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">
+                        保留 #1 合併
+                    </button>
+                    <button onclick="mergeDuplicates(${d.item2.id}, ${d.item1.id})" class="text-xs bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">
+                        保留 #2 合併
+                    </button>
+                    <button onclick="ignoreDuplicate(${d.item1.id}, ${d.item2.id})" class="text-xs border border-gray-300 px-2 py-1 rounded hover:bg-gray-100">
+                        忽略
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="p-2 bg-white rounded">
+                    <span class="text-xs text-gray-400">#1</span>
+                    <h4 class="font-medium">${escapeHtml(d.item1.title)}</h4>
+                </div>
+                <div class="p-2 bg-white rounded">
+                    <span class="text-xs text-gray-400">#2</span>
+                    <h4 class="font-medium">${escapeHtml(d.item2.title)}</h4>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function mergeDuplicates(keepId, removeId) {
+    if (!confirm('確定要合併這兩個項目？此操作可透過審計記錄撤銷。')) return;
+    
+    await SearchManager.mergeDuplicates(keepId, removeId);
+    await renderTodos();
+    await findDuplicates();
+}
+
+async function ignoreDuplicate(id1, id2) {
+    await SearchManager.markAsIgnored(id1, id2);
+    await findDuplicates();
+}
+
+// ============================================
+// Settings
+// ============================================
+function openSettings() {
+    document.getElementById('settingsCutoffDay').value = PeriodEngine.settings.cutoffDay;
+    document.getElementById('settingsWeekStart').value = PeriodEngine.settings.weekStart;
+    document.getElementById('settingsModal').classList.remove('hidden');
+    document.getElementById('settingsModal').classList.add('flex');
+}
+
+function closeSettings() {
+    document.getElementById('settingsModal').classList.add('hidden');
+    document.getElementById('settingsModal').classList.remove('flex');
+}
+
+async function saveSettings() {
+    PeriodEngine.settings.cutoffDay = parseInt(document.getElementById('settingsCutoffDay').value);
+    PeriodEngine.settings.weekStart = parseInt(document.getElementById('settingsWeekStart').value);
+    PeriodEngine.settings.periodType = currentPeriodType;
+    
+    await db.settings.put({
+        key: 'app',
+        value: PeriodEngine.settings
+    });
+    
+    currentPeriod = PeriodEngine.getPeriod(new Date(), currentPeriodType);
+    updatePeriodDisplay();
+    
+    closeSettings();
+}
+
+// ============================================
+// Audit Log Modal
+// ============================================
+async function showAuditLog() {
+    const logs = await db.auditLogs.orderBy('createdAt').reverse().limit(50).toArray();
+    
+    document.getElementById('auditList').innerHTML = logs.map(log => `
+        <div class="p-3 bg-gray-50 rounded text-sm">
+            <div class="flex items-center justify-between">
+                <span class="font-medium">${log.action}</span>
+                <span class="text-xs text-gray-400">${dayjs(log.createdAt).format('YYYY-MM-DD HH:mm')}</span>
+            </div>
+            <div class="text-gray-600">${log.entityType} #${log.entityId || 'N/A'}</div>
+            <code class="text-xs block mt-1 overflow-hidden">${JSON.stringify(log.data).substring(0, 100)}...</code>
+        </div>
+    `).join('');
+    
+    document.getElementById('auditModal').classList.remove('hidden');
+    document.getElementById('auditModal').classList.add('flex');
+}
+
+function closeAuditModal() {
+    document.getElementById('auditModal').classList.add('hidden');
+    document.getElementById('auditModal').classList.remove('flex');
+}
+
+// Utility
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
