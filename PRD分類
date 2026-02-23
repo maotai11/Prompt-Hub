@@ -1,208 +1,419 @@
-全部決策收齊。輸出 PRD v2 最終交付版。
+完整確認。現在輸出含完整忽略規則的 PRD v2 最終版。
 
 ---
 
-# PRD v2 — 離線分類帳分析工具
-**文件版本**: v2（最終交付版）
+# PRD v2.1 — 離線分類帳分析工具
+**文件版本**: v2.1（完整版，含忽略規則）
 **更新日期**: 2026-02-23
-**狀態**: 可交付設計／工程開工
-
-**v1 → v2 變更記錄**:
-- 〔新增〕F14 重複傳票偵測：觸發條件確認為「同科目＋同傳票＋不同日期＋金額相同」
-- 〔新增〕F18 同摘要金額變動追蹤：波動門檻預設 ±20%，使用者可調
-- 〔新增〕`/libs` 本地函式庫清單，補齊技術依賴規格
-- 〔補齊〕所有開放缺口（CSV 欄位、Badge 邏輯、Worker 架構）
+**v2 → v2.1 變更**:
+- 〔補齊〕新增 **§0 全域忽略規則**，凌駕所有功能模組之上
+- 〔補齊〕§3 解析流程整合忽略規則，形成單一完整規格頁
+- 〔補齊〕各功能模組補入「資料來源皆為忽略後的乾淨資料」聲明
 
 ---
 
-## 1. 檔案結構（最終確認）
+## §0 全域忽略規則（Data Filter Layer）
+
+> **優先級最高，凌駕所有功能模組。**
+> 所有功能（F1~F18）操作的資料，均為本層過濾後的乾淨 `transactions[]`。
+> 被忽略的列**不進入 AppState**，不參與任何計算、分組、偵測、匯出。
+
+### 0.1 忽略規則總表
+
+| 規則ID | 識別條件 | 動作 | 說明 |
+|--------|----------|------|------|
+| **IGN-1** | 欄A含公司名稱、或欄A = 「分　　類　　帳」、或欄A含「製表日期」、或欄A = 「日期」（欄位標題列）| **跳過整列** | 跨頁重複的報表標題區塊，每頁都會出現，全部忽略 |
+| **IGN-2** | 欄A以「月計:」或「累計:」開頭 | **跳過整列** | 系統自動彙計列，非原始分錄 |
+| **IGN-3** | 欄A = 「上期結轉」 | **跳過整列**，但先擷取欄V（餘額）存入 `account.openingBalance` | 上期結轉餘額記錄備用，不計入本期 transactions |
+| **IGN-4** | 欄A以「項　目:」開頭 | **跳過整列**，但先擷取科目代碼、科目名稱、借貸別，設定當前 `currentAccountContext` | 科目標題列，用於切換解析 context，本身不是分錄 |
+| **IGN-5** | 同傳票號碼（voucherNo）在同科目（accountCode）下，因跨頁導致出現在多個「項　目:」區塊 | **合併為同一組分錄**，不重複計入金額 | 跨頁重複的傳票行視為同一張傳票，debit/credit 不累加 |
+
+### 0.2 IGN-5 合併規則詳細說明
+
+跨頁傳票重複是分類帳格式特性，同一筆傳票可能在多個頁面的同科目區塊出現。
+
+**判斷為重複（忽略後者）的條件，需同時滿足**：
+
+```
+accountCode 相同
+AND voucherNo 相同
+AND date 相同
+AND debit 相同（decimal.js 精確比對）
+AND credit 相同
+AND summary 相同
+```
+
+**處理邏輯**：
+
+```javascript
+// 解析每一列時
+const key = `${currentAccountCode}||${voucherNo}||${date}||${debit}||${credit}`
+if (seenKeys.has(key)) {
+  // 完全相同 → 視為跨頁重複，跳過，skippedRows++
+  continue
+}
+seenKeys.add(key)
+// 否則正常建立 Transaction
+```
+
+**不觸發 IGN-5 的情況**（這些是正常多筆，不應忽略）：
+
+```
+同科目同傳票，但日期不同     → 正常保留（F14 會偵測此情況）
+同科目同傳票，但金額不同     → 正常保留
+同科目同傳票，但摘要不同     → 正常保留
+```
+
+### 0.3 忽略規則執行順序
+
+```
+每一列進入解析器時，依序判斷：
+
+Step 1：IGN-1 檢查（標題列）→ 跳過
+Step 2：IGN-2 檢查（月計/累計）→ 跳過
+Step 3：IGN-4 檢查（項目標題）→ 更新 context，跳過
+Step 4：IGN-3 檢查（上期結轉）→ 記錄 openingBalance，跳過
+Step 5：有效分錄判斷（欄A非空 AND 欄E非空 AND currentAccountContext 已設定）
+          → 否：skippedRows++，跳過
+          → 是：進入 IGN-5 重複判斷
+Step 6：IGN-5 檢查（跨頁重複）
+          → 重複：skippedRows++，跳過
+          → 不重複：建立 Transaction，加入 AppState.transactions[]
+```
+
+### 0.4 忽略規則與功能模組的關係
+
+```
+AppState.transactions[]
+（已套用 IGN-1 ~ IGN-5 的乾淨資料）
+       │
+       ├─ F1  摘要分組       ← 只看乾淨資料
+       ├─ F2  沖帳           ← 只看乾淨資料
+       ├─ F3  數字池         ← 只看乾淨資料
+       ├─ F4  異常偵測       ← 只看乾淨資料
+       ├─ F5  跨科目連結     ← 只看乾淨資料
+       ├─ F6  時間斷層       ← 只看乾淨資料
+       ├─ F8  待辦事項       ← 參照乾淨資料中的 voucherNo
+       ├─ F14 重複傳票偵測   ← 只看乾淨資料（IGN-5 已排除跨頁重複，F14 偵測的是「真正的」異日期同傳票）
+       └─ F18 金額變動追蹤   ← 只看乾淨資料
+
+AppState.accounts[].openingBalance
+（來自 IGN-3 擷取，獨立存放，不混入 transactions[]）
+       │
+       └─ F2  沖帳           ← openingBalance 不參與配對
+          F11（Post-MVP）    ← 科目餘額勾稽時使用
+```
+
+### 0.5 解析完成回報
+
+```
+Toast（INFO）：
+「解析完成：{N} 筆有效分錄｜{M} 個科目｜{K} 筆跨頁重複已合併｜{J} 列已忽略」
+
+詳細log（可展開）：
+  IGN-1 標題列：X 列
+  IGN-2 月計/累計：Y 列
+  IGN-3 上期結轉：Z 列（已記錄 M 個科目期初餘額）
+  IGN-4 項目標題：W 列
+  IGN-5 跨頁重複：K 列
+  其他無效列：V 列
+```
+
+---
+
+## §1 產品定位
+
+單一離線工具，上傳 `.xlsx` 分類帳後即可本地執行核帳分析。無伺服器、無網路、無安裝。
+
+**使用者**：單人會計，核帳目的為找錯帳與配合外部稽核申報。
+**最大痛點**：判斷哪筆是異常最耗時。
+
+---
+
+## §2 檔案結構
 
 ```
 /（同一資料夾）
 ├── index.html
 ├── ledger.js
-├── pool.worker.js          ← F3 Subset Sum 獨立 Worker
+├── pool.worker.js
 └── /libs
-    ├── xlsx.full.min.js        ← Excel 解析（必要）
-    ├── decimal.min.js          ← 精確小數運算（必要）
-    ├── comlink.min.js          ← Worker 通訊橋接（可選）
-    ├── simple-statistics.min.js← F4 統計運算（可選）
-    └── fuse.min.js             ← F1/F2/F5 模糊比對（可選）
+    ├── xlsx.full.min.js         ← 必要
+    ├── decimal.min.js           ← 必要
+    ├── comlink.min.js           ← 可選
+    ├── simple-statistics.min.js ← 可選
+    └── fuse.min.js              ← 可選
 ```
 
-**函式庫用途對應**：
+**函式庫對應**：
 
-| 函式庫 | 使用模組 | 功能 | 必要性 |
-|--------|----------|------|--------|
-| xlsx.full.min.js | Parser | .xlsx 解析 | 必要 |
-| decimal.min.js | F2、F3、F11 | 借貸金額精確比對，避免浮點誤差 | 必要 |
-| simple-statistics.min.js | F4 Rule B/G、F18 | IQR、標準差、Benford χ² 檢定 | 可選（降級用純 JS） |
-| fuse.min.js | F1、F2、F5 | 摘要模糊搜尋、配對相似度 | 可選（降級用 Jaccard） |
-| comlink.min.js | F3 | pool.worker.js 通訊簡化 | 可選（降級用原生 postMessage） |
-
-**降級策略**：若 `/libs` 下可選函式庫不存在，`ledger.js` 啟動時偵測，自動降級為內建純 JS 實作，功能不中斷，僅精度或速度略降。
+| 函式庫 | 模組 | 降級方案 |
+|--------|------|----------|
+| xlsx.full.min.js | Parser | 無（必要）|
+| decimal.min.js | F2、F3、F14、F18 | 無（必要）|
+| simple-statistics.min.js | F4 Rule B/G、F18 | 內建純 JS IQR/stddev |
+| fuse.min.js | F1、F2、F5、F6 | Jaccard similarity |
+| comlink.min.js | F3 Worker | 原生 postMessage |
 
 ---
 
-## 2. 技術架構
+## §3 解析規則（完整版）
 
-### 2.1 資料流
+### 3.1 欄位位置對照表
+
+| 欄位 | Excel 欄 | Index |
+|------|----------|-------|
+| 日期 | A | 0 |
+| 傳票號碼 | E | 4 |
+| 摘要 | L | 11 |
+| 借方金額 | O | 14 |
+| 貸方金額 | R | 17 |
+| 借/貸別 | T | 19 |
+| 餘額 | V | 21 |
+
+> 欄位位置寫為常數 `COLUMN_MAP`，調整時只改此處。
+
+### 3.2 完整解析流程（含忽略規則）
 
 ```
-index.html（DOM 結構 + <style> + <script src="ledger.js">）
-  │
-  └─ ledger.js
-       ├── LibDetector        → 偵測可選函式庫是否存在，設定 USE_FUSE / USE_SS / USE_COMLINK
-       ├── Parser             → 讀 .xlsx → 填入 AppState
-       ├── AppState           → 單例，所有模組共用
-       ├── F1~F6、F8、F14、F18 模組函式
-       ├── UIRenderer         → 操作 DOM，無直接狀態
-       └── ExportHelper       → CSV 產生與下載
+for each row in xlsx:
 
-pool.worker.js（獨立執行緒）
-  ├── 接收：{ candidates[], target, tolerance, timeLimit }
-  ├── 執行：Subset Sum（暴力 or DP）
-  └── 回傳：{ results[], interrupted: bool }
+  colA = row[COLUMN_MAP.date]?.toString().trim() ?? ''
+
+  // ── IGN-1：標題列 ──
+  if colA 含公司名
+    OR colA === '分　　類　　帳'
+    OR colA 含 '製表日期'
+    OR colA === '日期'
+    OR colA 含 '頁　次'
+    → igCount.header++; continue
+
+  // ── IGN-2：月計/累計 ──
+  if colA.startsWith('月計:') OR colA.startsWith('累計:')
+    → igCount.monthly++; continue
+
+  // ── IGN-4：項目標題（先於IGN-3判斷）──
+  if colA 含 '項  目:'
+    → 解析科目代碼、名稱、借貸別
+    → currentAccountContext = { code, name, normalSide }
+    → igCount.accountHeader++; continue
+
+  // ── IGN-3：上期結轉 ──
+  if colA === '上期結轉'
+    → openingBalance = Decimal(row[COLUMN_MAP.balance] ?? 0)
+    → AppState.accounts[currentAccountContext.code].openingBalance = openingBalance
+    → igCount.opening++; continue
+
+  // ── 有效分錄判斷 ──
+  const date     = row[COLUMN_MAP.date]
+  const voucher  = row[COLUMN_MAP.voucher]
+  if !date OR !voucher OR !currentAccountContext
+    → igCount.invalid++; continue
+
+  // ── IGN-5：跨頁重複 ──
+  const debit  = Decimal(row[COLUMN_MAP.debit]  ?? 0)
+  const credit = Decimal(row[COLUMN_MAP.credit] ?? 0)
+  const dupKey = `${currentAccountContext.code}||${voucher}||${date}||${debit}||${credit}`
+  if seenKeys.has(dupKey)
+    → igCount.crossPageDup++; continue
+  seenKeys.add(dupKey)
+
+  // ── 建立 Transaction ──
+  const txn = {
+    id:                nanoid(8),
+    accountCode:       currentAccountContext.code,
+    accountName:       currentAccountContext.name,
+    accountNormalSide: currentAccountContext.normalSide,
+    date:              date.toString(),
+    dateISO:           parseROCDate(date.toString()),
+    voucherNo:         voucher.toString(),
+    summary:           cleanSummary(row[COLUMN_MAP.summary]),
+    debit:             debit,
+    credit:            credit,
+    drCr:              row[COLUMN_MAP.drCr]?.toString().trim() ?? '',
+    balance:           Decimal(row[COLUMN_MAP.balance] ?? 0),
+  }
+  AppState.transactions.push(txn)
+  AppState.accounts[currentAccountContext.code].transactionIds.push(txn.id)
 ```
 
-### 2.2 AppState 完整定義（v2 最終版）
+### 3.3 輔助函式
+
+```javascript
+// 民國日期轉 JS Date
+function parseROCDate(str) {
+  // 格式：114-03-15 → 2025-03-15
+  const m = str.match(/^(\d{2,3})-(\d{2})-(\d{2})$/)
+  if (!m) return null
+  const year = parseInt(m[1]) + 1911
+  return new Date(`${year}-${m[2]}-${m[3]}`)
+}
+
+// 摘要清洗
+function cleanSummary(raw) {
+  if (!raw) return ''
+  return raw.toString()
+    .replace(/_x000D_\n/g, ' ')
+    .replace(/\r\n|\n|\r/g, ' ')
+    .trim()
+}
+```
+
+### 3.4 解析完成 Toast
+
+```
+「解析完成：{N} 筆有效分錄｜{M} 個科目｜忽略 {總計} 列」
+
+展開詳細：
+  標題列（IGN-1）：{n} 列
+  月計/累計（IGN-2）：{n} 列
+  上期結轉（IGN-3）：{n} 列（已記錄 {M} 個科目期初餘額）
+  項目標題（IGN-4）：{n} 列
+  跨頁重複（IGN-5）：{n} 列
+  其他無效列：{n} 列
+```
+
+---
+
+## §4 AppState 定義
 
 ```javascript
 const AppState = {
-  // ── 原始資料（解析後不可變）──
   meta: {
     company: '',
     period: '',
     parsedAt: null,
     skippedRows: 0,
+    igCount: {
+      header: 0, monthly: 0, opening: 0,
+      accountHeader: 0, crossPageDup: 0, invalid: 0,
+    },
   },
-  accounts: {},        // { [code]: Account }
-  transactions: [],    // Transaction[]
+  accounts: {},      // { [code]: Account }
+  transactions: [],  // Transaction[]（IGN 全部套用後的乾淨資料）
 
-  // ── F1 摘要分組 ──
+  // F1 摘要分組
   grouping: {
     activeAccount: null,
-    groups: [],            // Group[]
-    ungrouped: [],         // Transaction id[]
-    pendingNaming: [],     // Group[]（同頻率待命名）
+    groups: [],
+    ungrouped: [],
+    pendingNaming: [],
     tokenFreqMap: {},
   },
 
-  // ── F2 沖帳 ──
+  // F2 沖帳
   offset: {
     activeAccount: null,
-    mode: 'single',        // 'single' | 'multi'
-    pairs: [],             // OffsetPair[]
-    dismissed: [],         // Transaction id[]
+    mode: 'single',
+    pairs: [],
+    dismissed: [],
   },
 
-  // ── F3 數字池 ──
+  // F3 數字池
   pool: {
     activeAccount: null,
-    direction: 'debit',    // 'debit' | 'credit' | 'net'
+    direction: 'debit',
     targetAmount: null,
     tolerance: 0,
     candidateIds: [],
-    results: [],           // PoolResult[]
-    history: [],           // { target, tolerance, resultCount, timestamp }[]
+    results: [],
+    history: [],
     computing: false,
   },
 
-  // ── F4 異常偵測 ──
+  // F4 異常偵測
   anomaly: {
     scope: 'all',
     enabledRules: ['A','B','C','D','E','F','G','H'],
     ruleParams: {
-      B: { method: 'IQR', multiplier: 1.5 },  // 可切換 'sigma', multiplier=3
+      B: { method: 'IQR', multiplier: 1.5 },
       E: { minAmount: 100000, divisor: 1000 },
       G: { minSampleSize: 30 },
     },
-    results: [],           // AnomalyResult[]
-    dismissed: [],         // AnomalyResult id[]
-    flagged: [],           // AnomalyResult id[]
+    results: [],
+    dismissed: [],
+    flagged: [],
   },
 
-  // ── F5 跨科目連結 ──
+  // F5 跨科目連結
   crossLink: {
     query: '',
-    mode: 'keyword',       // 'keyword' | 'voucher' | 'amount' | 'compound'
+    mode: 'keyword',
     amountTolerance: 0,
     dateRange: { from: null, to: null },
     results: [],
   },
 
-  // ── F6 時間斷層 ──
+  // F6 時間斷層
   gap: {
     activeAccount: null,
     keyword: '',
-    frequency: 'monthly',  // 'monthly' | 'weekly' | 'quarterly' | 'custom'
+    frequency: 'monthly',
     customCount: 1,
     dateRange: { from: null, to: null },
-    results: [],           // GapResult[]
-    periodicSuggestions: [], // 自動偵測週期性摘要[]
+    results: [],
+    periodicSuggestions: [],
   },
 
-  // ── F8 待辦事項 ──
-  todos: [],               // Todo[]（session-only）
+  // F8 待辦事項
+  todos: [],
 
-  // ── F14 重複傳票偵測 ──
+  // F14 重複傳票偵測
   dupVoucher: {
-    scope: 'all',          // 'all' | account code
-    results: [],           // DupVoucherResult[]
-    dismissed: [],         // DupVoucherResult id[]
+    scope: 'all',
+    results: [],
+    dismissed: [],
   },
 
-  // ── F18 同摘要金額變動 ──
+  // F18 金額變動追蹤
   trendAlert: {
     activeAccount: null,
     keyword: '',
-    threshold: 20,         // 百分比，預設 20（±20%）
-    direction: 'both',     // 'debit' | 'credit' | 'both'
-    results: [],           // TrendAlertResult[]
+    threshold: 20,
+    direction: 'both',
+    results: [],
   },
-};
+}
 ```
 
-### 2.3 核心型別（v2 補齊）
+---
+
+## §5 核心型別
 
 ```javascript
-// Transaction（不可變）
-{
-  id: String,              // nanoid(8)
+Transaction {
+  id: String,                    // nanoid(8)
   accountCode: String,
   accountName: String,
   accountNormalSide: '借'|'貸',
-  date: String,            // "114-03-15"
-  dateISO: Date,
+  date: String,                  // "114-03-15"
+  dateISO: Date|null,
   voucherNo: String,
-  summary: String,
-  debit: Decimal,          // decimal.js 實例
+  summary: String,               // 已清洗
+  debit: Decimal,
   credit: Decimal,
   drCr: '借'|'貸'|'',
   balance: Decimal,
 }
 
-// Account
-{
+Account {
   code: String,
   name: String,
   normalSide: '借'|'貸',
-  openingBalance: Decimal|null,
+  openingBalance: Decimal|null,  // 來自 IGN-3，不在 transactions[]
   transactionIds: String[],
 }
 
-// Group（F1）
-{
+Group {                          // F1
   id: String,
   name: String,
-  tokenCandidates: String[],   // 同頻率時全部候選
+  tokenCandidates: String[],
   nameConfirmed: Boolean,
   transactionIds: String[],
-  isSystem: Boolean,           // true = 「無摘要」系統組，不可刪移
+  isSystem: Boolean,
 }
 
-// OffsetPair（F2）
-{
+OffsetPair {                     // F2
   id: String,
   status: 'candidate'|'confirmed'|'rejected',
   confidence: 'high'|'medium'|'low',
@@ -213,16 +424,14 @@ const AppState = {
   note: String,
 }
 
-// PoolResult（F3）
-{
+PoolResult {                     // F3
   id: String,
   transactionIds: String[],
   total: Decimal,
   delta: Decimal,
 }
 
-// AnomalyResult（F4）
-{
+AnomalyResult {                  // F4
   id: String,
   rule: 'A'|'B'|'C'|'D'|'E'|'F'|'G'|'H',
   severity: 'ERROR'|'WARN'|'INFO',
@@ -232,17 +441,15 @@ const AppState = {
   detail: Object,
 }
 
-// GapResult（F6）
-{
-  period: String,            // "114-03"
+GapResult {                      // F6
+  period: String,
   expected: Number,
   actual: Number,
   status: 'ok'|'missing'|'excess',
   transactionIds: String[],
 }
 
-// Todo（F8）
-{
+Todo {                           // F8
   id: String,
   voucherNo: String,
   content: String,
@@ -251,791 +458,418 @@ const AppState = {
   linkedTransactionIds: String[],
 }
 
-// DupVoucherResult（F14）
-{
+DupVoucherResult {               // F14
   id: String,
   voucherNo: String,
   accountCode: String,
   accountName: String,
-  entries: Transaction[],    // 所有符合條件的分錄（≥2筆）
+  entries: Transaction[],
   severity: 'WARN',
 }
 
-// TrendAlertResult（F18）
-{
-  keyword: String,           // 匹配的摘要關鍵字
+TrendAlertResult {               // F18
+  keyword: String,
   accountCode: String,
-  monthlyData: [             // 12個月（或實際有資料的月份）
-    {
-      period: String,        // "114-01"
-      amount: Decimal,       // 該月加總（依 direction）
-      txnIds: String[],
-      prevAmount: Decimal|null,
-      changeRate: Number|null,   // (amount - prev) / prev * 100
-      flagged: Boolean,          // |changeRate| > threshold
-    }
-  ],
+  monthlyData: [{
+    period: String,
+    amount: Decimal,
+    txnIds: String[],
+    prevAmount: Decimal|null,
+    changeRate: Number|null,
+    flagged: Boolean,
+  }],
 }
 ```
 
 ---
 
-## 3. 解析規則（最終確認）
+## §6 功能規格
 
-### 3.1 欄位位置對照表
-
-| 欄位 | Excel 欄 | 說明 |
-|------|----------|------|
-| 日期 | A（第1欄）| 有效分錄判斷條件之一 |
-| 傳票號碼 | E（第5欄）| 有效分錄判斷條件之一 |
-| 摘要 | L（第12欄）| 含 `_x000D_\n` 需清洗 |
-| 借方金額 | O（第15欄）| |
-| 貸方金額 | R（第18欄）| |
-| 借/貸 | T（第20欄）| |
-| 餘額 | V（第22欄）| |
-
-### 3.2 跳過條件（依優先序）
-
-```
-1. 欄A含公司名          → 跳過，取 meta.company
-2. 欄A = 「分　類　帳」  → 跳過
-3. 欄A含「製表日期」     → 跳過，取 meta.period（欄M）
-4. 欄A = 「日期」        → 跳過（欄位標題列）
-5. 欄A含「月計:」「累計:」→ 跳過
-6. 欄A含「頁　次」       → 跳過
-7. 欄A含「項　目:」      → 切換 currentAccount context
-8. 欄A = 「上期結轉」    → 記錄 openingBalance（欄V），跳過
-9. 其餘列               → skippedRows++，跳過
-```
-
-### 3.3 有效分錄條件
-
-欄A（日期）非空 **AND** 欄E（傳票號碼）非空 **AND** currentAccount 已設定
-
-### 3.4 摘要清洗
-
-```javascript
-summary = raw
-  .replace(/_x000D_\n/g, ' ')
-  .replace(/\r\n|\n|\r/g, ' ')
-  .trim()
-```
-
-### 3.5 解析完成 Toast
-
-```
-「解析完成：{N} 筆分錄｜{M} 個科目｜跳過 {K} 列」
-```
-
----
-
-## 4. 功能規格
-
----
+> **前提宣告（適用全部 F1~F18）**：
+> 所有模組操作的資料來源均為 `AppState.transactions[]`，
+> 即已套用 IGN-1~IGN-5 過濾後的乾淨分錄。
+> `openingBalance` 獨立存於 `AppState.accounts[].openingBalance`，
+> 不混入 `transactions[]`，僅 F2 沖帳邏輯排除時參照。
 
 ### F1 摘要分組
 
-#### 狀態機
+**狀態機**
 ```
-IDLE → [選科目] → READY
-     → [點分析] → ANALYZING
-     → GROUPED
-       → [調整] → GROUPED（即時更新）
-       → [匯出] → GROUPED
+IDLE → [選科目] → READY → [點分析] → ANALYZING → GROUPED
+GROUPED → [調整] → GROUPED（即時更新）
+GROUPED → [匯出] → GROUPED
 ```
 
-#### Token 頻率引擎
-
+**Token 頻率引擎**
 ```
-輸入：selectedAccount.transactions[].summary
+輸入：selectedAccount.transactions[].summary（乾淨資料）
 
-Step 1 清洗每條摘要：
-  去除：純數字段落 \d+
-  去除：日期格式 \d{2,3}[-/.]\d{1,2}[-/.]\d{1,2}
-  去除：停用詞 ['的','及','與','和','*','#']
-  分割：依 /[\/\-\(\)\s\u3000]/ 切詞
+Step 1 清洗摘要：
+  去除純數字段落：\d+
+  去除日期格式：\d{2,3}[-/.]\d{1,2}[-/.]\d{1,2}
+  去除停用詞：['的','及','與','和','*','#']
+  依分隔符切詞：/[\/\-\(\)\s\u3000]/
 
-Step 2 建立 tokenFreqMap：
-  { token: 在全體 summary 中出現次數 }
-  若啟用 fuse.js：改用模糊分群（Levenshtein ≤ 2 視為同 token）
+Step 2 建立 tokenFreqMap：{ token: 全體出現次數 }
+  啟用 fuse.js：Levenshtein ≤ 2 視為同 token
+  降級：完全一致才視為同 token
 
-Step 3 每條 summary 歸組：
-  取該 summary 所含 token 中頻率最高者 → 歸入對應 group
-  若最高頻有多個並列：
-    → 建立 pendingNaming Group
-    → tokenCandidates = 所有並列 token
-    → nameConfirmed = false
-  無可歸組（所有 token 唯一出現）→ 進入 ungrouped[]
+Step 3 歸組：
+  每條 summary → 取所含 token 中頻率最高者 → 歸入對應 group
+  並列最高頻（多個 token 同頻率）→ pendingNaming[]，tokenCandidates = 全部並列
+  無可歸組（所有 token 唯一出現）→ ungrouped[]
 
 Step 4 輸出 groups[]，ungrouped[]，pendingNaming[]
 ```
 
-#### UI 佈局（二欄）
-
+**UI（二欄）**
 ```
-[左欄：已命名分組]              [右欄：待處理]
-┌──────────────────────┐      ┌─────────────────────┐
-│ ✏ [組名]  N筆        │      │ ⚠ 待命名（K組）      │
-│ 借：XXX  貸：XXX     │      │ 組A候選：[客供][供應] │
-│ ▼ 展開明細           │      │ 組B候選：[租金][房租] │
-│  摘要列 金額 [移▼][刪]│      │                     │
-├──────────────────────┤      │ 未分組（J筆）        │
-│ 無摘要（系統組）      │      │ 摘要X 金額 [指定組▼] │
-└──────────────────────┘      └─────────────────────┘
-[＋ 新增空白組]  [匯出 CSV]
-```
-
-#### 操作規則
-
-| 操作 | 行為 |
-|------|------|
-| 點待命名候選 token | 確認組名，nameConfirmed = true，組卡片轉正常色 |
-| 移動摘要至其他組 | 下拉選目標組，即時更新兩組金額 |
-| 刪除摘要行 | 移入 ungrouped[]，原組金額即時更新 |
-| 點「＋新增空白組」 | 建立無名組，等待使用者命名 |
-| 系統組「無摘要」 | isSystem=true，無移動/刪除按鈕 |
-
-#### 匯出 CSV 欄位
-
-```
-組名, 傳票號碼, 日期, 摘要, 借方金額, 貸方金額
-（每組最後一列）組名_合計, , , , Σ借, Σ貸
+[左欄：已命名分組]                [右欄：待處理]
+┌────────────────────────┐       ┌──────────────────────┐
+│ ✏[組名]  N筆           │       │ ⚠ 待命名（K組）       │
+│ 借：XXX  貸：XXX       │       │ 候選：[客供] [供應]    │
+│ ▼展開明細              │       │                      │
+│  摘要  金額  [移▼][刪] │       │ 未分組（J筆）         │
+├────────────────────────┤       │ 摘要X 金額 [指定組▼]  │
+│ 無摘要（系統組）        │       └──────────────────────┘
+└────────────────────────┘
+[＋新增空白組]  [匯出 CSV]
 ```
 
-#### 邊界與例外
+**匯出欄位**：`組名, 傳票號碼, 日期, 摘要, 借方金額, 貸方金額`
+每組末列：`組名_合計, , , , Σ借, Σ貸`
+
+**邊界**：
 
 | 情境 | 處理 |
 |------|------|
-| 引擎分出 > 50 組 | Toast WARN「分組過多（N組），建議手動合併」，仍正常顯示 |
-| 待命名組未命名即匯出 | 組名輸出為「未命名組_N」 |
-| 科目無分錄 | 顯示「此科目本期無交易記錄」，不執行引擎 |
+| 分組 > 50 組 | Toast WARN，仍正常顯示 |
+| 待命名組匯出時未命名 | 輸出「未命名組_N」|
+| 科目無分錄 | 顯示「此科目本期無交易記錄」|
+| 系統組「無摘要」 | isSystem=true，不可移動/刪除 |
 
 ---
 
 ### F2 沖帳
 
-#### 狀態機
-```
-IDLE → [選科目+模式] → READY
-     → [點掃描] → SCANNING
-     → RESULT
-       → [確認/拒絕/手動配對] → RESULT（即時更新）
-       → [匯出] → RESULT
-```
-
-#### 配對演算法
-
-**單筆模式（預設）**
-
+**配對演算法（單筆預設）**
 ```javascript
-// 使用 decimal.js 做精確比對
-for (d of debitTxns) {
+for (d of debitTxns) {           // openingBalance 不在此列
   for (c of creditTxns) {
-    if (d.debit.minus(c.credit).abs().lte(0.01)) {
-      const tokD = tokenize(d.summary)
-      const tokC = tokenize(c.summary)
-      // 優先用 fuse.js，降級用 Jaccard
-      const sim = USE_FUSE
-        ? fuseScore(d.summary, c.summary)
-        : jaccard(tokD, tokC)
-      const confidence = sim >= 0.8 ? 'high'
-                       : sim >= 0.5 ? 'medium' : 'low'
-      candidates.push({ debitIds:[d.id], creditIds:[c.id],
-                        confidence, debitTotal:d.debit,
-                        creditTotal:c.credit })
-    }
+    if d.debit.minus(c.credit).abs().lte(0.01):
+      sim = USE_FUSE ? fuseScore(d.summary, c.summary)
+                     : jaccard(tokenize(d.summary), tokenize(c.summary))
+      confidence = sim >= 0.8 ? 'high' : sim >= 0.5 ? 'medium' : 'low'
+      candidates.push(...)
   }
 }
-candidates.sort by confidence DESC, then date ASC
 ```
 
-**群組模式（手動切換）**
+**群組模式**：Σ借 - Σ貸 差額（decimal.js）> 0.01 → 禁止確認，顯示差額
 
-使用者勾選多借＋多貸 → 點「確認配對」：
+**UI（三欄）**
 ```
-Σ借 - Σ貸 差額（decimal.js）:
-  |差額| ≤ 0.01 → 允許確認
-  |差額| > 0.01 → 紅字顯示「差額 {X}，無法配對」，禁止確認
-```
+模式：[● 單筆] [○ 群組]
 
-#### UI 規格（三欄）
+[未配對]        [配對候選]            [已確認沖帳]
+傳票 日期 摘要   借 ←→ 貸  信心度      配對ID 金額 備註
+[□勾選]         [✓確認][✗拒絕]        [↩取消]
 
-```
-模式切換：[● 單筆] [○ 群組]
-
-[未配對]           [配對候選（推薦）]      [已確認沖帳]
-傳票 日期 摘要 金額  借方 ←→ 貸方 信心度    配對ID 金額
-[□勾選]            [✓確認] [✗拒絕]        [↩取消] [備註]
-
-─────────────────────────────────────────────────────
-未沖銷餘額：X  |  已沖銷：Y  |  配對率：Z%
+─────────────────────────────────────────
+未沖銷：X  |  已沖銷：Y  |  配對率：Z%
 [匯出未沖銷 CSV]  [匯出已配對 CSV]
 ```
 
-#### 匯出欄位
+**匯出欄位**：
+- 未沖銷：`傳票號碼, 日期, 摘要, 借方, 貸方, 距今天數`
+- 已配對：`配對ID, 借方傳票, 借方日期, 借方摘要, 金額, 貸方傳票, 貸方日期, 貸方摘要, 信心度, 備註`
 
-**未沖銷**：`傳票號碼, 日期, 摘要, 借方, 貸方, 距今天數`
-**已配對**：`配對ID, 借方傳票, 借方日期, 借方摘要, 金額, 貸方傳票, 貸方日期, 貸方摘要, 信心度, 備註`
-
-#### 邊界與例外
+**邊界**：
 
 | 情境 | 處理 |
 |------|------|
-| 金額為 0 的分錄 | 不進入配對候選 |
-| 上期結轉餘額 | 不參與配對 |
-| 配對候選 > 100 組 | 分頁，每頁 20 組 |
-| 群組模式差額 > 0.01 | 紅字差額，禁止確認 |
+| 金額為 0 | 不進入候選 |
+| openingBalance | 不參與配對（IGN-3 已分離）|
+| 候選 > 100 組 | 分頁，每頁 20 組 |
+| 群組差額 > 0.01 | 紅字，禁止確認 |
 
 ---
 
 ### F3 數字池
 
-#### 狀態機
-```
-IDLE → [選科目+方向] → CONFIGURED
-     → [設篩選] → FILTERED
-       → 候選池 ≤ 200：READY（可輸入目標）
-       → 候選池 > 200：BLOCKED（鎖定，提示繼續篩選）
-     → [輸入目標+點計算] → COMPUTING（Worker）
-     → RESULT
-```
-
-#### Worker 通訊
-
+**Worker 通訊**
 ```javascript
-// ledger.js → pool.worker.js
-postMessage({
-  candidates: candidates.map(t => ({
-    id: t.id,
-    amount: t[direction].toNumber()  // Decimal → Number 傳入 Worker
-  })),
-  target: targetAmount,
-  tolerance: tolerance,
-  timeLimit: 3000,  // ms
-})
-
-// pool.worker.js → ledger.js
-postMessage({
-  results: [{ ids:[], total:0 }, ...],  // 上限 50 組
-  interrupted: false,
-  elapsed: 1234,  // ms
-})
+// 傳入
+{ candidates: [{id, amount}], target, tolerance, timeLimit: 3000 }
+// 回傳
+{ results: [{ids[], total}], interrupted: bool, elapsed: ms }
 ```
 
-#### 演算法
-
+**演算法**
 ```
-候選池 ≤ 30 筆：暴力枚舉，2^n 子集
-候選池 31~200 筆：動態規劃（背包），金額 ×100 取整
-結果上限：50 組（超過停止，interrupted=true）
-時間上限：3000ms（Worker setTimeout 控制）
-```
-
-#### UI 規格
-
-```
-[篩選列]
-科目 [▼] | 方向 [借/貸/淨▼] | 月份 [▼] | 日期 [__~__]
-摘要關鍵字 [________]
-候選池：目前 N 筆 {N>200 → 🔴 請繼續縮小範圍}
-
-[計算列]
-目標金額 [________] 誤差容忍 [____元] [▶ 計算] [■ 取消]
-
-[結果區]
-{若 interrupted} ⚠ 搜尋已中斷（3秒），以下為部分結果
-組合1：5筆，合計 100,000，差額 0  [▼展開] [★標記]
-  傳票 日期 摘要 金額
-組合2：...
-
-[本次搜尋紀錄]
-目標 100,000 → 3組  [重查]
-目標 50,000  → 0組  [重查]
+≤ 30 筆：暴力枚舉
+31~200 筆：動態規劃（背包）金額 ×100 取整
+結果上限：50 組
+時間上限：3000ms
 ```
 
-#### 匯出 CSV 欄位
+**UI**
+```
+篩選：科目▼ | 方向▼ | 月份▼ | 日期範圍 | 摘要關鍵字
+候選池：N筆 {N>200 → 🔴 請繼續縮小範圍}
 
-`組合序號, 傳票號碼, 日期, 科目, 摘要, 金額, 組合合計, 差額`
+目標金額[___] 誤差[___元] [▶計算] [■取消]
 
-#### 邊界與例外
+{interrupted} ⚠ 搜尋已中斷，以下為部分結果
+組合1：N筆，合計X，差額Y  [▼展開][★標記]
+
+搜尋紀錄：目標A→3組 [重查] | 目標B→0組 [重查]
+```
+
+**匯出欄位**：`組合序號, 傳票號碼, 日期, 科目, 摘要, 金額, 組合合計, 差額`
+
+**邊界**：
 
 | 情境 | 處理 |
 |------|------|
-| 候選池 > 200 筆 | 計算按鈕 disabled，紅字提示「目前 N 筆，請縮小至 200 筆以下」 |
-| 0 個組合 | 提示「找不到符合組合，建議放寬誤差或切換方向」 |
-| 計算超時 | 顯示部分結果＋ interrupted 標籤 |
-| 目標非數字 | 即時驗證，紅框 |
+| 候選 > 200 筆 | 計算按鈕 disabled，紅字提示 |
+| 0 個組合 | 提示放寬誤差或切換方向 |
+| 超時 | 顯示部分結果 + interrupted 標籤 |
 
 ---
 
 ### F4 異常偵測
 
-#### 規則集
+**規則集**
 
-| Rule | 名稱 | 觸發條件 | 嚴重度 | 依賴函式庫 |
-|------|------|----------|--------|------------|
-| A | 摘要+金額重複，傳票不同 | 同科目，summary + amount 完全一致，voucherNo 不同 | WARN | 無 |
-| B | IQR/σ 離群 | 金額 < Q1-k×IQR 或 > Q3+k×IQR；可切換 3σ | WARN | simple-statistics（降級純 JS）|
-| C | 同傳票同科目多筆 | voucherNo + accountCode 出現 ≥ 2 次 | INFO | 無 |
-| D | 借貸方向與正常側相反 | 借方科目出現貸方發生額（非沖銷情境）| WARN | 無 |
-| E | 整數金額 | amount % 1000 = 0 且 ≥ 100,000 | INFO | 無 |
-| F | 期末餘額方向異常 | 借方科目期末餘額 < 0 | ERROR | 無 |
-| G | Benford's Law 偏離 | 首位數字分布 χ² 檢定 p < 0.05，需 ≥ 30 筆 | WARN | simple-statistics（不足則跳過）|
-| H | 傳票號碼跳號 | 同科目同月傳票號碼序列有斷號（需可解析為數字）| WARN | 無 |
+| Rule | 名稱 | 條件 | 嚴重度 | 函式庫 |
+|------|------|------|--------|--------|
+| A | 摘要+金額重複，傳票不同 | 同科目，summary+amount 一致，voucherNo 不同 | WARN | 無 |
+| B | IQR/σ 離群 | < Q1-k×IQR 或 > Q3+k×IQR | WARN | ss（降級純JS）|
+| C | 同傳票同科目多筆 | voucherNo+accountCode ≥ 2 次 | INFO | 無 |
+| D | 借貸方向異常 | 借方科目出現貸方發生額 | WARN | 無 |
+| E | 整數金額 | % 1000=0 且 ≥ 100,000 | INFO | 無 |
+| F | 期末餘額異常 | 借方科目餘額 < 0 | ERROR | 無 |
+| G | Benford's Law | χ² 檢定 p < 0.05，需 ≥ 30 筆 | WARN | ss |
+| H | 傳票跳號 | 同科目同月序列斷號 | WARN | 無 |
 
-#### UI 規格
-
-```
-範圍：[● 全科目] [○ 單一科目 ▼]
-規則：[✓A] [✓B] [✓C] [✓D] [✓E] [✓F] [✓G] [✓H]
-Rule B 參數：[● IQR ×1.5] [○ 3σ]
-[▶ 開始掃描]
-
-結果（ERROR > WARN > INFO）：
-─── ERROR（1）───────────────────────
-[F] 1130 應收帳款 期末餘額為負數
-    餘額：-50,000  [展開分錄] [★追蹤]
-
-─── WARN（5）────────────────────────
-[A] 1130 應收帳款 摘要+金額重複
-    傳票 0102001（114-01-02）vs 0102005（114-01-03）
-    摘要：客供  金額：7,500  [展開] [✓已知悉] [★追蹤]
-...
-
-[匯出異常報告 CSV]
-```
-
-#### 匯出 CSV 欄位
-
-`規則, 嚴重度, 科目代碼, 科目名稱, 傳票號碼, 日期, 摘要, 金額, 說明, 狀態`
-
-#### 邊界與例外
-
-| 情境 | 處理 |
-|------|------|
-| 全科目掃描 | 分批處理，科目逐一完成後追加顯示，進度條 |
-| 同一筆觸發多規則 | 各規則獨立顯示 |
-| 已知悉 | 二次確認後隱藏，重新掃描不再出現 |
-| Rule G 樣本不足 | 跳過，結果區顯示「G：樣本不足（需 ≥ 30 筆）」|
-| Rule H 非數字傳票 | 跳過，結果區顯示「H：傳票號碼格式無法解析」|
+**匯出欄位**：`規則, 嚴重度, 科目代碼, 科目名稱, 傳票號碼, 日期, 摘要, 金額, 說明, 狀態`
 
 ---
 
 ### F5 跨科目連結
 
-#### 搜尋模式與邏輯
+**搜尋模式**
 
-| 模式 | 輸入 | 比對邏輯 |
-|------|------|----------|
-| 關鍵字 | 文字（≥ 2 字元）| `summary.includes(kw)`，全形半形標準化 |
-| 傳票號碼 | 傳票號碼 | `voucherNo === input`（精確）|
-| 金額追蹤 | 數字 + 誤差 | `\|amount - input\| ≤ tolerance`（decimal.js）|
-| 複合 | 關鍵字 + 金額 + 日期範圍 | 三條件 AND |
+| 模式 | 比對邏輯 |
+|------|----------|
+| 關鍵字（≥2字元）| summary.includes，全形半形標準化 |
+| 傳票號碼 | voucherNo 精確比對 |
+| 金額追蹤 | \|amount-input\| ≤ tolerance（decimal.js）|
+| 複合 | 三條件 AND |
 
-#### 結果呈現
+**結果呈現**：依科目分群，底部顯示借貸涉及科目清單與文字關係樹。
 
-```
-搜尋結果（N筆，涉及 M 個科目）
-
-[科目 1130 應收帳款：3筆] ▼
-  傳票      日期        摘要      借方    貸方
-  0102001  114-01-02  客供      0       7,500
-
-[科目 2130 應付帳款：1筆] ▼
-  ...
-
-借方涉及科目：1130、1290
-貸方涉及科目：2130、2290
-文字關係樹：
-  借 1130 應收帳款 ── 傳票 0102001
-  貸 2130 應付帳款 ── 傳票 0102001
-```
-
-#### 邊界與例外
-
-| 情境 | 處理 |
-|------|------|
-| 關鍵字 < 2 字元 | 禁止搜尋，提示 |
-| 結果 > 500 筆 | 截斷，提示「顯示前 500 筆，請縮小條件」|
-| 無結果 | 顯示「找不到符合條件的分錄」 |
+**邊界**：關鍵字 < 2 字元禁止搜尋；結果 > 500 筆截斷。
 
 ---
 
 ### F6 時間斷層
 
-#### 操作流程
+**操作流程**：選科目 → 輸入關鍵字（可空白）→ 設定頻率 → 設定期間 → [偵測週期性] → [檢查]
 
-```
-Step 1：選科目
-Step 2：輸入摘要關鍵字（可空白）
-Step 3：設定預期頻率（每月 N 次 / 每季 / 自訂）
-Step 4：設定期間（預設全年）
-Step 5：[偵測週期性摘要]（可選，自動推薦關鍵字）
-Step 6：[▶ 檢查]
-Step 7：結果逐期列出
-Step 8：點任一期 → 展開分錄；點缺失期 → 展開前後月分錄
-```
-
-#### 結果格式
-
+**結果格式**：
 ```
 ✓ 114-01  1筆（預期1）
-✗ 114-03  0筆（預期1）← 缺失，紅色
-⚠ 114-05  2筆（預期1）← 超量，橘色
+✗ 114-03  0筆（缺失）← 紅色
+⚠ 114-05  2筆（超量）← 橘色
 ```
 
-#### 週期性偵測邏輯
+**週期偵測**：連續 ≥ 3 個月出現 AND stddev(counts) < 0.5 → 加入推薦清單
 
-```
-對 activeAccount 所有 token group：
-  統計每月出現次數[]
-  if 連續 ≥ 3 個月出現 AND stddev(counts) < 0.5
-    → 加入 periodicSuggestions[]
-```
-
-#### 邊界與例外
-
-| 情境 | 處理 |
-|------|------|
-| 關鍵字空白 | 以整科目月份為單位做斷層分析 |
-| 期間 < 2 個月 | 提示「無法判斷週期，請選擇更長期間」|
-| 自訂次數 = 0 | 驗證不通過，紅框 |
+**邊界**：期間 < 2 個月提示；關鍵字空白則整科目分析。
 
 ---
 
 ### F8 待辦事項
 
-#### 兩種新增入口
+**入口 A**：浮動面板，傳票號碼（必填）+ 內容（必填）+ [＋新增]
+**入口 B**：任意分錄行末欄 `[📌]` → 自動帶入 voucherNo + summary
 
-**入口 A：浮動面板**
+**UI**
 ```
-右側固定浮動，可收合（預設展開）
-[傳票號碼 ________]（必填）
-[內容 ____________]（必填）
-[＋ 新增]
-```
-
-**入口 B：分錄行內按鈕**
-任意模組的分錄列末欄有 `[📌]` 按鈕：
-→ 自動帶入 voucherNo + summary 預填
-→ 使用者確認後新增
-
-#### 清單 UI
-
-```
-📌 待辦事項（N）                    [▲收合]
-─────────────────────────────────
-○  0102001  應收帳款核對金額        [✓完成] [🗑]
-✓  0606002  商標費用確認攤提期間    [↩撤銷] [🗑]
-─────────────────────────────────
-[傳票 ___] [內容 ____________] [＋]
+📌 待辦（N）                    [▲收合]
+○  0102001  核對金額是否正確    [✓完成][🗑]
+✓  0606002  確認攤提期間        [↩撤銷][🗑]
+[傳票___][內容_____________][＋]
 ```
 
-#### Badge 邏輯
+**Badge**：顯示全部筆數（Open + Done）
 
-Badge 數字 = **全部筆數（Open + Done）**，讓使用者掌握總量。
-
-#### 狀態轉換
-
-```
-Open  →[✓完成]→  Done（文字加刪除線）
-Done  →[↩撤銷]→  Open
-任何  →[🗑刪除]→  二次確認 → 移除
-```
-
-#### 邊界與例外
-
-| 情境 | 處理 |
-|------|------|
-| 傳票號碼空白 | 阻擋，紅框「傳票號碼為必填」|
-| 內容空白 | 阻擋，紅框「請填寫待辦內容」|
-| 傳票號碼不存在於資料 | 允許（可能為尚未入帳傳票）|
-| 清單 > 100 筆 | 分頁，每頁 20 筆 |
+**邊界**：傳票或內容空白阻擋送出；不存在的傳票號碼允許輸入；> 100 筆分頁。
 
 ---
 
 ### F14 重複傳票號碼偵測
 
-#### 觸發條件（v2 最終確認）
-
-同時滿足以下四個條件才標示為「疑似誤植」：
-
+**觸發條件（四個條件須同時滿足）**：
 ```
-1. 同 accountCode
-2. 同 voucherNo
-3. dateISO 不同（不同日期）
-4. amount（debit 或 credit）完全相同（decimal.js 精確比對）
+1. accountCode 相同
+2. voucherNo 相同
+3. dateISO 不同
+4. amount（借或貸）完全相同（decimal.js）
 ```
 
-#### 操作流程
+> 注意：IGN-5 排除的是「完全相同的跨頁重複」（日期也相同）。
+> F14 偵測的是「通過 IGN-5 後仍存在的、日期不同的同傳票同科目同金額」，這是真正的潛在誤植。
 
-```
-Step 1：選範圍（全科目 / 單一科目）
-Step 2：[▶ 掃描]
-Step 3：結果列出所有符合組
-Step 4：每組可展開看所有涉及分錄
-Step 5：[✓已知悉]（二次確認）→ 本 Session 隱藏
-Step 6：[📌 加入待辦] → 帶入傳票號碼，跳轉 F8
-Step 7：[匯出 CSV]
-```
+**操作流程**：選範圍 → [掃描] → 展開看分錄 → [📌待辦] 或 [✓已知悉]
 
-#### 結果卡片格式
-
-```
-⚠ 傳票 0102001｜科目 1130 應收帳款｜2筆
-  日期 114-01-02  摘要 客供  金額 7,500（貸）
-  日期 114-03-15  摘要 客供  金額 7,500（貸）  ← 同科目同傳票同金額異日期
-[展開] [📌待辦] [✓已知悉]
-```
-
-#### 匯出 CSV 欄位
-
-`傳票號碼, 科目代碼, 科目名稱, 日期1, 摘要1, 金額1, 日期2, 摘要2, 金額2, 狀態`
-
-#### 邊界與例外
-
-| 情境 | 處理 |
-|------|------|
-| 同傳票同科目同日期多筆 | 不在 F14 標示（屬 F4 Rule C 範疇）|
-| 全科目掃描無結果 | 顯示「✓ 未發現疑似誤植傳票」|
+**匯出欄位**：`傳票號碼, 科目代碼, 科目名稱, 日期1, 摘要1, 金額1, 日期2, 摘要2, 金額2, 狀態`
 
 ---
 
 ### F18 同摘要金額變動追蹤
 
-#### 操作流程
-
-```
-Step 1：選科目
-Step 2：輸入摘要關鍵字（使用 fuse.js 模糊比對，降級用 includes）
-Step 3：選方向（借方 / 貸方 / 兩者合計）
-Step 4：設定波動門檻（預設 ±20%，範圍 1~100%，步進 1%）
-Step 5：[▶ 分析]
-Step 6：結果顯示逐月金額與變動率
-Step 7：點任一月份列 → 展開該月符合分錄
-Step 8：[匯出 CSV]
-```
-
-#### 計算邏輯
-
+**計算邏輯**
 ```javascript
-// 對每個月份計算符合關鍵字的分錄金額加總
-monthlyData = months.map(period => {
-  const txns = filterByKeyword(accountTxns, keyword)
-    .filter(t => t 屬於該 period)
-  const amount = direction === 'debit'  ? Σ t.debit
-               : direction === 'credit' ? Σ t.credit
-               :                          Σ(t.debit - t.credit)
-  return { period, amount, txnIds }
-})
+monthlyData = months.map(period => ({
+  amount: Σ filteredTxns.where(period).map(direction),
+  txnIds: [...]
+}))
 
-// 計算環比變動率（與前一個有資料月份比較）
-for (i=1; i<monthlyData.length; i++) {
-  const prev = 上一個 amount > 0 的月份
-  if (prev) {
-    changeRate = (current - prev) / prev × 100
-    flagged = |changeRate| > threshold
-  }
-}
+// 環比（與上一個有資料月份比）
+changeRate = (current - prev) / prev × 100
+flagged = |changeRate| > threshold（預設 20%，使用者可調）
 ```
 
-#### UI 規格
-
+**UI**
 ```
-科目 [▼] 摘要關鍵字 [________] 方向 [▼] 門檻 [20]%  [▶ 分析]
+科目▼ 摘要[___] 方向▼ 門檻[20]%  [▶分析]
 
-月份     金額        vs上月      變動率    狀態
-114-01   50,000      —          —         —
-114-02   48,000      ▼ 2,000    -4%       ✓
-114-03   65,000      ▲17,000    +35%      🔴 超出門檻
-114-04   51,000      ▼14,000    -22%      🔴 超出門檻
-...
-
-🔴 共發現 N 個月份波動超出 ±20%
-
-[點月份列展開分錄]
-[匯出 CSV]
+月份    金額     vs上月   變動率   狀態
+114-01  50,000   —        —        —
+114-03  65,000   ▲17,000  +35%     🔴
+[點月份展開分錄]  [匯出 CSV]
 ```
 
-#### 匯出 CSV 欄位
+**匯出欄位**：`月份, 金額, 前月金額, 變動金額, 變動率(%), 是否超出門檻, 涉及傳票數`
 
-`月份, 金額, 前月金額, 變動金額, 變動率(%), 是否超出門檻, 涉及傳票數`
-
-#### 邊界與例外
-
-| 情境 | 處理 |
-|------|------|
-| 關鍵字無匹配 | 提示「找不到符合摘要的分錄」|
-| 某月金額為 0（無分錄）| changeRate 顯示「—」，不觸發門檻標示 |
-| 前月金額為 0 | 無法計算變動率，顯示「—」|
-| 門檻輸入非數字 | 即時驗證，紅框 |
+**邊界**：前月金額為 0 或無資料 → 變動率顯示「—」，不觸發門檻。
 
 ---
 
-## 5. 全域 UI 規格
+## §7 全域 UI 規格
 
-### 5.1 整體佈局
-
+**佈局**
 ```
-┌─ Header：[公司名]  [期間]  [重新上傳] ──────────────┐
-│                                                      │
-│ ┌─ 左側 Nav（固定）─┐  ┌─ 主內容區 ───────────────┐ │
-│ │ F1  摘要分組       │  │                           │ │
-│ │ F2  沖帳          │  │   （各模組渲染區）          │ │
-│ │ F3  數字池        │  │                           │ │
-│ │ F4  異常偵測      │  └───────────────────────────┘ │
-│ │ F5  跨科目連結    │                                │
-│ │ F6  時間斷層      │         ┌─ F8 浮動面板 ──────┐ │
-│ │ ── ── ── ── ──   │         │ 📌 待辦（N）  [▲]  │ │
-│ │ F14 重複傳票      │         │ ○ 0102001 核對金額 │ │
-│ │ F18 金額變動      │         │ [傳票__][內容__][＋]│ │
-│ └───────────────────┘         └────────────────────┘ │
-└──────────────────────────────────────────────────────┘
+┌─ Header：公司名 | 期間 | [重新上傳] ────────────────┐
+│ ┌─ 左側 Nav ──┐  ┌─ 主內容區 ───────────────────┐  │
+│ │ F1 摘要分組  │  │                              │  │
+│ │ F2 沖帳     │  │  （各模組渲染區）              │  │
+│ │ F3 數字池   │  │                              │  │
+│ │ F4 異常偵測 │  └──────────────────────────────┘  │
+│ │ F5 跨科目  │                                     │
+│ │ F6 時間斷層 │         ┌─ F8 浮動面板 ──────────┐  │
+│ │ ─────────  │         │ 📌 待辦（N）  [▲]       │  │
+│ │ F14 重複傳票│         │ ○ 0102001 核對金額      │  │
+│ │ F18 金額變動│         │ [傳票__][內容__][＋]    │  │
+│ └────────────┘         └────────────────────────┘  │
+└────────────────────────────────────────────────────┘
 ```
 
-### 5.2 共用科目下拉選單規格
-
-```
-選項格式：[代碼] 科目名稱（借/貸）
-排序：代碼數字升序
-支援鍵盤輸入過濾（使用 fuse.js，降級用 includes）
-「全科目」選項：僅 F4、F14 顯示
-```
-
-### 5.3 共用行為
+**共用行為**
 
 | 行為 | 規格 |
 |------|------|
-| Toast 通知 | 右上角，INFO/WARN 3秒自動消失，ERROR 需手動關閉 |
-| 匯出 CSV | `\uFEFF` BOM + UTF-8，檔名格式：`{功能}_{科目代碼}_{yyyyMMdd_HHmm}.csv` |
-| Loading | 計算中禁用操作按鈕，按鈕文字改為「計算中…」＋ spinner |
-| 空狀態 | 各模組未操作前顯示引導文字（灰色），不留白 |
-| 二次確認 | 使用 inline confirm bar（非 browser alert），避免打斷流程 |
+| Toast | INFO/WARN 3秒消失，ERROR 手動關閉 |
+| 匯出 CSV | `\uFEFF` BOM + UTF-8，檔名：`{功能}_{科目}_{yyyyMMdd_HHmm}.csv` |
+| Loading | 計算中按鈕 disabled + spinner |
+| 空狀態 | 灰色引導文字，不留白 |
+| 二次確認 | Inline confirm bar，非 browser alert |
 
 ---
 
-## 6. 驗收標準（Given-When-Then）
+## §8 驗收標準（Given-When-Then）
+
+### 忽略規則（IGN）
+
+```
+Given Excel 含跨頁標題、月計列、上期結轉各 5 列，有效分錄 100 筆
+When  上傳解析完成
+Then  AppState.transactions.length === 100
+ And  Toast 顯示「100 筆有效分錄｜忽略 N 列」
+ And  igCount.monthly === 5，igCount.header === 5，igCount.opening === 5
+
+Given 同科目同傳票同日期同金額出現在兩個頁面區塊
+When  解析完成
+Then  AppState.transactions 中此筆只出現 1 次（IGN-5 合併）
+ And  igCount.crossPageDup === 1
+
+Given 同科目同傳票，但日期不同（一筆 114-01，一筆 114-03）
+When  解析完成
+Then  AppState.transactions 中此傳票出現 2 筆（IGN-5 不觸發）
+ And  F14 掃描後此組出現在結果中
+```
 
 ### F1
-
 ```
-Given 科目 1130 有 50 筆，「客供」出現 15 次、「租金」出現 8 次
+Given 科目有效分錄 50 筆，「客供」出現 15 次（已排除跨頁重複）
 When  點「開始分析」
-Then  「客供」組顯示 15 筆，Σ借方 = 此 15 筆借方欄加總（decimal.js 驗算）
- And  引擎完成後 ungrouped[] 中無已歸組的分錄
-```
-
-```
-Given 分組完成，使用者將摘要 X（借方 7,500）從「客供」移至「租金」
-When  移動完成
-Then  「客供」組 Σ借 減少 7,500，「租金」組 Σ借 增加 7,500
- And  摘要 X 不同時存在兩組
+Then  「客供」組顯示 15 筆，Σ借 = decimal.js 精確加總
 ```
 
 ### F2
-
 ```
 Given 借方 10,000（傳票A）與貸方 10,000（傳票B），摘要相同
-When  單筆模式掃描
-Then  系統推薦（A,B）配對，confidence = 'high'
- And  確認後兩筆移入「已確認」，未配對清單移除
-```
-
-```
-Given 群組模式，使用者勾選借方合計 30,000、貸方合計 29,999
-When  點「確認配對」
-Then  差額 1 元 > 0.01 → 紅字提示差額，按鈕禁用
+When  單筆掃描
+Then  推薦配對，confidence = 'high'，openingBalance 不出現在候選中
 ```
 
 ### F3
-
 ```
-Given 候選池 201 筆
-When  使用者嘗試點「開始計算」
-Then  按鈕為 disabled，紅字提示「目前 201 筆，請縮小至 200 筆以下」
-```
-
-```
-Given 候選池 25 筆，目標 100,000，誤差 0
-When  點「開始計算」
-Then  3 秒內返回，每個結果組合 Σ 誤差 ≤ 0.01（decimal.js 驗算）
-```
-
-### F4
-
-```
-Given 科目 1130 有兩筆：摘要「客供」金額 7,500，傳票號碼不同
-When  Rule A 掃描
-Then  結果出現一條 WARN，展開顯示兩筆傳票號碼與日期
-
-Given 使用者對 Rule A 結果點「已知悉」並二次確認
-When  確認完成
-Then  該條從清單隱藏，重新掃描後不再出現
+Given 篩選後候選池 201 筆
+When  嘗試點「開始計算」
+Then  按鈕為 disabled，提示「目前 201 筆，請縮小至 200 筆以下」
 ```
 
 ### F14
-
 ```
-Given 科目 1130 有：傳票 0102001（114-01-02，貸方 7,500）
-                       傳票 0102001（114-03-15，貸方 7,500）
+Given IGN-5 已排除跨頁重複後，仍存在：
+      傳票 0102001，科目 1130，114-01-02，貸方 7,500
+      傳票 0102001，科目 1130，114-03-15，貸方 7,500
 When  F14 掃描
-Then  結果出現一條 WARN，顯示兩筆日期與金額
- And  同科目同傳票同日期的多筆 → 不在 F14 出現（屬 F4 Rule C）
-```
-
-### F18
-
-```
-Given 科目 1130，摘要「客供」，114-03 金額 65,000（前月 48,000），門檻 20%
-When  分析完成
-Then  114-03 列顯示變動率 +35.4%，狀態標示 🔴
- And  114-02（-4%）狀態為 ✓
-```
-
-### F8
-
-```
-Given 使用者在 F2 點分錄行的「📌」
-When  點擊完成
-Then  浮動面板新增一筆，voucherNo 自動帶入，內容預填為該分錄摘要
- And  Badge 數字 +1
-
-Given 傳票欄位空白點「＋新增」
-When  點擊送出
-Then  阻擋，傳票欄位出現紅框與提示文字，不新增資料
+Then  結果出現此組，標示「同科目同傳票同金額，日期不同」
 ```
 
 ---
 
-## 7. 風險、假設與依賴
+## §9 風險與假設
 
 | ID | 類型 | 內容 | 對策 |
 |----|------|------|------|
-| R1 | 技術 | `/libs` 函式庫路徑不正確或缺失 | LibDetector 啟動時檢查，缺失時 Toast 警告並自動降級 |
-| R2 | 效能 | F3 Subset Sum 200 筆仍可能接近 3 秒上限 | Worker 硬中斷 + 顯示部分結果，不 block 主執行緒 |
-| R3 | 資料 | 其他 ERP 匯出欄位位置不同 | 欄位位置寫為設定常數（`COLUMN_MAP`），方便調整 |
-| R4 | 精度 | 浮點誤差導致沖帳/數字池誤判 | 全面使用 decimal.js，不使用原生浮點運算 |
-| A1 | 假設 | 欄位位置固定（見 §3.1 對照表）| 以實際 Excel 驗證後可調整 `COLUMN_MAP` |
-| A2 | 假設 | 傳票號碼格式可解析為數字序列（F4 Rule H）| 非數字格式自動跳過並提示 |
-| A3 | 假設 | fuse.js / simple-statistics 缺失時功能降級不中斷 | LibDetector 已設計降級路徑 |
+| R1 | 技術 | `/libs` 路徑不正確 | LibDetector 啟動檢查，缺失 Toast 警告並降級 |
+| R2 | 效能 | F3 接近 200 筆時 3 秒可能不足 | Worker 硬中斷，顯示部分結果 |
+| R3 | 資料 | 其他 ERP 欄位位置不同 | COLUMN_MAP 常數化，只改一處 |
+| R4 | 精度 | 浮點誤差導致沖帳/數字池誤判 | 全面 decimal.js，不用原生浮點 |
+| A1 | 假設 | 欄位位置固定（§3.1 對照表）| 以實際 Excel 驗證 |
+| A2 | 假設 | IGN-5 重複判斷以 5 個欄位為 key | 若摘要有微差異（換行/空格）仍可能誤判為不同，cleanSummary 需涵蓋所有變體 |
+| A3 | 假設 | 可選函式庫缺失時降級不中斷 | LibDetector 已設計降級路徑 |
 
 ---
 
-## 8. 交付清單
+## §10 交付清單
 
-**工程開工所需文件**：
+| 文件區塊 | 狀態 |
+|----------|------|
+| §0 全域忽略規則（IGN-1~5）完整規格 | ✅ |
+| §3 完整解析流程（含忽略整合）| ✅ |
+| §2 檔案結構與函式庫降級策略 | ✅ |
+| §4 AppState 完整定義 | ✅ |
+| §5 所有核心型別 | ✅ |
+| §6 F1~F18 功能規格（含前提宣告）| ✅ |
+| §7 全域 UI 規格 | ✅ |
+| §8 驗收標準 Given-When-Then | ✅ |
+| §9 風險假設清單 | ✅ |
 
-| 文件 | 狀態 |
-|------|------|
-| 資料型別定義（§2.3）| ✅ 完整 |
-| 欄位位置對照表（§3.1）| ✅ 完整 |
-| 解析規則（§3.2~3.5）| ✅ 完整 |
-| 各模組狀態機（§4）| ✅ 完整 |
-| 演算法虛擬碼（F1/F2/F3/F18）| ✅ 完整 |
-| Worker 通訊協議（§F3）| ✅ 完整 |
-| 所有模組 CSV 匯出欄位 | ✅ 完整 |
-| 驗收標準 Given-When-Then（§6）| ✅ 完整 |
-| 函式庫降級策略（§2.1）| ✅ 完整 |
-| 風險與假設清單（§7）| ✅ 完整 |
-
-**PRD v2 完成，無開放缺口，可直接排期開發。**
+**PRD v2.1 完成，無開放缺口，可直接排期開工。**
