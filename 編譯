@@ -1,0 +1,46 @@
+@echo off
+:: 設定編碼為 UTF-8，確保能正確讀取中文檔名與【】符號
+chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+echo =========================================
+echo       檔案自動分類系統 (依據【】關鍵字)
+echo =========================================
+echo.
+
+:: 尋找當前目錄下，檔名包含 【 和 】 的所有檔案
+for %%F in (*【*】*) do (
+    :: 確認目標是檔案而非資料夾
+    if not exist "%%F\" (
+        set "filename=%%~nxF"
+
+        :: 利用分隔符號提取 【】 內的文字作為關鍵字
+        for /f "tokens=2 delims=【】" %%K in ("!filename!") do (
+            set "keyword=%%K"
+
+            :: 檢查以該關鍵字命名的資料夾是否存在
+            if exist "!keyword!\" (
+                :: 資料夾已存在，直接移動並在終端機告知
+                move "%%F" "!keyword!\" >nul
+                echo [已歸檔] "%%F" -^> 資料夾 [!keyword!]
+            ) else (
+                :: 資料夾不存在，新增資料夾並移動檔案
+                md "!keyword!"
+                move "%%F" "!keyword!\" >nul
+                echo [新建立並歸檔] "%%F" -^> 資料夾 [!keyword!]
+
+                :: 產生並執行暫存的 VBScript 來顯示彈出提醒框
+                echo MsgBox "系統已自動新增資料夾：【!keyword!】" ^& vbCrLf ^& "檔案已成功移入。", 64, "自動歸檔提醒" > "%temp%\folder_alert.vbs"
+                cscript //nologo "%temp%\folder_alert.vbs"
+                del "%temp%\folder_alert.vbs"
+            )
+        )
+    )
+)
+
+echo.
+echo =========================================
+echo 掃描與整理完成！
+echo 檔名中沒有【】的檔案已略過，不進行任何改動。
+echo =========================================
+pause
